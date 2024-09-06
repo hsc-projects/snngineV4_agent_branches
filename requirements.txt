@@ -1,0 +1,28 @@
+PyMeasure==0.14.0
+pyqtgraph==0.13.7
+lxml==5.3.0
+numba==0.60.0
+numpy==2.0.2
+pandas==2.2.2
+pydantic==2.9.0
+pydantic-settings==2.4.0
+pyopengl==3.1.7
+# pyqt6==6.7.1
+PySide6==6.7.2
+pyqtdarktheme==0.1.7
+torch==2.4.1  # +cu124
+vispy==0.14.3
+
+
+# PYCUDA
+# git clone https://github.com/inducer/pycuda.git
+# git submodule update --init
+# cd ./pycuda
+# python ./configure.py --cuda-root=/usr/local/cuda/bin   --no-cuda-enable-gl
+# make
+# sudo make install
+# pip instal (-e) .
+# pycuda~=2021.1
+pycuda==2024.1.2
+
+qtpy~=2.4.1
