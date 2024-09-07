@@ -1,7 +1,4 @@
-from vispy import gloo
-
 from snngine_v4.config.engine_config_model import EngineConfig
-from snngine_v4.opengl.cuda.gl_interop.gl_buffer import GLBuffer
 
 
 class SNNgine:
@@ -9,12 +6,14 @@ class SNNgine:
 
         # noinspection PyUnresolvedReferences
         from pycuda import autoinit
-        gloo.gl.use_gl('gl+')
+        from vispy import gloo
 
         if settings is None:
             settings = EngineConfig()
 
         self.conf = settings
+        gloo.gl.use_gl(self.conf.open_gl_config.gloo_target)
 
     def close(self):
+        from snngine_v4.visualization.cuda.gl_interop.gl_buffer import GLBuffer
         GLBuffer.GLOBAL_MAP.unregister_all()

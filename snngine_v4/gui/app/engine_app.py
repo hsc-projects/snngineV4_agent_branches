@@ -1,6 +1,9 @@
+import qdarktheme
 from vispy.app import Application
 
-from snngine_v4.config.engine_config_model import EngineAppConfig, EngineConfig
+from snngine_v4.config.engine_config_model import EngineConfig
+from snngine_v4.config.app_config_model import EngineAppConfig
+from snngine_v4.gui.windows.main_window import MainEngineWindow
 from snngine_v4.snngine import SNNgine
 
 
@@ -15,7 +18,18 @@ class EngineApp(Application):
             engine = engine_or_settings
 
         self.engine = engine
+
         super().__init__(backend_name=self.conf.backend_name)
+        # noinspection PyProtectedMember
+        self._backend._vispy_get_native_app()
+
+        qdarktheme.setup_theme(
+            theme=self.conf.theme.name,
+            corner_shape=self.conf.corner_shape.name,
+        )
+
+        self.window = MainEngineWindow(engine.conf)
+        self.window.show()
 
     @property
     def conf(self) -> EngineAppConfig:

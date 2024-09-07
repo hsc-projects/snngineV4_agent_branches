@@ -1,13 +1,8 @@
-from snngine_v4.utils.parameter_model.settings_model import BaseSettingsModel
-
-
-class EngineAppConfig(BaseSettingsModel):
-
-    backend_name: str = "pyside6"
+from snngine_v4.config.app_config_model import EngineAppConfig
+from snngine_v4.config.base.base_settings_model import BaseSettingsModel
 
 
 class OpenGLConfig(BaseSettingsModel):
-
     gloo_target: str = "gl+"
 
 
