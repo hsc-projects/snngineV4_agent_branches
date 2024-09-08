@@ -105,10 +105,10 @@ class ConfigurableContainerBase:
         return item
 
     def validate_keys(self, keys):
-        if self._container_conf.allowed_key_types is not None:
-            self.cls_validate_values(
-                items=keys, type_=self._container_conf.allowed_key_types,
-                b_duplicate_check=True)
+        keys = self.cls_validate_values(
+            items=keys, type_=self._container_conf.allowed_key_types,
+            b_duplicate_check=True)
+        return keys
 
     def validate_items(self, items):
         if isinstance(items, dict):

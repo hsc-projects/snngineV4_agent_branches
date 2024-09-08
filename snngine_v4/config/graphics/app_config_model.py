@@ -17,7 +17,8 @@ class EngineAppCornerShapeType(IntEnum):
 
 class EngineAppConfig(BaseSettingsModel):
 
-    ui_opts: ParameterUIOpts = ParameterUIOpts()
+    ui_opts: ParameterUIOpts = ParameterUIOpts(readonly=True,
+                                               movable=False)
 
     backend_name: str = "pyside6"
     theme: EngineAppThemeType = EngineAppThemeType.dark

@@ -1,60 +1,46 @@
 from qtpy import QtCore, QtWidgets
 
+from snngine_v4.config.engine_config_model import EngineConfig
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
     EngineParameterTree
+from snngine_v4.gui.windows.settings_window import SettingsWindow
 
 
 class MainEngineWindow(QtWidgets.QMainWindow):
-    def __init__(self, settings):
+
+    def __init__(self, settings: EngineConfig):
         super().__init__()
 
         self.main = QtWidgets.QWidget(self)
         self.setCentralWidget(self.main)
 
+        self.setMenuBar(QtWidgets.QMenuBar())
+
         self.main.setLayout(QtWidgets.QVBoxLayout())
         self.main.layout().setContentsMargins(0, 0, 0, 0)
-        self.splitter = QtWidgets.QSplitter()
-        self.main.layout().addWidget(self.splitter)
-
-        self.label0 = QtWidgets.QLabel('Label0')
-        self.label1 = QtWidgets.QLabel('Label1')
-        self.label2 = QtWidgets.QLabel('Label2')
-        self.label3 = QtWidgets.QLabel('Label3')
-
-        # self.splitter.addWidget(self.label0)
-        # self.splitter.addWidget(self.label1)
 
         dock_options = self.dockOptions()
         dock_options |= QtWidgets.QMainWindow.DockOption.VerticalTabs
         dock_options |= QtWidgets.QMainWindow.DockOption.AllowNestedDocks
-        # dock_options |= QtWidgets.QMainWindow.DockOption.ForceTabbedDocks
-
         self.setDockOptions(dock_options)
+
+        self.settings_window = SettingsWindow(settings=settings)
+
         self.setCorner(QtCore.Qt.Corner.TopLeftCorner,
                        QtCore.Qt.DockWidgetArea.LeftDockWidgetArea)
         self.setCorner(QtCore.Qt.Corner.BottomLeftCorner,
                        QtCore.Qt.DockWidgetArea.LeftDockWidgetArea)
 
-        construction_dock = QtWidgets.QDockWidget('Construction')
-        construction_dock.setWidget(self.label2)
-        construction_dock.setFeatures(
-            QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable
-            | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable)
-        self.addDockWidget(
-            QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, construction_dock)
+        self.construction_tree = EngineParameterTree(settings.construction)
+        construction_tree_dock = self.construction_tree.set_q_dock_widget()
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
+                           construction_tree_dock)
 
-        wdg = QtWidgets.QWidget()
-        wdg.setLayout(QtWidgets.QVBoxLayout())
-        wdg.layout().addWidget(self.label3)
-        simulation_dock = QtWidgets.QDockWidget('Simulation')
-        simulation_dock.setWidget(wdg)
-        simulation_dock.setFeatures(
-            QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable
-            | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable)
-        self.addDockWidget(
-            QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
-            simulation_dock)
-        self.tabifyDockWidget(construction_dock, simulation_dock)
+        self.setup_menu_bar()
 
-        self.tree = EngineParameterTree(settings)
-        wdg.layout().addWidget(self.tree)
+
+    def setup_menu_bar(self):
+        file_menu = self.menuBar().addMenu('&File')
+        settings_action = QtWidgets.QAction('&Settings', self)
+        file_menu.addAction(settings_action)
+        settings_action.triggered.connect(self.settings_window.show)
