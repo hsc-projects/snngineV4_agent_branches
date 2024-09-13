@@ -1,7 +1,7 @@
 from vispy.scene import Grid, ViewBox, XYZAxis
 from vispy.visuals.transforms import STTransform
 
-from snngine_v4.config.graphics.scene_config import VispyCanvasConfig
+from snngine_v4.config.graphics.scene_config import VispyCanvasOptions
 from snngine_v4.visualization.scenes.engine_scene import EngineSceneCanvas
 from snngine_v4.visualization.scenes.connectable_camera import \
     ConnectableTurntableCamera
@@ -9,9 +9,8 @@ from snngine_v4.visualization.scenes.connectable_camera import \
 
 class MainNetworkSceneCanvas(EngineSceneCanvas):
 
-    def __init__(self, conf: VispyCanvasConfig,
-                 app, name: str | None = None):
-        super().__init__(conf, app, name=name)
+    def __init__(self, conf: VispyCanvasOptions, app):
+        super().__init__(conf, app)
 
         self.scene_view: ViewBox = self.central_widget.add_view(
             camera=ConnectableTurntableCamera(name='MainCamera')

@@ -1,9 +1,11 @@
-from snngine_v4.config.base.base_settings_model import BaseSettingsModel
-from snngine_v4.config.base.ui_options import ParameterUIOpts
+from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
+from snngine_v4.utils.settings.settings_keywords import ParameterUIOpts
 
 
-class OpenGLConfig(BaseSettingsModel, frozen=True):
+class OpenGLConfig(XMLSettingsModel):
 
-    ui_opts: ParameterUIOpts = ParameterUIOpts(movable=False)
+    ui_opts: ParameterUIOpts = ParameterUIOpts(
+        readonly=True,
+        movable=False)
 
     gloo_target: str = "gl+"

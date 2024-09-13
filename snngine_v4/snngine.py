@@ -12,7 +12,7 @@ class SNNgine:
             settings = EngineConfig()
 
         self.conf = settings
-        gloo.gl.use_gl(self.conf.open_gl_config.gloo_target)
+        gloo.gl.use_gl(self.conf.open_gl.gloo_target)
 
     def close(self):
         from snngine_v4.visualization.cuda.gl_interop.gl_buffer import GLBuffer

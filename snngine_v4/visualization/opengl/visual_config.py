@@ -6,7 +6,7 @@ from typing import ClassVar, NamedTuple
 from PySide6.QtWidgets import QMainWindow
 from vispy.scene import SceneCanvas, ViewBox
 
-from snngine_v4.config.base.base_settings_model import BaseSettingsModel
+from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
 class EngineObjectKeys:
@@ -28,7 +28,7 @@ class GLBufferType(IntEnum):
     NORMALS = auto()
 
 
-class VisualEngineObjectConfig(BaseSettingsModel):
+class VisualEngineObjectConfig(XMLSettingsModel):
     name: str | None = None
     interactive: bool | None = None
 

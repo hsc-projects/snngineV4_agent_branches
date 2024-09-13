@@ -8,7 +8,7 @@ from snngine_v4.gui.windows.settings_window import SettingsWindow
 
 class MainEngineWindow(QtWidgets.QMainWindow):
 
-    def __init__(self, settings: EngineConfig):
+    def __init__(self, engine_config: EngineConfig):
         super().__init__()
 
         self.main = QtWidgets.QWidget(self)
@@ -24,20 +24,23 @@ class MainEngineWindow(QtWidgets.QMainWindow):
         dock_options |= QtWidgets.QMainWindow.DockOption.AllowNestedDocks
         self.setDockOptions(dock_options)
 
-        self.settings_window = SettingsWindow(settings=settings)
+        self.settings_window = SettingsWindow(engine_config=engine_config)
 
         self.setCorner(QtCore.Qt.Corner.TopLeftCorner,
                        QtCore.Qt.DockWidgetArea.LeftDockWidgetArea)
         self.setCorner(QtCore.Qt.Corner.BottomLeftCorner,
                        QtCore.Qt.DockWidgetArea.LeftDockWidgetArea)
 
-        self.construction_tree = EngineParameterTree(settings.construction)
+        construction_pars = self.settings_window.setting_trees[
+                EngineConfig.Slots.CONSTRUCTION].parameters
+        self.construction_tree = EngineParameterTree.from_pars(
+            pars=construction_pars
+        )
         construction_tree_dock = self.construction_tree.set_q_dock_widget()
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
                            construction_tree_dock)
 
         self.setup_menu_bar()
-
 
     def setup_menu_bar(self):
         file_menu = self.menuBar().addMenu('&File')

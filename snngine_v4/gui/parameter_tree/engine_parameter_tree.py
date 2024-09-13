@@ -9,16 +9,17 @@ from snngine_v4.gui.parameter_tree.signal_register import SignalMapRegister
 class EngineParameterTree(ParameterTree):
 
     # noinspection PyPep8Naming
-    def __init__(self, model: BaseModel,
+    def __init__(self, model: BaseModel = None,
                  parent=None, showHeader=True):
 
         super().__init__(parent=parent, showHeader=showHeader)
 
         self.settings_model = model
-        settings_model_dict = self.settings_model.model_dump()
         self.signal_register = SignalMapRegister()
-        self.parameters = self.add_parameters_from_model(
-            self.settings_model, model_dict=settings_model_dict)
+        if model is not None:
+            settings_model_dict = self.settings_model.model_dump()
+            self.parameters = self.add_parameters_from_model(
+                self.settings_model, model_dict=settings_model_dict)
 
         self._q_dock_widget = None
 
@@ -31,9 +32,21 @@ class EngineParameterTree(ParameterTree):
         self.addParameters(pars)
         return pars
 
-    def sizeHint(self):
-        hint = super().sizeHint()
-        return QtCore.QSize(hint.width(), hint.height() + 20)
+    # noinspection PyPep8Naming
+    @classmethod
+    def from_pars(cls, pars, root=None, depth=0, showTop=True, model=None):
+        tree = cls()
+        tree.addParameters(pars, root=root, depth=depth, showTop=showTop)
+        tree.settings_model = model
+        return tree
+
+    @property
+    def name(self):
+        if self.settings_model is not None:
+            name = self.settings_model.__class__.__name__
+        else:
+            name = self.objectName()
+        return name
 
     @property
     def q_dock_widget(self):
@@ -44,14 +57,21 @@ class EngineParameterTree(ParameterTree):
             raise PermissionError
 
         if name is None:
-            name = self.settings_model.__class__.__name__
+            if self.settings_model is not None:
+                name = self.settings_model.__class__.__name__
+            else:
+                name = self.objectName()
 
         dock = QtWidgets.QDockWidget(name)
         dock.setWidget(self)
         if features is None:
             features = (
-                QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable
-                | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable)
+                    QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable
+                    | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable)
         dock.setFeatures(features)
         self._q_dock_widget = dock
         return self._q_dock_widget
+
+    def sizeHint(self):
+        hint = super().sizeHint()
+        return QtCore.QSize(hint.width(), hint.height() + 20)

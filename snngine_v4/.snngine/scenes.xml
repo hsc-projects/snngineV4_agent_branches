@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf8"?>
+<dict>
+  <scenes type="dict">
+    <DictItem type="dict" key="main">
+      <DictItem type="dict" key="ui_opts">
+        <DictItem type="NoneType" key="title">None</DictItem>
+        <DictItem type="NoneType" key="name">None</DictItem>
+        <DictItem type="bool" key="expanded">True</DictItem>
+        <DictItem type="bool" key="readonly">True</DictItem>
+        <DictItem type="bool" key="movable">False</DictItem>
+        <DictItem type="bool" key="dropEnabled">False</DictItem>
+        <DictItem type="bool" key="renamable">True</DictItem>
+      </DictItem>
+      <DictItem type="str" key="title">NetworkView</DictItem>
+      <DictItem type="list" key="size">
+        <ListElementElement type="int">1600</ListElementElement>
+        <ListElementElement type="int">1200</ListElementElement>
+      </DictItem>
+      <DictItem type="NoneType" key="position">None</DictItem>
+      <DictItem type="bool" key="show">False</DictItem>
+      <DictItem type="bool" key="autoswap">True</DictItem>
+      <DictItem type="bool" key="create_native">True</DictItem>
+      <DictItem type="bool" key="vsync">False</DictItem>
+      <DictItem type="bool" key="resizable">True</DictItem>
+      <DictItem type="bool" key="decorate">True</DictItem>
+      <DictItem type="bool" key="fullscreen">False</DictItem>
+      <DictItem type="dict" key="config">
+        <DictItem type="dict" key="ui_opts">
+          <DictItem type="NoneType" key="title">None</DictItem>
+          <DictItem type="NoneType" key="name">None</DictItem>
+          <DictItem type="bool" key="expanded">True</DictItem>
+          <DictItem type="bool" key="readonly">True</DictItem>
+          <DictItem type="bool" key="movable">False</DictItem>
+          <DictItem type="bool" key="dropEnabled">False</DictItem>
+          <DictItem type="bool" key="renamable">True</DictItem>
+        </DictItem>
+        <DictItem type="int" key="red_size">8</DictItem>
+        <DictItem type="int" key="green_size">8</DictItem>
+        <DictItem type="int" key="blue_size">8</DictItem>
+        <DictItem type="int" key="alpha_size">8</DictItem>
+        <DictItem type="int" key="depth_size">24</DictItem>
+        <DictItem type="int" key="stencil_size">0</DictItem>
+        <DictItem type="bool" key="double_buffer">True</DictItem>
+        <DictItem type="bool" key="stereo">False</DictItem>
+        <DictItem type="int" key="samples">0</DictItem>
+      </DictItem>
+      <DictItem type="str" key="keys">interactive</DictItem>
+      <DictItem type="NoneType" key="dpi">None</DictItem>
+      <DictItem type="bool" key="always_on_top">False</DictItem>
+      <DictItem type="int" key="px_scale">1</DictItem>
+      <DictItem type="str" key="bgcolor">black</DictItem>
+      <DictItem type="dict" key="central_widget_options">
+        <DictItem type="dict" key="ui_opts">
+          <DictItem type="NoneType" key="title">None</DictItem>
+          <DictItem type="NoneType" key="name">None</DictItem>
+          <DictItem type="bool" key="expanded">True</DictItem>
+          <DictItem type="bool" key="readonly">True</DictItem>
+          <DictItem type="bool" key="movable">False</DictItem>
+          <DictItem type="bool" key="dropEnabled">False</DictItem>
+          <DictItem type="bool" key="renamable">True</DictItem>
+        </DictItem>
+        <DictItem type="list" key="pos">
+          <ListElementElement type="int">0</ListElementElement>
+          <ListElementElement type="int">0</ListElementElement>
+        </DictItem>
+        <DictItem type="list" key="size">
+          <ListElementElement type="int">10</ListElementElement>
+          <ListElementElement type="int">10</ListElementElement>
+        </DictItem>
+        <DictItem type="str" key="border_color">darkslategrey</DictItem>
+        <DictItem type="int" key="border_width">2</DictItem>
+        <DictItem type="list" key="bgcolor">
+          <ListElementElement type="float">0.0</ListElementElement>
+          <ListElementElement type="float">0.0</ListElementElement>
+          <ListElementElement type="float">0.0</ListElementElement>
+          <ListElementElement type="float">0.0</ListElementElement>
+        </DictItem>
+        <DictItem type="int" key="padding">2</DictItem>
+        <DictItem type="int" key="margin">0</DictItem>
+      </DictItem>
+    </DictItem>
+  </scenes>
+</dict>

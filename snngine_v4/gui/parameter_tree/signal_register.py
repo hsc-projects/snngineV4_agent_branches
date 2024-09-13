@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
-from inspect import Parameter
 from typing import ClassVar, Type
 
+from pyqtgraph.parametertree import Parameter
 from pyqtgraph.parametertree.parameterTypes import ListParameter
 from qtpy import QtCore
 
@@ -16,8 +16,7 @@ class SetAttributeEmitterBase(QtCore.QObject):
     """
     Base class for emitting signals when attributes are set.
     """
-    sigAttributeValueChanged = QtCore.Signal(
-        object, str, object)
+    sigAttributeValueChanged = QtCore.Signal(object, str, object)
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -54,7 +53,7 @@ class ParameterMap(ConfigurableDict):
 @dataclass
 class SignalMapItem:
     emitters: SetAttributeEmitterMap = field(default_factory=dict)
-    parameters: ParameterMap = field(default_factory=dict)
+    parameters: ParameterMap = field(default_factory=ParameterMap)
 
     def add_connection(self, key, parameter: Parameter):
         self.parameters[key] = parameter
@@ -109,6 +108,9 @@ class SignalMapRegister(ConfigurableDict):
     # noinspection PyPep8Naming
     def get_sigAttributeValueChanged(self, obj, key):
         return self.get_emitter(obj, key).sigAttributeValueChanged
+
+    def get_parameter(self, model, key) -> Parameter:
+        return self.data[id(model)].parameters[key]
 
     @staticmethod
     def get_parameter_signal(parameter):

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf8"?>
+<dict>
+  <app type="dict">
+    <DictItem type="dict" key="ui_opts">
+      <DictItem type="NoneType" key="title">None</DictItem>
+      <DictItem type="NoneType" key="name">None</DictItem>
+      <DictItem type="bool" key="expanded">True</DictItem>
+      <DictItem type="bool" key="readonly">True</DictItem>
+      <DictItem type="bool" key="movable">False</DictItem>
+      <DictItem type="bool" key="dropEnabled">False</DictItem>
+      <DictItem type="bool" key="renamable">True</DictItem>
+    </DictItem>
+    <DictItem type="str" key="backend_name">pyside6</DictItem>
+    <DictItem type="int" key="theme">0</DictItem>
+    <DictItem type="int" key="corner_shape">1</DictItem>
+  </app>
+</dict>

@@ -1,14 +1,14 @@
 from collections import UserDict, UserList
 from typing import ClassVar, Type
 
-from snngine_v4.config.base.base_settings_model import BaseSettingsModel
+from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
 class ExtensionByDuplicateError(Exception):
     pass
 
 
-class ContainerConfig(BaseSettingsModel, frozen=True):
+class ContainerConfig(XMLSettingsModel, frozen=True):
     allowed_types: tuple[Type] | Type | None = None
     allowed_key_types: tuple[Type] | Type | None = None
     b_duplicates_allowed: bool = False

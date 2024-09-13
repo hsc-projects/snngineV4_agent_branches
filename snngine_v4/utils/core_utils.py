@@ -88,3 +88,8 @@ def pop_enum_keys(dct, enum_class):
             if x.name in dct:
                 res[x.name] = dct.pop(x.name)
     return res
+
+
+def type_assertion(item, _type):
+    if not isinstance(item, _type):
+        raise TypeError(f'Expected {_type}, got {item}')

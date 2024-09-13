@@ -1,16 +1,9 @@
+from __future__ import annotations
+
 from typing import ClassVar
 
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings
-
-
-# class JSEKW:
-#     """
-#     'json_schema_extra' keywords
-#     """
-#     # ENUM: ClassVar[str] = 'enum'
-#     B_READ_ONLY: ClassVar[str] = 'b_read_only'
-#
-#     SUFFIX: ClassVar[str] = 'suffix'
 
 
 class PGParameterOptionKW:
@@ -34,6 +27,8 @@ class PGParameterOptionKW:
 
     LIMITS: ClassVar[str] = 'limits'
     SUFFIX: ClassVar[str] = 'suffix'
+
+    ENUM: ClassVar[str] = 'enum'
 
 
 class ParameterUIOpts(BaseSettings):
@@ -89,3 +84,19 @@ class ParameterUIOpts(BaseSettings):
     readonly: bool = False
     movable: bool = False
     dropEnabled: bool = False
+    renamable: bool = True
+
+
+class BaseSettingsSlots:
+
+    FROZEN: ClassVar[str] = 'frozen'
+
+    XML_FILE: ClassVar[str] = 'xml_file'
+
+    SUB_SETTINGS_FILE_NAME_PATTERN: ClassVar[str] = '{sub_settings}'
+
+    @classmethod
+    def b_is_frozen(cls, model: BaseModel) -> bool:
+        # noinspection PyTypedDict
+        return model.model_config.get(
+            cls.FROZEN, False)

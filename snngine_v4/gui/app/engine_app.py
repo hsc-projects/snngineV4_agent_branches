@@ -32,13 +32,15 @@ class EngineApp(Application):
 
         self.window = MainEngineWindow(engine.conf)
         self.window.show()
+        self.window.settings_window.show()
+
+        self.engine.conf.export()
 
         self.main_network_scene = MainNetworkSceneCanvas(
-            conf=self.engine.conf.scene_config.main, app=self)
+            conf=self.engine.conf.scenes.main, app=self)
 
         self.window.main.layout().addWidget(self.main_network_scene.native)
 
-
     @property
     def conf(self) -> EngineAppConfig:
-        return self.engine.conf.app_config
+        return self.engine.conf.app

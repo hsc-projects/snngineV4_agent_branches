@@ -1,7 +1,7 @@
 from enum import IntEnum
 
-from snngine_v4.config.base.base_settings_model import BaseSettingsModel
-from snngine_v4.config.base.ui_options import ParameterUIOpts
+from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
+from snngine_v4.utils.settings.settings_keywords import ParameterUIOpts
 
 
 class EngineAppThemeType(IntEnum):
@@ -15,10 +15,9 @@ class EngineAppCornerShapeType(IntEnum):
     sharp = 1
 
 
-class EngineAppConfig(BaseSettingsModel):
+class EngineAppConfig(XMLSettingsModel):
 
-    ui_opts: ParameterUIOpts = ParameterUIOpts(readonly=True,
-                                               movable=False)
+    ui_opts: ParameterUIOpts = ParameterUIOpts(readonly=True)
 
     backend_name: str = "pyside6"
     theme: EngineAppThemeType = EngineAppThemeType.dark
