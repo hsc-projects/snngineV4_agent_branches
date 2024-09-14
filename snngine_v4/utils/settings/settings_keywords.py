@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
 
-class PGParameterOptionKW:
+class PGParOption:
 
     TYPE: ClassVar[str] = 'type'
 
@@ -25,10 +25,14 @@ class PGParameterOptionKW:
     SYNC_EXPANDED: ClassVar[str] = 'syncExpanded'
     TITLE: ClassVar[str] = 'title'
 
+    STEP: ClassVar[str] = 'step'
+    DECIMALS: ClassVar[str] = 'decimals'
+    DEC: ClassVar[str] = 'dec'
     LIMITS: ClassVar[str] = 'limits'
     SUFFIX: ClassVar[str] = 'suffix'
 
-    ENUM: ClassVar[str] = 'enum'
+    # Custom
+    CUSTOM_NUMERIC_GROUP: ClassVar[str] = 'c_numeric'
 
 
 class ParameterUIOpts(BaseSettings):
@@ -84,7 +88,7 @@ class ParameterUIOpts(BaseSettings):
     readonly: bool = False
     movable: bool = False
     dropEnabled: bool = False
-    renamable: bool = True
+    renamable: bool = False
 
 
 class BaseSettingsSlots:

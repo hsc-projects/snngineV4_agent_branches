@@ -1,4 +1,4 @@
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets, QtGui
 
 from snngine_v4.snngine_config import EngineConfig
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
@@ -41,6 +41,14 @@ class MainEngineWindow(QtWidgets.QMainWindow):
                            construction_tree_dock)
 
         self.setup_menu_bar()
+
+        window_config = engine_config.app.windows.main
+        # noinspection PyTypeChecker
+        # app: QtGui.QGuiApplication = QtWidgets.QApplication.instance()
+        # main_window_geometry = app.screens()[
+        #     window_config.screen].availableGeometry()
+        self.resize(*window_config.size)
+        # self.show()
 
     def setup_menu_bar(self):
         file_menu = self.menuBar().addMenu('&File')

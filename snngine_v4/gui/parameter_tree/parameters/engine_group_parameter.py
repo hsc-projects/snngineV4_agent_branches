@@ -1,0 +1,118 @@
+from pyqtgraph.parametertree import Parameter, ParameterItem
+from pyqtgraph.parametertree.parameterTypes import (
+    GroupParameter,
+    GroupParameterItem,
+)
+from qtpy import QtWidgets
+
+from snngine_v4.gui.icons import getEngineGraphIcon
+from snngine_v4.utils.settings.settings_keywords import PGParOption
+
+
+class EngineGroupParameterItem(GroupParameterItem):
+
+    def __init__(self, param, depth):
+
+        self._n_added_sliders = 0
+
+        GroupParameterItem.__init__(self, param, depth)
+
+        self.defaultBtn = self.makeDefaultButton()
+        layout = QtWidgets.QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+        layout.addStretch(0)
+
+        self.layoutWidget = QtWidgets.QWidget()
+        self.layoutWidget.setLayout(layout)
+
+        if PGParOption.CUSTOM_NUMERIC_GROUP in param.opts:
+            pass
+
+        layout.addWidget(self.defaultBtn)
+        param.sigChildAdded.connect(self.updateDefaultBtn)
+        param.sigChildRemoved.connect(self.updateDefaultBtn)
+        self.updateDefaultBtn()
+
+    def addChild(self, child):
+        super().addChild(child)
+        from snngine_v4.gui.parameter_tree.parameters \
+            .spin_box_slider_parameter import \
+            SpinBoxSliderParameterItem
+        if isinstance(child, SpinBoxSliderParameterItem):
+            self.add_engine_slider_parameter_widgets(child)
+
+    def add_engine_slider_parameter_widgets(self, wdg):
+        if PGParOption.CUSTOM_NUMERIC_GROUP not in self.param.opts:
+            raise PermissionError
+        from snngine_v4.gui.parameter_tree.parameters \
+            .spin_box_slider_parameter import \
+            SpinBoxSliderParameterItem
+        wdg: SpinBoxSliderParameterItem
+        idx = self._n_added_sliders
+
+        if idx == 0:
+            w = self.layoutWidget.layout().takeAt(0)
+            self.layoutWidget.layout().removeItem(w)
+
+        self.layoutWidget.layout().insertWidget(idx * 2, wdg.widget)
+        self.layoutWidget.layout().insertWidget(idx * 2, wdg.displayLabel)
+        wdg.displayLabel.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+
+        # wdg.param.sigValueChanged.disconnect(self.updateDefaultBtn)
+        wdg.param.sigValueChanged.connect(self.updateDefaultBtn)
+
+        wdg.layoutWidget.layout().insertWidget(0, wdg.slider)
+        self._n_added_sliders += 1
+
+    # noinspection PyPep8Naming
+    def defaultClicked(self):
+        for i in range(self.childCount()):
+            c = self.child(i)
+            if isinstance(c, ParameterItem):
+                c.defaultClicked()
+        self.updateDefaultBtn()
+
+    # noinspection PyPep8Naming
+    def makeDefaultButton(self):
+        defaultBtn = QtWidgets.QPushButton()
+        defaultBtn.setAutoDefault(False)
+        defaultBtn.setFixedWidth(20)
+        defaultBtn.setFixedHeight(20)
+        defaultBtn.setIcon(getEngineGraphIcon('kamiyamane/default'))
+        defaultBtn.clicked.connect(self.defaultClicked)
+        return defaultBtn
+
+    def treeWidgetChanged(self):
+        super().treeWidgetChanged()
+        tree = self.treeWidget()
+        if PGParOption.CUSTOM_NUMERIC_GROUP in self.param.opts:
+            self.setFirstColumnSpanned(False)
+            tree.setItemWidget(self, 1, self.layoutWidget)
+
+    # noinspection PyPep8Naming
+    def updateDefaultBtn(self):
+        enabled = False
+        for i in range(self.childCount()):
+            c = self.child(i)
+            if isinstance(c, ParameterItem):
+                enabled = c.defaultBtn.isEnabled()
+                if enabled:
+                    break
+        self.defaultBtn.setEnabled(enabled)
+
+
+class EngineGroupParameter(GroupParameter):
+
+    itemClass = EngineGroupParameterItem
+
+    def makeTreeItem(self, depth) -> EngineGroupParameterItem:
+        return super().makeTreeItem(depth=depth)
+
+    def setToDefault(self):
+        for param in self.children():
+            param: Parameter
+            param.setToDefault()

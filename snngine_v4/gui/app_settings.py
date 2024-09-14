@@ -14,8 +14,19 @@ class AppCornerShapeType(IntEnum):
     sharp = 1
 
 
+class WindowSettings(XMLSettingsModel):
+    screen: int = 0
+    size: tuple[int, int] = (1600, 1000)
+
+
+class Windows(XMLSettingsModel):
+    main: WindowSettings
+
+
 class AppSettings(XMLSettingsModel):
 
     backend_name: str = "pyside6"
     theme: AppThemeType = AppThemeType.dark
     corner_shape: AppCornerShapeType = AppCornerShapeType.sharp
+
+    windows: Windows

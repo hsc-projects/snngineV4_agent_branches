@@ -6,6 +6,9 @@ from pyqtgraph.parametertree.parameterTypes import (
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.icons import getEngineGraphIcon
+from snngine_v4.gui.parameter_tree.parameters.engine_group_parameter import \
+    EngineGroupParameterItem
+from snngine_v4.utils.settings.settings_keywords import PGParOption
 
 
 class CustomSlider(QtWidgets.QSlider):
@@ -19,24 +22,34 @@ class SpinBoxSliderParameterItem(NumericParameterItem):
 
     def __init__(self, param, depth):
         super().__init__(param, depth)
+
+        # self.slider_layout = QtWidgets.QHBoxLayout()
+        # self.slider_layout.setContentsMargins(0, 0, 0, 0)
+        # self.slider_layout.setSpacing(2)
+        #
         self.slider = self.make_slider_widget()
+        # self.slider_layout.addStretch(0)
+        # self.slider_layout.addWidget(self.slider)
+
         w = self.layoutWidget.layout().takeAt(2)
         self.layoutWidget.layout().removeItem(w)
-        self.layoutWidget.layout().insertWidget(2, self.slider)
-
-        width = param.opts.get('precision', 2) * 10 + 10
-
-        self.widget.setMaximumWidth(width)
-        self.widget.setMinimumWidth(100)
-        self.displayLabel.setMinimumWidth(100)
-        self.layoutWidget.setMinimumWidth(300)
-        self.displayLabel.setMaximumWidth(width)
+        # self.layoutWidget.layout().insertWidget(2, self.slider)
+        #
+        # width = param.opts.get('precision', 2) * 20 + 15
+        # min_wdg_width = min(width, 100)
+        # self.widget.setMaximumWidth(width)
+        # self.widget.setMinimumWidth(min_wdg_width)
+        # self.displayLabel.setMinimumWidth(min_wdg_width)
+        # self.layoutWidget.setMinimumWidth(200)
+        # self.displayLabel.setMaximumWidth(width)
         self.slider.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Expanding,
             QtWidgets.QSizePolicy.Policy.Expanding,
         )
-        self.widget.setOpts(compactHeight=False)
-        self.optsChanged(self.param, {'span': self.span})
+        # self.widget.setOpts(compactHeight=False)
+        # self.optsChanged(self.param, {'span': self.span})
+        self.param._modifiedSinceReset = False
+        self.updateDefaultBtn()
 
     def optsChanged(self, param, opts):
         super().optsChanged(param, opts)
@@ -81,8 +94,9 @@ class SpinBoxSliderParameterItem(NumericParameterItem):
         opts = param.opts
 
         opts.setdefault(
-            'limits',
-            [0, 0] if 'limits' not in opts else opts['limits'])
+            PGParOption.LIMITS,
+            [0, 0] if PGParOption.LIMITS not in opts
+            else opts[PGParOption.LIMITS])
 
         slider = CustomSlider()
 
@@ -115,20 +129,41 @@ class SpinBoxSliderParameterItem(NumericParameterItem):
             if len_span != 100:
                 slider.setMaximum(len_span - 1)
         else:
-            slider.setMinimum(param.opts['limits'][0])
-            slider.setMaximum(param.opts['limits'][-1])
+            slider.setMinimum(param.opts[PGParOption.LIMITS][0])
+            slider.setMaximum(param.opts[PGParOption.LIMITS][-1])
 
         slider.setValue(slider_value)
         # slider.focus_in_parent = self
         return slider
 
+    def hideEditor(self):
+        super().hideEditor()
+        self.slider.clearFocus()
+
     def showEditor(self):
         super().showEditor()
         self.slider.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
 
-    def hideEditor(self):
-        super().hideEditor()
-        self.slider.clearFocus()
+    def treeWidgetChanged(self):
+        super().treeWidgetChanged()
+        tree = self.treeWidget()
+
+        parent = self.parent()
+
+        if isinstance(parent, EngineGroupParameterItem):
+            pass
+            # parent.add_engine_slider_parameter_widgets(self)
+        else:
+            col_count = tree.columnCount()
+            if col_count <= 2:
+                header = tree.headerItem()
+                labels = []
+                for col in range(col_count):
+                    labels.append(header.text(col))
+                tree.setColumnCount(col_count + 1)
+                tree.setHeaderLabels(labels + ["Slider"])
+            # noinspection PyTypeChecker
+            tree.setItemWidget(self, 2, self.slider)
 
 
 class SpinBoxSliderParameter(Parameter):

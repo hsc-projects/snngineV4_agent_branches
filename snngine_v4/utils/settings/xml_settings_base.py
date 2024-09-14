@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from enum import IntEnum
 from pathlib import Path
-from typing import Any, ClassVar, Type
+from typing import Any, ClassVar
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -103,6 +103,13 @@ class XMLSettingsModelBase(BaseSettings):
     def load(self):
         raise NotImplementedError
 
+    def _export_submodels(self, conv, fn, sub_setting_pattern):
+        for k in self.model_fields:
+            sub_model = getattr(self, k)
+            conv.to_xml_file(
+                data={k: sub_model.model_dump(mode='json')},
+                fn=fn.replace(sub_setting_pattern, k))
+
     def export(self, fn: str = None, mode='xml'):
 
         if mode != 'xml':
@@ -124,12 +131,7 @@ class XMLSettingsModelBase(BaseSettings):
 
         sub_setting_pat = BaseSettingsSlots.SUB_SETTINGS_FILE_NAME_PATTERN
         if sub_setting_pat in fn:
-            for k in self.model_fields:
-                # getattr(self, k).export(fn.replace('{settings}', k))
-                sub_model = getattr(self, k)
-                conv.to_xml_file(
-                    data={k: sub_model.model_dump(mode='json')},
-                    fn=fn.replace(sub_setting_pat, k))
+            self._export_submodels(conv, fn, sub_setting_pat)
         else:
             conv.to_xml_file(data=self, fn=fn)
 
@@ -138,16 +140,7 @@ class XMLSettingsModelBase(BaseSettings):
             cls, settings_cls: type[XMLSettingsModelBase],
             init_settings, env_settings,
             dotenv_settings, file_secret_settings):
-        # noinspection PyTypedDict
-        fn = cls.model_config[BaseSettingsSlots.XML_FILE]
-
-        sub_setting_pat = BaseSettingsSlots.SUB_SETTINGS_FILE_NAME_PATTERN
-        if (fn is not None) and (sub_setting_pat in fn):
-            xml_files = []
-            for k in cls.model_fields:
-                xml_files.append(fn.replace(sub_setting_pat, k))
-        else:
-            xml_files = fn
+        xml_files = cls._xml_file_paths()
         return (
             init_settings,
             XMLConfigSettingsSource(settings_cls, xml_files=xml_files),
@@ -180,3 +173,17 @@ class XMLSettingsModelBase(BaseSettings):
                         data[k] = get_intenum_member(data[k], _type)
 
         return data
+
+    @classmethod
+    def _xml_file_paths(cls):
+        # noinspection PyTypedDict
+        fn = cls.model_config[BaseSettingsSlots.XML_FILE]
+
+        sub_setting_pat = BaseSettingsSlots.SUB_SETTINGS_FILE_NAME_PATTERN
+        if (fn is not None) and (sub_setting_pat in fn):
+            xml_files = []
+            for k in cls.model_fields:
+                xml_files.append(fn.replace(sub_setting_pat, k))
+        else:
+            xml_files = fn
+        return xml_files

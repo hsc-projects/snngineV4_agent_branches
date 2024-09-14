@@ -4,6 +4,15 @@
     <DictItem type="str" key="backend_name">pyside6</DictItem>
     <DictItem type="int" key="theme">0</DictItem>
     <DictItem type="int" key="corner_shape">1</DictItem>
+    <DictItem type="dict" key="windows">
+      <DictItem type="dict" key="main">
+        <DictItem type="int" key="screen">0</DictItem>
+        <DictItem type="list" key="size">
+          <ListElementElement type="int">1800</ListElementElement>
+          <ListElementElement type="int">1200</ListElementElement>
+        </DictItem>
+      </DictItem>
+    </DictItem>
     <DictItem type="dict" key="parameter_ui_opts">
       <DictItem type="NoneType" key="title">None</DictItem>
       <DictItem type="NoneType" key="name">None</DictItem>

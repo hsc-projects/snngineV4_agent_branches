@@ -29,3 +29,26 @@ class EngineConfig(XMLSettingsModel):
     scenes: SceneSettings
 
     construction: NetworkConstructionConfig
+
+    @classmethod
+    def _xml_file_paths(cls):
+        # noinspection PyTypedDict
+        fn = cls.model_config[BaseSettingsSlots.XML_FILE]
+
+        sub_setting_pat = BaseSettingsSlots.SUB_SETTINGS_FILE_NAME_PATTERN
+        if (fn is not None) and (sub_setting_pat in fn):
+            xml_files = []
+            for k in cls.model_fields:
+                if k != cls.Slots.CONSTRUCTION:
+                    xml_files.append(fn.replace(sub_setting_pat, k))
+        else:
+            xml_files = fn
+        return xml_files
+
+    # def _export_submodels(self, conv, fn, sub_setting_pattern):
+    #     for k in self.model_fields:
+    #         if k != self.Slots.CONSTRUCTION:
+    #             sub_model = getattr(self, k)
+    #             conv.to_xml_file(
+    #                 data={k: sub_model.model_dump(mode='json')},
+    #                 fn=fn.replace(sub_setting_pattern, k))

@@ -48,11 +48,21 @@ def make_interval(ge=None, gt=None, lt=None, le=None):
     return pd.Interval(left=left, right=right, closed=interval_type.name)
 
 
+def limits_from_interval(interval: pd.Interval, step_size):
+    start = interval.left
+    stop = interval.right
+    if interval.closed != 'both':
+        if interval.closed in ['left', 'neither']:
+            stop -= step_size
+        if interval.closed in ['right', 'neither']:
+            start += step_size
+    return start, stop
+
+
 def linspace_from_interval(interval: pd.Interval,
                            n_steps_if_closed=101,
                            b_change_n_steps_if_open=True,
-                           retstep=False,
-                           dtype=None):
+                           **kwargs):
 
     endpoint = True
     n_steps = n_steps_if_closed
@@ -66,10 +76,10 @@ def linspace_from_interval(interval: pd.Interval,
             if b_change_n_steps_if_open is True:
                 n_steps -= 1
         if interval.closed in ['right', 'neither']:
-            start += step_size
             if b_change_n_steps_if_open is True:
+                start += step_size
                 n_steps -= 1
 
     # noinspection PyTypeChecker
-    return np.linspace(start, interval.right, n_steps, endpoint=endpoint,
-                       retstep=retstep, dtype=dtype)
+    return np.linspace(start, interval.right, n_steps,
+                       endpoint=endpoint, **kwargs)

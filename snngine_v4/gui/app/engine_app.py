@@ -31,8 +31,6 @@ class EngineApp(Application):
         )
 
         self.window = MainEngineWindow(engine.conf)
-        self.window.show()
-        self.window.settings_window.show()
 
         self.engine.conf.export()
 
@@ -40,6 +38,9 @@ class EngineApp(Application):
             conf=self.engine.conf.scenes.main, app=self)
 
         self.window.main.layout().addWidget(self.main_network_scene.native)
+
+        self.window.show()
+        self.window.settings_window.show()
 
     @property
     def conf(self) -> EngineAppSettings:

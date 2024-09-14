@@ -26,7 +26,7 @@ class EngineParameterTree(ParameterTree):
     def add_parameters_from_model(self, model: BaseModel, model_dict=None):
         if model_dict is None:
             model_dict = model.model_dump()
-        pars = ParameterBuilder.make_pars(
+        pars = ParameterBuilder.make_pars_from_model(
             model=model, model_dict=model_dict,
             signal_register=self.signal_register)
         self.addParameters(pars)

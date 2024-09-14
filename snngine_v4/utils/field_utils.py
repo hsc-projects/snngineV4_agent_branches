@@ -135,6 +135,16 @@ def has_default(field_info: FieldInfo) -> bool:
     return True
 
 
+def b_is_float_annotation(annotation):
+    return b_annotation_includes_type(annotation, float)
+
+
+def b_is_int_annotation(annotation, b_strict: bool):
+    if b_strict and isinstance(annotation, UnionType):
+        return False
+    return b_annotation_includes_type(annotation, int)
+
+
 def b_annotation_includes_type(
         ann: GenericAlias | UnionType | Type, _type: Type) -> bool:
 
