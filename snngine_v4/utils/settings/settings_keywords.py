@@ -76,7 +76,7 @@ class ParameterUIOpts(BaseSettings):
                                  (default=None; added in version 0.9.9)
     =======================      ===============================================
     """
-    UI_OPTIONS_KEYWORD: ClassVar[str] = 'ui_opts'
+    UI_OPTIONS_KEYWORD: ClassVar[str] = 'parameter_ui_opts'
 
     title: str | None = None
     name: str | None = None

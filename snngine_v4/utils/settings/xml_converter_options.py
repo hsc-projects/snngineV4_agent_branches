@@ -4,7 +4,6 @@ import pydoc
 from types import NoneType
 from typing import ClassVar, Type
 
-from pydantic_settings import BaseSettings, PydanticBaseSettingsSource
 
 from snngine_v4.utils.settings.xml_settings_base import (
     default_xml_model_config_dict, XMLSettingsConfigDict, XMLSettingsModelBase,

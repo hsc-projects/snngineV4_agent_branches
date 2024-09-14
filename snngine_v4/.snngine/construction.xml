@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf8"?>
 <dict>
   <construction type="dict">
-    <DictItem type="dict" key="ui_opts">
+    <DictItem type="dict" key="parameter_ui_opts">
       <DictItem type="NoneType" key="title">None</DictItem>
       <DictItem type="NoneType" key="name">None</DictItem>
       <DictItem type="bool" key="expanded">True</DictItem>
@@ -10,6 +10,6 @@
       <DictItem type="bool" key="dropEnabled">False</DictItem>
       <DictItem type="bool" key="renamable">True</DictItem>
     </DictItem>
-    <DictItem type="int" key="N">100</DictItem>
+    <DictItem type="NoneType" key="elements">None</DictItem>
   </construction>
 </dict>

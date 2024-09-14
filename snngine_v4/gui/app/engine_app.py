@@ -1,8 +1,8 @@
 import qdarktheme
 from vispy.app import Application
 
-from snngine_v4.config.engine_config_model import EngineConfig
-from snngine_v4.config.graphics.app_config_model import EngineAppConfig
+from snngine_v4.snngine_config import EngineConfig
+from snngine_v4.config.app import EngineAppSettings
 from snngine_v4.gui.windows.main_window import MainEngineWindow
 from snngine_v4.snngine import SNNgine
 from snngine_v4.visualization.scenes.main_network_scene import \
@@ -42,5 +42,5 @@ class EngineApp(Application):
         self.window.main.layout().addWidget(self.main_network_scene.native)
 
     @property
-    def conf(self) -> EngineAppConfig:
+    def conf(self) -> EngineAppSettings:
         return self.engine.conf.app

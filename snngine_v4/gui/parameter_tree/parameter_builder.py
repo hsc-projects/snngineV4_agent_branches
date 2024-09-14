@@ -67,29 +67,27 @@ class ParameterBuilder:
 
         elif isinstance(parameter_type, GenericAlias):
             parameter_ = pTypes.GroupParameter(**options)
-            args_ = typing_extensions.get_args(parameter_type)
-            for i, t in enumerate(args_):
-                options[PGParameterOptionKW.NAME] = str(i)
-                options[PGParameterOptionKW.TYPE] = t.__name__
-                if value is not None:
-                    p_value = value[i]
+            main_par = typing_extensions.get_origin(parameter_type)
+            if main_par == tuple:
+                args_ = typing_extensions.get_args(parameter_type)
+                for i, t in enumerate(args_):
+                    options[PGParameterOptionKW.NAME] = str(i)
+                    options[PGParameterOptionKW.TYPE] = t.__name__
+                    if value is not None:
+                        p_value = value[i]
+                    else:
+                        p_value = None
+                    options[PGParameterOptionKW.VALUE] = p_value
+                    g_par = Parameter.create(**options)
+                    parameter_.addChild(g_par)
+            elif main_par == list:
+                if value is None:
+                    pass
                 else:
-                    p_value = None
-                options[PGParameterOptionKW.VALUE] = p_value
-                g_par = Parameter.create(**options)
-                parameter_.addChild(g_par)
+                    raise NotImplementedError(f"{value}")
+            else:
+                raise NotImplementedError(f"{main_par}")
 
-        # if parameter_ is None:
-        #     # try:
-        #     if issubclass(parameter_type, IntEnum):
-        #         if PGParameterOptionKW.LIMITS not in options:
-        #             # noinspection PyProtectedMember
-        #             options[PGParameterOptionKW.LIMITS] = (
-        #                 parameter_type._member_names_)
-        #             options[PGParameterOptionKW.TYPE] = 'list'
-        #         parameter_ = Parameter.create(**options)
-        #     # except Exception as e:
-        #     #     pass
         if parameter_ is None:
             parameter_ = Parameter.create(**options)
         return parameter_
@@ -114,18 +112,19 @@ class ParameterBuilder:
     def make_group(cls, model: BaseModel, name=None,
                    model_dict: dict[str, BaseModel] = None,):
 
-        ui_opts = model_dict.get(ParameterUIOpts.UI_OPTIONS_KEYWORD, {})
+        parameter_ui_opts = (model_dict.get(
+            ParameterUIOpts.UI_OPTIONS_KEYWORD, {}))
 
         # noinspection PyTypedDict
         if model.model_config.get(BaseSettingsSlots.FROZEN, None):
-            ui_opts[PGParameterOptionKW.READONLY] = True
+            parameter_ui_opts[PGParameterOptionKW.READONLY] = True
 
-        name = ui_opts.pop(PGParameterOptionKW.NAME,
-                           model.__class__.__name__)
+        name = parameter_ui_opts.pop(PGParameterOptionKW.NAME,
+                                     model.__class__.__name__)
         if name is None:
             name = model.__class__.__name__
 
-        g = pTypes.GroupParameter(name=name, **ui_opts)
+        g = pTypes.GroupParameter(name=name, **parameter_ui_opts)
         return g
 
     @classmethod

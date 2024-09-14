@@ -1,19 +1,19 @@
 from vispy.app import Application
-from vispy.scene import SceneCanvas, Widget
+from vispy.scene import SceneCanvas
 
 from snngine_v4.utils.settings.settings_keywords import ParameterUIOpts
-from snngine_v4.config.graphics.scene_config import VispyCanvasOptions
+from snngine_v4.visualization.canvas_config import VispyCanvasConfig
 
 
 class EngineSceneCanvas(SceneCanvas):
 
-    def __init__(self, conf: VispyCanvasOptions,
+    def __init__(self, conf: VispyCanvasConfig,
                  app: Application):
 
-        conf = conf or VispyCanvasOptions()
+        conf = conf or VispyCanvasConfig()
         kwargs = conf.model_dump(mode='python')
         wdg_opts = kwargs.pop(
-            VispyCanvasOptions.Slots.CENTRAL_WIDGET_OPTIONS, {})
+            VispyCanvasConfig.Slots.CENTRAL_WIDGET_OPTIONS, {})
 
         kwargs.pop(ParameterUIOpts.UI_OPTIONS_KEYWORD, {})
         wdg_opts.pop(ParameterUIOpts.UI_OPTIONS_KEYWORD, {})

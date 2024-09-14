@@ -1,4 +1,4 @@
-from snngine_v4.config.engine_config_model import EngineConfig
+from snngine_v4.snngine_config import EngineConfig
 
 
 class SNNgine:

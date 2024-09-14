@@ -2,12 +2,10 @@ from pydantic import BaseModel
 
 from qtpy import QtWidgets, QtCore
 
-from snngine_v4.config.engine_config_model import EngineConfig
+from snngine_v4.snngine_config import EngineConfig
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
     EngineParameterTree
 from snngine_v4.utils.containers.configurable_dict import ConfigurableDict
-# from snngine_v4.utils.xml_converter import XMLConverter
-# SettingsConfigDict
 
 
 class SettingsWindow(QtWidgets.QWidget):
