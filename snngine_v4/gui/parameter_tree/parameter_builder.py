@@ -4,6 +4,7 @@ from types import GenericAlias, UnionType
 
 import numpy as np
 import pandas as pd
+
 from pydantic import BaseModel, PositiveFloat, PositiveInt
 
 from pyqtgraph.parametertree import Parameter
@@ -11,6 +12,7 @@ import typing_extensions
 
 from snngine_v4.gui.parameter_tree.parameters.engine_group_parameter import \
     EngineGroupParameter
+from snngine_v4.utils.core_utils import IntervalClosedType
 from snngine_v4.utils.settings.settings_keywords import (
     BaseSettingsSlots, ParameterUIOpts,
     PGParOption,
@@ -111,28 +113,26 @@ class ParameterBuilder:
     def _make_numeric_par(cls, field_, **options):
         interval = get_field_interval(field_)
         multiple_of = get_field_multiple_of(field_)
-        if (interval is not None) and (interval.length < np.inf):
+
+        if multiple_of is not None:
+            step_size = multiple_of
+        else:
+            is_int = b_is_int_annotation(field_.annotation, True)
+            if is_int:
+                step_size = options.get(PGParOption.STEP, 1)
+            else:
+                step_size = options.get(PGParOption.STEP, .01)
+                options[PGParOption.DECIMALS] = 6
+        options[PGParOption.STEP] = step_size
+        if interval is not None:
+            # interval = get_field_interval(field_)
+            limits = limits_from_interval(interval, step_size=step_size)
+            options[PGParOption.LIMITS] = limits
+        if interval is not None:
             parameter_ = cls.make_slider_parameter(
-                interval=interval, multiple_of=multiple_of,
+                interval=interval, step_size=step_size,
                 **options)
         else:
-            if interval is not None:
-                interval = get_field_interval(field_)
-
-                if multiple_of is not None:
-                    step_size = multiple_of
-                else:
-                    is_int = b_is_int_annotation(field_.annotation, True)
-                    if is_int:
-                        step_size = options.get(PGParOption.STEP, 1)
-                    else:
-                        step_size = options.get(PGParOption.STEP, .01)
-                        options[PGParOption.DECIMALS] = 6
-                options[PGParOption.STEP] = step_size
-
-                limits = limits_from_interval(interval, step_size=step_size)
-                options[PGParOption.LIMITS] = limits
-
             parameter_ = Parameter.create(**options)
         return parameter_
 
@@ -206,17 +206,49 @@ class ParameterBuilder:
     @classmethod
     def make_slider_parameter(
             cls, interval: pd.Interval, name, value,
-            multiple_of=None, span=None, **options):
+            step_size=None, span=None, **options):
+
         if span is None:
-            if multiple_of is None:
+            if interval.length == np.inf:
+                if step_size is None:
+                    step_size = 1
+                offset = 1000 * step_size
+
+                if abs(value) * 9 < offset:
+                    ref_value = 0
+                else:
+                    ref_value = value
+                if interval.left == -np.inf:
+
+                    if interval.right == np.inf:
+                        interval = pd.Interval(ref_value - offset,
+                                               ref_value + offset,
+                                               closed='neither')
+                    else:
+                        if interval.closed in ['left', 'neither']:
+                            closed: IntervalClosedType = 'left'
+                        else:
+                            closed = 'both'
+                        interval = pd.Interval(ref_value - offset,
+                                               interval.right,
+                                               closed=closed)
+                elif interval.right == np.inf:
+                    if interval.closed in ['right', 'neither']:
+                        closed: IntervalClosedType = 'right'
+                    else:
+                        closed = 'both'
+                    interval = pd.Interval(interval.left, ref_value + offset,
+                                           closed=closed)
+            if step_size is None:
                 n_steps_if_closed = 2001
             else:
-                n_steps_if_closed = int(interval.length / multiple_of) + 1
+                n_steps_if_closed = int(interval.length / step_size) + 1
+
             span = linspace_from_interval(interval=interval,
                                           n_steps_if_closed=n_steps_if_closed,
                                           b_change_n_steps_if_open=True)
         parameter_ = SpinBoxSliderParameter(
-            name=name, value=value, span=span, **options)
+           name=name, value=value, span=span, **options)
         return parameter_
 
     @classmethod

@@ -13,3 +13,4 @@ class ArraySourceType(IntEnum):
 class NetworkReservoir(EngineElementConfig):
     N: NonNegativeInt = 200
     S: NonNegativeInt = 1
+    D: int = Field(default=0, ge=0, le=20)

@@ -91,6 +91,8 @@ class SignalMapRegister(ConfigurableDict):
         def set_model_value(par, value):
             signal.disconnect(self.set_parameter_value)
             obj.__setattr__(obj, key_, value)
+            if key_ == 'N':
+                pass
             print(f"Set '{key_}' from parameter:",
                   getattr(obj, key_))
             signal.connect(self.set_parameter_value)

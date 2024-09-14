@@ -1,4 +1,5 @@
 from dataclasses import is_dataclass
+from typing import Literal, Union
 
 
 class PostInitCaller(type):
@@ -93,3 +94,7 @@ def pop_enum_keys(dct, enum_class):
 def type_assertion(item, _type):
     if not isinstance(item, _type):
         raise TypeError(f'Expected {_type}, got {item}')
+
+
+IntervalLeftRight = Literal["left", "right"]
+IntervalClosedType = Union[IntervalLeftRight, Literal["both", "neither"]]

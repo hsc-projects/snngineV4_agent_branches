@@ -26,6 +26,8 @@ class PGParOption:
     TITLE: ClassVar[str] = 'title'
 
     STEP: ClassVar[str] = 'step'
+    SPAN: ClassVar[str] = 'span'
+    BOUNDS: ClassVar[str] = 'bounds'
     DECIMALS: ClassVar[str] = 'decimals'
     DEC: ClassVar[str] = 'dec'
     LIMITS: ClassVar[str] = 'limits'

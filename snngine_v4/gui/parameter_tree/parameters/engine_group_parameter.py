@@ -1,9 +1,9 @@
 from pyqtgraph.parametertree import Parameter, ParameterItem
 from pyqtgraph.parametertree.parameterTypes import (
     GroupParameter,
-    GroupParameterItem,
+    GroupParameterItem, NumericParameterItem,
 )
-from qtpy import QtWidgets
+from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.icons import getEngineGraphIcon
 from snngine_v4.utils.settings.settings_keywords import PGParOption
@@ -13,7 +13,8 @@ class EngineGroupParameterItem(GroupParameterItem):
 
     def __init__(self, param, depth):
 
-        self._n_added_sliders = 0
+        # self._n_added_widget = 0
+        self._widgets = []
 
         GroupParameterItem.__init__(self, param, depth)
 
@@ -39,37 +40,65 @@ class EngineGroupParameterItem(GroupParameterItem):
         from snngine_v4.gui.parameter_tree.parameters \
             .spin_box_slider_parameter import \
             SpinBoxSliderParameterItem
-        if isinstance(child, SpinBoxSliderParameterItem):
-            self.add_engine_slider_parameter_widgets(child)
 
-    def add_engine_slider_parameter_widgets(self, wdg):
+        if isinstance(child, (SpinBoxSliderParameterItem, NumericParameterItem)):
+            b_add_to_header = self.param.opts.get(
+                PGParOption.CUSTOM_NUMERIC_GROUP, False)
+            if b_add_to_header:
+                self.add_engine_slider_parameter_widgets(child)
+        # elif
+
+    def add_engine_slider_parameter_widgets(self, item):
         if PGParOption.CUSTOM_NUMERIC_GROUP not in self.param.opts:
             raise PermissionError
         from snngine_v4.gui.parameter_tree.parameters \
             .spin_box_slider_parameter import \
             SpinBoxSliderParameterItem
-        wdg: SpinBoxSliderParameterItem
-        idx = self._n_added_sliders
+        item: SpinBoxSliderParameterItem
+        idx = len(self._widgets)
 
         if idx == 0:
             w = self.layoutWidget.layout().takeAt(0)
             self.layoutWidget.layout().removeItem(w)
 
-        self.layoutWidget.layout().insertWidget(idx * 2, wdg.widget)
-        self.layoutWidget.layout().insertWidget(idx * 2, wdg.displayLabel)
-        wdg.displayLabel.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Expanding,
-            QtWidgets.QSizePolicy.Policy.Expanding,
+        self.layoutWidget.layout().insertWidget(idx * 2, item.widget)
+        self.layoutWidget.layout().insertWidget(idx * 2, item.displayLabel)
+        item.widget.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
         )
+        item.displayLabel.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+        )
+        # sw0 = wdg.widget.sizeHint()
+        width = item.widget.opts.get(PGParOption.DECIMALS, 3) * 20 + 15
+        item.widget.setMinimumWidth(width)
+        item.displayLabel.setMinimumWidth(width)
+        item.widget.setMaximumWidth(width)
 
-        # wdg.param.sigValueChanged.disconnect(self.updateDefaultBtn)
-        wdg.param.sigValueChanged.connect(self.updateDefaultBtn)
+        item.param.sigValueChanged.connect(self.updateDefaultBtn)
 
-        wdg.layoutWidget.layout().insertWidget(0, wdg.slider)
-        self._n_added_sliders += 1
+        if isinstance(item, SpinBoxSliderParameterItem):
+            item.layoutWidget.layout().insertWidget(
+                0, item.slider_layout_widget)
+        self._widgets.append(item.widget)
+
+        sb = self.defaultBtn.sizeHint()
+        sb.setHeight(int(sb.height() * 0.9))
+        h = sb.height()
+        w = sb.width()
+        for wdg in self._widgets:
+            sw = wdg.sizeHint()
+            sw.setHeight(int(sw.height() * 0.9))
+
+            w += wdg.minimumWidth() + 2
+            h = max(sw.height(), h)
+        self.setSizeHint(1, QtCore.QSize(w, h))
 
     # noinspection PyPep8Naming
     def defaultClicked(self):
+        print(self.layoutWidget.width())
         for i in range(self.childCount()):
             c = self.child(i)
             if isinstance(c, ParameterItem):
