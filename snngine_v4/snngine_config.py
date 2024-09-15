@@ -12,7 +12,7 @@ from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.config.app import EngineAppSettings
 from snngine_v4.config.opengl import OpenGLSettings
 from snngine_v4.config.scenes import SceneSettings
-from snngine_v4.config.construction import NetworkConstructionConfig
+from snngine_v4.config.construction import EngineConstructionConfig
 
 
 class EngineConfig(XMLSettingsModel):
@@ -28,7 +28,7 @@ class EngineConfig(XMLSettingsModel):
     open_gl: OpenGLSettings
     scenes: SceneSettings
 
-    construction: NetworkConstructionConfig
+    construction: EngineConstructionConfig
 
     @classmethod
     def _xml_file_paths(cls):

@@ -31,13 +31,15 @@ class PGParOption:
     DECIMALS: ClassVar[str] = 'decimals'
     DEC: ClassVar[str] = 'dec'
     LIMITS: ClassVar[str] = 'limits'
+    PREFIX: ClassVar[str] = 'prefix'
     SUFFIX: ClassVar[str] = 'suffix'
 
     # Custom
+    CUSTOM_FIELD_NAME: ClassVar[str] = 'c_field_name'
     CUSTOM_NUMERIC_GROUP: ClassVar[str] = 'c_numeric'
 
 
-class ParameterUIOpts(BaseSettings):
+class ParamOpts(BaseSettings, frozen=True):
     """
     from pyqtgraph.parametertree.Parameter:
 
@@ -83,6 +85,8 @@ class ParameterUIOpts(BaseSettings):
     =======================      ===============================================
     """
     UI_OPTIONS_KEYWORD: ClassVar[str] = 'parameter_ui_opts'
+    PREFIX_PATTERN_SEP: ClassVar[str] = ','
+    XYZ_PREFIX_PATTERN: ClassVar[str] = '{XYZ}'
 
     title: str | None = None
     name: str | None = None
@@ -91,6 +95,20 @@ class ParameterUIOpts(BaseSettings):
     movable: bool = False
     dropEnabled: bool = False
     renamable: bool = False
+    prefix: str | None = ''
+
+    # custom
+    c_numeric: bool = False
+
+    @classmethod
+    def pop_ui_options_keyword(cls, dct: dict, b_recursive: bool = True):
+        key_list = list(dct.keys())
+        for k in key_list:
+            if k == cls.UI_OPTIONS_KEYWORD:
+                dct.pop(cls.UI_OPTIONS_KEYWORD)
+            elif b_recursive and isinstance(dct[k], dict):
+                dct[k] = cls.pop_ui_options_keyword(dct[k], b_recursive=True)
+        return dct
 
 
 class BaseSettingsSlots:

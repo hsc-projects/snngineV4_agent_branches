@@ -1,4 +1,5 @@
 import copy
+from copy import deepcopy
 from enum import Enum, IntEnum
 from types import GenericAlias, UnionType
 
@@ -14,7 +15,7 @@ from snngine_v4.gui.parameter_tree.parameters.engine_group_parameter import \
     EngineGroupParameter
 from snngine_v4.utils.core_utils import IntervalClosedType
 from snngine_v4.utils.settings.settings_keywords import (
-    BaseSettingsSlots, ParameterUIOpts,
+    BaseSettingsSlots, ParamOpts,
     PGParOption,
 )
 from snngine_v4.gui.parameter_tree.parameters.spin_box_slider_parameter import \
@@ -48,7 +49,7 @@ class ParameterBuilder:
                               model_dict: dict[str, BaseModel] = None, ):
 
         parameter_ui_opts = (model_dict.get(
-            ParameterUIOpts.UI_OPTIONS_KEYWORD, {}))
+            ParamOpts.UI_OPTIONS_KEYWORD, {}))
 
         if PGParOption.RENAMABLE not in parameter_ui_opts:
             parameter_ui_opts[PGParOption.RENAMABLE] = False
@@ -63,6 +64,15 @@ class ParameterBuilder:
         elif name is None:
             name = model.__class__.__name__
 
+        if PGParOption.PREFIX in parameter_ui_opts:
+            prefix_pattern = parameter_ui_opts[PGParOption.PREFIX]
+            if isinstance(prefix_pattern, str):
+                sep = ParamOpts.PREFIX_PATTERN_SEP
+                prefix_pattern = prefix_pattern.split(sep)
+                parameter_ui_opts[PGParOption.PREFIX] = prefix_pattern
+        else:
+            parameter_ui_opts[PGParOption.PREFIX] = []
+
         g = EngineGroupParameter(name=name, **parameter_ui_opts)
         return g
 
@@ -70,6 +80,7 @@ class ParameterBuilder:
     def make_par(cls, parent_model: BaseModel, key, value, signal_register,
                  model_dict_value,
                  **options):
+
         field_ = parent_model.model_fields[key]
         json_schema_extra = get_field_json_schema_extra(field_)
 
@@ -89,7 +100,18 @@ class ParameterBuilder:
 
         parameter_ = None
 
-        if parameter_type in [float, int, PositiveFloat, PositiveInt]:
+        options[PGParOption.CUSTOM_FIELD_NAME] = key
+
+        if PGParOption.PREFIX in options:
+            prefix = options[PGParOption.PREFIX]
+            if isinstance(prefix, list):
+                name = options[PGParOption.NAME]
+                if name in prefix:
+                    options[PGParOption.PREFIX] = name + ': '
+                else:
+                    options[PGParOption.PREFIX] = ''
+
+        if parameter_type in [float, int]:
             parameter_ = cls._make_numeric_par(field_=field_, **options)
 
         elif isinstance(parameter_type, GenericAlias):
@@ -265,6 +287,8 @@ class ParameterBuilder:
                 PGParOption.RENAMABLE, False),
             PGParOption.MOVABLE: group.opts.get(
                 PGParOption.MOVABLE, False),
+            PGParOption.PREFIX: group.opts.get(
+                PGParOption.PREFIX, ''),
         }
 
         children = []
@@ -272,7 +296,7 @@ class ParameterBuilder:
         n_numeric_children = 0
 
         for k, v in model_dict.items():
-            if k not in [ParameterUIOpts.UI_OPTIONS_KEYWORD]:
+            if k not in [ParamOpts.UI_OPTIONS_KEYWORD]:
 
                 model_value = getattr(model, k)
 
@@ -288,18 +312,18 @@ class ParameterBuilder:
                         parent_model=model, key=k, value=model_value,
                         signal_register=signal_register,
                         model_dict_value=v,
-                        **inherited_options)
+                        **deepcopy(inherited_options))
                 n_children += 1
                 if par.opts[PGParOption.TYPE] in ['int', 'float']:
                     n_numeric_children += 1
                 children.append(par)
                 group.addChild(par)
 
-        if n_children == 3:
-            if n_numeric_children != 3:
-                pass
-
-        if 2 <= n_children == n_numeric_children <= 3:
-            group.opts[PGParOption.CUSTOM_NUMERIC_GROUP] = True
+        # if n_children == 3:
+        #     if n_numeric_children != 3:
+        #         pass
+        # if isinstance()
+        # if 2 <= n_children == n_numeric_children <= 3:
+        #     group.opts[PGParOption.CUSTOM_NUMERIC_GROUP] = True
 
         return group

@@ -9,6 +9,8 @@
       <DictItem type="bool" key="movable">False</DictItem>
       <DictItem type="bool" key="dropEnabled">False</DictItem>
       <DictItem type="bool" key="renamable">True</DictItem>
+      <DictItem type="NoneType" key="prefix">None</DictItem>
+      <DictItem type="bool" key="c_numeric">False</DictItem>
     </DictItem>
     <DictItem type="str" key="gloo_target">gl+</DictItem>
   </open_gl>

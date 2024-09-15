@@ -14,6 +14,13 @@ from snngine_v4.utils.settings.settings_keywords import (
 )
 
 
+class ClickableLabel(QtWidgets.QLabel):
+    sigClicked = QtCore.Signal()
+
+    def mousePressEvent(self, e):
+        self.sigClicked.emit()
+
+
 class CustomSlider(QtWidgets.QSlider):
 
     def wheelEvent(self, e) -> None:
@@ -21,14 +28,20 @@ class CustomSlider(QtWidgets.QSlider):
             super().wheelEvent(e)
 
 
+# noinspection PyPep8Naming
 class SpinBoxSliderParameterItem(NumericParameterItem):
 
     def __init__(self, param, depth):
+
         self.widget: SpinBox
+        self.span = None
+        self.charSpan = None
+
         super().__init__(param, depth)
 
         self._reset_slider_divider = 20
         self.slider = self.make_slider_widget()
+        self.widget.sigValueChanging.connect(self.setValueFromSpinBox)
 
         self.slider_layout_widget = QtWidgets.QWidget()
         self.slider_layout_widget.setLayout(QtWidgets.QHBoxLayout())
@@ -36,7 +49,21 @@ class SpinBoxSliderParameterItem(NumericParameterItem):
         self.slider_layout_widget.layout().setContentsMargins(13, 0, 13, 0)
 
         w = self.layoutWidget.layout().takeAt(2)
+        if not isinstance(w, QtWidgets.QSpacerItem):
+            raise ValueError(f"{w}")
         self.layoutWidget.layout().removeItem(w)
+
+        display_label_item = self.layoutWidget.layout().takeAt(1)
+        if display_label_item.wid != self.displayLabel:
+            raise ValueError(f"{display_label_item.wid}")
+        del self.displayLabel
+        self.layoutWidget.layout().removeItem(display_label_item)
+        self.displayLabel = ClickableLabel()
+        self.displayLabel.sigClicked.connect(self.subWidgetClicked)
+
+        # self.displayLabel = QtWidgets.QPushButton()
+        # self.displayLabel.setFlat(True)
+        self.layoutWidget.layout().insertWidget(0, self.displayLabel)
 
         self.slider.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Expanding,
@@ -47,6 +74,59 @@ class SpinBoxSliderParameterItem(NumericParameterItem):
 
         self.param._modifiedSinceReset = False
         self.updateDefaultBtn()
+
+    def subWidgetClicked(self):
+        self.treeWidget().setCurrentItem(self)
+
+    def hideEditor(self):
+        super().hideEditor()
+        self.slider.clearFocus()
+
+    def makeDefaultButton(self):
+        defaultBtn = QtWidgets.QPushButton()
+        defaultBtn.setAutoDefault(False)
+        defaultBtn.setFixedWidth(20)
+        defaultBtn.setFixedHeight(20)
+        defaultBtn.setIcon(getEngineGraphIcon('kamiyamane/default'))
+        defaultBtn.clicked.connect(self.defaultClicked)
+        return defaultBtn
+
+    def make_slider_widget(self):
+        param = self.param
+        opts = param.opts
+
+        opts.setdefault(
+            PGParOption.LIMITS,
+            [0, 0] if PGParOption.LIMITS not in opts
+            else opts[PGParOption.LIMITS])
+
+        slider = CustomSlider()
+
+        orientation = opts.get('widget_orientation', 'Horizontal')
+
+        slider.setOrientation(QtCore.Qt.Orientation[orientation])
+
+        slider.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Maximum,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+
+        slider_value = self.spanToSliderValue(param.value())
+        if PGParOption.SPAN in param.opts:
+            len_span = len(param.opts[PGParOption.SPAN])
+            if len_span != 100:
+                slider.setMaximum(len_span - 1)
+        else:
+            slider.setMinimum(param.opts[PGParOption.LIMITS][0])
+            slider.setMaximum(param.opts[PGParOption.LIMITS][-1])
+
+        slider.setValue(slider_value)
+        # slider.focus_in_parent = self
+
+        slider.valueChanged.connect(self.setValueFromSlider)
+        slider.sliderReleased.connect(self.onSliderRelease)
+        slider.sliderPressed.connect(self.subWidgetClicked)
+        return slider
 
     def optsChanged(self, param, opts):
         super().optsChanged(param, opts)
@@ -76,24 +156,15 @@ class SpinBoxSliderParameterItem(NumericParameterItem):
             w.setMinimum(0)
             w.setMaximum(len(span) - 1)
 
-    # noinspection PyPep8Naming
-    def spanToSliderValue(self, v):
-        return int(np.argmin(np.abs(self.span - v)))
-
-    # noinspection PyPep8Naming
-    def makeDefaultButton(self):
-        defaultBtn = QtWidgets.QPushButton()
-        defaultBtn.setAutoDefault(False)
-        defaultBtn.setFixedWidth(20)
-        defaultBtn.setFixedHeight(20)
-        defaultBtn.setIcon(getEngineGraphIcon('kamiyamane/default'))
-        defaultBtn.clicked.connect(self.defaultClicked)
-        return defaultBtn
-
-    def _reset_span_condition(self):
-        lims = self.param.opts[PGParOption.LIMITS]
-        has_inf = np.isinf(lims)
-        return bool(np.any(has_inf))
+    def onSliderRelease(self):
+        if self._reset_span_condition():
+            idx = self.slider.value()
+            d = self._reset_slider_divider
+            if ((idx < len(self.span) // d)
+                    or (idx > (d - 1) * len(self.span) // d)):
+                new_idx = self._reset_span(self.span[idx])
+                # new_idx = self.spanToSliderValue(self.span[idx])
+                self.setValueFromSpinBox(None, self.span[new_idx])
 
     def _reset_span(self, value):
         lims = self.param.opts[PGParOption.LIMITS]
@@ -109,7 +180,11 @@ class SpinBoxSliderParameterItem(NumericParameterItem):
         new_value = self.spanToSliderValue(value)
         return new_value
 
-    # noinspection PyPep8Naming
+    def _reset_span_condition(self):
+        lims = self.param.opts[PGParOption.LIMITS]
+        has_inf = np.isinf(lims)
+        return bool(np.any(has_inf))
+
     def setValueFromSpinBox(self, box, value):
         self.slider.valueChanged.disconnect(self.setValueFromSlider)
         new_value = self.spanToSliderValue(value)
@@ -121,61 +196,13 @@ class SpinBoxSliderParameterItem(NumericParameterItem):
         self.slider.setValue(new_value)
         self.slider.valueChanged.connect(self.setValueFromSlider)
 
-    # noinspection PyPep8Naming
     def setValueFromSlider(self, idx):
         self.widget.sigValueChanging.disconnect(self.setValueFromSpinBox)
         self.widget.setValue(self.span[idx])
         self.widget.sigValueChanging.connect(self.setValueFromSpinBox)
 
-    def releaseSlider(self):
-        if self._reset_span_condition():
-            idx = self.slider.value()
-            d = self._reset_slider_divider
-            if ((idx < len(self.span) // d)
-                    or (idx > (d - 1) * len(self.span) // d)):
-                new_idx = self._reset_span(self.span[idx])
-                # new_idx = self.spanToSliderValue(self.span[idx])
-                self.setValueFromSpinBox(None, self.span[new_idx])
-
-    def make_slider_widget(self):
-        param = self.param
-        opts = param.opts
-
-        opts.setdefault(
-            PGParOption.LIMITS,
-            [0, 0] if PGParOption.LIMITS not in opts
-            else opts[PGParOption.LIMITS])
-
-        slider = CustomSlider()
-
-        orientation = opts.get('widget_orientation', 'Horizontal')
-
-        slider.setOrientation(QtCore.Qt.Orientation[orientation])
-
-        slider.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Maximum,
-            QtWidgets.QSizePolicy.Policy.Expanding,
-        )
-
-        self.widget.sigValueChanging.connect(self.setValueFromSpinBox)
-        slider.valueChanged.connect(self.setValueFromSlider)
-        slider.sliderReleased.connect(self.releaseSlider)
-        slider_value = self.spanToSliderValue(param.value())
-        if PGParOption.SPAN in param.opts:
-            len_span = len(param.opts[PGParOption.SPAN])
-            if len_span != 100:
-                slider.setMaximum(len_span - 1)
-        else:
-            slider.setMinimum(param.opts[PGParOption.LIMITS][0])
-            slider.setMaximum(param.opts[PGParOption.LIMITS][-1])
-
-        slider.setValue(slider_value)
-        # slider.focus_in_parent = self
-        return slider
-
-    def hideEditor(self):
-        super().hideEditor()
-        self.slider.clearFocus()
+    def spanToSliderValue(self, v):
+        return int(np.argmin(np.abs(self.span - v)))
 
     def showEditor(self):
         super().showEditor()
@@ -193,6 +220,7 @@ class SpinBoxSliderParameterItem(NumericParameterItem):
             b_add_slider_to_column = not parent.param.opts.get(
                 PGParOption.CUSTOM_NUMERIC_GROUP, False)
             # parent.add_engine_slider_parameter_widgets(self)
+        b_add_slider_to_column = False
         if b_add_slider_to_column is True:
             col_count = tree.columnCount()
             if col_count <= 2:

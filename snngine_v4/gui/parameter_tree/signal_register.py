@@ -5,7 +5,6 @@ from pyqtgraph.parametertree import Parameter
 from pyqtgraph.parametertree.parameterTypes import ListParameter
 from qtpy import QtCore
 
-from snngine_v4.utils.containers.configurable_container import ContainerConfig
 from snngine_v4.utils.containers.configurable_dict import (
     ConfigurableDict,
     DefaultDictContainerConfig,
@@ -25,29 +24,19 @@ class SetAttributeEmitterBase(QtCore.QObject):
 
 class SetAttributeEmitterMapConfig(DefaultDictContainerConfig, frozen=True):
     allowed_types: Type[SetAttributeEmitterBase] = SetAttributeEmitterBase
-    allowed_key_types: Type[str] = str
 
 
 class SetAttributeEmitterMap(ConfigurableDict):
-    CONFIG_CLASS: ClassVar[Type[SetAttributeEmitterMapConfig]] = (
+    DICT_CONFIG_CLASS: ClassVar[Type[SetAttributeEmitterMapConfig]] = (
         SetAttributeEmitterMapConfig)
-
-    def __init__(self, initdict=None):
-        self.data: dict[int, Parameter] | None = None
-        super().__init__(initdict=initdict)
 
 
 class ParameterMapConfig(DefaultDictContainerConfig, frozen=True):
     allowed_types: Type[Parameter] = Parameter
-    allowed_key_types: Type[str] = str
 
 
 class ParameterMap(ConfigurableDict):
-    CONFIG_CLASS: ClassVar[Type[ParameterMapConfig]] = ParameterMapConfig
-
-    def __init__(self, initdict=None):
-        self.data: dict[int, Parameter] | None = None
-        super().__init__(initdict=initdict)
+    DICT_CONFIG_CLASS: ClassVar[Type[ParameterMapConfig]] = ParameterMapConfig
 
 
 @dataclass
@@ -60,20 +49,27 @@ class SignalMapItem:
         self.emitters[key] = SetAttributeEmitterBase(parent=None)
 
 
+class SignalMapRegisterConfig(DefaultDictContainerConfig, frozen=True):
+    allowed_types: Type[SignalMapItem] = SignalMapItem
+    allowed_key_types: Type[int] = int
+    b_duplicates_allowed: bool = False
+    b_replace_allowed: bool = False
+    b_pop_allowed: bool = False
+
+
 class SignalMapRegister(ConfigurableDict):
 
-    def __init__(self, initdict=None):
+    DICT_CONFIG_CLASS: ClassVar = SignalMapRegisterConfig
+
+    def __init__(self, **kwargs):
         self.data: dict[int, SignalMapItem] | None = None
-        super().__init__(
-            initdict=initdict,
-            container_conf=ContainerConfig(
-                allowed_types=SignalMapItem,
-                b_replace_allowed=False,
-                b_duplicates_allowed=False))
+        self.refs = []
+        super().__init__(**kwargs)
 
     def connect_parameter(self, obj, key_, parameter: Parameter):
         if id(obj) not in self.data:
             self.data[id(obj)] = SignalMapItem()
+            self.refs.append(obj)
 
         def set_attr(self_, key, value):
             (self.get_sigAttributeValueChanged(obj, key)

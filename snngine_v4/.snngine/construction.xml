@@ -1,104 +1,131 @@
 <?xml version="1.0" encoding="utf8"?>
 <dict>
   <construction type="dict">
-    <DictItem type="dict" key="parameter_ui_opts">
-      <DictItem type="NoneType" key="title">None</DictItem>
-      <DictItem type="NoneType" key="name">None</DictItem>
-      <DictItem type="bool" key="expanded">True</DictItem>
-      <DictItem type="bool" key="readonly">False</DictItem>
-      <DictItem type="bool" key="movable">False</DictItem>
-      <DictItem type="bool" key="dropEnabled">False</DictItem>
-      <DictItem type="bool" key="renamable">False</DictItem>
-    </DictItem>
-    <DictItem type="dict" key="grid">
-      <DictItem type="dict" key="shape">
-        <DictItem type="dict" key="parameter_ui_opts">
-          <DictItem type="NoneType" key="title">None</DictItem>
-          <DictItem type="NoneType" key="name">None</DictItem>
-          <DictItem type="bool" key="expanded">False</DictItem>
-          <DictItem type="bool" key="readonly">False</DictItem>
-          <DictItem type="bool" key="movable">False</DictItem>
-          <DictItem type="bool" key="dropEnabled">False</DictItem>
-          <DictItem type="bool" key="renamable">False</DictItem>
-        </DictItem>
-        <DictItem type="float" key="X">1.0</DictItem>
-        <DictItem type="float" key="Y">1.0</DictItem>
-        <DictItem type="float" key="Z">1.0</DictItem>
+    <DictItem type="dict" key="network">
+      <DictItem type="dict" key="parameter_ui_opts">
+        <DictItem type="NoneType" key="title">None</DictItem>
+        <DictItem type="NoneType" key="name">None</DictItem>
+        <DictItem type="bool" key="expanded">True</DictItem>
+        <DictItem type="bool" key="readonly">False</DictItem>
+        <DictItem type="bool" key="movable">False</DictItem>
+        <DictItem type="bool" key="dropEnabled">False</DictItem>
+        <DictItem type="bool" key="renamable">False</DictItem>
+        <DictItem type="str" key="prefix"/>
+        <DictItem type="bool" key="c_numeric">False</DictItem>
       </DictItem>
-      <DictItem type="dict" key="segmentation">
-        <DictItem type="dict" key="parameter_ui_opts">
-          <DictItem type="NoneType" key="title">None</DictItem>
-          <DictItem type="NoneType" key="name">None</DictItem>
-          <DictItem type="bool" key="expanded">False</DictItem>
-          <DictItem type="bool" key="readonly">False</DictItem>
-          <DictItem type="bool" key="movable">False</DictItem>
-          <DictItem type="bool" key="dropEnabled">False</DictItem>
-          <DictItem type="bool" key="renamable">False</DictItem>
+      <DictItem type="dict" key="grid">
+        <DictItem type="dict" key="technical">
+          <DictItem type="dict" key="parameter_ui_opts">
+            <DictItem type="NoneType" key="title">None</DictItem>
+            <DictItem type="NoneType" key="name">None</DictItem>
+            <DictItem type="bool" key="expanded">False</DictItem>
+            <DictItem type="bool" key="readonly">False</DictItem>
+            <DictItem type="bool" key="movable">False</DictItem>
+            <DictItem type="bool" key="dropEnabled">False</DictItem>
+            <DictItem type="bool" key="renamable">False</DictItem>
+            <DictItem type="str" key="prefix"/>
+            <DictItem type="bool" key="c_numeric">False</DictItem>
+          </DictItem>
+          <DictItem type="int" key="max_z">100</DictItem>
         </DictItem>
-        <DictItem type="int" key="X">10</DictItem>
-        <DictItem type="int" key="Y">10</DictItem>
-        <DictItem type="int" key="Z">10</DictItem>
+        <DictItem type="dict" key="shape">
+          <DictItem type="dict" key="parameter_ui_opts">
+            <DictItem type="NoneType" key="title">None</DictItem>
+            <DictItem type="NoneType" key="name">None</DictItem>
+            <DictItem type="bool" key="expanded">True</DictItem>
+            <DictItem type="bool" key="readonly">False</DictItem>
+            <DictItem type="bool" key="movable">False</DictItem>
+            <DictItem type="bool" key="dropEnabled">False</DictItem>
+            <DictItem type="bool" key="renamable">False</DictItem>
+            <DictItem type="str" key="prefix">X,Y,Z</DictItem>
+            <DictItem type="bool" key="c_numeric">True</DictItem>
+          </DictItem>
+          <DictItem type="float" key="X">1.0</DictItem>
+          <DictItem type="float" key="Y">1.0</DictItem>
+          <DictItem type="float" key="Z">1.0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="seg">
+          <DictItem type="dict" key="parameter_ui_opts">
+            <DictItem type="NoneType" key="title">None</DictItem>
+            <DictItem type="NoneType" key="name">None</DictItem>
+            <DictItem type="bool" key="expanded">True</DictItem>
+            <DictItem type="bool" key="readonly">False</DictItem>
+            <DictItem type="bool" key="movable">False</DictItem>
+            <DictItem type="bool" key="dropEnabled">False</DictItem>
+            <DictItem type="bool" key="renamable">False</DictItem>
+            <DictItem type="str" key="prefix">X,Y,Z</DictItem>
+            <DictItem type="bool" key="c_numeric">True</DictItem>
+          </DictItem>
+          <DictItem type="int" key="X">10</DictItem>
+          <DictItem type="int" key="Y">10</DictItem>
+          <DictItem type="int" key="Z">10</DictItem>
+        </DictItem>
       </DictItem>
-      <DictItem type="int" key="tech_max_z">100</DictItem>
-    </DictItem>
-    <DictItem type="list" key="elements">
-      <ListElementElement type="dict">
-        <DictItem type="dict" key="pos">
-          <DictItem type="dict" key="parameter_ui_opts">
-            <DictItem type="NoneType" key="title">None</DictItem>
-            <DictItem type="NoneType" key="name">None</DictItem>
-            <DictItem type="bool" key="expanded">False</DictItem>
-            <DictItem type="bool" key="readonly">False</DictItem>
-            <DictItem type="bool" key="movable">False</DictItem>
-            <DictItem type="bool" key="dropEnabled">False</DictItem>
-            <DictItem type="bool" key="renamable">False</DictItem>
+      <DictItem type="list" key="elements">
+        <ListElementElement type="dict">
+          <DictItem type="dict" key="pos">
+            <DictItem type="dict" key="parameter_ui_opts">
+              <DictItem type="NoneType" key="title">None</DictItem>
+              <DictItem type="NoneType" key="name">None</DictItem>
+              <DictItem type="bool" key="expanded">True</DictItem>
+              <DictItem type="bool" key="readonly">False</DictItem>
+              <DictItem type="bool" key="movable">False</DictItem>
+              <DictItem type="bool" key="dropEnabled">False</DictItem>
+              <DictItem type="bool" key="renamable">False</DictItem>
+              <DictItem type="str" key="prefix">X,Y,Z</DictItem>
+              <DictItem type="bool" key="c_numeric">True</DictItem>
+            </DictItem>
+            <DictItem type="float" key="X">0.0</DictItem>
+            <DictItem type="float" key="Y">0.0</DictItem>
+            <DictItem type="float" key="Z">0.0</DictItem>
           </DictItem>
-          <DictItem type="float" key="X">0.0</DictItem>
-          <DictItem type="float" key="Y">0.0</DictItem>
-          <DictItem type="float" key="Z">0.0</DictItem>
-        </DictItem>
-      </ListElementElement>
-      <ListElementElement type="dict">
-        <DictItem type="dict" key="pos">
-          <DictItem type="dict" key="parameter_ui_opts">
-            <DictItem type="NoneType" key="title">None</DictItem>
-            <DictItem type="NoneType" key="name">None</DictItem>
-            <DictItem type="bool" key="expanded">False</DictItem>
-            <DictItem type="bool" key="readonly">False</DictItem>
-            <DictItem type="bool" key="movable">False</DictItem>
-            <DictItem type="bool" key="dropEnabled">False</DictItem>
-            <DictItem type="bool" key="renamable">False</DictItem>
+        </ListElementElement>
+        <ListElementElement type="dict">
+          <DictItem type="dict" key="pos">
+            <DictItem type="dict" key="parameter_ui_opts">
+              <DictItem type="NoneType" key="title">None</DictItem>
+              <DictItem type="NoneType" key="name">None</DictItem>
+              <DictItem type="bool" key="expanded">True</DictItem>
+              <DictItem type="bool" key="readonly">False</DictItem>
+              <DictItem type="bool" key="movable">False</DictItem>
+              <DictItem type="bool" key="dropEnabled">False</DictItem>
+              <DictItem type="bool" key="renamable">False</DictItem>
+              <DictItem type="str" key="prefix">X,Y,Z</DictItem>
+              <DictItem type="bool" key="c_numeric">True</DictItem>
+            </DictItem>
+            <DictItem type="float" key="X">0.0</DictItem>
+            <DictItem type="float" key="Y">0.0</DictItem>
+            <DictItem type="float" key="Z">0.0</DictItem>
           </DictItem>
-          <DictItem type="float" key="X">0.0</DictItem>
-          <DictItem type="float" key="Y">0.0</DictItem>
-          <DictItem type="float" key="Z">0.0</DictItem>
-        </DictItem>
-        <DictItem type="int" key="N">200</DictItem>
-        <DictItem type="int" key="S">1</DictItem>
-        <DictItem type="int" key="D">0</DictItem>
-      </ListElementElement>
-      <ListElementElement type="dict">
-        <DictItem type="dict" key="pos">
-          <DictItem type="dict" key="parameter_ui_opts">
-            <DictItem type="NoneType" key="title">None</DictItem>
-            <DictItem type="NoneType" key="name">None</DictItem>
-            <DictItem type="bool" key="expanded">False</DictItem>
-            <DictItem type="bool" key="readonly">False</DictItem>
-            <DictItem type="bool" key="movable">False</DictItem>
-            <DictItem type="bool" key="dropEnabled">False</DictItem>
-            <DictItem type="bool" key="renamable">False</DictItem>
+          <DictItem type="int" key="N">200</DictItem>
+          <DictItem type="int" key="S">1</DictItem>
+          <DictItem type="int" key="D">0</DictItem>
+        </ListElementElement>
+        <ListElementElement type="dict">
+          <DictItem type="dict" key="pos">
+            <DictItem type="dict" key="parameter_ui_opts">
+              <DictItem type="NoneType" key="title">None</DictItem>
+              <DictItem type="NoneType" key="name">None</DictItem>
+              <DictItem type="bool" key="expanded">True</DictItem>
+              <DictItem type="bool" key="readonly">False</DictItem>
+              <DictItem type="bool" key="movable">False</DictItem>
+              <DictItem type="bool" key="dropEnabled">False</DictItem>
+              <DictItem type="bool" key="renamable">False</DictItem>
+              <DictItem type="str" key="prefix">X,Y,Z</DictItem>
+              <DictItem type="bool" key="c_numeric">True</DictItem>
+            </DictItem>
+            <DictItem type="float" key="X">0.0</DictItem>
+            <DictItem type="float" key="Y">0.0</DictItem>
+            <DictItem type="float" key="Z">0.0</DictItem>
           </DictItem>
-          <DictItem type="float" key="X">0.0</DictItem>
-          <DictItem type="float" key="Y">0.0</DictItem>
-          <DictItem type="float" key="Z">0.0</DictItem>
-        </DictItem>
-      </ListElementElement>
-    </DictItem>
-    <DictItem type="list" key="bools">
-      <ListElementElement type="NoneType">None</ListElementElement>
-      <ListElementElement type="bool">True</ListElementElement>
-      <ListElementElement type="bool">False</ListElementElement>
-      <ListElementElement type="bool">True</ListElementElement>
+        </ListElementElement>
+      </DictItem>
+      <DictItem type="list" key="bools">
+        <ListElementElement type="NoneType">None</ListElementElement>
+        <ListElementElement type="bool">True</ListElementElement>
+        <ListElementElement type="bool">False</ListElementElement>
+        <ListElementElement type="bool">True</ListElementElement>
+      </DictItem>
     </DictItem>
   </construction>
 </dict>

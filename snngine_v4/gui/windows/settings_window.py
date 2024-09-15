@@ -2,10 +2,10 @@ from pydantic import BaseModel
 
 from qtpy import QtWidgets, QtCore
 
+from snngine_v4.gui.common.widget_dict import QTreeWidgetDict
 from snngine_v4.snngine_config import EngineConfig
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
     EngineParameterTree
-from snngine_v4.utils.containers.configurable_dict import ConfigurableDict
 
 
 class SettingsWindow(QtWidgets.QWidget):
@@ -28,8 +28,9 @@ class SettingsWindow(QtWidgets.QWidget):
         self.top_layout.setContentsMargins(0, 0, 0, 0)
         self.layout().addLayout(self.top_layout)
 
-        self.setting_trees: dict[str, EngineParameterTree] = (
-            ConfigurableDict.from_type(EngineParameterTree))
+        self.setting_trees: (QTreeWidgetDict.Type
+                             | dict[str, EngineParameterTree]) = (
+            QTreeWidgetDict())
 
         self.top_layout.addWidget(self.toolbar)
         self.options_layout = QtWidgets.QVBoxLayout()
@@ -53,16 +54,16 @@ class SettingsWindow(QtWidgets.QWidget):
 
         self.save_btn.clicked.connect(self.engine_config.export)
 
-    def add_settings(self, settings: BaseModel, name=None):
+    def add_settings(self, settings: BaseModel, name):
+
         tree: EngineParameterTree | QtWidgets.QTreeWidget = (
-            EngineParameterTree(settings, showHeader=False))
-        if name is None:
-            name = tree.settings_model.__class__.__name__
-        self.setting_trees[name] = tree
+            EngineParameterTree(name, settings, showHeader=False))
+        self.setting_trees.add_widget(tree)
+
         if len(self.setting_trees) > 1:
             tree.setVisible(False)
         self.options_layout.addWidget(tree)
-        action = QtWidgets.QAction(name, self)
+        action = QtWidgets.QAction(name.capitalize(), self)
         self.toolbar.addAction(action)
         action.triggered.connect(lambda: self.show_tree(name))
 

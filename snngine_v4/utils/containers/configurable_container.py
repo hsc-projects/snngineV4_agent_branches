@@ -18,11 +18,11 @@ class ContainerConfig(XMLSettingsModel, frozen=True):
 
 class ConfigurableContainerBase:
 
-    CONFIG_CLASS: ClassVar[Type[ContainerConfig]] = ContainerConfig
+    DICT_CONFIG_CLASS: ClassVar[Type[ContainerConfig]] = ContainerConfig
 
     def __init__(self, container_conf: ContainerConfig = None):
         self._container_conf: ContainerConfig = (
-                container_conf or self.CONFIG_CLASS())
+                container_conf or self.DICT_CONFIG_CLASS())
 
     @classmethod
     def cls_check_type(cls, item, type_):
@@ -30,8 +30,12 @@ class ConfigurableContainerBase:
             return True
         return isinstance(item, type_)
 
-    def check_type(self, item):
+    def check_item_type(self, item):
         return self.cls_check_type(item, self._container_conf.allowed_types)
+
+    def check_key_type(self, key):
+        return self.cls_check_type(
+            key, self._container_conf.allowed_key_types)
 
     @staticmethod
     def cls_filter_dict(
@@ -87,7 +91,7 @@ class ConfigurableContainerBase:
             container_conf=ContainerConfig(allowed_types=type_, **kwargs))
 
     def validate_item(self, item):
-        b_allowed_type = self.check_type(item)
+        b_allowed_type = self.check_item_type(item)
         if b_allowed_type is False:
             raise TypeError(
                     f"Item must be of type"

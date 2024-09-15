@@ -1,7 +1,7 @@
 from snngine_v4.gui.app_settings import AppSettings
-from snngine_v4.utils.settings.settings_keywords import ParameterUIOpts
+from snngine_v4.utils.settings.settings_keywords import ParamOpts
 
 
 class EngineAppSettings(AppSettings):
 
-    parameter_ui_opts: ParameterUIOpts = ParameterUIOpts(readonly=True)
+    parameter_ui_opts: ParamOpts = ParamOpts(readonly=True)

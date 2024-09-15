@@ -1,19 +1,20 @@
-from pyqtgraph.parametertree import Parameter, ParameterItem
+from pyqtgraph.parametertree import Parameter, ParameterItem, ParameterTree
 from pyqtgraph.parametertree.parameterTypes import (
     GroupParameter,
-    GroupParameterItem, NumericParameterItem,
+    GroupParameterItem, NumericParameterItem, WidgetParameterItem,
 )
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.icons import getEngineGraphIcon
-from snngine_v4.utils.settings.settings_keywords import PGParOption
+from snngine_v4.utils.settings.settings_keywords import (
+    PGParOption,
+)
 
 
 class EngineGroupParameterItem(GroupParameterItem):
 
     def __init__(self, param, depth):
 
-        # self._n_added_widget = 0
         self._widgets = []
 
         GroupParameterItem.__init__(self, param, depth)
@@ -41,12 +42,12 @@ class EngineGroupParameterItem(GroupParameterItem):
             .spin_box_slider_parameter import \
             SpinBoxSliderParameterItem
 
-        if isinstance(child, (SpinBoxSliderParameterItem, NumericParameterItem)):
+        if isinstance(child, (SpinBoxSliderParameterItem,
+                              NumericParameterItem)):
             b_add_to_header = self.param.opts.get(
                 PGParOption.CUSTOM_NUMERIC_GROUP, False)
             if b_add_to_header:
                 self.add_engine_slider_parameter_widgets(child)
-        # elif
 
     def add_engine_slider_parameter_widgets(self, item):
         if PGParOption.CUSTOM_NUMERIC_GROUP not in self.param.opts:
@@ -127,7 +128,7 @@ class EngineGroupParameterItem(GroupParameterItem):
         enabled = False
         for i in range(self.childCount()):
             c = self.child(i)
-            if isinstance(c, ParameterItem):
+            if isinstance(c, WidgetParameterItem):
                 enabled = c.defaultBtn.isEnabled()
                 if enabled:
                     break

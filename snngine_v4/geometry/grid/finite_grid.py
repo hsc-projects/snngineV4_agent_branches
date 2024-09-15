@@ -11,18 +11,26 @@ from snngine_v4.geometry.grid.grid_mask_maker import (
     mask_value_interval,
     MaskMaker, n_neighbours,
 )
+from snngine_v4.geometry.grid_config import TechnicalValues
 
 
 class FiniteGrid:
 
     def __init__(self,
-                 shape: Iterable | Sized,
-                 segmentation: Iterable | Sized,
-                 technical_max_z_value):
+                 shape: Iterable | Sized | dict,
+                 seg: Iterable | Sized | dict,
+                 technical: TechnicalValues):
+
+        if isinstance(shape, dict):
+            shape = list(shape.values())
+        if isinstance(seg, dict):
+            seg = list(seg.values())
+        if isinstance(technical, dict):
+            technical = TechnicalValues(**technical)
 
         if len(shape) != 3:
             raise ValueError('shape must be a 3-element iterable.')
-        if len(segmentation) != 3:
+        if len(seg) != 3:
             raise ValueError('segmentations must be a 3-element iterable.')
 
         # The shape of the grid
@@ -30,10 +38,10 @@ class FiniteGrid:
             self.shape = np.array(shape)
         # The segmentation of the grid
         if not hasattr(self, 'segmentation'):
-            self.segmentation = np.array(segmentation)
+            self.segmentation = np.array(seg)
 
         # A technical maximum z value, used for grid visuals
-        self._technical_max_z_value = technical_max_z_value
+        self._technical_max_z_value = technical.max_z
 
         # The lattice of the grid
         self._lattice = (float(self.shape[0] / self.segmentation[0]),

@@ -17,7 +17,7 @@ class ConfigurableListConfig(ContainerConfig, frozen=True):
 
 class ConfigurableList(ConfigurableContainerBase, UserList):
 
-    CONFIG_CLASS: ClassVar[Type[ConfigurableListConfig]] = (
+    DICT_CONFIG_CLASS: ClassVar[Type[ConfigurableListConfig]] = (
         ConfigurableListConfig)
 
     @classmethod
@@ -61,7 +61,7 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
         if self._container_conf.b_append_allowed is False:
             raise AttributeError("Appending not allowed.")
         if ((b_ignore_non_matching_types is True)
-                and (self.check_type(item) is False)):
+                and (self.check_item_type(item) is False)):
             return
         super().append(self.validate_item(item))
 

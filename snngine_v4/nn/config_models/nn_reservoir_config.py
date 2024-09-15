@@ -2,7 +2,7 @@ from enum import IntEnum
 
 from pydantic import Field, NonNegativeInt, PositiveInt
 
-from snngine_v4.nn.construction.nn_element_config import EngineElementConfig
+from snngine_v4.nn.config_models.nn_element_config import EngineElementConfig
 
 
 class ArraySourceType(IntEnum):
