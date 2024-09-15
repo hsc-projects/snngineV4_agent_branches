@@ -1,18 +1,10 @@
 from __future__ import annotations
 
-from enum import IntEnum
 from typing import Iterable
 
 import numpy as np
 
-
-class GridDirections(IntEnum):
-    XP = 0
-    XM = 1
-    YP = 2
-    YM = 3
-    ZP = 4
-    ZM = 5
+from snngine_v4.geometry.spatial_pars import AxDir3D
 
 
 class GridDirectionsObject:
@@ -34,7 +26,7 @@ class GridDirectionsObject:
         if isinstance(item, int):
             return self._obj[item]
         else:
-            return self._obj[GridDirections[item]]
+            return self._obj[AxDir3D[item]]
 
     def __iter__(self):
         return iter(self._obj)

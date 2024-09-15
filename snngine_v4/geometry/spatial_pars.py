@@ -1,7 +1,27 @@
+from __future__ import annotations
+
+from enum import IntEnum
+
 from pydantic import Field, NonNegativeInt, PositiveFloat
 
+from snngine_v4.utils.core_utils import get_intenum_member
 from snngine_v4.utils.settings.settings_keywords import ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
+
+
+class Ax3D(IntEnum):
+    X = 0
+    Y = 1
+    Z = 2
+
+
+class AxDir3D(IntEnum):
+    XP = 0
+    XM = 1
+    YP = 2
+    YM = 3
+    ZP = 4
+    ZM = 5
 
 
 class XYZPars(XMLSettingsModel):
@@ -36,3 +56,19 @@ class EnginePos3D(XYZPars):
     X: float = Field(default=0., ge=-10, le=10)
     Y: float = Field(default=0., ge=-10, le=10)
     Z: float = Field(default=0., ge=-10, le=10)
+
+
+
+class Directions3DBoolPars(XMLSettingsModel):
+
+    parameter_ui_opts: ParamOpts = ParamOpts(
+        expanded=False,
+        c_numeric=True,
+    )
+
+    XP: bool
+    XM: bool
+    YP: bool
+    YM: bool
+    ZP: bool
+    ZM: bool

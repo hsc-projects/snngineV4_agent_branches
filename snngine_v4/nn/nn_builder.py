@@ -2,7 +2,7 @@ from typing import ClassVar
 
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
 from snngine_v4.geometry.grid_config import FiniteGridConfig
-from snngine_v4.nn.config.nn_builder_config import \
+from snngine_v4.nn.config_models.nn_builder_config import \
     NetworkConstructionConfig
 
 from snngine_v4.utils.settings.object_builder import (
