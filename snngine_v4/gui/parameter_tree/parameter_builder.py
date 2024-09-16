@@ -6,7 +6,7 @@ from types import GenericAlias, UnionType
 import numpy as np
 import pandas as pd
 
-from pydantic import BaseModel, PositiveFloat, PositiveInt
+from pydantic import BaseModel
 
 from pyqtgraph.parametertree import Parameter
 import typing_extensions
@@ -20,7 +20,7 @@ from snngine_v4.utils.settings.settings_keywords import (
 )
 from snngine_v4.gui.parameter_tree.parameters.spin_box_slider_parameter import \
     SpinBoxSliderParameter
-from snngine_v4.gui.parameter_tree.signal_register import SignalMapRegister
+from snngine_v4.gui.parameter_tree.qt_signal_register import SignalMapRegister
 from snngine_v4.utils.field_utils import (
     b_is_int_annotation, get_field_interval,
     get_field_json_schema_extra, get_field_multiple_of,
@@ -30,19 +30,30 @@ from snngine_v4.utils.interval_utils import (
     limits_from_interval,
     linspace_from_interval,
 )
+from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
 class ParameterBuilder:
 
     @classmethod
     def get_parameter_type(cls, parent_model: BaseModel, key):
-        field_ = parent_model.model_fields[key]
-        parameter_type = field_.annotation
-        if isinstance(parameter_type, UnionType):
-            parameter_type = typing_extensions.get_args(field_.annotation)[0]
-        if issubclass(parameter_type, IntEnum):
-            parameter_type = Enum
-        return parameter_type
+        if key in parent_model.model_fields:
+            field_ = parent_model.model_fields[key]
+            parameter_type = field_.annotation
+            if isinstance(parameter_type, UnionType):
+                parameter_type = typing_extensions.get_args(field_.annotation)[0]
+            elif issubclass(parameter_type, IntEnum):
+                parameter_type = Enum
+            return parameter_type
+        elif key in parent_model.model_extra:
+            model_value = getattr(parent_model, key)
+            if (isinstance(model_value, dict)
+                    and isinstance(parent_model, XMLSettingsModel)):
+                mode_type = parent_model.model_interpret_dict_type(
+                    dct=model_value)
+                if mode_type:
+                    return mode_type
+            return type(model_value)
 
     @classmethod
     def make_group_from_model(cls, model: BaseModel, name=None,
@@ -80,6 +91,9 @@ class ParameterBuilder:
     def make_par(cls, parent_model: BaseModel, key, value, signal_register,
                  model_dict_value,
                  **options):
+
+        if key == 'fov':
+            pass
 
         field_ = parent_model.model_fields[key]
         json_schema_extra = get_field_json_schema_extra(field_)
@@ -296,14 +310,18 @@ class ParameterBuilder:
         n_numeric_children = 0
 
         for k, v in model_dict.items():
-            if k not in [ParamOpts.UI_OPTIONS_KEYWORD]:
+            if k not in [ParamOpts.UI_OPTIONS_KEYWORD,
+                         XMLSettingsModel.CLASS_NAME_KW]:
 
                 model_value = getattr(model, k)
-
                 p_type = cls.get_parameter_type(parent_model=model, key=k)
 
                 if ((not isinstance(p_type, GenericAlias))
                         and issubclass(p_type, BaseModel)):
+
+                    if isinstance(model_value, dict):
+                        model_value = p_type(**model_value)
+
                     par = cls.make_pars_from_model(
                         model=model_value, model_dict=v, name=k,
                         signal_register=signal_register)
@@ -318,12 +336,5 @@ class ParameterBuilder:
                     n_numeric_children += 1
                 children.append(par)
                 group.addChild(par)
-
-        # if n_children == 3:
-        #     if n_numeric_children != 3:
-        #         pass
-        # if isinstance()
-        # if 2 <= n_children == n_numeric_children <= 3:
-        #     group.opts[PGParOption.CUSTOM_NUMERIC_GROUP] = True
 
         return group

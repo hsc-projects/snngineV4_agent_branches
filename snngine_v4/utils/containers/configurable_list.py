@@ -1,6 +1,8 @@
 from collections import UserList
 from typing import ClassVar, Type
 
+from pydantic import BaseModel
+
 from snngine_v4.utils.containers.configurable_container import (
     ConfigurableContainerBase, ContainerConfig, ExtensionByDuplicateError,
 )
@@ -17,26 +19,8 @@ class ConfigurableListConfig(ContainerConfig, frozen=True):
 
 class ConfigurableList(ConfigurableContainerBase, UserList):
 
-    DICT_CONFIG_CLASS: ClassVar[Type[ConfigurableListConfig]] = (
+    CONTAINER_CONFIG_CLASS: ClassVar[Type[ConfigurableListConfig]] = (
         ConfigurableListConfig)
-
-    @classmethod
-    def from_type(cls, type_: Type, initlist=None, **kwargs):
-        return cls(
-            initlist=initlist,
-            container_conf=ConfigurableListConfig(
-                allowed_types=type_, **kwargs))
-
-    @classmethod
-    def class_from_type(cls, type_: Type, **kwargs):
-        class GeneratedConfigurableList(cls):
-            def __init__(
-                    self, initlist=None,
-                    container_conf: ConfigurableListConfig =
-                    ConfigurableListConfig(allowed_types=type_, **kwargs)):
-                super().__init__(initlist=initlist,
-                                 container_conf=container_conf)
-        return GeneratedConfigurableList
 
     def __init__(self, initlist=None,
                  container_conf: ConfigurableListConfig = None):
@@ -52,11 +36,6 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
         ConfigurableContainerBase.__init__(self, container_conf=container_conf)
         UserList.__init__(self, initlist)
 
-    def __setitem__(self, i, value):
-        if self._container_conf.b_replace_allowed is False:
-            raise KeyError(f"Replacing elements is not allowed.")
-        super().__setitem__(i, self.validate_item(value))
-
     def append(self, item, b_ignore_non_matching_types: bool = False) -> None:
         if self._container_conf.b_append_allowed is False:
             raise AttributeError("Appending not allowed.")
@@ -67,6 +46,17 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
 
     def apply(self, func, *args, **kwargs):
         return [func(x, *args, **kwargs) for x in self]
+
+    @classmethod
+    def class_from_type(cls, type_: Type, **kwargs):
+        class GeneratedConfigurableList(cls):
+            def __init__(
+                    self, initlist=None,
+                    container_conf: ConfigurableListConfig =
+                    ConfigurableListConfig(allowed_types=type_, **kwargs)):
+                super().__init__(initlist=initlist,
+                                 container_conf=container_conf)
+        return GeneratedConfigurableList
 
     def clear(self, keep=None) -> None:
         if self._container_conf.b_clear_allowed is False:
@@ -94,6 +84,13 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
             result_list=[], b_pop=b_pop)
         self.extend(list_)
 
+    @classmethod
+    def from_type(cls, type_: Type, initlist=None, **kwargs):
+        return cls(
+            initlist=initlist,
+            container_conf=ConfigurableListConfig(
+                allowed_types=type_, **kwargs))
+
     def insert(self, i: int, item) -> None:
         if self._container_conf.b_insert_allowed is False:
             raise PermissionError("Inserting not allowed.")
@@ -116,10 +113,27 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
         self.pop(idx)
         self.insert(idx, new)
 
-    def validate_item(self, item):
-        b_duplicate_check = not self._container_conf.duplicates_allowed
+    def __setitem__(self, i, value):
+        if self._container_conf.b_replace_allowed is False:
+            raise KeyError(f"Replacing elements is not allowed.")
+        super().__setitem__(i, self.validate_item(value))
+
+    def duplicate_validation_error(self, item, b_raise=True):
+        b_duplicate_check = not self._container_conf.b_duplicates_allowed
         if ((b_duplicate_check is True) and hasattr(self, "data")
-                and (item in self.data)):
-            raise ExtensionByDuplicateError(f"Item {item} already in list.")
+                and (item in self)):
+            if b_raise is True:
+                raise ExtensionByDuplicateError(
+                    f"Item {item} already in list.")
+            return True
+        return False
+
+    def validate_item(self, item):
+        self.duplicate_validation_error(item, b_raise=True)
         item = super().validate_item(item)
         return item
+
+
+class ConfigurableModelListConfig(ConfigurableListConfig, frozen=True):
+    allowed_types: Type[BaseModel] = BaseModel
+    b_duplicate_check_by_id: bool = True

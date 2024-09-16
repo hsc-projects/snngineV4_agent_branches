@@ -19,10 +19,12 @@ class EngineConfig(XMLSettingsModel):
 
     class Slots:
         CONSTRUCTION: ClassVar[str] = 'construction'
+        SCENES: ClassVar[str] = 'scenes'
 
     model_config: ClassVar[XMLSettingsConfigDict] = (
         default_xml_model_config_dict(
-            f".snngine/{BaseSettingsSlots.SUB_SETTINGS_FILE_NAME_PATTERN}.xml"))
+            xml_file=f".snngine"
+                     f"/{BaseSettingsSlots.SUB_SETTINGS_FILE_NAME_PATTERN}.xml"))
 
     app: EngineAppSettings
     open_gl: OpenGLSettings

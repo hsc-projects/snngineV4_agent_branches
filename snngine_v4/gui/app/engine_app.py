@@ -41,6 +41,10 @@ class EngineApp(Application):
         self.window.windows[WindowTypes.SETTINGS].show()
         self.engine.conf.export()
 
+        self.engine.conf.construction.network.grid.shape.__setattr__(
+            self.engine.conf.construction.network.grid.shape,
+            'X', 10)
+
     @property
     def conf(self) -> EngineAppSettings:
         return self.engine.conf.app

@@ -1,4 +1,5 @@
 from collections import UserDict, UserList
+from types import NoneType
 from typing import ClassVar, Type
 
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
@@ -9,20 +10,25 @@ class ExtensionByDuplicateError(Exception):
 
 
 class ContainerConfig(XMLSettingsModel, frozen=True):
-    allowed_types: tuple[Type] | Type | None = None
-    allowed_key_types: tuple[Type] | Type | None = None
+    allowed_types: tuple[Type, ...] | Type | None = None
+    allowed_key_types: tuple[Type] | Type = NoneType
     b_duplicates_allowed: bool = False
+    b_duplicate_check_by_id: bool = False
     b_replace_allowed: bool = False
     b_pop_allowed: bool = True
 
 
 class ConfigurableContainerBase:
 
-    DICT_CONFIG_CLASS: ClassVar[Type[ContainerConfig]] = ContainerConfig
+    CONTAINER_CONFIG_CLASS: ClassVar[Type[ContainerConfig]] = ContainerConfig
 
     def __init__(self, container_conf: ContainerConfig = None):
         self._container_conf: ContainerConfig = (
-                container_conf or self.DICT_CONFIG_CLASS())
+                container_conf or self.CONTAINER_CONFIG_CLASS())
+
+    def assert_emptiness(self):
+        if not self.is_empty:
+            raise AssertionError("not empty")
 
     @classmethod
     def cls_check_type(cls, item, type_):
@@ -75,6 +81,20 @@ class ConfigurableContainerBase:
                     result_list.append(list_[i])
         return result_list
 
+    @classmethod
+    def cls_validate_value_type(cls, item, type_):
+        b_allowed_type = cls.cls_check_type(item, type_=type_)
+        if b_allowed_type is False:
+            raise TypeError(
+                    f"Item must be of type {type_}."
+                    f"Got {type(item).__name__} instead.")
+        return item
+
+    def __contains__(self, item):
+        if self._container_conf.b_duplicate_check_by_id:
+            return id(item) in [id(x) for x in self.data]
+        return item in self.data
+
     def filter_dict(self, dict_: dict | UserDict, result_dict=None, b_pop=True):
         return self.cls_filter_dict(
             dict_, type_=self._container_conf.allowed_types,
@@ -90,21 +110,16 @@ class ConfigurableContainerBase:
         return cls(
             container_conf=ContainerConfig(allowed_types=type_, **kwargs))
 
+    @property
+    def is_empty(self):
+        return len(self.data) == 0
+
     def validate_item(self, item):
         b_allowed_type = self.check_item_type(item)
         if b_allowed_type is False:
             raise TypeError(
                     f"Item must be of type"
                     f" {self._container_conf.allowed_types}."
-                    f"Got {type(item).__name__} instead.")
-        return item
-
-    @classmethod
-    def cls_validate_value_type(cls, item, type_):
-        b_allowed_type = cls.cls_check_type(item, type_=type_)
-        if b_allowed_type is False:
-            raise TypeError(
-                    f"Item must be of type {type_}."
                     f"Got {type(item).__name__} instead.")
         return item
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from enum import IntEnum
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Literal
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -25,12 +25,15 @@ class XMLSettingsConfigDict(SettingsConfigDict, total=False):
     xml_file: PathType | None
 
 
-def default_xml_model_config_dict(xml_file=None):
+def default_xml_model_config_dict(
+    xml_file: str | None = None,
+    extra: Literal['allow', 'ignore', 'forbid'] | None = 'forbid',
+):
     return XMLSettingsConfigDict(
         strict=True,
         validate_default=True,
         validate_assignment=True,
-        extra='forbid',
+        extra=extra,
         arbitrary_types_allowed=False,
         xml_file=xml_file)
 
@@ -98,7 +101,7 @@ class XMLSettingsModelBase(BaseSettings):
     xml_model: ClassVar[XMLSettingsModelBase] = None
 
     model_config: ClassVar[XMLSettingsConfigDict] = (
-        default_xml_model_config_dict(None))
+        default_xml_model_config_dict(xml_file=None))
 
     def load(self):
         raise NotImplementedError
@@ -150,7 +153,15 @@ class XMLSettingsModelBase(BaseSettings):
     @model_validator(mode='before')
     @classmethod
     def validate_model_before(cls, data: Any) -> Any:
+        return cls._validate_model_before(data)
+
+    @classmethod
+    def _validate_model_before(cls, data: Any) -> Any:
         if isinstance(data, dict):
+
+            for k in cls.model_computed_fields:
+                data.pop(k, None)
+
             for k, field_info in cls.model_fields.items():
                 if k not in data:
                     if ((has_basemodel_annotation(field_info))

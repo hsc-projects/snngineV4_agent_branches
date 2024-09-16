@@ -21,7 +21,7 @@ class DefaultDictContainerConfig(ContainerConfig, frozen=True):
 
 class ConfigurableDict(ConfigurableContainerBase, UserDict):
 
-    DICT_CONFIG_CLASS: ClassVar[Type[ContainerConfig]] = (
+    CONTAINER_CONFIG_CLASS: ClassVar[Type[ContainerConfig]] = (
         DefaultDictContainerConfig)
 
     def __init__(self, initdict=None,
@@ -33,26 +33,14 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
         if initdict is not None:
             self.update(initdict)
 
-    # noinspection PyPep8Naming
-    @classmethod
-    def Type(cls):
-
-        key_type = cls.DICT_CONFIG_CLASS().allowed_key_types
-        if isinstance(key_type, tuple):
-            key_type = Union[*key_type]
-
-        value_type = cls.DICT_CONFIG_CLASS().allowed_types
-        if isinstance(value_type, tuple):
-            value_type = Union[*value_type]
-        dict_type = dict[key_type, value_type]
-        return cls | dict_type
-
     @classmethod
     def from_type(cls, type_: type,
-                  initdict=None, **kwargs):
+                  initdict=None, allowed_key_types=str, **kwargs):
         return cls(initdict=initdict,
                    container_conf=ContainerConfig(
-                       allowed_types=type_, **kwargs))
+                       allowed_types=type_,
+                       allowed_key_types=allowed_key_types,
+                       **kwargs))
 
     def __getitem__(self, item):
         try:

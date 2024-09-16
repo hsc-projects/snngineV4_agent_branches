@@ -5,8 +5,7 @@ from qtpy import QtCore, QtWidgets, QtGui
 from snngine_v4.gui.common.widget_dict import QDockWidgetDict, QWidgetDict
 from snngine_v4.snngine import SNNgine
 from snngine_v4.snngine_config import EngineConfig
-from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
-    (
+from snngine_v4.gui.parameter_tree.engine_parameter_tree import (
     EngineParameterTree, EngineTreeDockWidget,
 )
 from snngine_v4.gui.windows.settings_window import SettingsWindow
@@ -19,7 +18,7 @@ class WindowTypes(IntEnum):
 
 class ButtonsDockWidget(QtWidgets.QDockWidget):
 
-    def __init__(self, name = 'Buttons', parent=None, features=None, **kwargs):
+    def __init__(self, name='Buttons', parent=None, features=None, **kwargs):
 
         super().__init__(name, parent=parent, **kwargs)
         self.setObjectName(name)
@@ -41,11 +40,14 @@ class MainEngineWindow(QtWidgets.QMainWindow):
     def __init__(self, engine: SNNgine):
         super().__init__()
 
+        self.setMenuBar(QtWidgets.QMenuBar())
+        self.setCentralWidget(QtWidgets.QWidget(self))
+        self._config_docks()
+
         engine_config = engine.conf
         window_config = engine_config.app.windows.main
         self.resize(*window_config.size)
 
-        self.setCentralWidget(QtWidgets.QWidget(self))
         self.centralWidget().setLayout(QtWidgets.QVBoxLayout())
         self.centralWidget().layout().setContentsMargins(0, 0, 0, 0)
 
@@ -53,24 +55,35 @@ class MainEngineWindow(QtWidgets.QMainWindow):
             WindowTypes.SETTINGS: SettingsWindow(engine_config=engine_config)
         })
 
-        self._config_docks()
+        self.docks = QDockWidgetDict()
 
         construction_tree_dock = EngineTreeDockWidget(
-            self.setting_trees[EngineConfig.Slots.CONSTRUCTION])
-
-        buttons_docks = ButtonsDockWidget()
-        buttons_docks.build_button.clicked.connect(engine.build)
-
-        self.docks = QDockWidgetDict()
+            pars=self.setting_trees[EngineConfig.Slots.CONSTRUCTION].parameters,
+            name=EngineConfig.Slots.CONSTRUCTION.capitalize())
         self.docks.add_widget(construction_tree_dock)
-        self.docks.add_widget(buttons_docks)
 
+        scene_tree_dock = EngineTreeDockWidget(
+            pars=self.setting_trees[EngineConfig.Slots.SCENES].parameters,
+            name=EngineConfig.Slots.SCENES.capitalize())
+        self.docks.add_widget(scene_tree_dock)
+
+        self.buttons_dock = ButtonsDockWidget()
+        self.docks.add_widget(self.buttons_dock)
+
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
+                           scene_tree_dock)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
                            construction_tree_dock)
+        self.tabifyDockWidget(construction_tree_dock, scene_tree_dock)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
-                           buttons_docks)
+                           self.buttons_dock)
+        self.engine = engine
+        self.connect_to_engine()
+        self.update_connections()
 
-        self._set_menu_bar(engine=engine)
+    def build(self):
+        self.engine.build()
+        self.update_connections()
 
     def _config_docks(self):
         dock_options = self.dockOptions()
@@ -82,19 +95,34 @@ class MainEngineWindow(QtWidgets.QMainWindow):
         self.setCorner(QtCore.Qt.Corner.BottomLeftCorner,
                        QtCore.Qt.DockWidgetArea.LeftDockWidgetArea)
 
-    @property
-    def setting_trees(self) -> dict[str, EngineParameterTree]:
-        return self.windows[WindowTypes.SETTINGS].setting_trees
+    def connect_to_engine(self):
 
-    def _set_menu_bar(self, engine: SNNgine):
-        self.setMenuBar(QtWidgets.QMenuBar())
+        self.buttons_dock.build_button.clicked.connect(self.build)
+
         file_menu = self.menuBar().addMenu('&File')
 
         build_action = QtWidgets.QAction('&Build', self)
         file_menu.addAction(build_action)
-        build_action.triggered.connect(engine.build)
+        build_action.triggered.connect(self.build)
 
         settings_action = QtWidgets.QAction('&Settings', self)
         file_menu.addAction(settings_action)
         settings_action.triggered.connect(
             self.windows[WindowTypes.SETTINGS].show)
+
+    def update_connections(self):
+        scene_tree: EngineParameterTree = self.setting_trees[
+            EngineConfig.Slots.SCENES]
+        signals = scene_tree.signal_register
+
+        models = signals.connected_models
+
+        scene_manager = self.engine.scene_manager
+
+        object2object_map = scene_manager.get_objects(models)
+
+        return
+
+    @property
+    def setting_trees(self) -> dict[str, EngineParameterTree]:
+        return self.windows[WindowTypes.SETTINGS].setting_trees

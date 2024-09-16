@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -95,10 +95,18 @@ class ParamOpts(BaseSettings, frozen=True):
     movable: bool = False
     dropEnabled: bool = False
     renamable: bool = False
-    prefix: str | None = ''
+    prefix: str = ''
 
     # custom
     c_numeric: bool = False
+
+    # noinspection PyNestedDecorators
+    @field_validator('prefix', mode='before')
+    @classmethod
+    def convert_none(cls, v):
+        if v is None:
+            v = ''
+        return v
 
     @classmethod
     def pop_ui_options_keyword(cls, dct: dict, b_recursive: bool = True):
@@ -109,6 +117,11 @@ class ParamOpts(BaseSettings, frozen=True):
             elif b_recursive and isinstance(dct[k], dict):
                 dct[k] = cls.pop_ui_options_keyword(dct[k], b_recursive=True)
         return dct
+
+
+class InternalOpts(BaseSettings, frozen=True):
+    class Slots:
+        TECHNICAL: ClassVar[str] = 'technical'
 
 
 class BaseSettingsSlots:

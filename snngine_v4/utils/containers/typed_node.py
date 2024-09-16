@@ -43,7 +43,8 @@ class TypedTreeNodeConfig(ContainerConfig, frozen=True):
 
 class TypedTreeNode(ConfigurableContainerBase):
 
-    DICT_CONFIG_CLASS: ClassVar[Type[TypedTreeNodeConfig]] = TypedTreeNodeConfig
+    CONTAINER_CONFIG_CLASS: ClassVar[Type[TypedTreeNodeConfig]] = (
+        TypedTreeNodeConfig)
 
     def __init__(self, parent_node: TypedTreeNode = None,
                  children_nodes: list[TypedTreeNode] | None = None,
@@ -53,7 +54,8 @@ class TypedTreeNode(ConfigurableContainerBase):
         self._container_conf: TypedTreeNodeConfig | None = None
         self._node_object = node_object
         if container_conf is None:
-            container_conf = self.DICT_CONFIG_CLASS(allowed_types=self.__class__)
+            container_conf = self.CONTAINER_CONFIG_CLASS(
+                allowed_types=self.__class__)
         super().__init__(container_conf=container_conf)
 
         self._parent_node: TypedTreeNode | None = None

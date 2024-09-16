@@ -5,7 +5,7 @@ from pyqtgraph.parametertree import Parameter, ParameterTree
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.parameter_tree.parameter_builder import ParameterBuilder
-from snngine_v4.gui.parameter_tree.signal_register import SignalMapRegister
+from snngine_v4.gui.parameter_tree.qt_signal_register import SignalMapRegister
 
 
 class EngineParameterTree(ParameterTree):
@@ -54,7 +54,7 @@ class EngineParameterTree(ParameterTree):
     @classmethod
     def from_pars(cls, pars: Parameter | EngineParameterTree,
                   name=None,
-                  root=None, depth=0, showTop=True, model=None
+                  root=None, depth=0, showTop=False, model=None
                   ) -> EngineParameterTree:
         if isinstance(pars, EngineParameterTree):
             if name is None:

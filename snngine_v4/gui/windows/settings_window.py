@@ -28,7 +28,7 @@ class SettingsWindow(QtWidgets.QWidget):
         self.top_layout.setContentsMargins(0, 0, 0, 0)
         self.layout().addLayout(self.top_layout)
 
-        self.setting_trees: (QTreeWidgetDict.Type
+        self.setting_trees: (QTreeWidgetDict
                              | dict[str, EngineParameterTree]) = (
             QTreeWidgetDict())
 
@@ -57,17 +57,24 @@ class SettingsWindow(QtWidgets.QWidget):
     def add_settings(self, settings: BaseModel, name):
 
         tree: EngineParameterTree | QtWidgets.QTreeWidget = (
-            EngineParameterTree(name, settings, showHeader=False))
+            EngineParameterTree(name, settings, showHeader=True))
         self.setting_trees.add_widget(tree)
 
         if len(self.setting_trees) > 1:
             tree.setVisible(False)
         self.options_layout.addWidget(tree)
-        action = QtWidgets.QAction(name.capitalize(), self)
+        action_name = name.capitalize()
+        if action_name.endswith('_gl'):
+            action_name = action_name.replace('_gl', 'GL')
+        action = QtWidgets.QAction(action_name, self)
         self.toolbar.addAction(action)
         action.triggered.connect(lambda: self.show_tree(name))
 
     def show_tree(self, name):
         for k, tree in self.setting_trees.items():
             tree.setVisible(k == name)
+            if k == name:
+                header: QtWidgets.QHeaderView = tree.header()
+                mode = QtWidgets.QHeaderView.ResizeMode.ResizeToContents
+                header.resizeSections(mode)
         return

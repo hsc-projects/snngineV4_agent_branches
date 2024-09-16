@@ -5,9 +5,7 @@ from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.nn.config_models.nn_builder_config import \
     NetworkConstructionConfig
 
-from snngine_v4.utils.settings.object_builder import (
-    BuilderDict,
-)
+from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 
 
 class NetworkBuilder(BuilderDict):
@@ -34,6 +32,6 @@ class NetworkBuilder(BuilderDict):
 
     def destroy(self):
         del self.data
-        del self.model2key_map
+        del self.object2key_map
         self.data = {}
-        self.model2key_map = {}
+        self.object2key_map = {}

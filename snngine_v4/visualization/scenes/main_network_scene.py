@@ -1,23 +1,33 @@
-from vispy.scene import Grid, SceneCanvas, ViewBox, XYZAxis
-from vispy.visuals.transforms import STTransform
+from pydantic import BaseModel
+from vispy.scene import BaseCamera, SceneCanvas, ViewBox, VisualNode
 
-from snngine_v4.visualization.scenes.connectable_camera import \
-    ConnectableTurntableCamera
+from snngine_v4.utils.containers.configurable_dict import ConfigurableDict
+from snngine_v4.utils.containers.mappings import (
+    MappedDict, Object2KeyMap,
+    Object2ObjectMap,
+)
 
 
-class MainNetworkSceneCanvas(SceneCanvas):
+class EngineSceneCanvas(SceneCanvas):
 
     def __init__(self, *arg, **kwargs):
         super().__init__(*arg, **kwargs)
 
         self.unfreeze()
-        self.scene_view: ViewBox = self.central_widget.add_view(
-            camera=ConnectableTurntableCamera(name='MainCamera')
-        )
 
-        self.display_grid: Grid = self.scene_view.add_grid()
+        self.camera_dict: dict[BaseModel, BaseCamera] = (
+            Object2ObjectMap.from_types(BaseModel, BaseCamera))
+        self.view_dict: dict[str, ViewBox] = (
+            ConfigurableDict.from_type(ViewBox))
+        self.visual_node_dict = MappedDict.from_type(VisualNode)
+        self.visual_node_dict.object2key_map = Object2KeyMap()
 
-        axis = XYZAxis(parent=self.scene_view.scene)
-        axis.transform = STTransform()
-        axis.transform.move((-0.1, -0.1, -0.1))
         self.freeze()
+
+    def add_visual_node(self, node: VisualNode, view_box=None):
+        node.parent = self.new_visual_node_parent(view_box=view_box)
+
+    def new_visual_node_parent(self, view_box=None):
+        if view_box is None:
+            view_box = list(self.view_dict.values())[0]
+        return view_box.scene

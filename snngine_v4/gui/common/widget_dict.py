@@ -13,7 +13,7 @@ class QWidgetDictConfig(DefaultDictContainerConfig, frozen=True):
 
 
 class QWidgetDict(ConfigurableDict):
-    DICT_CONFIG_CLASS: ClassVar[Type[QWidgetDictConfig]] = QWidgetDictConfig
+    CONTAINER_CONFIG_CLASS: ClassVar[Type[QWidgetDictConfig]] = QWidgetDictConfig
 
     def add_widget(self, widget: QWidget):
         name = widget.objectName()
@@ -25,7 +25,7 @@ class QTreeWidgetDictConfig(QWidgetDictConfig, frozen=True):
 
 
 class QTreeWidgetDict(QWidgetDict):
-    DICT_CONFIG_CLASS: ClassVar[Type[QTreeWidgetDictConfig]] = (
+    CONTAINER_CONFIG_CLASS: ClassVar[Type[QTreeWidgetDictConfig]] = (
         QTreeWidgetDictConfig)
 
 

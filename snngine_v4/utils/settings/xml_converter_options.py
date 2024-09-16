@@ -6,7 +6,9 @@ from typing import ClassVar, Type
 
 
 from snngine_v4.utils.settings.xml_settings_base import (
-    default_xml_model_config_dict, XMLSettingsConfigDict, XMLSettingsModelBase,
+    default_xml_model_config_dict,
+    XMLSettingsConfigDict,
+    XMLSettingsModelBase,
 )
 
 
@@ -29,16 +31,19 @@ class XMLConverterOptions(XMLSettingsModelBase):
 
     model_config: ClassVar[XMLSettingsConfigDict] = (
         default_xml_model_config_dict(
-            './xml_converter_settings.xml'))
+            xml_file='./xml_converter_settings.xml'))
 
     base_types_str: str = "int,float,str,bool,NoneType"
 
     type_attribute: str = "type"
     enum_attribute: str = "Enum"
+    dict_key_attribute: str = "key"
+
     sequence_element_tag_suffix: str = "Element"
     sequence_element_types_str: str = "list,tuple"
-    dict_key_attr: str = "key"
     dict_item_tag: str = "DictItem"
+
+    dict_key_to_tag_attributes: dict[str, str] | None = None
 
     to_string_options: XMLStringOptions
 

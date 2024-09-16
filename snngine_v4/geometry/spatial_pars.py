@@ -4,7 +4,6 @@ from enum import IntEnum
 
 from pydantic import Field, NonNegativeInt, PositiveFloat
 
-from snngine_v4.utils.core_utils import get_intenum_member
 from snngine_v4.utils.settings.settings_keywords import ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
@@ -56,7 +55,6 @@ class EnginePos3D(XYZPars):
     X: float = Field(default=0., ge=-10, le=10)
     Y: float = Field(default=0., ge=-10, le=10)
     Z: float = Field(default=0., ge=-10, le=10)
-
 
 
 class Directions3DBoolPars(XMLSettingsModel):

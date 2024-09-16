@@ -153,8 +153,19 @@ class XMLConverter:
             case 'list':
                 return [self.value_from_xml(x) for x in element]
             case 'dict':
-                return {x.attrib['key']: self.value_from_xml(x) for x in
-                        element}
+                res = {x.attrib[self.conf.dict_key_attribute]:
+                       self.value_from_xml(x)
+                       for x in element}
+                if ((tag_map := self.conf.dict_key_to_tag_attributes)
+                        is not None):
+                    for k, v in tag_map.items():
+                        if (tag_value := attrib.get(v, None)) is not None:
+                            if k in res:
+                                raise KeyError(f'Key {k} already exists')
+                            res[k] = tag_value
+
+                return res
+
             case 'tuple':
                 return tuple([self.value_from_xml(x) for x in element])
             case 'set':
@@ -175,6 +186,12 @@ class XMLConverter:
             v_xml.set(self.conf.type_attribute, type(child_ref).__name__)
         else:
             v_xml.set(self.conf.type_attribute, type(v).__name__)
+            if (isinstance(v, dict)
+                    and ((tag_map := self.conf.dict_key_to_tag_attributes)
+                         is not None)):
+                for k in tag_map:
+                    if k in v:
+                        v_xml.set(tag_map[k], v.pop(k))
             child_ref = None
 
         if isinstance(child_ref, IntEnum):
@@ -203,10 +220,12 @@ class XMLConverter:
                         tag = self.conf.dict_item_tag
                     else:
                         tag = key
+
                     value_xml = self.value_to_xml(v_xml, tag, value,
                                                   ref=child_ref)
+
                     if not hasattr(child_ref, key):
-                        value_xml.set(self.conf.dict_key_attr, key)
+                        value_xml.set(self.conf.dict_key_attribute, key)
 
             else:
                 raise NotImplementedError(

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from dataclasses import is_dataclass
+from enum import Enum
 from typing import Literal, Union
 
 
@@ -98,3 +101,21 @@ def type_assertion(item, _type):
 
 IntervalLeftRight = Literal["left", "right"]
 IntervalClosedType = Union[IntervalLeftRight, Literal["both", "neither"]]
+
+
+class ConvertingEnum(Enum):
+
+    @classmethod
+    def mapping(cls):
+        raise NotImplementedError
+
+    @classmethod
+    def convert_dict(cls, dct, mapping=None):
+        if mapping is None:
+            mapping = cls.mapping()
+        for i, k in enumerate(cls._member_names_):
+            if k in dct:
+                raise KeyError(f"Key {k} already exists in dictionary")
+            elif k in mapping:
+                dct[k] = dct.pop(mapping[k])
+        return dct
