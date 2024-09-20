@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import copy
 from copy import deepcopy
 from enum import Enum, IntEnum
 from types import GenericAlias, UnionType
+from typing import Type, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -10,6 +13,7 @@ from pydantic import BaseModel
 
 from pyqtgraph.parametertree import Parameter
 import typing_extensions
+from pyqtgraph.parametertree.parameterTypes import GroupParameter
 
 from snngine_v4.gui.parameter_tree.parameters.engine_group_parameter import \
     EngineGroupParameter
@@ -20,17 +24,21 @@ from snngine_v4.utils.settings.settings_keywords import (
 )
 from snngine_v4.gui.parameter_tree.parameters.spin_box_slider_parameter import \
     SpinBoxSliderParameter
-from snngine_v4.gui.parameter_tree.qt_signal_register import SignalMapRegister
+
 from snngine_v4.utils.field_utils import (
     b_is_int_annotation, get_field_interval,
     get_field_json_schema_extra, get_field_multiple_of,
-    get_type_from_annotation,
+    extract_type_from_annotation,
 )
 from snngine_v4.utils.interval_utils import (
     limits_from_interval,
     linspace_from_interval,
 )
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
+
+if TYPE_CHECKING:
+    from snngine_v4.gui.parameter_tree.connectors \
+        .basemodel_signal_register import ModelSignalRegister
 
 
 class ParameterBuilder:
@@ -49,18 +57,22 @@ class ParameterBuilder:
             model_value = getattr(parent_model, key)
             if (isinstance(model_value, dict)
                     and isinstance(parent_model, XMLSettingsModel)):
-                mode_type = parent_model.model_interpret_dict_type(
+                model_type = parent_model.model_interpret_dict_type(
                     dct=model_value)
-                if mode_type:
-                    return mode_type
+                if model_type:
+                    return model_type
             return type(model_value)
 
     @classmethod
     def make_group_from_model(cls, model: BaseModel, name=None,
                               model_dict: dict[str, BaseModel] = None, ):
 
-        parameter_ui_opts = (model_dict.get(
-            ParamOpts.UI_OPTIONS_KEYWORD, {}))
+        parameter_ui_opts = getattr(model, ParamOpts.UI_OPTIONS_KEYWORD,
+                                    {})
+        if parameter_ui_opts is None:
+            parameter_ui_opts = {}
+        elif isinstance(parameter_ui_opts, BaseModel):
+            parameter_ui_opts = parameter_ui_opts.model_dump()
 
         if PGParOption.RENAMABLE not in parameter_ui_opts:
             parameter_ui_opts[PGParOption.RENAMABLE] = False
@@ -109,12 +121,12 @@ class ParameterBuilder:
 
         options[PGParOption.TYPE] = parameter_type.__name__
         if parameter_type == Enum:
-            options['enum'] = get_type_from_annotation(
+            options['enum'] = extract_type_from_annotation(
                 field_.annotation, _type=Enum)
 
         parameter_ = None
 
-        options[PGParOption.CUSTOM_FIELD_NAME] = key
+        options[PGParOption.CUSTOM_MODEL_FIELD_NAME] = key
 
         if PGParOption.PREFIX in options:
             prefix = options[PGParOption.PREFIX]
@@ -126,6 +138,8 @@ class ParameterBuilder:
                     options[PGParOption.PREFIX] = ''
 
         if parameter_type in [float, int]:
+            if key == 'distance':
+                pass
             parameter_ = cls._make_numeric_par(field_=field_, **options)
 
         elif isinstance(parameter_type, GenericAlias):
@@ -138,11 +152,12 @@ class ParameterBuilder:
         if parameter_ is None:
             parameter_ = Parameter.create(**options)
 
-        if ((signal_register is not None)
-                and (BaseSettingsSlots.b_is_frozen(parent_model)
-                     is False)):
-            signal_register.connect_parameter(
-                parent_model, key_=key, parameter=parameter_)
+        # if ((signal_register is not None)
+        #         and (BaseSettingsSlots.b_is_frozen(parent_model)
+        #              is False)):
+        #     signal_register.connect_parameter(
+        #         parent_model, key=key, parameter=parameter_)
+
         return parameter_
 
     @classmethod
@@ -289,7 +304,7 @@ class ParameterBuilder:
 
     @classmethod
     def make_pars_from_model(cls, model, model_dict,
-                             signal_register: SignalMapRegister = None,
+                             signal_register: ModelSignalRegister = None,
                              name=None):
 
         group = cls.make_group_from_model(
@@ -310,8 +325,7 @@ class ParameterBuilder:
         n_numeric_children = 0
 
         for k, v in model_dict.items():
-            if k not in [ParamOpts.UI_OPTIONS_KEYWORD,
-                         XMLSettingsModel.CLASS_NAME_KW]:
+            if k not in [XMLSettingsModel.CLASS_NAME_KW]:
 
                 model_value = getattr(model, k)
                 p_type = cls.get_parameter_type(parent_model=model, key=k)
@@ -336,5 +350,28 @@ class ParameterBuilder:
                     n_numeric_children += 1
                 children.append(par)
                 group.addChild(par)
-
+        if ((signal_register is not None)
+                and (BaseSettingsSlots.b_is_frozen(model)
+                     is False)):
+            signal_register.connect_group_parameter(
+                model, parameter=group)
         return group
+
+    @classmethod
+    def get_parameters_by_type(
+        cls, model_type: Type[BaseModel],
+        signal_register: ModelSignalRegister,
+        ancestor: GroupParameter | BaseModel | None,
+    ):
+        res = []
+        if isinstance(ancestor, BaseModel):
+            ancestor = signal_register.group_map[ancestor]
+        for model in signal_register.refs:
+            if isinstance(model, model_type):
+                p = signal_register.group_map[model]
+                if ((ancestor is not None)
+                        and (ancestor.childPath(p) is None)):
+                    pass
+                else:
+                    res.append(p)
+        return res

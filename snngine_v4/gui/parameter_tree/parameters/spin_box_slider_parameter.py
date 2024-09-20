@@ -61,8 +61,6 @@ class SpinBoxSliderParameterItem(NumericParameterItem):
         self.displayLabel = ClickableLabel()
         self.displayLabel.sigClicked.connect(self.subWidgetClicked)
 
-        # self.displayLabel = QtWidgets.QPushButton()
-        # self.displayLabel.setFlat(True)
         self.layoutWidget.layout().insertWidget(0, self.displayLabel)
 
         self.slider.setSizePolicy(
@@ -220,19 +218,34 @@ class SpinBoxSliderParameterItem(NumericParameterItem):
             b_add_slider_to_column = not parent.param.opts.get(
                 PGParOption.CUSTOM_NUMERIC_GROUP, False)
             # parent.add_engine_slider_parameter_widgets(self)
-        b_add_slider_to_column = False
+        # b_add_slider_to_column = False
         if b_add_slider_to_column is True:
-            col_count = tree.columnCount()
-            if col_count <= 2:
-                header = tree.headerItem()
-                labels = []
-                for col in range(col_count):
-                    labels.append(header.text(col))
-                tree.setColumnCount(col_count + 1)
-                tree.setHeaderLabels(labels + ["Slider"])
+            # col_count = tree.columnCount()
+            # if col_count <= 2:
+            #     header = tree.headerItem()
+            #     labels = []
+            #     for col in range(col_count):
+            #         labels.append(header.text(col))
+            #     tree.setColumnCount(col_count + 1)
+            #     tree.setHeaderLabels(labels + ["Slider"])
             # noinspection PyTypeChecker
-
-            tree.setItemWidget(self, 2, self.slider_layout_widget)
+            width = self.widget.opts.get(PGParOption.DECIMALS, 3) * 20 + 15
+            # self.widget.setMinimumWidth(width)
+            # self.displayLabel.setMinimumWidth(width)
+            self.widget.setMaximumWidth(width)
+            self.displayLabel.setMaximumWidth(width)
+            self.displayLabel.setSizePolicy(
+                QtWidgets.QSizePolicy.Policy.Expanding,
+                QtWidgets.QSizePolicy.Policy.Expanding,
+            )
+            self.widget.setSizePolicy(
+                QtWidgets.QSizePolicy.Policy.Expanding,
+                QtWidgets.QSizePolicy.Policy.Expanding,
+            )
+            self.layoutWidget.layout().insertWidget(
+                self.layoutWidget.layout().count() - 1,
+                self.slider_layout_widget)
+            # tree.setItemWidget(self, 2, self.slider_layout_widget)
 
 
 class SpinBoxSliderParameter(Parameter):

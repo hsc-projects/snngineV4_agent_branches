@@ -12,7 +12,7 @@ from snngine_v4.geometry.spatial_pars import (
 )
 from snngine_v4.utils.containers.configurable_dict import (
     ConfigurableDict,
-    DefaultDictContainerConfig,
+    DictContainerConfig,
 )
 from snngine_v4.utils.core_utils import get_intenum_member
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
@@ -64,7 +64,7 @@ class VispyVisualManager(BuilderDict):
     @classmethod
     def _convert_to_vispy(cls, dct, model: BaseModel):
         res = ConfigurableDict(
-            container_conf=DefaultDictContainerConfig(
+            container_conf=DictContainerConfig(
                 b_duplicates_allowed=True
             )
         )

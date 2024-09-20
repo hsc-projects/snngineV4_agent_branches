@@ -81,8 +81,8 @@ def get_type_from_union(annotation: UnionType, _type: Type,
         raise ValueError(f"No {_type} found")
 
 
-def get_basemodel_from_annotation(annotation: UnionType | Type,
-                                  b_raise: bool = True):
+def extract_basemodel_from_annotation(annotation: UnionType | Type,
+                                      b_raise: bool = True):
     if isinstance(annotation, UnionType):
         return get_basemodel_from_union(annotation, b_raise=b_raise)
     if is_basemodel_annotation(annotation):
@@ -91,9 +91,30 @@ def get_basemodel_from_annotation(annotation: UnionType | Type,
         raise ValueError("No BaseModel found")
 
 
-def get_type_from_annotation(
+def extract_field_values_by_type(model: BaseModel, type_: Type):
+    res = {}
+    keys = list(model.model_fields) + list(model.model_extra.keys())
+    for k in keys:
+        if isinstance(v := getattr(model, k), type_):
+            res[k] = v
+    return res
+
+
+def extract_type_from_type_annotation(
+        annotation
+):
+    if typing_extensions.get_origin(annotation) != type:
+        raise TypeError(f"{annotation}")
+    res = typing_extensions.get_args(annotation)
+    if len(res) != 1:
+        raise NotImplementedError
+    return res[0]
+
+
+def extract_type_from_annotation(
         annotation: UnionType | Type, _type: Type, b_raise: bool = True
 ):
+
     if annotation == _type:
         return annotation
     elif isinstance(annotation, UnionType):

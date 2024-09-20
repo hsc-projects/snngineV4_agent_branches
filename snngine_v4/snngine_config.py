@@ -41,7 +41,7 @@ class EngineConfig(XMLSettingsModel):
         if (fn is not None) and (sub_setting_pat in fn):
             xml_files = []
             for k in cls.model_fields:
-                if k != cls.Slots.CONSTRUCTION:
+                if k not in [cls.Slots.CONSTRUCTION, cls.Slots.SCENES]:
                     xml_files.append(fn.replace(sub_setting_pat, k))
         else:
             xml_files = fn

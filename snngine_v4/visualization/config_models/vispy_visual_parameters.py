@@ -41,7 +41,7 @@ class WDHSegKw(ConvertingEnum):
 
 class RGBAColor(XMLSettingsModel):
 
-    parameter_ui_opts: ParamOpts = ParamOpts(
+    parameter_ui_opts: ClassVar[ParamOpts] = ParamOpts(
         renamable=False,
         expanded=False,
         c_numeric=True,

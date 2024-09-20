@@ -6,10 +6,9 @@ from typing import ClassVar, Type
 
 from pydantic import BaseModel
 
-from snngine_v4.utils.containers.configurable_dict import (
-    DefaultDictContainerConfig,
+from snngine_v4.utils.containers.mappings import (
+    Model2ObjectMap, Int2ObjectMapConfig,
 )
-from snngine_v4.utils.containers.mappings import MappedDict, Object2KeyMap
 from snngine_v4.utils.settings.settings_keywords import ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
@@ -21,24 +20,23 @@ class BuildResult:
     kwargs: dict = field(default_factory=dict)
 
 
-class ContainerBuildResultConfig(DefaultDictContainerConfig, frozen=True):
+class ContainerBuildResultConfig(Int2ObjectMapConfig, frozen=True):
     allowed_types: tuple[Type[BuildResult], Type[NoneType]] = (
         BuildResult, NoneType)
 
 
-class ContainerBuildResult(MappedDict):
+class ContainerBuildResult(Model2ObjectMap):
 
-    CONTAINER_CONFIG_CLASS: ClassVar = ContainerBuildResultConfig
-
-    def add_to_object_2_key_map(self, key, item):
-        if ((item is not None) and (item.model is not None)
-                and (self.object2key_map is not None)):
-            self.object2key_map[item.model] = key
+    ContainerConfigClass: ClassVar = ContainerBuildResultConfig
 
     @property
     def object_dict(self):
-        return {(k, v.built if v is not None else None)
-                for k, v in self.data.items()}
+        res = Model2ObjectMap()
+        for k, v in self.pairs():
+            if v is not None:
+                v = v.built
+            res[k] = v
+        return res
 
 
 class ModelObjectBuilder:
@@ -70,8 +68,7 @@ class ModelObjectBuilder:
 
     @classmethod
     def make_object_kwargs(cls, model: BaseModel, **kwargs):
-        object_kwargs = ParamOpts.pop_ui_options_keyword(
-            model.model_dump(mode='python'))
+        object_kwargs = model.model_dump(mode='python')
         object_kwargs = XMLSettingsModel.pop_model__class__name_keyword(
             object_kwargs)
         object_kwargs.update(**kwargs)
@@ -87,24 +84,18 @@ class ModelObjectBuilder:
 
     @classmethod
     def cls_build_container(
-            cls, model_container=None,
+            cls, model_container,
             b_replace_missing_by_default_model: bool = False,
             b_ignore_default_object_class: bool = True,
             b_raise_if_missing_model: bool = False,
             b_raise_if_missing_object_class: bool = False,
             special_kwargs=None,
-            b_make_model_to_key_map: bool = True,
             **common_kwargs):
 
         if model_container is None:
             model_container = cls.DEFAULT_MODEL_CONTAINER_CLASS()
 
-        if b_make_model_to_key_map:
-            object2key_map = Object2KeyMap()
-        else:
-            object2key_map = None
-
-        res = ContainerBuildResult(object2key_map=object2key_map)
+        res = ContainerBuildResult()
 
         if special_kwargs is None:
             special_kwargs = {}
@@ -125,29 +116,46 @@ class ModelObjectBuilder:
             keys = list(range(len(model_container)))
             models = model_container
 
-        dct = ParamOpts.pop_ui_options_keyword(dict(zip(keys, models)))
+        dct = dict(zip(keys, models))
 
         for key, model in dct.items():
-            built = None
-            if (model is None) and (b_replace_missing_by_default_model is True):
-                model = cls.BUILDER_DEFAULT_OBJECT_CLASS()
-            if b_raise_if_missing_model and model is None:
-                raise ValueError('No object class found for model')
-            if model is not None:
-                object_class = cls.find_object_class(
-                    model, b_ignore_default=b_ignore_default_object_class,
-                    b_raise=b_raise_if_missing_object_class)
-                if object_class is not None:
-                    new_kwargs = special_kwargs.pop(key, {})
-                    new_kwargs.update(common_kwargs)
-                    built = cls.cls_build(
-                        model=model, object_class=object_class,
+
+            if isinstance(model, list):
+                model_container_ = [x for x in model
+                                    if isinstance(x, BaseModel)]
+                if len(model_container_) > 0:
+                    built_ = cls.cls_build_container(
+                        model_container=model_container_,
+                        b_replace_missing_by_default_model=False,
                         b_ignore_default_object_class=True,
-                        **new_kwargs
+                        b_raise_if_missing_model=False,
+                        b_raise_if_missing_object_class=False,
+                        special_kwargs=special_kwargs.pop(key, {}),
+                        **common_kwargs
                     )
-                else:
-                    pass
-            res[key] = built
+                    res.update(built_)
+            else:
+                built = None
+                if ((model is None)
+                        and (b_replace_missing_by_default_model is True)):
+                    model = cls.BUILDER_DEFAULT_OBJECT_CLASS()
+                if b_raise_if_missing_model and model is None:
+                    raise ValueError('No object class found for model')
+                if model is not None:
+                    object_class = cls.find_object_class(
+                        model, b_ignore_default=b_ignore_default_object_class,
+                        b_raise=b_raise_if_missing_object_class)
+                    if object_class is not None:
+                        new_kwargs = special_kwargs.pop(key, {})
+                        new_kwargs.update(common_kwargs)
+                        built = cls.cls_build(
+                            model=model, object_class=object_class,
+                            b_ignore_default_object_class=True,
+                            **new_kwargs
+                        )
+                    else:
+                        pass
+                    res[model] = built
         return res
 
     @classmethod

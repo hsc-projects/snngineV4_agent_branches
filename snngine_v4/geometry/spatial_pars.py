@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import IntEnum
+from typing import ClassVar
 
 from pydantic import Field, NonNegativeInt, PositiveFloat
 
@@ -25,7 +26,7 @@ class AxDir3D(IntEnum):
 
 class XYZPars(XMLSettingsModel):
 
-    parameter_ui_opts: ParamOpts = ParamOpts(
+    parameter_ui_opts: ClassVar[ParamOpts] = ParamOpts(
         renamable=False,
         expanded=True,
         c_numeric=True,
@@ -59,7 +60,7 @@ class EnginePos3D(XYZPars):
 
 class Directions3DBoolPars(XMLSettingsModel):
 
-    parameter_ui_opts: ParamOpts = ParamOpts(
+    parameter_ui_opts: ClassVar[ParamOpts] = ParamOpts(
         expanded=False,
         c_numeric=True,
     )

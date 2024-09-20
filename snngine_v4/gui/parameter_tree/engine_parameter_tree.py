@@ -5,7 +5,8 @@ from pyqtgraph.parametertree import Parameter, ParameterTree
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.parameter_tree.parameter_builder import ParameterBuilder
-from snngine_v4.gui.parameter_tree.qt_signal_register import SignalMapRegister
+from snngine_v4.gui.parameter_tree.connectors.basemodel_signal_register \
+    import ModelSignalRegister
 
 
 class EngineParameterTree(ParameterTree):
@@ -20,7 +21,7 @@ class EngineParameterTree(ParameterTree):
         self.setObjectName(name)
 
         self._settings_model = model
-        self.signal_register = SignalMapRegister()
+        self.signal_register = ModelSignalRegister()
         if model is not None:
             settings_model_dict = self._settings_model.model_dump()
             self.parameters = self.add_parameters_from_model(
@@ -39,7 +40,7 @@ class EngineParameterTree(ParameterTree):
         header: QtWidgets.QHeaderView = self.header()
         mode = QtWidgets.QHeaderView.ResizeMode.ResizeToContents
         header.resizeSections(mode)
-        header.resizeSection(0, 100)
+        # header.resizeSection(0, 15)
 
     def add_parameters_from_model(self, model: BaseModel, model_dict=None):
         if model_dict is None:
@@ -97,7 +98,7 @@ class EngineParameterTree(ParameterTree):
 
     def sizeHint(self):
         hint = super().sizeHint()
-        return QtCore.QSize(hint.width(), hint.height() + 20)
+        return QtCore.QSize(hint.width() + 100, hint.height() + 20)
 
 
 class EngineTreeDockWidget(QtWidgets.QDockWidget):

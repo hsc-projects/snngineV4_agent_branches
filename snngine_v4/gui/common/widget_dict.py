@@ -4,16 +4,16 @@ from qtpy.QtWidgets import QDockWidget, QTreeWidget, QWidget
 
 from snngine_v4.utils.containers.configurable_dict import (
     ConfigurableDict,
-    DefaultDictContainerConfig,
+    DictContainerConfig,
 )
 
 
-class QWidgetDictConfig(DefaultDictContainerConfig, frozen=True):
+class QWidgetDictConfig(DictContainerConfig, frozen=True):
     allowed_types: Type[QWidget] = QWidget
 
 
 class QWidgetDict(ConfigurableDict):
-    CONTAINER_CONFIG_CLASS: ClassVar[Type[QWidgetDictConfig]] = QWidgetDictConfig
+    ContainerConfigClass: ClassVar[Type[QWidgetDictConfig]] = QWidgetDictConfig
 
     def add_widget(self, widget: QWidget):
         name = widget.objectName()
@@ -25,7 +25,7 @@ class QTreeWidgetDictConfig(QWidgetDictConfig, frozen=True):
 
 
 class QTreeWidgetDict(QWidgetDict):
-    CONTAINER_CONFIG_CLASS: ClassVar[Type[QTreeWidgetDictConfig]] = (
+    ContainerConfigClass: ClassVar[Type[QTreeWidgetDictConfig]] = (
         QTreeWidgetDictConfig)
 
 

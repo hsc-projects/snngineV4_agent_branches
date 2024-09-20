@@ -76,7 +76,7 @@ class EngineGroupParameterItem(GroupParameterItem):
         width = item.widget.opts.get(PGParOption.DECIMALS, 3) * 20 + 15
         item.widget.setMinimumWidth(width)
         item.displayLabel.setMinimumWidth(width)
-        item.widget.setMaximumWidth(width)
+        # item.widget.setMaximumWidth(width)
 
         item.param.sigValueChanged.connect(self.updateDefaultBtn)
 
@@ -95,6 +95,7 @@ class EngineGroupParameterItem(GroupParameterItem):
 
             w += wdg.minimumWidth() + 2
             h = max(sw.height(), h)
+        self.layoutWidget.setMinimumWidth(w)
         self.setSizeHint(1, QtCore.QSize(w, h))
 
     # noinspection PyPep8Naming
@@ -119,7 +120,7 @@ class EngineGroupParameterItem(GroupParameterItem):
     def treeWidgetChanged(self):
         super().treeWidgetChanged()
         tree = self.treeWidget()
-        if PGParOption.CUSTOM_NUMERIC_GROUP in self.param.opts:
+        if tree and (PGParOption.CUSTOM_NUMERIC_GROUP in self.param.opts):
             self.setFirstColumnSpanned(False)
             tree.setItemWidget(self, 1, self.layoutWidget)
 

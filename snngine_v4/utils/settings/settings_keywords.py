@@ -35,7 +35,7 @@ class PGParOption:
     SUFFIX: ClassVar[str] = 'suffix'
 
     # Custom
-    CUSTOM_FIELD_NAME: ClassVar[str] = 'c_field_name'
+    CUSTOM_MODEL_FIELD_NAME: ClassVar[str] = 'c_model_field_name'
     CUSTOM_NUMERIC_GROUP: ClassVar[str] = 'c_numeric'
 
 
@@ -86,7 +86,7 @@ class ParamOpts(BaseSettings, frozen=True):
     """
     UI_OPTIONS_KEYWORD: ClassVar[str] = 'parameter_ui_opts'
     PREFIX_PATTERN_SEP: ClassVar[str] = ','
-    XYZ_PREFIX_PATTERN: ClassVar[str] = '{XYZ}'
+    # XYZ_PREFIX_PATTERN: ClassVar[str] = '{XYZ}'
 
     title: str | None = None
     name: str | None = None
@@ -99,6 +99,7 @@ class ParamOpts(BaseSettings, frozen=True):
 
     # custom
     c_numeric: bool = False
+    c_group_singles: bool = False
 
     # noinspection PyNestedDecorators
     @field_validator('prefix', mode='before')
@@ -107,16 +108,6 @@ class ParamOpts(BaseSettings, frozen=True):
         if v is None:
             v = ''
         return v
-
-    @classmethod
-    def pop_ui_options_keyword(cls, dct: dict, b_recursive: bool = True):
-        key_list = list(dct.keys())
-        for k in key_list:
-            if k == cls.UI_OPTIONS_KEYWORD:
-                dct.pop(cls.UI_OPTIONS_KEYWORD)
-            elif b_recursive and isinstance(dct[k], dict):
-                dct[k] = cls.pop_ui_options_keyword(dct[k], b_recursive=True)
-        return dct
 
 
 class InternalOpts(BaseSettings, frozen=True):

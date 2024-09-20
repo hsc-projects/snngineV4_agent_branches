@@ -19,10 +19,10 @@ from snngine_v4.utils.containers.configurable_dict import ConfigurableDict
 
 class GLBufferMap(ConfigurableDict):
 
-    def __init__(self, initdict=None):
+    def __init__(self, data=None):
         self.data: dict[int, GLBuffer] | None = None
         super().__init__(
-            initdict=initdict,
+            data=data,
             container_conf=ContainerConfig(
                 allowed_types=GLBuffer))
 

@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.nn.config_models.nn_element_config import EngineElementConfig
 from snngine_v4.nn.config_models.nn_reservoir_config import NetworkReservoir
@@ -7,7 +9,7 @@ from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 class NetworkConstructionConfig(XMLSettingsModel):
 
-    parameter_ui_opts: ParamOpts = ParamOpts(readonly=False)
+    parameter_ui_opts: ClassVar[ParamOpts] = ParamOpts(readonly=False)
 
     grid: FiniteGridConfig
 

@@ -15,10 +15,12 @@ from pydantic_settings.sources import (
 from snngine_v4.utils.core_utils import get_intenum_member
 from snngine_v4.utils.field_utils import (
     b_annotation_includes_type,
-    get_basemodel_from_annotation, get_type_from_annotation,
+    extract_basemodel_from_annotation, extract_type_from_annotation,
     has_basemodel_annotation, has_default,
 )
-from snngine_v4.utils.settings.settings_keywords import BaseSettingsSlots
+from snngine_v4.utils.settings.settings_keywords import (
+    BaseSettingsSlots,
+)
 
 
 class XMLSettingsConfigDict(SettingsConfigDict, total=False):
@@ -30,6 +32,7 @@ def default_xml_model_config_dict(
     extra: Literal['allow', 'ignore', 'forbid'] | None = 'forbid',
 ):
     return XMLSettingsConfigDict(
+        # protected_namespaces=('model_', ParamOpts.UI_OPTIONS_KEYWORD),
         strict=True,
         validate_default=True,
         validate_assignment=True,
@@ -103,6 +106,8 @@ class XMLSettingsModelBase(BaseSettings):
     model_config: ClassVar[XMLSettingsConfigDict] = (
         default_xml_model_config_dict(xml_file=None))
 
+    parameter_ui_opts: ClassVar[dict | None] = None
+
     def load(self):
         raise NotImplementedError
 
@@ -170,7 +175,7 @@ class XMLSettingsModelBase(BaseSettings):
                                                       _type=dict):
                             data[k] = {}
                         else:
-                            data[k] = get_basemodel_from_annotation(
+                            data[k] = extract_basemodel_from_annotation(
                                 field_info.annotation)()
                 elif b_annotation_includes_type(field_info.annotation,
                                                 _type=tuple):
@@ -178,8 +183,8 @@ class XMLSettingsModelBase(BaseSettings):
                         data[k] = tuple(data[k])
                 elif b_annotation_includes_type(field_info.annotation,
                                                 _type=IntEnum):
-                    _type = get_type_from_annotation(field_info.annotation,
-                                                     _type=IntEnum)
+                    _type = extract_type_from_annotation(field_info.annotation,
+                                                         _type=IntEnum)
                     if not isinstance(data, _type):
                         data[k] = get_intenum_member(data[k], _type)
 

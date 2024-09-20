@@ -32,6 +32,6 @@ class NetworkBuilder(BuilderDict):
 
     def destroy(self):
         del self.data
-        del self.object2key_map
+        del self.inverted.data
         self.data = {}
-        self.object2key_map = {}
+        self.inverted.data = {}

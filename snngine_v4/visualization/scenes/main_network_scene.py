@@ -2,10 +2,7 @@ from pydantic import BaseModel
 from vispy.scene import BaseCamera, SceneCanvas, ViewBox, VisualNode
 
 from snngine_v4.utils.containers.configurable_dict import ConfigurableDict
-from snngine_v4.utils.containers.mappings import (
-    MappedDict, Object2KeyMap,
-    Object2ObjectMap,
-)
+from snngine_v4.utils.containers.mappings import Model2ObjectMap
 
 
 class EngineSceneCanvas(SceneCanvas):
@@ -16,11 +13,11 @@ class EngineSceneCanvas(SceneCanvas):
         self.unfreeze()
 
         self.camera_dict: dict[BaseModel, BaseCamera] = (
-            Object2ObjectMap.from_types(BaseModel, BaseCamera))
-        self.view_dict: dict[str, ViewBox] = (
-            ConfigurableDict.from_type(ViewBox))
-        self.visual_node_dict = MappedDict.from_type(VisualNode)
-        self.visual_node_dict.object2key_map = Object2KeyMap()
+            Model2ObjectMap.from_type(BaseCamera))
+        self.view_dict: dict[BaseModel, ViewBox] = (
+            Model2ObjectMap.from_type(ViewBox))
+        self.visual_node_dict: dict[BaseModel, ViewBox] = (
+            Model2ObjectMap.from_type(VisualNode))
 
         self.freeze()
 

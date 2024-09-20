@@ -4,7 +4,10 @@ from typing import Any, ClassVar, Type
 
 from pydantic import BaseModel, computed_field, model_validator
 
-from snngine_v4.utils.settings.xml_settings_base import XMLSettingsModelBase
+from snngine_v4.utils.settings.xml_settings_base import (
+    default_xml_model_config_dict, XMLSettingsConfigDict,
+    XMLSettingsModelBase,
+)
 
 from snngine_v4.utils.settings.xml_converter_options import XMLConverterOptions
 
@@ -69,3 +72,9 @@ class XMLSettingsModel(XMLSettingsModelBase):
                             if new is not None:
                                 setattr(data, k, new)
         return data
+
+
+class XMLSettingsContainerModel(XMLSettingsModel):
+
+    model_config: ClassVar[XMLSettingsConfigDict] = (
+        default_xml_model_config_dict(extra='allow'))

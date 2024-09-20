@@ -1,9 +1,9 @@
 from typing import ClassVar, Type
 
 from snngine_v4.utils.settings.settings_keywords import ParamOpts
-from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
-from snngine_v4.utils.settings.xml_settings_base import (
-    default_xml_model_config_dict, XMLSettingsConfigDict,
+from snngine_v4.utils.settings.xml_settings import (
+    XMLSettingsContainerModel,
+    XMLSettingsModel,
 )
 from snngine_v4.visualization.config_models.vispy_camera_configs import \
     TurnTableCameraParameters
@@ -36,41 +36,39 @@ class VispyWidgetConfig(XMLSettingsModel, frozen=True):
 
 
 class VispyViewBoxConfig(VispyWidgetConfig):
+
+    parameter_ui_opts: ClassVar[ParamOpts] = ParamOpts(
+        renamable=False,
+        expanded=False,
+    )
+
     border_width: int = 0
     padding: int = 0
     border_color: str | None = 'black'
     camera: TurnTableCameraParameters
 
 
-class SceneViews(XMLSettingsModel):
-
+class SceneViews(XMLSettingsContainerModel):
     EXTRA_CLASSES: ClassVar[Type[XMLSettingsModel]] = [VispyViewBoxConfig]
 
-    model_config: ClassVar[XMLSettingsConfigDict] = (
-        default_xml_model_config_dict(extra='allow'))
 
-
-class SceneVisuals(XMLSettingsModel):
-
+class SceneVisuals(XMLSettingsContainerModel):
     EXTRA_CLASSES: ClassVar[Type[XMLSettingsModel]] = [
         XYZAxisVisualConfig,
     ]
 
-    model_config: ClassVar[XMLSettingsConfigDict] = (
-        default_xml_model_config_dict(extra='allow'))
+
+class SceneCameras(XMLSettingsContainerModel):
+    EXTRA_CLASSES: ClassVar[Type[XMLSettingsModel]] = [
+        TurnTableCameraParameters]
 
 
 class VispyCanvasConfigOptions(XMLSettingsModel, frozen=True):
 
-    parameter_ui_opts: ParamOpts = ParamOpts(
+    parameter_ui_opts: ClassVar[ParamOpts] = ParamOpts(
         renamable=False,
         expanded=False,
     )
-
-    class Slots:
-        CENTRAL_WIDGET_OPTIONS: ClassVar[str] = 'central_widget_options'
-        VISUALS: ClassVar[str] = 'visuals'
-        VIEWS: ClassVar[str] = 'views'
 
     title: str
     size: tuple[int, int] = (1600, 1200)
@@ -96,11 +94,13 @@ class VispyCanvasConfigOptions(XMLSettingsModel, frozen=True):
 class VispyCanvasConfig(XMLSettingsModel):
 
     class Slots:
-        OPTIONS: ClassVar[str] = 'options'
+        OPTIONS: ClassVar[str] = 'Options'
         CENTRAL_WIDGET_OPTIONS: ClassVar[str] = 'central_widget_options'
-        VISUALS: ClassVar[str] = 'visuals'
-        VIEWS: ClassVar[str] = 'views'
+        VISUALS: ClassVar[str] = 'Visuals'
+        VIEWS: ClassVar[str] = 'Views'
+        CAMERAS: ClassVar[str] = 'Cameras'
 
-    options: VispyCanvasConfigOptions
-    views: SceneViews | None = None
-    visuals: SceneVisuals | None = None
+    Options: VispyCanvasConfigOptions
+    Views: SceneViews | None = None
+    Visuals: SceneVisuals
+    Cameras: SceneCameras

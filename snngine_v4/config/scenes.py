@@ -10,6 +10,13 @@ from snngine_v4.visualization.config_models.visual_configs import \
 class SceneSettings(XMLSettingsModel):
 
     main: VispyCanvasConfig = VispyCanvasConfig(
-        options=VispyCanvasConfigOptions(title='NetworkView'),
-        views=SceneViews(main=VispyViewBoxConfig()),
-        visuals=SceneVisuals(axis=XYZAxisVisualConfig()))
+        Options=VispyCanvasConfigOptions(title='NetworkView'),
+        Views=SceneViews(
+            main=VispyViewBoxConfig(),
+            second=VispyViewBoxConfig(),),
+        Visuals=SceneVisuals(axis=XYZAxisVisualConfig()))
+
+    # second: VispyCanvasConfig = VispyCanvasConfig(
+    #     Options=VispyCanvasConfigOptions(title='NetworkView'),
+    #     Views=SceneViews(main=VispyViewBoxConfig()),
+    #     Visuals=SceneVisuals(axis=XYZAxisVisualConfig()))

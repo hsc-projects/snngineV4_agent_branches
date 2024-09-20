@@ -1,7 +1,10 @@
 from collections import UserDict, UserList
 from types import NoneType
-from typing import ClassVar, Type
+from typing import Any, ClassVar, Type
 
+from snngine_v4.utils.field_utils import (
+    extract_type_from_type_annotation, has_default,
+)
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
@@ -17,24 +20,37 @@ class ContainerConfig(XMLSettingsModel, frozen=True):
     b_replace_allowed: bool = False
     b_pop_allowed: bool = True
 
+    class Slots:
+        ALLOWED_TYPES: ClassVar[str] = 'allowed_types'
+
+    @classmethod
+    def default_allowed_types(cls):
+        return cls.model_fields[cls.Slots.ALLOWED_TYPES].default
+
+    @classmethod
+    def _validate_model_before(cls, data: Any) -> Any:
+        # if isinstance(data, dict):
+        for k, field_info in cls.model_fields.items():
+            if (k not in data) and (not has_default(field_info)):
+                if k == cls.Slots.ALLOWED_TYPES:
+                    v = extract_type_from_type_annotation(
+                        field_info.annotation)
+                    data[k] = v
+
+        return super()._validate_model_before(data)
+
 
 class ConfigurableContainerBase:
 
-    CONTAINER_CONFIG_CLASS: ClassVar[Type[ContainerConfig]] = ContainerConfig
+    ContainerConfigClass: ClassVar[Type[ContainerConfig]] = ContainerConfig
 
     def __init__(self, container_conf: ContainerConfig = None):
-        self._container_conf: ContainerConfig = (
-                container_conf or self.CONTAINER_CONFIG_CLASS())
+        self._container_conf: ContainerConfig = self.cls_make_container_conf(
+            container_conf=container_conf)
 
     def assert_emptiness(self):
         if not self.is_empty:
             raise AssertionError("not empty")
-
-    @classmethod
-    def cls_check_type(cls, item, type_):
-        if type_ is None:
-            return True
-        return isinstance(item, type_)
 
     def check_item_type(self, item):
         return self.cls_check_type(item, self._container_conf.allowed_types)
@@ -42,6 +58,12 @@ class ConfigurableContainerBase:
     def check_key_type(self, key):
         return self.cls_check_type(
             key, self._container_conf.allowed_key_types)
+
+    @classmethod
+    def cls_check_type(cls, item, type_):
+        if type_ is None:
+            return True
+        return isinstance(item, type_)
 
     @staticmethod
     def cls_filter_dict(
@@ -82,6 +104,10 @@ class ConfigurableContainerBase:
         return result_list
 
     @classmethod
+    def cls_make_container_conf(cls, container_conf=None):
+        return container_conf or cls.ContainerConfigClass()
+
+    @classmethod
     def cls_validate_value_type(cls, item, type_):
         b_allowed_type = cls.cls_check_type(item, type_=type_)
         if b_allowed_type is False:
@@ -90,10 +116,32 @@ class ConfigurableContainerBase:
                     f"Got {type(item).__name__} instead.")
         return item
 
+    @classmethod
+    def cls_validate_values(cls, items, type_, b_duplicate_check):
+        if isinstance(items, dict):
+            # keys = list(items.keys())
+            items = list(items.values())
+        if b_duplicate_check is True:
+            try:
+                item_set = list(set(items))
+            except TypeError:
+                item_set = list(set([id(item) for item in items]))
+            if len(items) != len(item_set):
+                raise ExtensionByDuplicateError("Items must be unique.")
+
+        for item in items:
+            cls.cls_validate_value_type(item, type_=type_)
+        return items
+
     def __contains__(self, item):
-        if self._container_conf.b_duplicate_check_by_id:
-            return id(item) in [id(x) for x in self.data]
+        if ((not isinstance(item, int)) and
+                self._container_conf.b_duplicate_check_by_id):
+            return id(item) in self.data_ids
         return item in self.data
+
+    @property
+    def data_ids(self):
+        return [id(x) for x in self.data]
 
     def filter_dict(self, dict_: dict | UserDict, result_dict=None, b_pop=True):
         return self.cls_filter_dict(
@@ -123,12 +171,6 @@ class ConfigurableContainerBase:
                     f"Got {type(item).__name__} instead.")
         return item
 
-    def validate_keys(self, keys):
-        keys = self.cls_validate_values(
-            items=keys, type_=self._container_conf.allowed_key_types,
-            b_duplicate_check=True)
-        return keys
-
     def validate_items(self, items):
         if isinstance(items, dict):
             keys = list(items.keys())
@@ -137,19 +179,8 @@ class ConfigurableContainerBase:
             items=items, type_=self._container_conf.allowed_types,
             b_duplicate_check=not self._container_conf.b_duplicates_allowed)
 
-    @classmethod
-    def cls_validate_values(cls, items, type_, b_duplicate_check):
-        if isinstance(items, dict):
-            # keys = list(items.keys())
-            items = list(items.values())
-        if b_duplicate_check is True:
-            try:
-                item_set = list(set(items))
-            except TypeError:
-                item_set = list(set([id(item) for item in items]))
-            if len(items) != len(item_set):
-                raise ExtensionByDuplicateError("Items must be unique.")
-
-        for item in items:
-            cls.cls_validate_value_type(item, type_=type_)
-        return items
+    def validate_keys(self, keys):
+        keys = self.cls_validate_values(
+            items=keys, type_=self._container_conf.allowed_key_types,
+            b_duplicate_check=True)
+        return keys

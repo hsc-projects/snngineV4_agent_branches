@@ -19,7 +19,7 @@ class ConfigurableListConfig(ContainerConfig, frozen=True):
 
 class ConfigurableList(ConfigurableContainerBase, UserList):
 
-    CONTAINER_CONFIG_CLASS: ClassVar[Type[ConfigurableListConfig]] = (
+    ContainerConfigClass: ClassVar[Type[ConfigurableListConfig]] = (
         ConfigurableListConfig)
 
     def __init__(self, initlist=None,
@@ -67,6 +67,16 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
                     self.remove(item)
         else:
             super().clear()
+
+    def duplicate_validation_error(self, item, b_raise=True):
+        b_duplicate_check = not self._container_conf.b_duplicates_allowed
+        if ((b_duplicate_check is True) and hasattr(self, "data")
+                and (item in self)):
+            if b_raise is True:
+                raise ExtensionByDuplicateError(
+                    f"Item {item} already in list.")
+            return True
+        return False
 
     @property
     def empty(self) -> bool:
@@ -117,16 +127,6 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
         if self._container_conf.b_replace_allowed is False:
             raise KeyError(f"Replacing elements is not allowed.")
         super().__setitem__(i, self.validate_item(value))
-
-    def duplicate_validation_error(self, item, b_raise=True):
-        b_duplicate_check = not self._container_conf.b_duplicates_allowed
-        if ((b_duplicate_check is True) and hasattr(self, "data")
-                and (item in self)):
-            if b_raise is True:
-                raise ExtensionByDuplicateError(
-                    f"Item {item} already in list.")
-            return True
-        return False
 
     def validate_item(self, item):
         self.duplicate_validation_error(item, b_raise=True)

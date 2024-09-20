@@ -10,7 +10,8 @@ from snngine_v4.utils.containers.configurable_container import (
 )
 
 
-class DefaultDictContainerConfig(ContainerConfig, frozen=True):
+class DictContainerConfig(ContainerConfig, frozen=True):
+
     allowed_types: tuple[Type, ...] | Type | None = None
     allowed_key_types: tuple[Type] | Type = str
     b_duplicates_allowed: bool = False  # Keep False
@@ -21,26 +22,36 @@ class DefaultDictContainerConfig(ContainerConfig, frozen=True):
 
 class ConfigurableDict(ConfigurableContainerBase, UserDict):
 
-    CONTAINER_CONFIG_CLASS: ClassVar[Type[ContainerConfig]] = (
-        DefaultDictContainerConfig)
+    ContainerConfigClass: ClassVar[Type[ContainerConfig]] = (
+        DictContainerConfig)
 
-    def __init__(self, initdict=None,
+    def __init__(self, data=None,
                  container_conf: ContainerConfig | None = None):
-        self._container_conf: DefaultDictContainerConfig | None = None
+        self._container_conf: DictContainerConfig | None = None
         UserDict.__init__(self, None)
         ConfigurableContainerBase.__init__(
             self, container_conf=container_conf)
-        if initdict is not None:
-            self.update(initdict)
+        if data is not None:
+            self.update(data)
+
+    @property
+    def container_conf(self):
+        return self._container_conf
 
     @classmethod
     def from_type(cls, type_: type,
-                  initdict=None, allowed_key_types=str, **kwargs):
-        return cls(initdict=initdict,
+                  data=None, allowed_key_types=str, **kwargs):
+        return cls(data=data,
                    container_conf=ContainerConfig(
                        allowed_types=type_,
                        allowed_key_types=allowed_key_types,
                        **kwargs))
+
+    def __getattribute__(self, item):
+        if (item == 'pop') and hasattr(self, '_container_conf'):
+            if self._container_conf.b_pop_allowed is False:
+                raise PermissionError("Popping not allowed.")
+        return super().__getattribute__(item)
 
     def __getitem__(self, item):
         try:
@@ -59,12 +70,6 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
         super().__setitem__(self.validate_key(key),
                             self.validate_item(item))
 
-    def __getattribute__(self, item):
-        if (item == 'pop') and hasattr(self, '_container_conf'):
-            if self._container_conf.b_pop_allowed is False:
-                raise PermissionError("Popping not allowed.")
-        return super().__getattribute__(item)
-
     def update(self, m, **kwargs) -> None:
         if isinstance(m, (dict, UserDict)):
             for k, v in m.items():
@@ -74,6 +79,15 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
                 self[k] = v
         for k, v in kwargs.items():
             self[k] = v
+
+    def validate_item(self, item):
+        b_duplicate_check = not self._container_conf.b_duplicates_allowed
+        if ((item is not None)
+                and (b_duplicate_check is True) and hasattr(self, "data")
+                and self.values_contain(item)):
+            raise ExtensionByDuplicateError(f"Item {item} already in values.")
+        item = super().validate_item(item)
+        return item
 
     def validate_key(self, key, b_skip_typecheck: bool = False):
         if b_skip_typecheck is False:
@@ -91,11 +105,12 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
             for k in keys:
                 self.validate_key(k, b_skip_typecheck=True)
 
-    def validate_item(self, item):
-        b_duplicate_check = not self._container_conf.b_duplicates_allowed
-        if ((item is not None)
-                and (b_duplicate_check is True) and hasattr(self, "data")
-                and (item in self.data.values())):
-            raise ExtensionByDuplicateError(f"Item {item} already in values.")
-        item = super().validate_item(item)
-        return item
+    def values_contain(self, item):
+        if (not isinstance(item, int) and
+                self._container_conf.b_duplicate_check_by_id):
+            return id(item) in self.value_ids
+        return item in self.values()
+
+    @property
+    def value_ids(self):
+        return [id(v) for v in self.values()]

@@ -1,16 +1,21 @@
 from typing import ClassVar
 
-from torch.distributed import gather_object
+from pydantic import BaseModel
 from vispy.scene import BaseCamera, SceneCanvas, ViewBox
 
 from snngine_v4.config.scenes import SceneSettings
-from snngine_v4.utils.containers.mappings import Object2ObjectMap
+from snngine_v4.utils.containers.mappings import (
+    Model2ObjectMap,
+    Object2ObjectMap,
+)
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 from snngine_v4.visualization.config_models.vispy_camera_configs import \
     TurnTableCameraParameters
 from snngine_v4.visualization.config_models.vispy_canvas_config import (
     VispyCanvasConfig, VispyViewBoxConfig,
 )
+from snngine_v4.visualization.config_models.visual_configs import \
+    LineVisualConfig
 from snngine_v4.visualization.scenes.event_camera import \
     EventTurntableCamera
 from snngine_v4.visualization.scenes.main_network_scene import EngineSceneCanvas
@@ -26,19 +31,13 @@ class SceneManager(BuilderDict):
     }
 
     def __init__(self, scenes):
-        self.data: dict[str, EngineSceneCanvas] | None = None
+        self.data: dict[BaseModel, EngineSceneCanvas] | None = None
         super().__init__()
         if isinstance(scenes, (list, SceneSettings)):
             self.update(scenes)
 
-    def add_scene(self, scene: SceneCanvas | VispyCanvasConfig,
-                  name=None, **kwargs):
-        if isinstance(scene, VispyCanvasConfig):
-            self.add_from_model(key=name, model=scene, **kwargs)
-        self[name] = scene
-
     def get_objects(self, model_list):
-        res = Object2ObjectMap()
+        res = Model2ObjectMap()
         for model in model_list:
             if isinstance(model, VispyCanvasConfig):
                 res[model] = self[model]
@@ -46,6 +45,10 @@ class SceneManager(BuilderDict):
                 for scene in self.values():
                     if model in scene.camera_dict:
                         res[model] = scene.camera_dict[model]
+            elif isinstance(model, LineVisualConfig):
+                for scene in self.values():
+                    if model in scene.visual_node_dict:
+                        res[model] = scene.visual_node_dict[model]
         return res
 
     @classmethod
@@ -85,7 +88,8 @@ class SceneManager(BuilderDict):
             camera_model = getattr(view_model, 'camera')
             view_config: VispyViewBoxConfig | dict
             camera = cls._make_camera(**view_config.pop('camera'))
-            view = scene.view_dict[k] = ViewBox(camera=camera, **view_config)
+            view = scene.view_dict[view_model] = ViewBox(
+                camera=camera, **view_config)
             scene.central_widget.add_widget(view)
             scene.camera_dict[camera_model] = camera
 
@@ -96,13 +100,4 @@ class SceneManager(BuilderDict):
                 visuals, parent=parent
             )
             scene.visual_node_dict.update(visual_dict.object_dict)
-            scene.visual_node_dict.object2key_map.update(
-                visual_dict.object2key_map)
         return scene
-
-    def update(self, scenes: SceneSettings | list, **kwargs):
-        if isinstance(scenes, list):
-            for s in scenes:
-                self.add_scene(s)
-        else:
-            super().update(scenes, **kwargs)
