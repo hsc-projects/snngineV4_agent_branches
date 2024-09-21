@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from snngine_v4.utils.containers.mappings import (
     Model2ObjectMap, Int2ObjectMapConfig,
 )
-from snngine_v4.utils.settings.settings_keywords import ParamOpts
+from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 

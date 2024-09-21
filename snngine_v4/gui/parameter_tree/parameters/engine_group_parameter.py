@@ -6,9 +6,7 @@ from pyqtgraph.parametertree.parameterTypes import (
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.icons import getEngineGraphIcon
-from snngine_v4.utils.settings.settings_keywords import (
-    PGParOption,
-)
+from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 
 class EngineGroupParameterItem(GroupParameterItem):
@@ -28,7 +26,7 @@ class EngineGroupParameterItem(GroupParameterItem):
         self.layoutWidget = QtWidgets.QWidget()
         self.layoutWidget.setLayout(layout)
 
-        if PGParOption.CUSTOM_NUMERIC_GROUP in param.opts:
+        if ParamOpts.KW.C_NUMERIC_GROUP in param.opts:
             pass
 
         layout.addWidget(self.defaultBtn)
@@ -45,12 +43,12 @@ class EngineGroupParameterItem(GroupParameterItem):
         if isinstance(child, (SpinBoxSliderParameterItem,
                               NumericParameterItem)):
             b_add_to_header = self.param.opts.get(
-                PGParOption.CUSTOM_NUMERIC_GROUP, False)
+                ParamOpts.KW.C_NUMERIC_GROUP, False)
             if b_add_to_header:
                 self.add_engine_slider_parameter_widgets(child)
 
     def add_engine_slider_parameter_widgets(self, item):
-        if PGParOption.CUSTOM_NUMERIC_GROUP not in self.param.opts:
+        if ParamOpts.KW.C_NUMERIC_GROUP not in self.param.opts:
             raise PermissionError
         from snngine_v4.gui.parameter_tree.parameters \
             .spin_box_slider_parameter import \
@@ -73,7 +71,7 @@ class EngineGroupParameterItem(GroupParameterItem):
             QtWidgets.QSizePolicy.Policy.MinimumExpanding,
         )
         # sw0 = wdg.widget.sizeHint()
-        width = item.widget.opts.get(PGParOption.DECIMALS, 3) * 20 + 15
+        width = item.widget.opts.get(ParamOpts.KW.DECIMALS, 3) * 20 + 15
         item.widget.setMinimumWidth(width)
         item.displayLabel.setMinimumWidth(width)
         # item.widget.setMaximumWidth(width)
@@ -120,7 +118,7 @@ class EngineGroupParameterItem(GroupParameterItem):
     def treeWidgetChanged(self):
         super().treeWidgetChanged()
         tree = self.treeWidget()
-        if tree and (PGParOption.CUSTOM_NUMERIC_GROUP in self.param.opts):
+        if tree and (ParamOpts.KW.C_NUMERIC_GROUP in self.param.opts):
             self.setFirstColumnSpanned(False)
             tree.setItemWidget(self, 1, self.layoutWidget)
 

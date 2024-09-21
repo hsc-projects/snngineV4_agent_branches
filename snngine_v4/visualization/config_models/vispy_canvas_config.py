@@ -1,6 +1,6 @@
 from typing import ClassVar, Type
 
-from snngine_v4.utils.settings.settings_keywords import ParamOpts
+from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 from snngine_v4.utils.settings.xml_settings import (
     XMLSettingsContainerModel,
     XMLSettingsModel,
@@ -72,7 +72,7 @@ class VispyCanvasConfigOptions(XMLSettingsModel, frozen=True):
 
     title: str
     size: tuple[int, int] = (1600, 1200)
-    position: tuple[int, int] | None = None
+    position: tuple[int, int] | None
     show: bool = False
     autoswap: bool = True
 
@@ -81,14 +81,14 @@ class VispyCanvasConfigOptions(XMLSettingsModel, frozen=True):
     resizable: bool = True
     decorate: bool = True
     fullscreen: bool = False
-    config: VispyOpenGLConfig | None
+    config: VispyOpenGLConfig
     keys: str | dict = 'interactive'
-    dpi: float | None = None
+    dpi: float | None
     always_on_top: bool = False
     px_scale: int = 1
     bgcolor: str = 'black'
 
-    central_widget_options: VispyWidgetConfig | None
+    central_widget_options: VispyWidgetConfig
 
 
 class VispyCanvasConfig(XMLSettingsModel):
@@ -101,6 +101,6 @@ class VispyCanvasConfig(XMLSettingsModel):
         CAMERAS: ClassVar[str] = 'Cameras'
 
     Options: VispyCanvasConfigOptions
-    Views: SceneViews | None = None
+    Views: SceneViews | dict
     Visuals: SceneVisuals
     Cameras: SceneCameras

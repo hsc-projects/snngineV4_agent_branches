@@ -7,7 +7,7 @@ from pydantic import Field
 
 from snngine_v4.geometry.spatial_pars import Ax3D
 from snngine_v4.utils.core_utils import ConvertingEnum
-from snngine_v4.utils.settings.settings_keywords import ParamOpts
+from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.utils.settings.xml_settings_base import \
     (

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf8"?>
+<dict>
+  <construction type="dict" class="EngineConstructionConfig">
+    <DictItem type="dict" class="NetworkConstructionConfig" key="network">
+      <DictItem type="dict" class="FiniteGridConfig" key="grid">
+        <DictItem type="dict" class="TechnicalValues" key="technical">
+          <DictItem type="int" key="max_z">100</DictItem>
+        </DictItem>
+        <DictItem type="dict" class="FloatShape3D" key="shape">
+          <DictItem type="float" key="X">1.0</DictItem>
+          <DictItem type="float" key="Y">1.0</DictItem>
+          <DictItem type="float" key="Z">1.0</DictItem>
+        </DictItem>
+        <DictItem type="dict" class="Segmentation3D" key="seg">
+          <DictItem type="int" key="X">10</DictItem>
+          <DictItem type="int" key="Y">10</DictItem>
+          <DictItem type="int" key="Z">10</DictItem>
+        </DictItem>
+      </DictItem>
+      <DictItem type="list" key="elements">
+        <ListElementElement type="dict" class="EngineElementConfig">
+          <DictItem type="dict" class="EnginePos3D" key="pos">
+            <DictItem type="float" key="X">0.0</DictItem>
+            <DictItem type="float" key="Y">0.0</DictItem>
+            <DictItem type="float" key="Z">0.0</DictItem>
+          </DictItem>
+        </ListElementElement>
+        <ListElementElement type="dict" class="NetworkReservoir">
+          <DictItem type="dict" class="EnginePos3D" key="pos">
+            <DictItem type="float" key="X">0.0</DictItem>
+            <DictItem type="float" key="Y">0.0</DictItem>
+            <DictItem type="float" key="Z">0.0</DictItem>
+          </DictItem>
+          <DictItem type="int" key="N">200</DictItem>
+          <DictItem type="int" key="S">1</DictItem>
+          <DictItem type="int" key="D">0</DictItem>
+        </ListElementElement>
+        <ListElementElement type="dict" class="EngineElementConfig">
+          <DictItem type="dict" class="EnginePos3D" key="pos">
+            <DictItem type="float" key="X">0.0</DictItem>
+            <DictItem type="float" key="Y">0.0</DictItem>
+            <DictItem type="float" key="Z">0.0</DictItem>
+          </DictItem>
+        </ListElementElement>
+      </DictItem>
+      <DictItem type="list" key="bools">
+        <ListElementElement type="NoneType">None</ListElementElement>
+        <ListElementElement type="bool">True</ListElementElement>
+        <ListElementElement type="bool">False</ListElementElement>
+        <ListElementElement type="bool">True</ListElementElement>
+      </DictItem>
+    </DictItem>
+  </construction>
+</dict>

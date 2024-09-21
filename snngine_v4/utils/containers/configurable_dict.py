@@ -42,7 +42,7 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
     def from_type(cls, type_: type,
                   data=None, allowed_key_types=str, **kwargs):
         return cls(data=data,
-                   container_conf=ContainerConfig(
+                   container_conf=cls.ContainerConfigClass(
                        allowed_types=type_,
                        allowed_key_types=allowed_key_types,
                        **kwargs))

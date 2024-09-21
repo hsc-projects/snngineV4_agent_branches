@@ -5,7 +5,7 @@ from typing import ClassVar
 
 from pydantic import Field, NonNegativeInt, PositiveFloat
 
-from snngine_v4.utils.settings.settings_keywords import ParamOpts
+from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
@@ -24,17 +24,35 @@ class AxDir3D(IntEnum):
     ZM = 5
 
 
+class SpatialParUIOps(ParamOpts):
+    renamable: bool = False
+    expanded: bool = True
+    c_numeric: bool = True
+    c_auto_expand: bool = True
+    c_auto_collapse: bool = False
+    prefix: str = 'X,Y,Z'
+
+
 class XYZPars(XMLSettingsModel):
 
-    parameter_ui_opts: ClassVar[ParamOpts] = ParamOpts(
-        renamable=False,
-        expanded=True,
-        c_numeric=True,
-        prefix='X,Y,Z')
+    parameter_ui_opts: ClassVar[SpatialParUIOps] = SpatialParUIOps()
 
     X: float
     Y: float
     Z: float
+
+    def __len__(self):
+        return 3
+
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            item = Ax3D(item).name
+        return getattr(self, item)
+
+    def __setitem__(self, key, value):
+        if isinstance(key, int):
+            key = Ax3D(key).name
+        setattr(self, key, value)
 
 
 class FloatShape3D(XYZPars):

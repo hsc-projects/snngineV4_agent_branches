@@ -27,7 +27,7 @@ from snngine_v4.visualization.config_models.visual_configs import (
 )
 
 
-class VispyVisualManager(BuilderDict):
+class VispyVisualBuilder(BuilderDict):
 
     VISPY_VISUAL_DUMP_KW: ClassVar[str] = 'vispy'
 

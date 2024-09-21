@@ -4,7 +4,7 @@ from snngine_v4.snngine_config import EngineConfig
 from snngine_v4.visualization.scenes.main_network_scene import \
     EngineSceneCanvas
 from snngine_v4.visualization.scenes.scene_manager import SceneManager
-from snngine_v4.visualization.visual_builder import VispyVisualManager
+from snngine_v4.visualization.visual_builder import VispyVisualBuilder
 
 
 class SNNgine:
@@ -34,7 +34,7 @@ class SNNgine:
         scene: EngineSceneCanvas = self.scene_manager[self.conf.scenes.main]
         parent = scene.new_visual_node_parent()
 
-        box = VispyVisualManager.cls_build(
+        box = VispyVisualBuilder.cls_build(
             self.conf.construction.network.grid, parent=parent).built
 
         return

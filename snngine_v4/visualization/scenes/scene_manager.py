@@ -1,16 +1,16 @@
 from typing import ClassVar
 
 from pydantic import BaseModel
-from vispy.scene import BaseCamera, SceneCanvas, ViewBox
+from vispy.scene import BaseCamera, ViewBox
 
 from snngine_v4.config.scenes import SceneSettings
 from snngine_v4.utils.containers.mappings import (
     Model2ObjectMap,
-    Object2ObjectMap,
 )
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
-from snngine_v4.visualization.config_models.vispy_camera_configs import \
-    TurnTableCameraParameters
+from snngine_v4.visualization.config_models.vispy_camera_configs import (
+    CameraCenter, TurnTableCameraParameters,
+)
 from snngine_v4.visualization.config_models.vispy_canvas_config import (
     VispyCanvasConfig, VispyViewBoxConfig,
 )
@@ -19,7 +19,7 @@ from snngine_v4.visualization.config_models.visual_configs import \
 from snngine_v4.visualization.scenes.event_camera import \
     EventTurntableCamera
 from snngine_v4.visualization.scenes.main_network_scene import EngineSceneCanvas
-from snngine_v4.visualization.visual_builder import VispyVisualManager
+from snngine_v4.visualization.visual_builder import VispyVisualBuilder
 
 
 class SceneManager(BuilderDict):
@@ -54,8 +54,12 @@ class SceneManager(BuilderDict):
     @classmethod
     def _make_camera(cls, **kwargs) -> BaseCamera:
 
-        camera = EventTurntableCamera(**kwargs)
+        if 'center' in kwargs:
+            kwargs['center'] = CameraCenter(**kwargs['center'])
 
+        camera = EventTurntableCamera(**kwargs)
+        if not camera.name:
+            camera.name = 'camera'
         return camera
 
     @classmethod
@@ -96,7 +100,7 @@ class SceneManager(BuilderDict):
         if visuals is not None:
             visuals = getattr(model, VispyCanvasConfig.Slots.VISUALS)
             parent = scene.new_visual_node_parent()
-            visual_dict = VispyVisualManager.cls_build_container(
+            visual_dict = VispyVisualBuilder.cls_build_container(
                 visuals, parent=parent
             )
             scene.visual_node_dict.update(visual_dict.object_dict)

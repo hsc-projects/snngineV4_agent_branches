@@ -13,7 +13,8 @@ class SceneSettings(XMLSettingsModel):
         Options=VispyCanvasConfigOptions(title='NetworkView'),
         Views=SceneViews(
             main=VispyViewBoxConfig(),
-            second=VispyViewBoxConfig(),),
+            # second=VispyViewBoxConfig(),
+        ),
         Visuals=SceneVisuals(axis=XYZAxisVisualConfig()))
 
     # second: VispyCanvasConfig = VispyCanvasConfig(

@@ -3,7 +3,7 @@ from types import NoneType
 from typing import Any, ClassVar, Type
 
 from snngine_v4.utils.field_utils import (
-    extract_type_from_type_annotation, has_default,
+    extract_type_from_type_annotation, b_field_has_default,
 )
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
@@ -31,7 +31,7 @@ class ContainerConfig(XMLSettingsModel, frozen=True):
     def _validate_model_before(cls, data: Any) -> Any:
         # if isinstance(data, dict):
         for k, field_info in cls.model_fields.items():
-            if (k not in data) and (not has_default(field_info)):
+            if (k not in data) and (not b_field_has_default(field_info)):
                 if k == cls.Slots.ALLOWED_TYPES:
                     v = extract_type_from_type_annotation(
                         field_info.annotation)

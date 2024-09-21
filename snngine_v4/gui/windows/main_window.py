@@ -154,7 +154,7 @@ class MainEngineWindow(QtWidgets.QMainWindow):
                     if root.treeWidget() == scene_tree:
                         break
                 for p in cam_pars:
-                    scene_tree.addParameters(p[0], root=root)
+                    scene_tree.addParameters(p, root=root)
 
             signal_register
 

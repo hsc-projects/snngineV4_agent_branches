@@ -3,16 +3,10 @@ from __future__ import annotations
 from typing import ClassVar
 
 from vispy.scene import BaseCamera, TurntableCamera
-from vispy.util.event import Event
 
-
-class SetAttributeEvent(Event):
-    def __init__(self, *arg, **kwargs):
-        key = kwargs.pop('key', None)
-        value = kwargs.pop('value', None)
-        super().__init__(*arg, **kwargs)
-        self.key = key
-        self.value = value
+from snngine_v4.visualization.scenes.setattribute_event import (
+    Set3DAttributeEvent, SetAttributeEvent,
+)
 
 
 class EventCameraMixin:
@@ -22,29 +16,49 @@ class EventCameraMixin:
         DISTANCE: ClassVar[str] = 'distance'
         ELEVATION: ClassVar[str] = 'elevation'
         FOV: ClassVar[str] = 'fov'
+        NAME: ClassVar[str] = 'name'
         ROLL: ClassVar[str] = 'roll'
         TRANSLATE_SPEED: ClassVar[str] = 'translate_speed'
+        SCALE_FACTOR: ClassVar[str] = 'scale_factor'
+
+        CENTER: ClassVar[str] = 'center'
 
     EVENT_KEYS: ClassVar[list[str]] = [
         Slots.AZIMUTH,
+
+        Slots.CENTER,
+
         Slots.DISTANCE,
         Slots.ELEVATION,
         Slots.FOV,
+        Slots.NAME,
         Slots.ROLL,
         Slots.TRANSLATE_SPEED,
+        Slots.SCALE_FACTOR,
     ]
 
     def __init__(self: EventCameraMixin | BaseCamera):
 
         # TODO: dedicated events for each property
-        self.events.add(auto_connect=False, cam_view_changed=SetAttributeEvent)
+        self.events.add(
+            auto_connect=False,
+            attr_changed=SetAttributeEvent,
+            center_changed=Set3DAttributeEvent)
 
     def __setattr__(self, key, value):
-        if (hasattr(self, 'events') and
-                hasattr(getattr(self, 'events'), 'cam_view_changed')
-                and key in self.EVENT_KEYS):
-            self.events.cam_view_changed(key=key, value=value)
         super().__setattr__(key, value)
+
+        if key == '_scale_factor':
+            key = 'scale_factor'
+
+        if (hasattr(self, 'events') and
+                hasattr(getattr(self, 'events'), 'center_changed')
+                and key in self.EVENT_KEYS):
+            value = getattr(self, key)
+            if key == EventCameraMixin.Slots.CENTER:
+                self.events.center_changed(key=key, value=value)
+            else:
+                self.events.attr_changed(key=key, value=value)
 
 
 class EventTurntableCamera(EventCameraMixin, TurntableCamera):
@@ -68,6 +82,3 @@ class EventTurntableCamera(EventCameraMixin, TurntableCamera):
                                  translate_speed=translate_speed,
                                  name=name, **kwargs)
         super().__init__()
-
-    def connect_camera(self, func: callable):
-        self.events.cam_view_changed.connect(func)

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf8"?>
+<dict>
+  <scenes type="dict" class="SceneSettings">
+    <DictItem type="dict" class="VispyCanvasConfig" key="main">
+      <DictItem type="dict" class="VispyCanvasConfigOptions" key="Options">
+        <DictItem type="str" key="title">NetworkView</DictItem>
+        <DictItem type="list" key="size">
+          <ListElementElement type="int">1600</ListElementElement>
+          <ListElementElement type="int">1200</ListElementElement>
+        </DictItem>
+        <DictItem type="NoneType" key="position">None</DictItem>
+        <DictItem type="bool" key="show">False</DictItem>
+        <DictItem type="bool" key="autoswap">True</DictItem>
+        <DictItem type="bool" key="create_native">True</DictItem>
+        <DictItem type="bool" key="vsync">False</DictItem>
+        <DictItem type="bool" key="resizable">True</DictItem>
+        <DictItem type="bool" key="decorate">True</DictItem>
+        <DictItem type="bool" key="fullscreen">False</DictItem>
+        <DictItem type="dict" class="VispyOpenGLConfig" key="config">
+          <DictItem type="int" key="red_size">8</DictItem>
+          <DictItem type="int" key="green_size">8</DictItem>
+          <DictItem type="int" key="blue_size">8</DictItem>
+          <DictItem type="int" key="alpha_size">8</DictItem>
+          <DictItem type="int" key="depth_size">24</DictItem>
+          <DictItem type="int" key="stencil_size">0</DictItem>
+          <DictItem type="bool" key="double_buffer">True</DictItem>
+          <DictItem type="bool" key="stereo">False</DictItem>
+          <DictItem type="int" key="samples">0</DictItem>
+        </DictItem>
+        <DictItem type="str" key="keys">interactive</DictItem>
+        <DictItem type="NoneType" key="dpi">None</DictItem>
+        <DictItem type="bool" key="always_on_top">False</DictItem>
+        <DictItem type="int" key="px_scale">1</DictItem>
+        <DictItem type="str" key="bgcolor">black</DictItem>
+        <DictItem type="dict" class="VispyWidgetConfig" key="central_widget_options">
+          <DictItem type="list" key="pos">
+            <ListElementElement type="int">0</ListElementElement>
+            <ListElementElement type="int">0</ListElementElement>
+          </DictItem>
+          <DictItem type="list" key="size">
+            <ListElementElement type="int">10</ListElementElement>
+            <ListElementElement type="int">10</ListElementElement>
+          </DictItem>
+          <DictItem type="str" key="border_color">darkslategrey</DictItem>
+          <DictItem type="int" key="border_width">2</DictItem>
+          <DictItem type="list" key="bgcolor">
+            <ListElementElement type="float">0.0</ListElementElement>
+            <ListElementElement type="float">0.0</ListElementElement>
+            <ListElementElement type="float">0.0</ListElementElement>
+            <ListElementElement type="float">0.0</ListElementElement>
+          </DictItem>
+          <DictItem type="int" key="padding">2</DictItem>
+          <DictItem type="int" key="margin">0</DictItem>
+        </DictItem>
+      </DictItem>
+      <DictItem type="dict" class="SceneViews" key="Views">
+        <DictItem type="dict" class="VispyViewBoxConfig" key="main">
+          <DictItem type="list" key="pos">
+            <ListElementElement type="int">0</ListElementElement>
+            <ListElementElement type="int">0</ListElementElement>
+          </DictItem>
+          <DictItem type="list" key="size">
+            <ListElementElement type="int">10</ListElementElement>
+            <ListElementElement type="int">10</ListElementElement>
+          </DictItem>
+          <DictItem type="str" key="border_color">black</DictItem>
+          <DictItem type="int" key="border_width">0</DictItem>
+          <DictItem type="list" key="bgcolor">
+            <ListElementElement type="float">0.0</ListElementElement>
+            <ListElementElement type="float">0.0</ListElementElement>
+            <ListElementElement type="float">0.0</ListElementElement>
+            <ListElementElement type="float">0.0</ListElementElement>
+          </DictItem>
+          <DictItem type="int" key="padding">0</DictItem>
+          <DictItem type="int" key="margin">0</DictItem>
+          <DictItem type="dict" class="TurnTableCameraParameters" key="camera">
+            <DictItem type="dict" class="CameraCenter" key="center">
+              <DictItem type="float" key="X">0.0</DictItem>
+              <DictItem type="float" key="Y">0.0</DictItem>
+              <DictItem type="float" key="Z">0.0</DictItem>
+            </DictItem>
+            <DictItem type="float" key="fov">45.0</DictItem>
+            <DictItem type="float" key="elevation">30.0</DictItem>
+            <DictItem type="float" key="azimuth">30.0</DictItem>
+            <DictItem type="float" key="roll">0.0</DictItem>
+            <DictItem type="NoneType" key="distance">None</DictItem>
+            <DictItem type="float" key="translate_speed">1.0</DictItem>
+            <DictItem type="float" key="scale_factor">3.962932247717592</DictItem>
+          </DictItem>
+        </DictItem>
+      </DictItem>
+      <DictItem type="dict" class="SceneVisuals" key="Visuals">
+        <DictItem type="dict" class="XYZAxisVisualConfig" key="axis">
+          <DictItem type="NoneType" key="pos">None</DictItem>
+          <DictItem type="NoneType" key="color">None</DictItem>
+          <DictItem type="int" key="width">1</DictItem>
+          <DictItem type="str" key="connect">segments</DictItem>
+          <DictItem type="str" key="method">gl</DictItem>
+          <DictItem type="bool" key="antialias">True</DictItem>
+        </DictItem>
+      </DictItem>
+      <DictItem type="dict" class="SceneCameras" key="Cameras"/>
+    </DictItem>
+  </scenes>
+</dict>

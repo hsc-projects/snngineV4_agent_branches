@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import numpy as np
 
 from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import (

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import os
-from enum import IntEnum
 from pathlib import Path
-from typing import Any, ClassVar, Literal
+from types import NoneType
+from typing import Any, ClassVar, get_origin, Literal
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -15,8 +15,9 @@ from pydantic_settings.sources import (
 from snngine_v4.utils.core_utils import get_intenum_member
 from snngine_v4.utils.field_utils import (
     b_annotation_includes_type,
-    extract_basemodel_from_annotation, extract_type_from_annotation,
-    has_basemodel_annotation, has_default,
+    b_is_intenum_annotation,
+    extract_basemodel_from_annotation,
+    b_annotation_includes_basemodel, b_field_has_default,
 )
 from snngine_v4.utils.settings.settings_keywords import (
     BaseSettingsSlots,
@@ -34,6 +35,7 @@ def default_xml_model_config_dict(
     return XMLSettingsConfigDict(
         # protected_namespaces=('model_', ParamOpts.UI_OPTIONS_KEYWORD),
         strict=True,
+        # use_enum_values=True,
         validate_default=True,
         validate_assignment=True,
         extra=extra,
@@ -168,25 +170,23 @@ class XMLSettingsModelBase(BaseSettings):
                 data.pop(k, None)
 
             for k, field_info in cls.model_fields.items():
+                ann = field_info.annotation
                 if k not in data:
-                    if ((has_basemodel_annotation(field_info))
-                            and (not has_default(field_info))):
-                        if b_annotation_includes_type(ann=field_info.annotation,
-                                                      _type=dict):
-                            data[k] = {}
-                        else:
-                            data[k] = extract_basemodel_from_annotation(
-                                field_info.annotation)()
-                elif b_annotation_includes_type(field_info.annotation,
-                                                _type=tuple):
-                    if isinstance(data[k], list):
-                        data[k] = tuple(data[k])
-                elif b_annotation_includes_type(field_info.annotation,
-                                                _type=IntEnum):
-                    _type = extract_type_from_annotation(field_info.annotation,
-                                                         _type=IntEnum)
-                    if not isinstance(data, _type):
-                        data[k] = get_intenum_member(data[k], _type)
+                    if not b_field_has_default(field_info):
+                        if b_annotation_includes_type(ann, type_=NoneType):
+                            data[k] = None
+                        elif b_annotation_includes_basemodel(ann):
+                            if b_annotation_includes_type(ann=ann, type_=dict):
+                                data[k] = {}
+                            else:
+                                data[k] = extract_basemodel_from_annotation(ann)()
+
+                elif (isinstance(data[k], list) and
+                      b_annotation_includes_type(ann, type_=tuple)):
+                    data[k] = tuple(data[k])
+                elif (isinstance(data[k], (int, str))
+                      and (b_is_intenum_annotation(ann, True))):
+                    data[k] = get_intenum_member(data[k], ann)
 
         return data
 

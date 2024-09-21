@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import ClassVar, Type
+from typing import Type
 
-from pydantic import BaseModel
+import pandas as pd
+from pydantic import BaseModel, ValidationError
 from pyqtgraph.parametertree import Parameter
 from pyqtgraph.parametertree.parameterTypes import GroupParameter, ListParameter
 from qtpy import QtCore
@@ -13,7 +14,7 @@ from snngine_v4.utils.containers.configurable_dict import ConfigurableDict
 from snngine_v4.utils.containers.mappings import (
     Int2ObjectMapConfig, Model2ObjectMap, Object2ObjectMap,
 )
-from snngine_v4.utils.settings.settings_keywords import PGParOption
+from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 
 class SetAttributeEmitterBase(QtCore.QObject):
@@ -62,27 +63,41 @@ class ObjectParameterLink(SetAttributeEmitterBase):
         self.get_parameter_signal(self._parameter).connect(
             self.set_obj_attribute_from_parameter)
 
-    def set_obj_attribute_from_parameter(self, par_, value):
+    def set_obj_attribute_from_parameter(self, p: Parameter, value):
         self.sigAttributeValueChanged.disconnect(self.set_parameter_value)
-        self._obj.__setattr__(self._obj, self.key, value)
-        print(f"Set '{self.key}' from parameter:",
+
+        try:
+            self._obj.__setattr__(self._obj, self.key, value)
+        except ValidationError as err:
+            if (value is None) or pd.isna(value):
+
+                b_none_allowed = p.opts.get(ParamOpts.KW.C_NULLABLE_VALUE)
+                self._obj.__setattr__(self._obj, self.key, None)
+                pass
+            else:
+                raise err
+
+        print(f"Set '{self.key}' from parameter({id(p)}):",
               getattr(self._obj, self.key))
         self.sigAttributeValueChanged.connect(self.set_parameter_value)
 
-    def set_parameter_value(self, self_, key, value):
+    def set_parameter_value(self, link, key, value, b_block: bool = True,):
         print(f"Set parameter value '{key}'", value)
-        self.get_parameter_signal(self._parameter).disconnect(
-            self.set_obj_attribute_from_parameter)
+        if b_block:
+            self.get_parameter_signal(self._parameter).disconnect(
+                self.set_obj_attribute_from_parameter)
         self._parameter.setValue(value)
-        self.get_parameter_signal(self._parameter).connect(
-            self.set_obj_attribute_from_parameter)
+        if b_block:
+            self.get_parameter_signal(self._parameter).connect(
+                self.set_obj_attribute_from_parameter)
 
     @staticmethod
     def get_parameter_signal(parameter):
         if isinstance(parameter, ListParameter):
             return parameter.sigValueChanged
         else:
-            return parameter.sigValueChanging
+            return parameter.sigValueChanged
+            # return parameter.sigValueChanging
 
 
 class ModelParameterLinks(Object2ObjectMap):
@@ -97,11 +112,14 @@ class ModelParameterLinks(Object2ObjectMap):
                  **kwargs):
         self.model = model
         self.data: dict[int, Parameter] | None = None
-        self.str_emitter_map = ConfigurableDict.from_type(
-            ObjectParameterLink)
+        self.str_emitter_map: dict[str, ObjectParameterLink] = (
+            ConfigurableDict.from_type(ObjectParameterLink))
 
         def set_attr(self_, key, value):
-            setattr(self_, key, value)
+            try:
+                setattr(self_, key, value)
+            except ValidationError as err:
+                raise err
             self.str_emitter_map[key].attributeValueChanged(value)
 
         # TODO:
@@ -120,7 +138,7 @@ class ModelParameterLinks(Object2ObjectMap):
         self[link] = link.parameter
 
     def add_parameter(self, model: BaseModel, param: Parameter):
-        key = param.opts[PGParOption.CUSTOM_MODEL_FIELD_NAME]
+        key = param.opts[ParamOpts.KW.C_MODEL_FIELD_NAME]
         self.add_link(
             ObjectParameterLink(key=key, parameter=param, obj=model))
 
