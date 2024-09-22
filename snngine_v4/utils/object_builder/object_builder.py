@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from types import NoneType
 from typing import ClassVar, Type
 
@@ -9,7 +10,6 @@ from pydantic import BaseModel
 from snngine_v4.utils.containers.mappings import (
     Model2ObjectMap, Int2ObjectMapConfig,
 )
-from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
@@ -40,6 +40,8 @@ class ContainerBuildResult(Model2ObjectMap):
 
 
 class ModelObjectBuilder:
+
+    b_enum_to_values: ClassVar[bool] = True
 
     BUILDER_DEFAULT_MODEL_CLASS: ClassVar[Type[BaseModel]] = None
     DEFAULT_MODEL_CONTAINER_CLASS: ClassVar[Type[BaseModel]] = None
@@ -72,6 +74,12 @@ class ModelObjectBuilder:
         object_kwargs = XMLSettingsModel.pop_model__class__name_keyword(
             object_kwargs)
         object_kwargs.update(**kwargs)
+
+        if cls.b_enum_to_values is True:
+            for k, v in object_kwargs.items():
+                if isinstance(v, Enum):
+                    object_kwargs[k] = v.value
+
         return object_kwargs
 
     @classmethod

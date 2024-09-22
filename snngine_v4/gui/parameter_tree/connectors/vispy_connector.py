@@ -1,11 +1,12 @@
 from typing import Callable
 
 import numpy as np
+
 from pydantic import BaseModel
 from vispy.scene import TurntableCamera, XYZAxis
 from vispy.visuals import BaseVisual
 
-from snngine_v4.geometry.spatial_pars import Ax3D, XYZPars
+from snngine_v4.geometry.spatial_pars import Ax3D
 from snngine_v4.gui.parameter_tree.connectors.basemodel_signal_register import (
     ModelParameterLinks, ModelSignalRegister, ObjectParameterLink,
 )
@@ -66,11 +67,17 @@ class VispyConnector(ParameterConnector):
                     obj.events.center_changed.disconnect(block)
                 else:
                     obj.events.attr_changed.disconnect(block)
-                setattr(obj, key, value)
+                try:
+                    setattr(obj, key, value)
+                except TypeError:
+                    if value is None:
+                        setattr(obj, key, np.nan)
+                    else:
+                        raise
                 if key == EventCameraMixin.Slots.CENTER:
-                    obj.events.attr_changed.connect(block)
-                else:
                     obj.events.center_changed.connect(block)
+                else:
+                    obj.events.attr_changed.connect(block)
 
             def update_camera_model(
                     event: SetAttributeEvent,
@@ -156,4 +163,3 @@ class VispyConnector(ParameterConnector):
                     if getattr(model, link.key) != value:
                         cls.update_model_attribute(
                             link, link.key, value, block)
-

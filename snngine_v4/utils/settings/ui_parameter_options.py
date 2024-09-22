@@ -88,12 +88,14 @@ class ParamOpts(BaseSettings, frozen=True):
 
         # Custom
         C_MODEL_FIELD_NAME: ClassVar[str] = 'c_model_field_name'
-        C_NUMERIC_GROUP: ClassVar[str] = 'c_numeric'
+        C_NUMERIC_GROUP: ClassVar[str] = 'c_numeric_group'
         C_NULLABLE_VALUE: ClassVar[str] = 'c_nullable_value'
         C_COERCE_TO_LIMITS: ClassVar[str] = 'c_coerce_to_limits'
         C_VALUE_INTERVAL: ClassVar[str] = 'c_value_interval'
         C_AUTO_COLLAPSE: ClassVar[str] = 'c_auto_collapse'
         C_AUTO_EXPAND: ClassVar[str] = 'c_auto_expand'
+        C_NONE_MEANS_UNKNOWN: ClassVar[str] = 'c_none_means_unknown'
+        C_DATA_TYPES: ClassVar[str] = 'c_data_types'
         # C_VALUE_INTERVAL: ClassVar[str] = 'c_value_interval'
 
     title: str | None = None
@@ -107,7 +109,7 @@ class ParamOpts(BaseSettings, frozen=True):
     prefix: str = ''
 
     # custom
-    c_numeric: bool = False
+    c_numeric_group: bool = False
     c_coerce_to_limits: bool = False
     c_auto_expand: bool = False
     c_auto_collapse: bool = False
@@ -120,3 +122,13 @@ class ParamOpts(BaseSettings, frozen=True):
         if v is None:
             v = ''
         return v
+
+
+def p_field(default, readonly=False, **kwargs):
+    res = Field(
+        default=default,
+        json_schema_extra={
+            ParamOpts.KW.READONLY: readonly,
+        },
+        **kwargs)
+    return res

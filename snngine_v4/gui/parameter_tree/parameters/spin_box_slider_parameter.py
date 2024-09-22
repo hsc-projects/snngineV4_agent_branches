@@ -36,9 +36,7 @@ class ClickableLabel(QtWidgets.QLabel):
     
     def __init__(self, *args, conversion=None, **kwargs):
         if conversion is None:
-            conversion = {
-                'nan': 'None'
-            }
+            conversion = {}
         self.conversion = conversion
         super().__init__(*args, **kwargs)
     
@@ -71,6 +69,11 @@ class PseudoCheckBox:
 # noinspection PyPep8Naming
 class SpinBoxSliderParameterItem(NumericParameterItem):
 
+    TEXT_CONVERSIONS = {
+        'nan': {'nan': 'None'},
+        ParamOpts.KW.C_NONE_MEANS_UNKNOWN: {'nan': 'Unkown'},
+    }
+
     def __init__(self, param, depth):
 
         self.widget: SpinBox | QtWidgets.QWidget | None = None
@@ -82,8 +85,8 @@ class SpinBoxSliderParameterItem(NumericParameterItem):
 
         param.opts.setdefault(ParamOpts.KW.DELAY, .1)
 
-        if param.opts[ParamOpts.KW.C_MODEL_FIELD_NAME] == 'width':
-            pass
+        # if param.opts[ParamOpts.KW.C_MODEL_FIELD_NAME] == 'width':
+        #     pass
 
         super().__init__(param, depth)
 
@@ -102,15 +105,7 @@ class SpinBoxSliderParameterItem(NumericParameterItem):
             raise ValueError(f"{w}")
         self.layoutWidget.layout().removeItem(w)
 
-        display_label_item = self.layoutWidget.layout().takeAt(1)
-        if display_label_item.wid != self.displayLabel:
-            raise ValueError(f"{display_label_item.wid}")
-        del self.displayLabel
-        self.layoutWidget.layout().removeItem(display_label_item)
-        self.displayLabel = ClickableLabel()
-        self.displayLabel.sigClicked.connect(self.valueWidgetClicked)
-
-        self.layoutWidget.layout().insertWidget(0, self.displayLabel)
+        self._replace_display_label()
 
         self.slider.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Expanding,
@@ -143,6 +138,22 @@ class SpinBoxSliderParameterItem(NumericParameterItem):
 
         self.displayNoneValue(b_set_to_none, b_update_checkbox=False)
         self.valueWidgetClicked()
+
+    def _replace_display_label(self):
+        display_label_item = self.layoutWidget.layout().takeAt(1)
+        if display_label_item.wid != self.displayLabel:
+            raise ValueError(f"{display_label_item.wid}")
+        del self.displayLabel
+        self.layoutWidget.layout().removeItem(display_label_item)
+        if (self.param.opts.get(ParamOpts.KW.C_NONE_MEANS_UNKNOWN, False)
+                is True):
+            conversion = self.TEXT_CONVERSIONS[
+                ParamOpts.KW.C_NONE_MEANS_UNKNOWN]
+        else:
+            conversion = self.TEXT_CONVERSIONS['nan']
+        self.displayLabel = ClickableLabel(conversion=conversion)
+        self.displayLabel.sigClicked.connect(self.valueWidgetClicked)
+        self.layoutWidget.layout().insertWidget(0, self.displayLabel)
 
     def hideEditor(self):
         if self.setNoneCheckbox.isChecked():
@@ -420,8 +431,8 @@ class SpinBoxSliderParameter(Parameter):
         options[ParamOpts.KW.LIMITS] = limits
         options[ParamOpts.KW.BOUNDS] = limits
 
-        if options[ParamOpts.KW.C_MODEL_FIELD_NAME] == 'width':
-            pass
+        # if options[ParamOpts.KW.C_MODEL_FIELD_NAME] == 'width':
+        #     pass
 
         options[ParamOpts.KW.C_VALUE_INTERVAL] = interval
 
@@ -498,6 +509,8 @@ class SpinBoxSliderParameter(Parameter):
         return super().hasDefault()
 
     def _interpretValue(self, v):
+        # if self.name() == 'width':
+        #     pass
         if v is None:
             v = np.nan
         elif pd.notna(v) and self.opts.get(
@@ -511,8 +524,4 @@ class SpinBoxSliderParameter(Parameter):
         return v
 
     def setValue(self, value, blockSignal=None):
-        if value is None:
-            value = np.nan
-        if self.name() == 'width':
-            pass
         return super().setValue(value, blockSignal)

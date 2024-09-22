@@ -24,10 +24,10 @@ class AxDir3D(IntEnum):
     ZM = 5
 
 
-class SpatialParUIOps(ParamOpts):
+class SpatialParUIOpts(ParamOpts):
     renamable: bool = False
     expanded: bool = True
-    c_numeric: bool = True
+    c_numeric_group: bool = True
     c_auto_expand: bool = True
     c_auto_collapse: bool = False
     prefix: str = 'X,Y,Z'
@@ -35,7 +35,7 @@ class SpatialParUIOps(ParamOpts):
 
 class XYZPars(XMLSettingsModel):
 
-    parameter_ui_opts: ClassVar[SpatialParUIOps] = SpatialParUIOps()
+    parameter_ui_opts: ClassVar[SpatialParUIOpts] = SpatialParUIOpts()
 
     X: float
     Y: float
@@ -76,11 +76,15 @@ class EnginePos3D(XYZPars):
     Z: float = Field(default=0., ge=-10, le=10)
 
 
+class Directions3DParUIOpts(SpatialParUIOpts):
+    prefix: str = 'XP,XM,YP,YM,ZP,ZM'
+
+
 class Directions3DBoolPars(XMLSettingsModel):
 
     parameter_ui_opts: ClassVar[ParamOpts] = ParamOpts(
         expanded=False,
-        c_numeric=True,
+        c_numeric_group=True,
     )
 
     XP: bool

@@ -3,8 +3,10 @@ pyqtgraph==0.13.7
 lxml==5.3.0
 numba==0.60.0
 numpy==2.1.1
+numpydantic
 pandas==2.2.2
 pydantic==2.9.0
+pydantic_numpy==6.0.0
 pydantic-settings==2.4.0
 pyopengl==3.1.7
 # pyqt6==6.7.1
@@ -28,3 +30,4 @@ pycuda==2024.1.2
 qtpy~=2.4.1
 annotated-types~=0.7.0
 deepdiff~=8.0.1
+numpydantic~=1.5.3

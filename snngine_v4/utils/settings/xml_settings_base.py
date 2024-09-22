@@ -15,7 +15,7 @@ from pydantic_settings.sources import (
 from snngine_v4.utils.core_utils import get_intenum_member
 from snngine_v4.utils.field_utils import (
     b_annotation_includes_type,
-    b_is_intenum_annotation,
+    b_is_enum_annotation, b_is_intenum_annotation,
     extract_basemodel_from_annotation,
     b_annotation_includes_basemodel, b_field_has_default,
 )
@@ -31,11 +31,12 @@ class XMLSettingsConfigDict(SettingsConfigDict, total=False):
 def default_xml_model_config_dict(
     xml_file: str | None = None,
     extra: Literal['allow', 'ignore', 'forbid'] | None = 'forbid',
+    use_enum_values=False,
 ):
     return XMLSettingsConfigDict(
         # protected_namespaces=('model_', ParamOpts.UI_OPTIONS_KEYWORD),
         strict=True,
-        # use_enum_values=True,
+        use_enum_values=use_enum_values,
         validate_default=True,
         validate_assignment=True,
         extra=extra,
@@ -170,6 +171,10 @@ class XMLSettingsModelBase(BaseSettings):
                 data.pop(k, None)
 
             for k, field_info in cls.model_fields.items():
+
+                if k == 'method':
+                    pass
+
                 ann = field_info.annotation
                 if k not in data:
                     if not b_field_has_default(field_info):
@@ -186,6 +191,9 @@ class XMLSettingsModelBase(BaseSettings):
                     data[k] = tuple(data[k])
                 elif (isinstance(data[k], (int, str))
                       and (b_is_intenum_annotation(ann, True))):
+                    data[k] = get_intenum_member(data[k], ann)
+                elif (isinstance(data[k], str)
+                      and (b_is_enum_annotation(ann, True))):
                     data[k] = get_intenum_member(data[k], ann)
 
         return data

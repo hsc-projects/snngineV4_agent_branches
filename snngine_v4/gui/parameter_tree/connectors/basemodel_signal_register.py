@@ -70,7 +70,6 @@ class ObjectParameterLink(SetAttributeEmitterBase):
             self._obj.__setattr__(self._obj, self.key, value)
         except ValidationError as err:
             if (value is None) or pd.isna(value):
-
                 b_none_allowed = p.opts.get(ParamOpts.KW.C_NULLABLE_VALUE)
                 self._obj.__setattr__(self._obj, self.key, None)
                 pass
@@ -98,6 +97,14 @@ class ObjectParameterLink(SetAttributeEmitterBase):
         else:
             return parameter.sigValueChanged
             # return parameter.sigValueChanging
+
+    def attributeValueChanged(self, value):
+        if ((value is None)
+                and (self.parameter.opts.get(
+                    ParamOpts.KW.C_NONE_MEANS_UNKNOWN, False) is True)):
+            pass
+        else:
+            self.sigAttributeValueChanged.emit(self, self.key, value)
 
 
 class ModelParameterLinks(Object2ObjectMap):

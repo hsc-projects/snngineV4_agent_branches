@@ -92,7 +92,11 @@
       <DictItem type="dict" class="SceneVisuals" key="Visuals">
         <DictItem type="dict" class="XYZAxisVisualConfig" key="axis">
           <DictItem type="NoneType" key="pos">None</DictItem>
-          <DictItem type="NoneType" key="color">None</DictItem>
+          <DictItem type="list" key="color">
+            <ListElementElement type="float">0.5</ListElementElement>
+            <ListElementElement type="float">0.5</ListElementElement>
+            <ListElementElement type="float">0.5</ListElementElement>
+          </DictItem>
           <DictItem type="int" key="width">1</DictItem>
           <DictItem type="str" key="connect">segments</DictItem>
           <DictItem type="str" key="method">gl</DictItem>

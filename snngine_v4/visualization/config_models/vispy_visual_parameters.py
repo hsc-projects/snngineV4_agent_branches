@@ -9,8 +9,7 @@ from snngine_v4.geometry.spatial_pars import Ax3D
 from snngine_v4.utils.core_utils import ConvertingEnum
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
-from snngine_v4.utils.settings.xml_settings_base import \
-    (
+from snngine_v4.utils.settings.xml_settings_base import (
     default_xml_model_config_dict, XMLSettingsConfigDict,
 )
 
@@ -44,7 +43,7 @@ class RGBAColor(XMLSettingsModel):
     parameter_ui_opts: ClassVar[ParamOpts] = ParamOpts(
         renamable=False,
         expanded=False,
-        c_numeric=True,
+        c_numeric_group=True,
         prefix='R,G,B,A')
 
     R: float = Field(default=.5, ge=0., le=1.)

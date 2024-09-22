@@ -1,32 +1,47 @@
 from __future__ import annotations
 
+from typing import Literal
+
+import numpy as np
+from pydantic import Field
 
 from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import (
     Directions3DBoolPars,
 )
+from snngine_v4.utils.settings.ui_parameter_options import p_field, ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.visualization.config_models.vispy_visual_parameters import (
     OpenGLState, OpenGlStateType,
     RGBAColor,
 )
+from snngine_v4.utils.array_utils import ArrayL3F32
 
 
-ColorType = RGBAColor | str
+type ColorType = RGBAColor | str
+type ColorType2 = str | RGBAColor | ArrayL3F32 | None
+type LineConnectType = Literal['strip', 'segments'] | None
 
 
 class LineVisualConfig(XMLSettingsModel):
+
     pos: None = None
     color: ColorType | None
-    width: int = 1
-    connect: str | None = 'strip'
-    method: str = 'gl'
+    width: int = p_field(default=1,  readonly=True)
+    connect: LineConnectType = p_field(default='strip',  readonly=True)
+    method: Literal['gl', 'agg'] = p_field(default='gl',  readonly=True)
     antialias: bool = False
 
 
 class XYZAxisVisualConfig(LineVisualConfig):
-    connect: str | None = 'segments'
-    color: None = None
+    connect: LineConnectType = p_field(
+        default='segments',  readonly=False)
+    color: ColorType2 = Field(
+        default_factory=lambda: np.array([.5, .5, .5], dtype=np.float32))
+
+    def __setattr__(self, key, value):
+        pass
+        super().__setattr__(key, value)
 
 
 class BoxVisualConfig(FiniteGridConfig):

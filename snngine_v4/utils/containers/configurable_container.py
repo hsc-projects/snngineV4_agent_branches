@@ -30,12 +30,12 @@ class ContainerConfig(XMLSettingsModel, frozen=True):
     @classmethod
     def _validate_model_before(cls, data: Any) -> Any:
         # if isinstance(data, dict):
-        for k, field_info in cls.model_fields.items():
-            if (k not in data) and (not b_field_has_default(field_info)):
-                if k == cls.Slots.ALLOWED_TYPES:
-                    v = extract_type_from_type_annotation(
-                        field_info.annotation)
-                    data[k] = v
+        # for k, field_info in cls.model_fields.items():
+        k = cls.Slots.ALLOWED_TYPES
+        field = cls.model_fields[k]
+        if (k not in data) and (not b_field_has_default(field)):
+            v = extract_type_from_type_annotation(field.annotation)
+            data[k] = v
 
         return super()._validate_model_before(data)
 

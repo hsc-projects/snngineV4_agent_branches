@@ -4,14 +4,22 @@ import copy
 from copy import deepcopy
 from enum import Enum, IntEnum
 from types import GenericAlias, NoneType, UnionType
-from typing import get_args, get_origin, Type, TYPE_CHECKING
+from typing import (
+    # _LiteralGenericAlias, _UnionGenericAlias,
+    _UnionGenericAlias, Annotated, get_args, get_origin, Literal,
+    Type,
+    TYPE_CHECKING, Union,
+)
 
 import numpy as np
+from numpydantic import NDArray, Shape
+
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
 from pyqtgraph.parametertree import Parameter
 from pyqtgraph.parametertree.parameterTypes import GroupParameter
+from typing_extensions import TypeAliasType
 
 from snngine_v4.gui.parameter_tree.parameters.engine_group_parameter import \
     EngineGroupParameter
@@ -24,12 +32,19 @@ from snngine_v4.gui.parameter_tree.parameters.spin_box_slider_parameter import \
 
 from snngine_v4.utils.field_utils import (
     b_annotation_includes_type,
+    b_is_literal_annotation, extract_literal_values,
     get_field_json_schema_extra,
     extract_type_from_annotation, b_field_has_default,
 )
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
+from snngine_v4.utils.array_utils import (
+    Array2DF32,
+    b_includes_array_annotation, convert_type_alias_type,
+)
+
 
 if TYPE_CHECKING:
+
     from snngine_v4.gui.parameter_tree.connectors \
         .basemodel_signal_register import ModelSignalRegister
 
@@ -37,15 +52,53 @@ if TYPE_CHECKING:
 class ParameterBuilder:
 
     @classmethod
+    def get_parameter_type_from_annotation(cls, annotation,):
+
+        b_array_type_checked = False
+
+        if isinstance(annotation, TypeAliasType):
+            if b_includes_array_annotation(annotation):
+                return convert_type_alias_type(annotation)
+            else:
+                annotation = annotation.__value__
+            b_array_type_checked = True
+
+        try:
+            if isinstance(annotation, UnionType):
+                if ((not b_array_type_checked)
+                        and b_includes_array_annotation(annotation)):
+                    return annotation
+                args = get_args(annotation)
+                args0 = args[0]
+                return args0
+            elif issubclass(annotation, Enum):
+                return Enum
+        except TypeError:
+            origin = get_origin(annotation)
+            if origin == Union:
+                new_annotation = get_args(annotation)[0]
+                return cls.get_parameter_type_from_annotation(
+                    new_annotation
+                )
+            elif origin == Literal:
+                return list
+            elif origin == Annotated:
+                args = get_args(annotation)
+                args0 = args[0]
+                pass
+            raise
+
+        return annotation
+
+    @classmethod
     def get_parameter_type(cls, parent_model: BaseModel, key):
+
+        if key == 'color':
+            pass
+
         if key in parent_model.model_fields:
-            field_ = parent_model.model_fields[key]
-            parameter_type = field_.annotation
-            if isinstance(parameter_type, UnionType):
-                parameter_type = get_args(field_.annotation)[0]
-            elif issubclass(parameter_type, IntEnum):
-                parameter_type = Enum
-            return parameter_type
+            return cls.get_parameter_type_from_annotation(
+                parent_model.model_fields[key].annotation)
         elif key in parent_model.model_extra:
             model_value = getattr(parent_model, key)
             if (isinstance(model_value, dict)
@@ -98,7 +151,7 @@ class ParameterBuilder:
                  model_dict_value,
                  **options):
 
-        if key == 'fov':
+        if key == 'color':
             pass
 
         field_ = parent_model.model_fields[key]
@@ -117,15 +170,21 @@ class ParameterBuilder:
         parameter_type = cls.get_parameter_type(
             parent_model=parent_model, key=key)
 
-        options[ParamOpts.KW.TYPE] = parameter_type.__name__
+        options[ParamOpts.KW.C_DATA_TYPES] = parameter_type
+        if not isinstance(parameter_type, UnionType):
+            parameter_type_name = parameter_type.__name__
+        else:
+            parameter_type_name = UnionType.__name__
+
+        options[ParamOpts.KW.TYPE] = parameter_type_name
         if parameter_type == Enum:
             # see pyqtgraphQtEnumParameter
             options[ParamOpts.KW.ENUM] = extract_type_from_annotation(
                 field_.annotation, type_=Enum)
 
         options[ParamOpts.KW.C_NULLABLE_VALUE] = (
-                b_annotation_includes_type(
-                    field_.annotation, type_=NoneType))
+            b_annotation_includes_type(
+                field_.annotation, type_=NoneType))
 
         parameter_ = None
 
@@ -152,7 +211,17 @@ class ParameterBuilder:
                 model_dict_value=model_dict_value,
                 signal_register=signal_register, **options)
 
+        if parameter_type == list:
+            if ParamOpts.KW.LIMITS not in options:
+                if b_is_literal_annotation(field_, b_strict=False):
+                    options[ParamOpts.KW.LIMITS] = extract_literal_values(
+                        field_.annotation)
+                else:
+                    raise ValueError
+
         if parameter_ is None:
+            if key == 'color':
+                pass
             parameter_ = Parameter.create(**options)
 
         return parameter_
@@ -269,8 +338,8 @@ class ParameterBuilder:
                              signal_register: ModelSignalRegister = None,
                              name=None):
 
-        # if name == 'camera':
-        #     pass
+        if name == 'color':
+            pass
 
         group = cls.make_group_from_model(
             model=model, name=name, model_dict=model_dict)
@@ -301,7 +370,10 @@ class ParameterBuilder:
                 model_value = getattr(model, k)
                 p_type = cls.get_parameter_type(parent_model=model, key=k)
 
-                if ((not isinstance(p_type, GenericAlias))
+                if k == 'color':
+                    pass
+
+                if ((not isinstance(p_type, (GenericAlias, UnionType)))
                         and issubclass(p_type, BaseModel)):
 
                     if isinstance(model_value, dict):
