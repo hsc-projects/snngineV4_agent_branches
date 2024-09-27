@@ -1,0 +1,67 @@
+from dataclasses import dataclass
+
+from pyqtgraph import SpinBox
+from qtpy import QtCore, QtWidgets
+
+from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
+
+
+class ClickableLabel(QtWidgets.QLabel):
+    sigClicked = QtCore.Signal()
+
+    def __init__(self, *args, conversion=None, **kwargs):
+        if conversion is None:
+            conversion = {}
+        self.conversion = conversion
+        super().__init__(*args, **kwargs)
+
+    def mousePressEvent(self, e):
+        self.sigClicked.emit()
+
+    def setText(self, txt):
+        if txt in self.conversion:
+            txt = self.conversion[txt]
+        super().setText(txt)
+
+
+@dataclass
+class PseudoCheckBox:
+
+    checked: bool = True
+
+    def isChecked(self):
+        return self.checked
+
+
+class CustomSpinBox(SpinBox):
+
+    @classmethod
+    def from_opts(cls, **opts):
+        sp = cls()
+        t = opts[ParamOpts.KW.TYPE]
+        defs = {
+            ParamOpts.KW.VALUE: 0,
+            ParamOpts.KW.MIN: None,
+            ParamOpts.KW.MAX: None,
+            ParamOpts.KW.STEP: 1.0,
+            ParamOpts.KW.DEC: False,
+            ParamOpts.KW.SI_PREFIX: False,
+            ParamOpts.KW.SUFFIX: '',
+            ParamOpts.KW.DECIMALS: 3,
+        }
+        if t == ParamOpts.KW.INT:
+            defs[ParamOpts.KW.INT] = True
+            defs[ParamOpts.KW.MIN_STEP] = 1.0
+        for k in sp.opts:
+            if k in opts:
+                defs[k] = opts[k]
+        if opts.get(ParamOpts.KW.BOUNDS) is not None:
+            pass
+        elif opts.get(ParamOpts.KW.LIMITS) is not None:
+            defs[ParamOpts.KW.MIN], defs[ParamOpts.KW.MAX] = (
+                opts)[ParamOpts.KW.LIMITS]
+        sp.setOpts(**defs)
+        return sp
+
+    def _updateHeight(self):
+        pass

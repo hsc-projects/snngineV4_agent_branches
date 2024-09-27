@@ -15,6 +15,8 @@ class EngineGroupParameterItem(GroupParameterItem):
 
         self._widgets = []
 
+        self._size_set = False
+
         GroupParameterItem.__init__(self, param, depth)
 
         self.defaultBtn = self.makeDefaultButton()
@@ -62,19 +64,6 @@ class EngineGroupParameterItem(GroupParameterItem):
 
         self.layoutWidget.layout().insertWidget(idx * 2, item.widget)
         self.layoutWidget.layout().insertWidget(idx * 2, item.displayLabel)
-        item.widget.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
-            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
-        )
-        item.displayLabel.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
-            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
-        )
-        # sw0 = wdg.widget.sizeHint()
-        width = item.widget.opts.get(ParamOpts.KW.DECIMALS, 3) * 20 + 15
-        item.widget.setMinimumWidth(width)
-        item.displayLabel.setMinimumWidth(width)
-        # item.widget.setMaximumWidth(width)
 
         item.param.sigValueChanged.connect(self.updateDefaultBtn)
 
@@ -83,18 +72,23 @@ class EngineGroupParameterItem(GroupParameterItem):
                 0, item.slider_layout_widget)
         self._widgets.append(item.widget)
 
-        sb = self.defaultBtn.sizeHint()
-        sb.setHeight(int(sb.height() * 0.9))
-        h = sb.height()
-        w = sb.width()
-        for wdg in self._widgets:
-            sw = wdg.sizeHint()
-            sw.setHeight(int(sw.height() * 0.9))
+    def set_sizes(self):
+        if self._size_set is False:
+            n_widget = len(self._widgets)
+            if n_widget >= len(self.param.opts[ParamOpts.KW.C_GROUP_PREFIXES]):
+                sb = self.defaultBtn.sizeHint()
+                sb.setHeight(int(sb.height() * 0.9))
+                h = sb.height()
+                w = sb.width()
+                for wdg in self._widgets:
+                    sw = wdg.sizeHint()
+                    sw.setHeight(int(sw.height() * 0.9))
 
-            w += wdg.minimumWidth() + 2
-            h = max(sw.height(), h)
-        self.layoutWidget.setMinimumWidth(w)
-        self.setSizeHint(1, QtCore.QSize(w, h))
+                    w += wdg.minimumWidth() + 2
+                    h = max(sw.height(), h)
+                self.layoutWidget.setMinimumWidth(w)
+                self.setSizeHint(1, QtCore.QSize(w, h))
+                self._size_set = True
 
     # noinspection PyPep8Naming
     def defaultClicked(self):
@@ -137,6 +131,10 @@ class EngineGroupParameterItem(GroupParameterItem):
 class EngineGroupParameter(GroupParameter):
 
     itemClass = EngineGroupParameterItem
+
+    @classmethod
+    def from_model(cls, model, name):
+        return cls(**ParamOpts.from_model(model=model, name_=name))
 
     def makeTreeItem(self, depth) -> EngineGroupParameterItem:
         return super().makeTreeItem(depth=depth)

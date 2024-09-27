@@ -3,7 +3,10 @@ from typing import ClassVar
 from pydantic import Field
 
 from snngine_v4.geometry.spatial_pars import EnginePos3D, SpatialParUIOpts
-from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
+from snngine_v4.utils.settings.ui_parameter_options import (
+    FrozenParamOpts,
+    ParamOpts,
+)
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
@@ -15,7 +18,7 @@ class CameraCenter(EnginePos3D):
 
 class TurnTableCameraParameters(XMLSettingsModel):
 
-    parameter_ui_opts: ClassVar[ParamOpts] = ParamOpts(
+    parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         renamable=False,
         expanded=True,
         c_coerce_to_limits=True,
@@ -32,7 +35,6 @@ class TurnTableCameraParameters(XMLSettingsModel):
     distance: float | None = Field(default=None, ge=0)
     translate_speed: float = Field(default=1, ge=0, le=10)
     scale_factor: float | None = Field(
-        default=None, gt=0, json_schema_extra={
-            ParamOpts.KW.TITLE: 'Zoom',
+        default=None, gt=0, title='Zoom', json_schema_extra={
             ParamOpts.KW.C_NONE_MEANS_UNKNOWN: True
         })

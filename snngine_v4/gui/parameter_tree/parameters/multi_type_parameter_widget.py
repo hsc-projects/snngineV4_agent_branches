@@ -4,7 +4,12 @@ from pyqtgraph import ComboBox
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.common.widget_dict import QWidgetDict
+from snngine_v4.gui.parameter_tree.parameters.rgba_widget import (
+    MultiSpinBoxWidget, RGBAWidget,
+)
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
+from snngine_v4.visualization.config_models.vispy_visual_parameters import \
+    RGBAColor
 
 
 # noinspection PyPep8Naming
@@ -30,35 +35,50 @@ class MultiTypeParameterWidget(QtWidgets.QWidget):
         }
         self.type_combo = ComboBox(items=list(self.types.keys()))
 
+        self._previous_type = None
+        self._next_previous_type = self.current_type
+        self.type_combo.currentIndexChanged.connect(self.onTypeChange)
+
         self.widget_map: dict[str, QtWidgets] | QWidgetDict = QWidgetDict()
 
         # self.editor_widget = QtWidgets.QLineEdit()
 
         self.setLayout(QtWidgets.QHBoxLayout())
         self.layout().setSpacing(0)
-        self.setContentsMargins(0, 0, 0, 0)
+        # self.setContentsMargins(0, 0, 0, 0)
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.type_combo.setStyleSheet("min-height: 1;")
+        self.type_combo.setMaximumHeight(20)
         # noinspection PyTypeChecker
         q: QtWidgets.QListView = self.type_combo.view()
-        q.setStyleSheet("min-height: 1;")
+        q.setStyleSheet("min-height: 1; min-width: 120;")
         self.type_combo.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.MinimumExpanding,
             QtWidgets.QSizePolicy.Policy.MinimumExpanding,
         )
 
         self.layout().addWidget(self.type_combo)
-        self.type_combo.currentIndexChanged.connect(self.onTypeChange)
 
     def _build_widget(self, key):
 
         if self.types[key] == str:
             wdg = QtWidgets.QLineEdit()
-            self.widget_map[key] = wdg
-            self.layout().addWidget(wdg)
-
+            wdg.setContentsMargins(0, 0, 0, 0)
+            wdg.textChanged.connect(self.onValueChanged)
+        elif self.types[key] == RGBAColor:
+            wdg = RGBAWidget()
+            wdg.sigValueChanged.connect(self.onValueChanged)
         else:
-            raise NotImplementedError(f"{key}")
+            return
+            # raise NotImplementedError(f"{key}")
+
+        # wdg.setStyleSheet("min-height: 1;")
+        wdg.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+        )
+        self.widget_map[key] = wdg
+        self.layout().addWidget(wdg)
         self.sigWidgetCreated.emit(wdg, key, self.types[key])
         return wdg
 
@@ -71,21 +91,41 @@ class MultiTypeParameterWidget(QtWidgets.QWidget):
         key = self.current_type
         if key not in self.widget_map:
             self._build_widget(key=key)
-        return self.widget_map[key]
-
-    def onTypeChange(self, ev):
-        return self.editor_widget
+        wdg = self.widget_map[key]
+        for k, v in self.widget_map.items():
+            if k != key:
+                v.hide()
+            else:
+                v.show()
+        return wdg
 
     def hide(self):
         self.editor_widget.hide()
 
+    def onValueChanged(self):
+        self.sigChanged.emit(self)
+
+    def onTypeChange(self, ev=None):
+        key = self.current_type
+        self._previous_type = self._next_previous_type
+        self._next_previous_type = key
+        # if self._previous_type:
+        self.widget_map[self._previous_type].hide()
+        self.layout().removeWidget(self.widget_map[self._previous_type])
+        wdg = self.editor_widget  # build the wdg if necessary
+        self.sigWidgetTypeChanged.emit(wdg, key, self.types[key])
+
     def setValue(self, value):
         if isinstance(self.editor_widget, QtWidgets.QLineEdit):
             self.editor_widget.setText(str(value))
+        elif isinstance(self.editor_widget, MultiSpinBoxWidget):
+            pass
         self._value = value
 
     def show(self):
         self.editor_widget.show()
 
     def value(self):
-        return self._value
+        if isinstance(self.editor_widget, QtWidgets.QLineEdit):
+            return self.editor_widget.text()
+        return self.editor_widget.value()

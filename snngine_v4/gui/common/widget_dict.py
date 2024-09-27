@@ -17,7 +17,7 @@ class QWidgetDict(ConfigurableDict):
 
     def add_widget(self, widget: QWidget):
         name = widget.objectName()
-        self.data[name] = widget
+        self[name] = widget
 
 
 class QTreeWidgetDictConfig(QWidgetDictConfig, frozen=True):

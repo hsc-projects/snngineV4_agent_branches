@@ -1,4 +1,3 @@
-import numpy as np
 from pyqtgraph.parametertree.parameterTypes import (
     SimpleParameter,
     StrParameterItem,
@@ -20,5 +19,6 @@ class NoneTypeParameter(SimpleParameter):
     def itemClass(self):
         return StrParameterItem
 
+    # noinspection PyPep8Naming
     def setValue(self, value, blockSignal=None):
         return super().setValue(None, blockSignal=None)

@@ -106,8 +106,8 @@ def b_is_str_annotation(ann: AnnotationType, b_strict: bool) -> bool:
 
 
 def b_field_has_default(field_info: FieldInfo) -> bool:
-    b_as_default = field_info.default != PydanticUndefined
-    if not b_as_default:
+    b_has_default = field_info.default is not PydanticUndefined
+    if not b_has_default:
         return field_info.default_factory is not None
     return True
 

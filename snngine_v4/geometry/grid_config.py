@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import ClassVar
 
 from snngine_v4.geometry.spatial_pars import FloatShape3D, Segmentation3D
-from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
+from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
 class TechnicalValues(XMLSettingsModel):
 
-    parameter_ui_opts: ClassVar[ParamOpts] = ParamOpts(
+    parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         expanded=False)
 
     max_z: int = 100

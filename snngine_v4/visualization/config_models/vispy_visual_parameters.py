@@ -7,7 +7,7 @@ from pydantic import Field
 
 from snngine_v4.geometry.spatial_pars import Ax3D
 from snngine_v4.utils.core_utils import ConvertingEnum
-from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
+from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.utils.settings.xml_settings_base import (
     default_xml_model_config_dict, XMLSettingsConfigDict,
@@ -40,11 +40,11 @@ class WDHSegKw(ConvertingEnum):
 
 class RGBAColor(XMLSettingsModel):
 
-    parameter_ui_opts: ClassVar[ParamOpts] = ParamOpts(
+    parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         renamable=False,
         expanded=False,
         c_numeric_group=True,
-        prefix='R,G,B,A')
+        c_group_prefixes='R,G,B,A')
 
     R: float = Field(default=.5, ge=0., le=1.)
     G: float = Field(default=.5, ge=0., le=1.)

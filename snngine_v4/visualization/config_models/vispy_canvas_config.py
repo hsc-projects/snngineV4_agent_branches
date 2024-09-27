@@ -1,6 +1,6 @@
 from typing import ClassVar, Type
 
-from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
+from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.utils.settings.xml_settings import (
     XMLSettingsContainerModel,
     XMLSettingsModel,
@@ -37,7 +37,7 @@ class VispyWidgetConfig(XMLSettingsModel, frozen=True):
 
 class VispyViewBoxConfig(VispyWidgetConfig):
 
-    parameter_ui_opts: ClassVar[ParamOpts] = ParamOpts(
+    parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         renamable=False,
         expanded=False,
     )
@@ -65,7 +65,7 @@ class SceneCameras(XMLSettingsContainerModel):
 
 class VispyCanvasConfigOptions(XMLSettingsModel, frozen=True):
 
-    parameter_ui_opts: ClassVar[ParamOpts] = ParamOpts(
+    parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         renamable=False,
         expanded=False,
     )

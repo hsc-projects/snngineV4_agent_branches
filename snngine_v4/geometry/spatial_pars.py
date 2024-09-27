@@ -5,7 +5,7 @@ from typing import ClassVar
 
 from pydantic import Field, NonNegativeInt, PositiveFloat
 
-from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
+from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
@@ -24,13 +24,13 @@ class AxDir3D(IntEnum):
     ZM = 5
 
 
-class SpatialParUIOpts(ParamOpts):
+class SpatialParUIOpts(FrozenParamOpts):
     renamable: bool = False
     expanded: bool = True
     c_numeric_group: bool = True
     c_auto_expand: bool = True
     c_auto_collapse: bool = False
-    prefix: str = 'X,Y,Z'
+    c_group_prefixes: list[str] = 'X,Y,Z'
 
 
 class XYZPars(XMLSettingsModel):
@@ -77,12 +77,12 @@ class EnginePos3D(XYZPars):
 
 
 class Directions3DParUIOpts(SpatialParUIOpts):
-    prefix: str = 'XP,XM,YP,YM,ZP,ZM'
+    c_group_prefixes: str = 'XP,XM,YP,YM,ZP,ZM'
 
 
 class Directions3DBoolPars(XMLSettingsModel):
 
-    parameter_ui_opts: ClassVar[ParamOpts] = ParamOpts(
+    parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         expanded=False,
         c_numeric_group=True,
     )

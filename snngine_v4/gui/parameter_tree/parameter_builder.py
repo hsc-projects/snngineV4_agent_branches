@@ -1,21 +1,16 @@
 from __future__ import annotations
 
-import copy
-from copy import deepcopy
-from enum import Enum, IntEnum
-from types import GenericAlias, NoneType, UnionType
+from enum import Enum
+from types import GenericAlias, UnionType
 from typing import (
     # _LiteralGenericAlias, _UnionGenericAlias,
-    _UnionGenericAlias, Annotated, get_args, get_origin, Literal,
+    Annotated, get_args, get_origin, Literal,
     Type,
     TYPE_CHECKING, Union,
 )
 
-import numpy as np
-from numpydantic import NDArray, Shape
 
 from pydantic import BaseModel
-from pydantic.fields import FieldInfo
 
 from pyqtgraph.parametertree import Parameter
 from pyqtgraph.parametertree.parameterTypes import GroupParameter
@@ -30,15 +25,8 @@ from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 from snngine_v4.gui.parameter_tree.parameters.spin_box_slider_parameter import \
     SpinBoxSliderParameter
 
-from snngine_v4.utils.field_utils import (
-    b_annotation_includes_type,
-    b_is_literal_annotation, extract_literal_values,
-    get_field_json_schema_extra,
-    extract_type_from_annotation, b_field_has_default,
-)
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.utils.array_utils import (
-    Array2DF32,
     b_includes_array_annotation, convert_type_alias_type,
 )
 
@@ -110,114 +98,46 @@ class ParameterBuilder:
             return type(model_value)
 
     @classmethod
-    def make_group_from_model(
-        cls, model: BaseModel, name=None,
-        model_dict: dict[str, BaseModel] = None,
-    ) -> EngineGroupParameter | GroupParameter:
-
-        parameter_ui_opts = getattr(model, ParamOpts.KW.ParamOpts, {})
-        if parameter_ui_opts is None:
-            parameter_ui_opts = {}
-        elif isinstance(parameter_ui_opts, BaseModel):
-            parameter_ui_opts = parameter_ui_opts.model_dump()
-
-        if ParamOpts.KW.RENAMABLE not in parameter_ui_opts:
-            parameter_ui_opts[ParamOpts.KW.RENAMABLE] = False
-
-        # noinspection PyTypedDict
-        if model.model_config.get(BaseSettingsSlots.FROZEN, None):
-            parameter_ui_opts[ParamOpts.KW.READONLY] = True
-
-        ui_name = parameter_ui_opts.pop(ParamOpts.KW.NAME, None)
-        if ui_name is not None:
-            name = ui_name
-        elif name is None:
-            name = model.__class__.__name__
-
-        if ParamOpts.KW.PREFIX in parameter_ui_opts:
-            prefix_pattern = parameter_ui_opts[ParamOpts.KW.PREFIX]
-            if isinstance(prefix_pattern, str):
-                sep = ParamOpts.PREFIX_PATTERN_SEP
-                prefix_pattern = prefix_pattern.split(sep)
-                parameter_ui_opts[ParamOpts.KW.PREFIX] = prefix_pattern
-        else:
-            parameter_ui_opts[ParamOpts.KW.PREFIX] = []
-
-        g = EngineGroupParameter(name=name, **parameter_ui_opts)
-        return g
+    def get_parameters_by_type(
+        cls, model_type: Type[BaseModel],
+        signal_register: ModelSignalRegister,
+        ancestor: GroupParameter | BaseModel | None,
+    ):
+        res = []
+        if isinstance(ancestor, BaseModel):
+            ancestor = signal_register.group_map[ancestor]
+        for model in signal_register.refs:
+            if isinstance(model, model_type):
+                p = signal_register.group_map[model]
+                if ((ancestor is not None)
+                        and (ancestor.childPath(p) is None)):
+                    pass
+                else:
+                    res.append(p)
+        return res
 
     @classmethod
     def make_par(cls, parent_model: BaseModel, key, value, signal_register,
                  model_dict_value,
                  **options):
 
-        if key == 'color':
-            pass
-
-        field_ = parent_model.model_fields[key]
-        json_schema_extra = get_field_json_schema_extra(field_)
-
-        if ParamOpts.KW.NAME not in options:
-            options[ParamOpts.KW.NAME] = key
-
-        options[ParamOpts.KW.VALUE] = value
-
-        if b_field_has_default(field_info=field_):
-            options[ParamOpts.KW.DEFAULT] = field_.default
-
-        options.update(json_schema_extra)
-
-        parameter_type = cls.get_parameter_type(
-            parent_model=parent_model, key=key)
-
-        options[ParamOpts.KW.C_DATA_TYPES] = parameter_type
-        if not isinstance(parameter_type, UnionType):
-            parameter_type_name = parameter_type.__name__
-        else:
-            parameter_type_name = UnionType.__name__
-
-        options[ParamOpts.KW.TYPE] = parameter_type_name
-        if parameter_type == Enum:
-            # see pyqtgraphQtEnumParameter
-            options[ParamOpts.KW.ENUM] = extract_type_from_annotation(
-                field_.annotation, type_=Enum)
-
-        options[ParamOpts.KW.C_NULLABLE_VALUE] = (
-            b_annotation_includes_type(
-                field_.annotation, type_=NoneType))
-
         parameter_ = None
 
-        options[ParamOpts.KW.C_MODEL_FIELD_NAME] = key
+        options = ParamOpts.from_field(
+            parent_model=parent_model,
+            c_data_types=cls.get_parameter_type(
+                parent_model=parent_model, key=key),
+            key=key, value=value, **options)
 
-        if ParamOpts.KW.PREFIX in options:
-            prefix = options[ParamOpts.KW.PREFIX]
-            if isinstance(prefix, list):
-                name = options[ParamOpts.KW.NAME]
-                if name in prefix:
-                    options[ParamOpts.KW.PREFIX] = name + ': '
-                else:
-                    options[ParamOpts.KW.PREFIX] = ''
+        if options.c_data_types in [float, int]:
+            parameter_ = SpinBoxSliderParameter(**options)
 
-        if parameter_type in [float, int]:
-            # if key == 'distance':
-            #     pass
-            parameter_ = cls._make_numeric_par(field_=field_, **options)
-
-        elif isinstance(parameter_type, GenericAlias):
+        elif isinstance(options.c_data_types, GenericAlias):
 
             parameter_ = cls._make_pars_from_iterable(
-                parameter_type=parameter_type, model_value=value,
+                parameter_type=options.c_data_types, model_value=value,
                 model_dict_value=model_dict_value,
                 signal_register=signal_register, **options)
-
-        if parameter_type == list:
-            if ParamOpts.KW.LIMITS not in options:
-                if b_is_literal_annotation(field_, b_strict=False):
-                    options[ParamOpts.KW.LIMITS] = extract_literal_values(
-                        field_.annotation)
-                else:
-                    raise ValueError
 
         if parameter_ is None:
             if key == 'color':
@@ -227,56 +147,18 @@ class ParameterBuilder:
         return parameter_
 
     @classmethod
-    def _make_numeric_par(cls, field_: FieldInfo, **options):
-        return SpinBoxSliderParameter.from_field(
-            field=field_, **options)
-        # if options[ParamOpts.KW.C_MODEL_FIELD_NAME] == 'distance':
-        #     pass
-        #
-        # if (options[ParamOpts.KW.C_NULLABLE_VALUE] and
-        #         options.get(ParamOpts.KW.DEFAULT) is None):
-        #     options[ParamOpts.KW.DEFAULT] = np.nan
-        # interval = extract_field_interval(field_)
-        # multiple_of = get_field_multiple_of(field_)
-        #
-        # if multiple_of is not None:
-        #     step_size = multiple_of
-        # else:
-        #     is_int = b_is_int_annotation(field_.annotation, True)
-        #     if is_int:
-        #         step_size = options.get(ParamOpts.KW.STEP, 1)
-        #     else:
-        #         step_size = options.get(ParamOpts.KW.STEP, .01)
-        #         options[ParamOpts.KW.DECIMALS] = 6
-        #
-        # options[ParamOpts.KW.STEP] = step_size
-        #
-        # # if True:
-        # if interval is not None:
-        #     # interval = get_field_interval(field_)
-        #     limits = limits_from_interval(interval, step_size=step_size)
-        #     options[ParamOpts.KW.LIMITS] = limits
-        # else:
-        #     pass
-        # # if interval is not None:
-        # if True:
-        #     parameter_ = SpinBoxSliderParameter.from_interval(
-        #         interval=interval, **options)
-        # else:
-        #     parameter_ = Parameter.create(**options)
-        # return parameter_
-
-    @classmethod
     def _par_from_item_from_iterable(
             cls, idx, par_type, model_value, **options):
-        options = copy.copy(options)
-        options[ParamOpts.KW.NAME] = str(idx)
-        options[ParamOpts.KW.TYPE] = par_type.__name__
+        options = ParamOpts(**options)
+
+        options.name = str(idx)
+        options.type = par_type.__name__
         if model_value is not None:
             p_value = model_value[idx]
         else:
             p_value = None
-        options[ParamOpts.KW.VALUE] = p_value
+        options.value = p_value
+        options = options.model_dump(exclude_none=True)
         par = Parameter.create(**options)
         return par
 
@@ -338,27 +220,11 @@ class ParameterBuilder:
                              signal_register: ModelSignalRegister = None,
                              name=None):
 
-        if name == 'color':
+        if name == 'seg':
             pass
 
-        group = cls.make_group_from_model(
-            model=model, name=name, model_dict=model_dict)
-
-        inherited_options = {
-            ParamOpts.KW.READONLY: group.readonly(),
-            ParamOpts.KW.RENAMABLE: group.opts.get(
-                ParamOpts.KW.RENAMABLE, False),
-            ParamOpts.KW.MOVABLE: group.opts.get(
-                ParamOpts.KW.MOVABLE, False),
-            ParamOpts.KW.PREFIX: group.opts.get(
-                ParamOpts.KW.PREFIX, ''),
-            ParamOpts.KW.C_NULLABLE_VALUE: group.opts.get(
-                ParamOpts.KW.C_NULLABLE_VALUE, False),
-            ParamOpts.KW.C_COERCE_TO_LIMITS: group.opts.get(
-                ParamOpts.KW.C_COERCE_TO_LIMITS, False),
-            ParamOpts.KW.DELAY: group.opts.get(
-                ParamOpts.KW.DELAY, 0.1),
-        }
+        group = EngineGroupParameter.from_model(model=model, name=name)
+        heritable_options = ParamOpts.heritable_options(**group.opts)
 
         children = []
         n_children = 0
@@ -386,8 +252,7 @@ class ParameterBuilder:
                     par = cls.make_par(
                         parent_model=model, key=k, value=model_value,
                         signal_register=signal_register,
-                        model_dict_value=v,
-                        **deepcopy(inherited_options))
+                        model_dict_value=v, **heritable_options)
                 n_children += 1
                 if par.opts[ParamOpts.KW.TYPE] in ['int', 'float']:
                     n_numeric_children += 1
@@ -399,22 +264,3 @@ class ParameterBuilder:
             signal_register.connect_group_parameter(
                 model, parameter=group)
         return group
-
-    @classmethod
-    def get_parameters_by_type(
-        cls, model_type: Type[BaseModel],
-        signal_register: ModelSignalRegister,
-        ancestor: GroupParameter | BaseModel | None,
-    ):
-        res = []
-        if isinstance(ancestor, BaseModel):
-            ancestor = signal_register.group_map[ancestor]
-        for model in signal_register.refs:
-            if isinstance(model, model_type):
-                p = signal_register.group_map[model]
-                if ((ancestor is not None)
-                        and (ancestor.childPath(p) is None)):
-                    pass
-                else:
-                    res.append(p)
-        return res

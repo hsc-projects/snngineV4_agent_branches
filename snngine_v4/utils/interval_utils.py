@@ -86,11 +86,11 @@ def linspace_from_interval(interval: pd.Interval,
 
 
 def coerce_value_into_interval(value, intv: pd.Interval, step_size=1):
-    if value < intv.left:
+    if value <= intv.left:
         value = intv.left
         if intv.closed in ['right', 'neither']:
             value += step_size
-    elif value > intv.right:
+    elif value >= intv.right:
         value = intv.right
         if intv.closed in ['left', 'neither']:
             value -= step_size

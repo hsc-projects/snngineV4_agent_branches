@@ -9,7 +9,7 @@ from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import (
     Directions3DBoolPars,
 )
-from snngine_v4.utils.settings.ui_parameter_options import p_field, ParamOpts
+from snngine_v4.utils.settings.ui_parameter_options import p_field
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.visualization.config_models.vispy_visual_parameters import (
     OpenGLState, OpenGlStateType,
