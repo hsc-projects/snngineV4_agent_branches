@@ -96,5 +96,6 @@ class WidgetParameterItemMixin:
 
     def valueWidgetClicked(self: WidgetParameterItemType):
         tree: EngineParameterTree = self.treeWidget()
-        self.setSelected(False)
-        tree.setCurrentItem(self)
+        if tree:
+            self.setSelected(False)
+            tree.setCurrentItem(self)

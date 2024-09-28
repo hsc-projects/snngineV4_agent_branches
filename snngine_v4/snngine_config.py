@@ -23,8 +23,9 @@ class EngineConfig(XMLSettingsModel):
 
     model_config: ClassVar[XMLSettingsConfigDict] = (
         default_xml_model_config_dict(
-            xml_file=f".snngine"
-                     f"/{BaseSettingsSlots.SUB_SETTINGS_FILE_NAME_PATTERN}.xml"))
+            xml_file=f".snngine/"
+                     f"{BaseSettingsSlots.SUB_SETTINGS_FILE_NAME_PATTERN}"
+                     f".xml"))
 
     app: EngineAppSettings
     open_gl: OpenGLSettings

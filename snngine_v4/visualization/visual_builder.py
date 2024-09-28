@@ -99,7 +99,7 @@ class VispyVisualBuilder(BuilderDict):
                 elif isinstance(model_, Segmentation3D):
                     up_keys[k] = WDHSegKw.convert_dict(dump_value_)
                 elif isinstance(model_, RGBAColor):
-                    dct[k] = tuple(dump_value_.values())
+                    dct[k] = RGBAColor.to_vispy(dump_value_)
                 elif isinstance(model_, Directions3DBoolPars):
                     vals = list(dump_value_.keys())
                     vals = [cls.ax_dir_aliases(x) for x in vals]

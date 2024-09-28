@@ -9,7 +9,7 @@ from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.icons import getEngineGraphIcon
 from snngine_v4.gui.parameter_tree.parameters.custom_widgets import (
-    PseudoCheckBox,
+    CustomSpinBox, PseudoCheckBox,
 )
 from snngine_v4.gui.parameter_tree.parameters.spin_box_slider import (
     CustomSlider, SpinBoxSlider,
@@ -44,13 +44,8 @@ class SpinBoxSliderParameterItem(NumericParameterItem,
         super().__init__(param, depth)
 
         self.slider = SpinBoxSlider(spinbox=self.widget, **self.param.opts)
+        self.slider_layout_widget = self.slider.layout_widget()
         self.slider.sliderPressed.connect(self.valueWidgetClicked)
-
-        self.slider_layout_widget = QtWidgets.QWidget()
-        self.slider_layout_widget.setLayout(QtWidgets.QHBoxLayout())
-        self.slider_layout_widget.layout().addWidget(self.slider)
-        self.slider_layout_widget.layout().setContentsMargins(13, 0, 13, 0)
-        self.slider_layout_widget.setMinimumWidth(50)
 
         self._remove_spacer_item(idx=2)
         self._replace_display_label()
@@ -92,6 +87,12 @@ class SpinBoxSliderParameterItem(NumericParameterItem,
             self.widget.hide()
             self.displayLabel.show()
         self.slider.clearFocus()
+
+    def makeWidget(self):
+        w = CustomSpinBox.from_opts(**self.param.opts)
+        w.sigChanged = w.sigValueChanged
+        w.sigChanging = w.sigValueChanging
+        return w
 
     def makeDefaultButton(self):
         defaultBtn = QtWidgets.QPushButton()

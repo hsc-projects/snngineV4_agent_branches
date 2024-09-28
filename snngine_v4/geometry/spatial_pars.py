@@ -5,7 +5,11 @@ from typing import ClassVar
 
 from pydantic import Field, NonNegativeInt, PositiveFloat
 
-from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
+from snngine_v4.utils.array_utils import Float32
+from snngine_v4.utils.settings.ui_parameter_options import (
+    FrozenParamOpts,
+    GroupPrefixesType,
+)
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
@@ -30,7 +34,7 @@ class SpatialParUIOpts(FrozenParamOpts):
     c_numeric_group: bool = True
     c_auto_expand: bool = True
     c_auto_collapse: bool = False
-    c_group_prefixes: list[str] = 'X,Y,Z'
+    c_group_prefixes: GroupPrefixesType = Ax3D
 
 
 class XYZPars(XMLSettingsModel):
@@ -71,13 +75,13 @@ class Segmentation3D(XYZPars):
 
 class EnginePos3D(XYZPars):
 
-    X: float = Field(default=0., ge=-10, le=10)
+    X: Float32 = Field(default=0., ge=-10, le=10)
     Y: float = Field(default=0., ge=-10, le=10)
     Z: float = Field(default=0., ge=-10, le=10)
 
 
 class Directions3DParUIOpts(SpatialParUIOpts):
-    c_group_prefixes: str = 'XP,XM,YP,YM,ZP,ZM'
+    c_group_prefixes: GroupPrefixesType = AxDir3D
 
 
 class Directions3DBoolPars(XMLSettingsModel):

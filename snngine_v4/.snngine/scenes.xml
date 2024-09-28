@@ -85,14 +85,19 @@
             <DictItem type="float" key="roll">0.0</DictItem>
             <DictItem type="NoneType" key="distance">None</DictItem>
             <DictItem type="float" key="translate_speed">1.0</DictItem>
-            <DictItem type="float" key="scale_factor">3.962932247717592</DictItem>
+            <DictItem type="float" key="scale_factor">3.96</DictItem>
           </DictItem>
         </DictItem>
       </DictItem>
       <DictItem type="dict" class="SceneVisuals" key="Visuals">
         <DictItem type="dict" class="XYZAxisVisualConfig" key="axis">
           <DictItem type="NoneType" key="pos">None</DictItem>
-          <DictItem type="str" key="color">[0.5 0.5 0.5]</DictItem>
+          <DictItem type="dict" class="RGBAColor" key="color">
+            <DictItem type="int" key="R">127</DictItem>
+            <DictItem type="int" key="G">127</DictItem>
+            <DictItem type="int" key="B">255</DictItem>
+            <DictItem type="float" key="A">1.0</DictItem>
+          </DictItem>
           <DictItem type="int" key="width">1</DictItem>
           <DictItem type="str" key="connect">segments</DictItem>
           <DictItem type="str" key="method">gl</DictItem>

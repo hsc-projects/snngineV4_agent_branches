@@ -4,7 +4,9 @@ from pyqtgraph import SpinBox
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.parameter_tree.parameters.custom_widgets import \
-    CustomSpinBox
+    (
+    ClickableLabel, CustomSpinBox,
+)
 from snngine_v4.utils.core_utils import IntervalClosedType
 from snngine_v4.utils.interval_utils import linspace_from_interval
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
@@ -103,6 +105,8 @@ class SpinBoxSlider(CustomSlider):
 
         super().__init__(orientation=orientation, parent=parent)
 
+        self._display_widget = None
+
         self.spinbox = spinbox
         self.span = None
         self.charSpan = None
@@ -114,13 +118,35 @@ class SpinBoxSlider(CustomSlider):
             QtWidgets.QSizePolicy.Policy.MinimumExpanding,
         )
 
+        self.valueChanged.connect(self.setValueFromSlider)
+        self.spinbox.sigValueChanging.connect(self.setValueFromSpinBox)
+        self.spinbox.sigValueChanged.connect(self.updateDisplayWidget)
+        self.sliderReleased.connect(self.onSliderRelease)
+
         slider_value = self.spanToSliderValue(opts[ParamOpts.KW.VALUE])
         self.setValue(slider_value)
 
-        self.valueChanged.connect(self.setValueFromSlider)
+        self._layout_widget = None
 
-        self.spinbox.sigValueChanging.connect(self.setValueFromSpinBox)
-        self.sliderReleased.connect(self.onSliderRelease)
+    def display_widget(self, conversion=None):
+        if self._display_widget is None:
+            self._display_widget = ClickableLabel(conversion=conversion)
+        return self._display_widget
+
+    def updateDisplayWidget(self, ev=None):
+        if self._display_widget is not None:
+            txt = self.spinbox.lineEdit().text()
+            self._display_widget.setText(txt)
+
+    def layout_widget(self,):
+        if self._layout_widget is None:
+            widget = QtWidgets.QWidget()
+            widget.setLayout(QtWidgets.QHBoxLayout())
+            widget.layout().addWidget(self)
+            widget.layout().setContentsMargins(13, 0, 13, 0)
+            widget.setMinimumWidth(50)
+            self._layout_widget = widget
+        return self._layout_widget
 
     @property
     def bounds(self):
@@ -129,6 +155,10 @@ class SpinBoxSlider(CustomSlider):
     @property
     def opts(self) -> dict:
         return self.spinbox.opts
+
+    def setFocusOnSpinBox(self):
+        self.spinbox.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
+        self.spinbox.selectNumber()
 
     def onSliderRelease(self):
         if self._reset_span_condition():

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from pyqtgraph import SpinBox
+from pyqtgraph.functions import INT_REGEX
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
@@ -17,7 +18,10 @@ class ClickableLabel(QtWidgets.QLabel):
 
     def mousePressEvent(self, e):
         self.sigClicked.emit()
-
+    
+    def setVisible(self, visible):
+        super().setVisible(visible)
+    
     def setText(self, txt):
         if txt in self.conversion:
             txt = self.conversion[txt]
@@ -62,6 +66,25 @@ class CustomSpinBox(SpinBox):
                 opts)[ParamOpts.KW.LIMITS]
         sp.setOpts(**defs)
         return sp
+
+    def selectNumber(self):
+        """
+        Select the numerical portion of the text to allow quick editing by the user.
+        """
+        le = self.lineEdit()
+        text = le.text()
+        prefix = self.opts['prefix']
+        len_prefix = len(prefix) if isinstance(prefix, str) else 0
+        b_prefix = (len_prefix > 0 and text.startswith(prefix))
+        if b_prefix:
+            text = text[len_prefix + 1:]
+        m = self.opts['regex'].match(text)
+        if m is None:
+            return
+        s, e = m.start('number'), m.end('number')
+        if b_prefix:
+            s, e = s + len_prefix + 1, e + len_prefix + 1
+        le.setSelection(s, e-s)
 
     def _updateHeight(self):
         pass

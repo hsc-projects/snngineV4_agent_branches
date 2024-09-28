@@ -1,5 +1,5 @@
 from enum import Enum, IntEnum
-from types import GenericAlias, UnionType
+from types import GenericAlias, NoneType, UnionType
 from typing import (
     Any, ClassVar, get_args, get_origin, Literal, Type,
     Union,
@@ -209,8 +209,11 @@ def extract_type_from_annotation(ann: AnnotationType, type_: Type,
 
 def extract_type_from_type_annotation(ann: AnnotationType) -> Type | None:
     ann = extract_annotation(ann)
+
+    if ann in [Any, NoneType]:
+        return None
     if get_origin(ann) != type:
-        raise TypeError(f"{ann}")
+        raise TypeError(f"{ann}, {get_origin(ann)}")
     res = get_args(ann)
     if len(res) != 1:
         raise NotImplementedError

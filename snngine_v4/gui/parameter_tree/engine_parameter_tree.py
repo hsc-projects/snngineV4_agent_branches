@@ -13,9 +13,12 @@ class EngineParameterTree(ParameterTree):
 
     # noinspection PyPep8Naming
     def __init__(self,
-                 name: str,
+                 name: str = None,
                  model: BaseModel = None,
                  parent=None, showHeader=True):
+
+        if name is None:
+            name = self.__class__.__name__
 
         super().__init__(parent=parent, showHeader=showHeader)
         self.setObjectName(name)

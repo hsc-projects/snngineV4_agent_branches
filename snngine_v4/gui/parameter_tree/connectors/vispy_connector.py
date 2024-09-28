@@ -16,6 +16,8 @@ from snngine_v4.gui.parameter_tree.connectors.parameter_connector import \
 
 from snngine_v4.visualization.config_models.vispy_camera_configs import \
     TurnTableCameraParameters
+from snngine_v4.visualization.config_models.vispy_visual_parameters import \
+    RGBAColor
 from snngine_v4.visualization.config_models.visual_configs import \
     XYZAxisVisualConfig
 
@@ -121,9 +123,15 @@ class VispyConnector(ParameterConnector):
         return
 
     @classmethod
-    def update_object(cls,  obj, key, value, block):
+    def update_object(cls,  obj: XYZAxis, key, value, block):
         obj.events.update.disconnect(block)
-        setattr(obj, key, value)
+
+        if key in ['color']:
+            if isinstance(value, tuple):
+                value = RGBAColor.to_vispy(value)
+            obj.set_data(color=value)
+        else:
+            setattr(obj, key, value)
         obj.events.update.connect(block)
 
     @classmethod

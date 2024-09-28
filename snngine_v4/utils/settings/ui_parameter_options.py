@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from enum import Enum
+from importlib.metadata import metadata
 from types import NoneType, UnionType
-from typing import Any, ClassVar, Type
+from typing import Annotated, Any, ClassVar, Type
 
 import numpy as np
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, BeforeValidator, Field, field_validator
+from pydantic.fields import FieldInfo
+from pydantic_core import PydanticUndefined
 from pydantic_settings import BaseSettings
 
 from snngine_v4.utils.field_utils import (
@@ -16,6 +19,21 @@ from snngine_v4.utils.field_utils import (
     get_field_json_schema_extra, get_field_multiple_of,
 )
 from snngine_v4.utils.interval_utils import limits_from_interval
+
+
+def c_group_prefixes_validator(
+        v: Type[Enum] | str | list[str], sep=',') -> list[str]:
+    if v is None:
+        v = []
+    elif isinstance(v, str):
+        v = v.split(sep)
+    elif not isinstance(v, list):
+        v = v._member_names_
+    return v
+
+
+GroupPrefixesType = Annotated[
+    list[str], BeforeValidator(c_group_prefixes_validator)]
 
 
 class ParamOpts(BaseSettings, extra='allow'):
@@ -115,6 +133,7 @@ class ParamOpts(BaseSettings, extra='allow'):
         C_AUTO_EXPAND: ClassVar[str] = 'c_auto_expand'
         C_NONE_MEANS_UNKNOWN: ClassVar[str] = 'c_none_means_unknown'
         C_DATA_TYPES: ClassVar[str] = 'c_data_types'
+        C_REQUIRES_REBUILD: ClassVar[str] = 'c_requires_rebuild'
         # C_VALUE_INTERVAL: ClassVar[str] = 'c_value_interval'
 
     # keep unset
@@ -145,25 +164,24 @@ class ParamOpts(BaseSettings, extra='allow'):
     # custom
     c_numeric_group: bool = False
     c_nullable_value: bool = False
-    c_group_prefixes: list[str] | None = None
+    c_group_prefixes: GroupPrefixesType = None
     c_coerce_to_limits: bool = False
     c_auto_expand: bool = False
     c_auto_collapse: bool = False
+    c_requires_rebuild: bool = False
     # c_group_singles: bool = False
-
-    def keys(self):
-        return set(self.model_fields.keys()).union(
-            set(self.model_extra.keys()))
 
     def __contains__(self, item):
         return item in self.keys()
 
     @classmethod
-    def from_field(cls, key, value,
-                   parent_model, **options) -> ParamOpts:
+    def from_field(cls, key,
+                   parent_model,
+                   value=PydanticUndefined,
+                   **options) -> ParamOpts:
 
-        field_info = parent_model.model_fields[key]
-        json_schema_extra = get_field_json_schema_extra(field_info)
+        fi: FieldInfo = parent_model.model_fields[key]
+        json_schema_extra = get_field_json_schema_extra(fi)
 
         options.update(json_schema_extra)
 
@@ -175,18 +193,21 @@ class ParamOpts(BaseSettings, extra='allow'):
         if key == 'scale_factor':
             pass
 
-        options.c_model_field_info = field_info
+        options.c_model_field_info = fi
 
         if options.name is None:
             options.name = key
 
+        b_has_default = b_field_has_default(field_info=fi)
+        if b_has_default:
+            options.default = fi.default
+
+        if (value is PydanticUndefined) and b_has_default:
+            value = options.default
         options.value = value
 
-        if b_field_has_default(field_info=field_info):
-            options.default = field_info.default
-
-        if field_info.title:
-            options.title = field_info.title
+        if fi.title:
+            options.title = fi.title
 
         if not isinstance(options.c_data_types, UnionType):
             options.type = options.c_data_types.__name__
@@ -196,11 +217,11 @@ class ParamOpts(BaseSettings, extra='allow'):
         if options.c_data_types == Enum:
             # see pyqtgraphQtEnumParameter
             options.enum = extract_type_from_annotation(
-                field_info.annotation, type_=Enum)
+                fi.annotation, type_=Enum)
 
         options.c_nullable_value = (
             b_annotation_includes_type(
-                field_info.annotation, type_=NoneType))
+                fi.annotation, type_=NoneType))
 
         options.c_model_field_name = key
 
@@ -211,13 +232,13 @@ class ParamOpts(BaseSettings, extra='allow'):
                     options.prefix = name + ': '
 
         if options.c_data_types in [float, int]:
-            options.c_value_interval = extract_field_interval(field_info)
-            multiple_of = get_field_multiple_of(field_info)
+            options.c_value_interval = extract_field_interval(fi)
+            multiple_of = get_field_multiple_of(fi)
 
             if multiple_of is not None:
                 options.step = multiple_of
             else:
-                is_int = b_is_int_annotation(field_info.annotation, True)
+                is_int = b_is_int_annotation(fi.annotation, True)
                 if options.step is None:
                     if is_int:
                         options.step = 1
@@ -253,6 +274,10 @@ class ParamOpts(BaseSettings, extra='allow'):
             opts = opts.model_dump(mode='python')
 
         opts = cls(**opts)
+
+        if not hasattr(model, 'model_config'):
+            pass
+
         if model.model_config.get('frozen', False) is True:
             opts.readonly = True
 
@@ -265,6 +290,10 @@ class ParamOpts(BaseSettings, extra='allow'):
 
     def get(self, item, default=None):
         return getattr(self, item, default)
+
+    def keys(self):
+        return set(self.model_fields.keys()).union(
+            set(self.model_extra.keys()))
 
     def __getitem__(self, item):
         return getattr(self, item)
@@ -294,16 +323,6 @@ class ParamOpts(BaseSettings, extra='allow'):
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
-    # noinspection PyNestedDecorators
-
-    @field_validator('c_group_prefixes', mode='before')
-    @classmethod
-    def validate_c_group_prefixes(cls, v):
-        if v is None:
-            v = []
-        if isinstance(v, str):
-            v = v.split(cls.PREFIX_PATTERN_SEP)
-        return v
 
 
 class FrozenParamOpts(ParamOpts, frozen=True):

@@ -59,10 +59,14 @@ class MultiTypeParameterWidget(QtWidgets.QWidget):
 
         self.layout().addWidget(self.type_combo)
 
+        self._build_widget(self.current_type)
+        self.setValue(self._value)
+
     def _build_widget(self, key):
 
         if self.types[key] == str:
             wdg = QtWidgets.QLineEdit()
+            wdg.setMaximumHeight(20)
             wdg.setContentsMargins(0, 0, 0, 0)
             wdg.textChanged.connect(self.onValueChanged)
         elif self.types[key] == RGBAColor:
@@ -85,6 +89,10 @@ class MultiTypeParameterWidget(QtWidgets.QWidget):
     @property
     def current_type(self):
         return self.type_combo.value()
+
+    @property
+    def value_text(self):
+        return str(self.value())
 
     @property
     def editor_widget(self):
@@ -116,11 +124,23 @@ class MultiTypeParameterWidget(QtWidgets.QWidget):
         self.sigWidgetTypeChanged.emit(wdg, key, self.types[key])
 
     def setValue(self, value):
+
+        if isinstance(value, tuple):
+            if self.types[self.current_type] != RGBAColor:
+                self._value = value
+                self.type_combo.setText('RGBAColor')
+                return
+        elif not isinstance(value, self.types[self.current_type]):
+            for k, type_ in self.types.items():
+                if isinstance(value, type_):
+                    self._value = value
+                    self.type_combo.setText(k)
+                    return
+
         if isinstance(self.editor_widget, QtWidgets.QLineEdit):
             self.editor_widget.setText(str(value))
         elif isinstance(self.editor_widget, MultiSpinBoxWidget):
-            pass
-        self._value = value
+            self.editor_widget.setValue(value)
 
     def show(self):
         self.editor_widget.show()

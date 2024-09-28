@@ -1,7 +1,6 @@
 from enum import IntEnum
 
-from pyqtgraph.parametertree.parameterTypes import GroupParameter
-from qtpy import QtCore, QtWidgets, QtGui
+from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.common.widget_dict import QDockWidgetDict, QWidgetDict
 from snngine_v4.gui.parameter_tree.connectors.basemodel_signal_register import \
@@ -14,12 +13,10 @@ from snngine_v4.gui.parameter_tree.engine_parameter_tree import (
     EngineParameterTree, EngineTreeDockWidget,
 )
 from snngine_v4.gui.windows.settings_window import SettingsWindow
-from snngine_v4.utils.field_utils import extract_field_values_by_type
 from snngine_v4.visualization.config_models.vispy_camera_configs import \
     TurnTableCameraParameters
-from snngine_v4.visualization.config_models.vispy_canvas_config import \
-    (
-    VispyCanvasConfig, VispyCanvasConfigOptions, VispyViewBoxConfig,
+from snngine_v4.visualization.config_models.vispy_canvas_config import (
+    VispyCanvasConfig
 )
 
 
@@ -79,7 +76,8 @@ class MainEngineWindow(QtWidgets.QMainWindow):
             name=EngineConfig.Slots.SCENES.capitalize())
         self.docks.add_widget(scene_tree_dock)
         self.scene_tree: EngineParameterTree = scene_tree_dock.widget()
-        self.scene_tree.signal_register = self.setting_trees[EngineConfig.Slots.SCENES].signal_register
+        self.scene_tree.signal_register = (
+            self.setting_trees[EngineConfig.Slots.SCENES].signal_register)
 
         self.buttons_dock = ButtonsDockWidget()
         self.docks.add_widget(self.buttons_dock)
@@ -155,7 +153,6 @@ class MainEngineWindow(QtWidgets.QMainWindow):
                         break
                 for p in cam_pars:
                     scene_tree.addParameters(p, root=root)
-
             signal_register
 
         return
