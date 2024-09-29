@@ -380,3 +380,4 @@ cython_debug/
 #.idea/
 
 /snngine_v4/NOTES.md
+/snngine_v4/archive/*
