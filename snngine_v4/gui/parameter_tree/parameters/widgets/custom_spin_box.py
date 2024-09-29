@@ -1,40 +1,6 @@
-from dataclasses import dataclass
-
 from pyqtgraph import SpinBox
-from pyqtgraph.functions import INT_REGEX
-from qtpy import QtCore, QtWidgets
 
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
-
-
-class ClickableLabel(QtWidgets.QLabel):
-    sigClicked = QtCore.Signal()
-
-    def __init__(self, *args, conversion=None, **kwargs):
-        if conversion is None:
-            conversion = {}
-        self.conversion = conversion
-        super().__init__(*args, **kwargs)
-
-    def mousePressEvent(self, e):
-        self.sigClicked.emit()
-    
-    def setVisible(self, visible):
-        super().setVisible(visible)
-    
-    def setText(self, txt):
-        if txt in self.conversion:
-            txt = self.conversion[txt]
-        super().setText(txt)
-
-
-@dataclass
-class PseudoCheckBox:
-
-    checked: bool = True
-
-    def isChecked(self):
-        return self.checked
 
 
 class CustomSpinBox(SpinBox):

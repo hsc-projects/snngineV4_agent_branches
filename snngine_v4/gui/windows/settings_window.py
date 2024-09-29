@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 from qtpy import QtWidgets, QtCore
 
-from snngine_v4.gui.common.widget_dict import QTreeWidgetDict
+from snngine_v4.gui.common.qobject_dicts import QTreeWidgetDict
 from snngine_v4.snngine_config import EngineConfig
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
     EngineParameterTree

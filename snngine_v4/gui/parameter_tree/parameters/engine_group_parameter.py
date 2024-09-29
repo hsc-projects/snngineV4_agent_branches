@@ -6,6 +6,8 @@ from pyqtgraph.parametertree.parameterTypes import (
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.icons import getEngineGraphIcon
+from snngine_v4.gui.parameter_tree.parameter_builder.options_builder import \
+    OptionsBuilder
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 
@@ -128,13 +130,15 @@ class EngineGroupParameterItem(GroupParameterItem):
         self.defaultBtn.setEnabled(enabled)
 
 
+# noinspection PyPep8Naming
 class EngineGroupParameter(GroupParameter):
 
     itemClass = EngineGroupParameterItem
 
     @classmethod
-    def from_model(cls, model, name):
-        return cls(**ParamOpts.from_model(model=model, name_=name))
+    def from_model(cls, model, **options):
+        return cls(**OptionsBuilder
+                   .from_model(model=model, **options))
 
     def makeTreeItem(self, depth) -> EngineGroupParameterItem:
         return super().makeTreeItem(depth=depth)
@@ -143,3 +147,21 @@ class EngineGroupParameter(GroupParameter):
         for param in self.children():
             param: Parameter
             param.setToDefault()
+
+    def connect_sigValueChanged(self, recursive: int = 0):
+        for child in self.children():
+            if isinstance(child, Parameter):
+                child.sigValueChanged.connect(self.valueChanged)
+                if (((recursive > 0) or (recursive == -1)) and
+                        isinstance(child, EngineGroupParameter)):
+                    child.connect_sigValueChanged(
+                        recursive=(recursive - 1) if (recursive > 0)
+                        else recursive)
+
+    def valueChanged(self, child, value):
+        return self.sigValueChanged.emit(self, self.value())
+
+    def value(self):
+        return {
+            x.name(): x.value() for x in self.children()
+        }

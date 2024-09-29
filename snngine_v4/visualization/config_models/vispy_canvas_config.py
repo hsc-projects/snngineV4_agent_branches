@@ -101,6 +101,6 @@ class VispyCanvasConfig(XMLSettingsModel):
         CAMERAS: ClassVar[str] = 'Cameras'
 
     Options: VispyCanvasConfigOptions
-    Views: SceneViews | dict
+    Views: SceneViews
     Visuals: SceneVisuals
     Cameras: SceneCameras

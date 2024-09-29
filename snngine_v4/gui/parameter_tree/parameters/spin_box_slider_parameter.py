@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import numpy as np
 import pandas as pd
 from pyqtgraph import SpinBox
@@ -8,10 +10,9 @@ from pyqtgraph.parametertree.parameterTypes import (
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.icons import getEngineGraphIcon
-from snngine_v4.gui.parameter_tree.parameters.custom_widgets import (
-    CustomSpinBox, PseudoCheckBox,
-)
-from snngine_v4.gui.parameter_tree.parameters.spin_box_slider import (
+from snngine_v4.gui.parameter_tree.parameters.widgets.custom_spin_box import \
+    CustomSpinBox
+from snngine_v4.gui.parameter_tree.parameters.widgets.spin_box_slider import (
     CustomSlider, SpinBoxSlider,
 )
 
@@ -203,6 +204,10 @@ class SpinBoxSliderParameter(Parameter):
     def __init__(self, **options):
 
         if options.get(ParamOpts.KW.SPAN, None) is None:
+
+            if options[ParamOpts.KW.C_VALUE_INTERVAL] is None:
+                pass
+
             span = CustomSlider.make_span(
                 interval=options[ParamOpts.KW.C_VALUE_INTERVAL],
                 value=options[ParamOpts.KW.VALUE],
@@ -238,3 +243,12 @@ class SpinBoxSliderParameter(Parameter):
 
     def setValue(self, value, blockSignal=None):
         return super().setValue(value, blockSignal)
+
+
+@dataclass
+class PseudoCheckBox:
+
+    checked: bool = True
+
+    def isChecked(self):
+        return self.checked

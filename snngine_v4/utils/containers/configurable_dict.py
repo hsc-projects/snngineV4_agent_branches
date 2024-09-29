@@ -3,17 +3,17 @@ from __future__ import annotations
 from collections import UserDict
 from enum import Enum
 
-from typing import ClassVar, Type, Union
+from typing import Any, ClassVar, Type, Union
 
 from snngine_v4.utils.containers.configurable_container import (
-    ConfigurableContainerBase, ContainerConfig, ExtensionByDuplicateError,
+    ConfigurableContainerBase, ContainerConfig, ValidValueType, ValidKeyType
 )
 
 
 class DictContainerConfig(ContainerConfig, frozen=True):
 
-    allowed_types: tuple[Type, ...] | Type | None = None
-    allowed_key_types: tuple[Type] | Type = str
+    allowed_types: ValidValueType = Any
+    allowed_key_types: ValidKeyType = str
     b_duplicates_allowed: bool = False  # Keep False
     b_replace_allowed: bool = False  # Keep False
     b_pop_allowed: bool = True  # Keep True
@@ -34,9 +34,11 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
         if data is not None:
             self.update(data)
 
-    @property
-    def container_conf(self):
-        return self._container_conf
+    def b_duplicated_item(self, item):
+        b_duplicate_check = not self._container_conf.b_duplicates_allowed
+        return ((item is not None)
+                and (b_duplicate_check is True) and hasattr(self, "data")
+                and self.values_contain(item))
 
     @classmethod
     def from_type(cls, type_: type,
@@ -79,15 +81,6 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
                 self[k] = v
         for k, v in kwargs.items():
             self[k] = v
-
-    def validate_item(self, item):
-        b_duplicate_check = not self._container_conf.b_duplicates_allowed
-        if ((item is not None)
-                and (b_duplicate_check is True) and hasattr(self, "data")
-                and self.values_contain(item)):
-            raise ExtensionByDuplicateError(f"Item {item} already in values.")
-        item = super().validate_item(item)
-        return item
 
     def validate_key(self, key, b_skip_typecheck: bool = False):
         if b_skip_typecheck is False:

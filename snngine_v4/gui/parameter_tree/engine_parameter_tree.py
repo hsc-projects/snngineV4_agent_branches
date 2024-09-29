@@ -4,7 +4,9 @@ from pydantic import BaseModel
 from pyqtgraph.parametertree import Parameter, ParameterTree
 from qtpy import QtCore, QtWidgets
 
-from snngine_v4.gui.parameter_tree.parameter_builder import ParameterBuilder
+from snngine_v4.gui.parameter_tree.parameter_builder.parameter_builder import (
+    ParameterBuilder
+)
 from snngine_v4.gui.parameter_tree.connectors.basemodel_signal_register \
     import ModelSignalRegister
 
@@ -49,7 +51,7 @@ class EngineParameterTree(ParameterTree):
         if model_dict is None:
             model_dict = model.model_dump()
         pars = ParameterBuilder.make_pars_from_model(
-            model=model, model_dict=model_dict,
+            model=model,
             signal_register=self.signal_register)
         self.addParameters(pars)
         return pars

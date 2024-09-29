@@ -4,7 +4,7 @@ from typing import ClassVar, Type
 from pydantic import BaseModel
 
 from snngine_v4.utils.containers.configurable_container import (
-    ConfigurableContainerBase, ContainerConfig, ExtensionByDuplicateError,
+    ConfigurableContainerBase, ContainerConfig,
 )
 
 
@@ -40,7 +40,7 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
         if self._container_conf.b_append_allowed is False:
             raise AttributeError("Appending not allowed.")
         if ((b_ignore_non_matching_types is True)
-                and (self.check_item_type(item) is False)):
+                and (self.b_valid_item_type(item) is False)):
             return
         super().append(self.validate_item(item))
 
@@ -68,15 +68,10 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
         else:
             super().clear()
 
-    def duplicate_validation_error(self, item, b_raise=True):
+    def b_duplicated_item(self, item):
         b_duplicate_check = not self._container_conf.b_duplicates_allowed
-        if ((b_duplicate_check is True) and hasattr(self, "data")
-                and (item in self)):
-            if b_raise is True:
-                raise ExtensionByDuplicateError(
-                    f"Item {item} already in list.")
-            return True
-        return False
+        return ((b_duplicate_check is True) and hasattr(self, "data")
+                and (item in self))
 
     @property
     def empty(self) -> bool:
@@ -127,11 +122,6 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
         if self._container_conf.b_replace_allowed is False:
             raise KeyError(f"Replacing elements is not allowed.")
         super().__setitem__(i, self.validate_item(value))
-
-    def validate_item(self, item):
-        self.duplicate_validation_error(item, b_raise=True)
-        item = super().validate_item(item)
-        return item
 
 
 class ConfigurableModelListConfig(ConfigurableListConfig, frozen=True):

@@ -1,6 +1,10 @@
 from collections import UserDict, UserList
 from types import NoneType
-from typing import Any, ClassVar, Type
+from typing import Annotated, Any, ClassVar, Type
+
+from pydantic import BeforeValidator, field_validator
+from pydantic.types import AnyType
+from pydantic_core import PydanticUndefined, PydanticUndefinedType
 
 from snngine_v4.utils.field_utils import (
     extract_type_from_type_annotation, b_field_has_default,
@@ -12,9 +16,13 @@ class ExtensionByDuplicateError(Exception):
     pass
 
 
+type ValidKeyType = tuple[Type, ...] | Type
+type ValidValueType = tuple[Type | Any, ...] | Type | Any
+
+
 class ContainerConfig(XMLSettingsModel, frozen=True):
-    allowed_types: tuple[Type, ...] | Type | None = None
-    allowed_key_types: tuple[Type] | Type = NoneType
+    allowed_types: ValidValueType = Any
+    allowed_key_types: ValidKeyType = NoneType
     b_duplicates_allowed: bool = False
     b_duplicate_check_by_id: bool = False
     b_replace_allowed: bool = False
@@ -26,6 +34,15 @@ class ContainerConfig(XMLSettingsModel, frozen=True):
     @classmethod
     def default_allowed_types(cls):
         return cls.model_fields[cls.Slots.ALLOWED_TYPES].default
+
+    # noinspection PyNestedDecorators
+    @field_validator('allowed_types',
+                     'allowed_key_types', mode='after')
+    @classmethod
+    def type_validator(cls, v: ValidValueType | Type | Any) -> ValidValueType:
+        if not isinstance(v, tuple):
+            return v,
+        return v
 
     @classmethod
     def _validate_model_before(cls, data: Any) -> Any:
@@ -44,6 +61,8 @@ class ConfigurableContainerBase:
 
     ContainerConfigClass: ClassVar[Type[ContainerConfig]] = ContainerConfig
 
+    data: list | dict | Any
+
     def __init__(self, container_conf: ContainerConfig = None):
         self._container_conf: ContainerConfig = self.cls_make_container_conf(
             container_conf=container_conf)
@@ -52,18 +71,30 @@ class ConfigurableContainerBase:
         if not self.is_empty:
             raise AssertionError("not empty")
 
-    def check_item_type(self, item):
-        return self.cls_check_type(item, self._container_conf.allowed_types)
+    def b_valid_item(self, item):
+        b_valid_type = self.b_valid_item_type(item)
+        b_duplicated = self.b_duplicated_item(item)
+        return b_valid_type and (not b_duplicated)
+
+    def b_duplicated_item(self, item):
+        return False
+
+    def b_valid_item_type(self, item):
+        return self.cls_b_valid_object_type(
+            item, self._container_conf.allowed_types)
 
     def check_key_type(self, key):
-        return self.cls_check_type(
+        return self.cls_b_valid_object_type(
             key, self._container_conf.allowed_key_types)
 
     @classmethod
-    def cls_check_type(cls, item, type_):
-        if type_ is None:
+    def cls_b_valid_object_type(cls, item, type_):
+        if type_ in [(Any, ), (AnyType, )]:
             return True
-        return isinstance(item, type_)
+        try:
+            return isinstance(item, type_)
+        except TypeError:
+            return isinstance(item, type_)
 
     @staticmethod
     def cls_filter_dict(
@@ -109,7 +140,7 @@ class ConfigurableContainerBase:
 
     @classmethod
     def cls_validate_value_type(cls, item, type_):
-        b_allowed_type = cls.cls_check_type(item, type_=type_)
+        b_allowed_type = cls.cls_b_valid_object_type(item, type_=type_)
         if b_allowed_type is False:
             raise TypeError(
                     f"Item must be of type {type_}."
@@ -140,6 +171,10 @@ class ConfigurableContainerBase:
         return item in self.data
 
     @property
+    def container_conf(self):
+        return self._container_conf
+
+    @property
     def data_ids(self):
         return [id(x) for x in self.data]
 
@@ -158,17 +193,38 @@ class ConfigurableContainerBase:
         return cls(
             container_conf=ContainerConfig(allowed_types=type_, **kwargs))
 
+    def get_valid_item_type(self, item, default=PydanticUndefined,
+                            types_=None):
+        if types_ is None:
+            types_ = self._container_conf.allowed_types
+        if type(item) in types_:
+            return type(item)
+        else:
+            for t in types_:
+                if isinstance(item, t):
+                    return t
+        if self.b_valid_item_type(item):
+            raise ValueError("Unknown but valid type")
+        if default is not PydanticUndefined:
+            return default
+        raise TypeError(f"{item}")
+
     @property
     def is_empty(self):
         return len(self.data) == 0
 
     def validate_item(self, item):
-        b_allowed_type = self.check_item_type(item)
-        if b_allowed_type is False:
-            raise TypeError(
-                    f"Item must be of type"
-                    f" {self._container_conf.allowed_types}."
-                    f"Got {type(item).__name__} instead.")
+        b_valid_item = self.b_valid_item(item)
+        if b_valid_item is False:
+            if self.b_valid_item_type(item) is False:
+                raise TypeError(
+                        f"Item must be of type"
+                        f" {self._container_conf.allowed_types}."
+                        f"Got {type(item).__name__} instead.")
+            elif self.b_duplicated_item(item):
+                raise ExtensionByDuplicateError(
+                    f"Duplicated item: {item}")
+            raise AttributeError("Item must be valid.")
         return item
 
     def validate_items(self, items):

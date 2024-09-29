@@ -10,6 +10,7 @@ import pandas as pd
 from annotated_types import Ge, Gt, Le, Lt
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
+from pydantic.types import AnyType
 from pydantic_core import PydanticUndefined
 from typing_extensions import TypeAliasType
 
@@ -210,8 +211,8 @@ def extract_type_from_annotation(ann: AnnotationType, type_: Type,
 def extract_type_from_type_annotation(ann: AnnotationType) -> Type | None:
     ann = extract_annotation(ann)
 
-    if ann in [Any, NoneType]:
-        return None
+    if ann in [Any, NoneType, type, AnyType]:
+        return ann
     if get_origin(ann) != type:
         raise TypeError(f"{ann}, {get_origin(ann)}")
     res = get_args(ann)

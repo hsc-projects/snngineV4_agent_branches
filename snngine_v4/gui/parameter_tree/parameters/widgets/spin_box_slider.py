@@ -3,10 +3,12 @@ import pandas as pd
 from pyqtgraph import SpinBox
 from qtpy import QtCore, QtWidgets
 
-from snngine_v4.gui.parameter_tree.parameters.custom_widgets import \
+from snngine_v4.gui.parameter_tree.parameters.widgets.clickable_label import \
     (
-    ClickableLabel, CustomSpinBox,
+    ClickableLabel,
 )
+from snngine_v4.gui.parameter_tree.parameters.widgets.custom_spin_box import \
+    CustomSpinBox
 from snngine_v4.utils.core_utils import IntervalClosedType
 from snngine_v4.utils.interval_utils import linspace_from_interval
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts

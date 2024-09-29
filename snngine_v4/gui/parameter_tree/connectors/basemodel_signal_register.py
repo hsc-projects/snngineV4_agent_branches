@@ -8,7 +8,10 @@ from pyqtgraph.parametertree import Parameter
 from pyqtgraph.parametertree.parameterTypes import GroupParameter, ListParameter
 from qtpy import QtCore
 
-from snngine_v4.gui.parameter_tree.parameter_builder import ParameterBuilder
+from snngine_v4.gui.parameter_tree.parameter_builder \
+    .parameter_builder import ParameterBuilder
+from snngine_v4.gui.parameter_tree.parameters.multi_type_parameter import \
+    MultiTypeParameter
 from snngine_v4.utils.containers.configurable_dict import ConfigurableDict
 
 from snngine_v4.utils.containers.mappings import (
@@ -138,7 +141,9 @@ class ModelParameterLinks(Object2ObjectMap):
         # noinspection PyTypeChecker
         cs: list[Parameter] = parameter.children()
         for p in cs:
-            if not isinstance(p, GroupParameter):
+
+            if ((not isinstance(p, GroupParameter))
+                    or isinstance(p, MultiTypeParameter)):
                 self.add_parameter(model=model, param=p)
 
     def add_link(self, link: ObjectParameterLink):

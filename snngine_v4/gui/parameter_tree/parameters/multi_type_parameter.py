@@ -1,159 +1,138 @@
-from pyqtgraph.parametertree import Parameter, ParameterItem
-from pyqtgraph.parametertree.parameterTypes import WidgetParameterItem
+from __future__ import annotations
+
+from copy import copy
+from types import GenericAlias, NoneType
+from typing import get_args, get_origin
+
+from pydantic import BaseModel
+from pyqtgraph.parametertree.parameterTypes import (
+    ListParameter,
+    WidgetParameterItem,
+)
 from qtpy import QtWidgets
 
-from snngine_v4.gui.parameter_tree.parameters \
-    .multi_type_parameter_widget import MultiTypeParameterWidget
-from snngine_v4.gui.parameter_tree.parameters.parameter_item_mixin import \
-    WidgetParameterItemMixin
-from snngine_v4.gui.parameter_tree.parameters.rgba_widget import \
-    MultiSpinBoxWidget
-from snngine_v4.gui.parameter_tree.parameters.spin_box_slider import \
-    SpinBoxSlider
+# from numba import NoneType
+
+from snngine_v4.gui.parameter_tree.parameters.engine_group_parameter import (
+    EngineGroupParameter, EngineGroupParameterItem,
+)
+from snngine_v4.gui.parameter_tree.parameters.type_parameter_map import \
+    MultiTypeParameterMap
+from snngine_v4.gui.parameter_tree.parameters.widgets.custom_combobox import \
+    CustomComboBox
+from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 
-class PseudoParameterItem(QtWidgets.QTreeWidgetItem, WidgetParameterItemMixin):
-
-    def __init__(self, widget, param: Parameter,
-                 parent_item, parent=None, ):
-        super().__init__(parent)
-        self.hideWidget = True
-        self._widget = None
-        self._connected_widgets = []
-        self.widget = widget
-        self.param = param
-        self.parent_item = parent_item
-
-    @property
-    def __class__(self):
-        return WidgetParameterItem
-
-    def selected(self, sel):
-
-        if self._widget is None:
-            return
-        if sel and self.param.writable():
-            self.parent_item.showEditor()
-            if isinstance(self._widget, SpinBoxSlider):
-                self._widget.setFocusOnSpinBox()
-        elif self.hideWidget:
-            self.parent_item.hideEditor()
-
-    @property
-    def widget(self):
-        return self._widget
-
-    @widget.setter
-    def widget(self, value):
-        self._widget = value
-        if value not in self._connected_widgets:
-            self._connected_widgets.append(value)
-            if isinstance(value, SpinBoxSlider):
-                value.sliderPressed.connect(self.valueWidgetClicked)
+QTreeWidgetItemType = QtWidgets.QTreeWidgetItem | WidgetParameterItem
 
 
 # noinspection PyPep8Naming
-class MultiTypeParameterItem(WidgetParameterItem, WidgetParameterItemMixin):
+class MultiTypeParameterItem(EngineGroupParameterItem):
 
-    def __init__(self, *args, **kwargs):
-        self.widget: MultiTypeParameterWidget | None = None
-        super().__init__(*args, **kwargs)
-        self._remove_spacer_item()
-        self._replace_display_label()
-        self.layoutWidget.layout().insertWidget(0, self.displayLabel)
+    def __init__(self, param, depth):
+        self.param: MultiTypeParameter | None = None
+        super().__init__(param, depth)
 
-        self.typeSubItem = QtWidgets.QTreeWidgetItem()
-        self.typeSubItem.setText(0, 'Type')
-        self.addChild(self.typeSubItem)
-
-        self.widget_children_items: list[PseudoParameterItem] = []
-        # self.n_visible_children = 0
-
-        self._set_size_policies()
-
-    def makeWidget(self):
-        wdg = MultiTypeParameterWidget(**self.param.opts)
-        wdg.sigWidgetTypeChanged.connect(self.onTypeChange)
-        wdg.sigWidgetCreated.connect(self.onTypeChange)
-
-        for widget in wdg.widget_map.values():
-            self.onTypeWidgetCreated(widget)
-
-        return wdg
-
-    def is_from_numeric_group(self):
-        return True
-
-    def update_children(self):
-        widget = self.widget.editor_widget
-        if isinstance(widget, MultiSpinBoxWidget):
-            tree: QtWidgets.QTreeWidget = self.treeWidget()
-            if tree is not None:
-                n_visible_children = 0
-                n_sliders = len(widget.slider_map.items())
-                for i,  (k, slider) in enumerate(widget.slider_map.items()):
-                    if i >= len(self.widget_children_items):
-                        item = PseudoParameterItem(
-                            widget=slider, param=self.param,
-                            parent_item=self)
-                        self.widget_children_items.append(item)
-                        self.addChild(item)
-                    else:
-                        item = self.widget_children_items[i]
-                        item.widget = slider
-                        item.setHidden(False)
-                    n_visible_children += 1
-                    item.setText(0, k)
-                    tree.setItemWidget(item, 1, slider.layout_widget())
-                if n_sliders < n_visible_children:
-                    for i in range(n_sliders, n_visible_children):
-                        self.widget_children_items[i].setHidden(True)
-        else:
-            for item in self.widget_children_items:
-                item.setHidden(True)
-        self.hideEditor()
+    def addChild(self, child):
+        super().addChild(child)
+        if child.param == self.param.type_parameter:
+            # child.setHidden(True)
+            child.hideWidget = False
+            wdg: QtWidgets.QComboBox = child.widget
+            CustomComboBox.apply_custom_settings(wdg)
+            self.layoutWidget.layout().insertWidget(0, wdg)
 
     def onTypeWidgetCreated(self, widget, key=None, type_=None):
-        # if isinstance(widget, MultiSpinBoxWidget):
-        #     for i, (k, slider) in enumerate(widget.slider_map.items()):
-                # slider.sliderPressed.connect(self.valueWidgetClicked)
-                # slider.sliderPressed.connect(slider.setFocusOnSpinBox)
-                # slider.spinbox.connect(slider.setFocusOnSpinBox)
         pass
 
     def onTypeChange(self, widget, key=None, type_=None):
-        self.update_children()
-        # if isinstance(widget, MultiSpinBoxWidget):
-        self.displayLabel.setText(self.widget.value_text)
-        self.valueWidgetClicked()
-    
+        pass
+
     def showEditor(self):
         super().showEditor()
 
-    def treeWidgetChanged(self):
-        super().treeWidgetChanged()
-        tree: QtWidgets.QTreeWidget = self.treeWidget()
-        if tree is not None:
-            tree.setItemWidget(self.typeSubItem, 1, self.widget.type_combo)
-            self.selected(False)
-            self.update_children()
 
-    def updateDisplayLabel(self):
-        txt = self.widget.value_text
-        super().updateDisplayLabel(txt)
-
-    def widgetValueChanged(self):
-        ## called when the widget's value has been changed by the user
-        val = self.widget.value()
-        self.param.setValue(val)
-
-
-class MultiTypeParameter(Parameter):
+# noinspection PyPep8Naming
+class MultiTypeParameter(EngineGroupParameter):
     itemClass = MultiTypeParameterItem
 
     def __init__(self, **opts):
-        # opts[ParamOpts.KW.C_NUMERIC_GROUP] = True
+
         super().__init__(**opts)
+        self.children_map = MultiTypeParameterMap()
+        self.type_parameter = ListParameter(name='Type', visible=False)
+        self.addChild(self.type_parameter, autoIncrementName=True)
+        self.type_parameter.sigValueChanged.connect(self.onTypeChange)
+
+    def addChild(self, child, **kwargs):
+        if isinstance(child, EngineGroupParameter):
+            child.connect_sigValueChanged()
+        super().addChild(child, **kwargs)
+
+    def build(self, signal_register):
+        opts = copy(self.opts)
+        opts.pop(ParamOpts.KW.C_DATA_TYPES)
+        opts.pop(ParamOpts.KW.TYPE)
+        opts.pop(ParamOpts.KW.NAME)
+        opts.pop(ParamOpts.KW.TITLE)
+        value = opts.pop(ParamOpts.KW.VALUE)
+
+        for t in self.data_types:
+            from snngine_v4.gui.parameter_tree.parameter_builder \
+                .parameter_builder import ParameterBuilder
+            value_ = None
+            if t == NoneType:
+                pass
+            elif (not isinstance(t, GenericAlias)) and isinstance(value, t):
+                value_ = value
+            elif (isinstance(t, GenericAlias)) and isinstance(value, get_origin(t)):
+                value_ = value
+            elif (not isinstance(t, GenericAlias)) and issubclass(t, BaseModel):
+                value_ = t()
+
+            if isinstance(value, BaseModel):
+                pass
+
+            name = t.__name__
+            # title = self.opts[ParamOpts.KW.NAME] + f" ({name})"
+            try:
+                p = ParameterBuilder.make_par_from_annotation(
+                    signal_register=signal_register,
+                    # title=title,
+                    ann=t, name=name, value=value_,
+                    type=name, **opts)
+            except KeyError as e:
+                p = None
+            if p is not None:
+                self.addChild(p, autoIncrementName=True)
+
+                self.children_map[t] = p
+                self.type_parameter.opts[ParamOpts.KW.LIMITS] += [p.name()]
+                p.hide()
+        if len(self.data_types) > 0:
+            for c in self.children_map.key_map[str].values():
+                c.sigValueChanged.connect(self.valueChanged)
+
+    @property
+    def data_types(self):
+        return get_args(self.opts[ParamOpts.KW.C_DATA_TYPES])
+
+    def onTypeChange(self, p, value):
+        for c in self.childs:
+            if c != p:
+                if c.name() != value:
+                    c.hide()
+                else:
+                    c.show()
+        # self.valueChanged(p, p.value())
 
     def setValue(self, value, blockSignal=None):
         super().setValue(value, blockSignal=blockSignal)
+
+    def valueChanged(self, child=None, value=None):
+        return self.sigValueChanged.emit(self, self.value())
+
+    def value(self):
+        key = self.type_parameter.value()
+        if key != '':
+            return self.children_map[key].value()

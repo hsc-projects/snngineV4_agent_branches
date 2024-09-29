@@ -2,7 +2,7 @@ from enum import IntEnum
 
 from qtpy import QtCore, QtWidgets
 
-from snngine_v4.gui.common.widget_dict import QDockWidgetDict, QWidgetDict
+from snngine_v4.gui.common.qobject_dicts import QDockWidgetDict, QWidgetDict
 from snngine_v4.gui.parameter_tree.connectors.basemodel_signal_register import \
     ModelSignalRegister
 from snngine_v4.gui.parameter_tree.connectors.vispy_connector import \

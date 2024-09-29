@@ -1,24 +1,10 @@
 from __future__ import annotations
 
 from enum import Enum
-from importlib.metadata import metadata
-from types import NoneType, UnionType
 from typing import Annotated, Any, ClassVar, Type
 
-import numpy as np
-from pydantic import BaseModel, BeforeValidator, Field, field_validator
-from pydantic.fields import FieldInfo
-from pydantic_core import PydanticUndefined
+from pydantic import BeforeValidator, Field
 from pydantic_settings import BaseSettings
-
-from snngine_v4.utils.field_utils import (
-    b_annotation_includes_type, b_field_has_default,
-    b_is_int_annotation, b_is_literal_annotation,
-    extract_field_interval,
-    extract_literal_values, extract_type_from_annotation,
-    get_field_json_schema_extra, get_field_multiple_of,
-)
-from snngine_v4.utils.interval_utils import limits_from_interval
 
 
 def c_group_prefixes_validator(
@@ -169,124 +155,9 @@ class ParamOpts(BaseSettings, extra='allow'):
     c_auto_expand: bool = False
     c_auto_collapse: bool = False
     c_requires_rebuild: bool = False
-    # c_group_singles: bool = False
 
     def __contains__(self, item):
         return item in self.keys()
-
-    @classmethod
-    def from_field(cls, key,
-                   parent_model,
-                   value=PydanticUndefined,
-                   **options) -> ParamOpts:
-
-        fi: FieldInfo = parent_model.model_fields[key]
-        json_schema_extra = get_field_json_schema_extra(fi)
-
-        options.update(json_schema_extra)
-
-        options = cls(**options)
-
-        if options.c_data_types is None:
-            raise AssertionError
-
-        if key == 'scale_factor':
-            pass
-
-        options.c_model_field_info = fi
-
-        if options.name is None:
-            options.name = key
-
-        b_has_default = b_field_has_default(field_info=fi)
-        if b_has_default:
-            options.default = fi.default
-
-        if (value is PydanticUndefined) and b_has_default:
-            value = options.default
-        options.value = value
-
-        if fi.title:
-            options.title = fi.title
-
-        if not isinstance(options.c_data_types, UnionType):
-            options.type = options.c_data_types.__name__
-        else:
-            options.type = UnionType.__name__
-
-        if options.c_data_types == Enum:
-            # see pyqtgraphQtEnumParameter
-            options.enum = extract_type_from_annotation(
-                fi.annotation, type_=Enum)
-
-        options.c_nullable_value = (
-            b_annotation_includes_type(
-                fi.annotation, type_=NoneType))
-
-        options.c_model_field_name = key
-
-        if options.c_group_prefixes is not None:
-            if isinstance(options.c_group_prefixes, list):
-                name = options.name
-                if name in options.c_group_prefixes:
-                    options.prefix = name + ': '
-
-        if options.c_data_types in [float, int]:
-            options.c_value_interval = extract_field_interval(fi)
-            multiple_of = get_field_multiple_of(fi)
-
-            if multiple_of is not None:
-                options.step = multiple_of
-            else:
-                is_int = b_is_int_annotation(fi.annotation, True)
-                if options.step is None:
-                    if is_int:
-                        options.step = 1
-                    else:
-                        options.step = .01
-                        options.decimals = 6
-
-            if (options.c_nullable_value and
-                    options.default is None):
-                options.default = np.nan
-
-            bounds = limits_from_interval(
-                options.c_value_interval, step_size=options.step)
-            options.bounds = bounds
-
-        if options.c_data_types == list:
-            if options.limits is None:
-                if b_is_literal_annotation(options.c_model_field_info,
-                                           b_strict=False):
-                    options.limits = extract_literal_values(
-                        options.c_model_field_info.annotation)
-                else:
-                    raise ValueError
-        return options
-
-    @classmethod
-    def from_model(cls, model: BaseModel, name_=None):
-
-        opts = getattr(model, ParamOpts.CLASS_VAR_KEY, {})
-        if opts is None:
-            opts = {}
-        elif isinstance(opts, BaseModel):
-            opts = opts.model_dump(mode='python')
-
-        opts = cls(**opts)
-
-        if not hasattr(model, 'model_config'):
-            pass
-
-        if model.model_config.get('frozen', False) is True:
-            opts.readonly = True
-
-        if name_ is not None:
-            opts.name = name_
-        elif opts.name is None:
-            opts.name = model.__class__.__name__
-
-        return opts
 
     def get(self, item, default=None):
         return getattr(self, item, default)
@@ -294,6 +165,9 @@ class ParamOpts(BaseSettings, extra='allow'):
     def keys(self):
         return set(self.model_fields.keys()).union(
             set(self.model_extra.keys()))
+
+    def items(self):
+        return ((k, getattr(self, k)) for k in self.keys())
 
     def __getitem__(self, item):
         return getattr(self, item)
@@ -324,11 +198,16 @@ class ParamOpts(BaseSettings, extra='allow'):
     def __setitem__(self, key, value):
         setattr(self, key, value)
 
+    def update(self, m=None, **kwargs):
+        if m is not None:
+            for k, v in m.items():
+                setattr(self, k, v)
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
 
 class FrozenParamOpts(ParamOpts, frozen=True):
-    @classmethod
-    def from_field(cls, **kwargs) -> FrozenParamOpts:
-        return cls(**super().from_field(**kwargs))
+    """"""
 
 
 def p_field(default, readonly=False, **kwargs):

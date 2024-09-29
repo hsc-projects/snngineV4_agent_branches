@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from typing import ClassVar, Type
+from typing import Any, ClassVar, Type
 
 from pydantic import BaseModel
 
+from snngine_v4.utils.containers.configurable_container import (
+    ValidValueType
+)
 from snngine_v4.utils.containers.configurable_dict import (
     ConfigurableDict, DictContainerConfig,
 )
@@ -26,7 +29,7 @@ class UniqueObjectListConfig(ConfigurableListConfig, frozen=True):
 
 class Int2ObjectMapConfig(DictContainerConfig, frozen=True):
     allowed_key_types: Type[int] = int
-    allowed_types: tuple[Type, ...] | Type | None = None
+    allowed_types: ValidValueType = Any
     b_duplicate_check_by_id: bool = True
     b_duplicates_allowed: bool = False
     b_replace_allowed: bool = False
