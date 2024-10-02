@@ -90,7 +90,7 @@ class RGBAColor(XMLSettingsModel):
                 value = [np.round(c * 255) for c in value]
             elif ArrayInterfaces().rgb_u8.check_array(value):
                 pass
-        value3 = 1 if len(value) == 3 else value[3]
+        value3 = 1 if (len(value) == 3) else value[3]
         return cls(R=value[0], G=value[1], B=value[2], A=value3)
 
     @classmethod

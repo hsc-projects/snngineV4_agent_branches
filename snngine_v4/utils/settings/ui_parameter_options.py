@@ -107,6 +107,8 @@ class ParamOpts(BaseSettings, extra='allow'):
         MIN_STEP: ClassVar[str] = 'minStep'
         MAX: ClassVar[str] = 'max'
 
+        ADD_TEXT: ClassVar[str] = 'addText'
+
         # Custom
         C_GROUP_PREFIXES: ClassVar[str] = 'c_group_prefixes'
         C_MODEL_FIELD_NAME: ClassVar[str] = 'c_model_field_name'
@@ -120,6 +122,9 @@ class ParamOpts(BaseSettings, extra='allow'):
         C_NONE_MEANS_UNKNOWN: ClassVar[str] = 'c_none_means_unknown'
         C_DATA_TYPES: ClassVar[str] = 'c_data_types'
         C_REQUIRES_REBUILD: ClassVar[str] = 'c_requires_rebuild'
+        C_INITIAL_TYPE: ClassVar[str] = 'c_initial_type'
+        C_ARRAY_INTERFACE: ClassVar[str] = 'c_array_interface'
+        C_ARRAY_DEFAULT_VALUE: ClassVar[str] = 'c_array_default_value'
         # C_VALUE_INTERVAL: ClassVar[str] = 'c_value_interval'
 
     # keep unset
@@ -155,6 +160,7 @@ class ParamOpts(BaseSettings, extra='allow'):
     c_auto_expand: bool = False
     c_auto_collapse: bool = False
     c_requires_rebuild: bool = False
+    c_array_default_value: float | int = 0
 
     def __contains__(self, item):
         return item in self.keys()

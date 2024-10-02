@@ -19,6 +19,8 @@ from pyqtgraph.parametertree.parameterTypes import (
 
 from snngine_v4.gui.parameter_tree.parameter_builder.options_builder import \
     OptionsBuilder
+from snngine_v4.gui.parameter_tree.parameters.array_parameter import \
+    ArrayParameter
 
 from snngine_v4.gui.parameter_tree.parameters.engine_group_parameter import \
     EngineGroupParameter
@@ -48,7 +50,7 @@ registerParameterType(NoneType.__name__, NoneTypeParameter, override=True)
 registerParameterType(UnionType.__name__, MultiTypeParameter, override=True)
 registerParameterType(int.__name__, SpinBoxSliderParameter, override=True)
 registerParameterType(float.__name__, SpinBoxSliderParameter, override=True)
-registerParameterType('NDArray', MultiTypeParameter, override=True)
+registerParameterType('NDArray', ArrayParameter, override=True)
 
 
 class ParameterBuilder:
