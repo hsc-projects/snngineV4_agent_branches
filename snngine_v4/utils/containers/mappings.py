@@ -34,6 +34,7 @@ class Int2ObjectMapConfig(DictContainerConfig, frozen=True):
     b_duplicates_allowed: bool = False
     b_replace_allowed: bool = False
     b_pop_allowed: bool = False
+    b_get_inv_allowed: bool = False
 
 
 class Object2ObjectMap(ConfigurableDict):
@@ -45,6 +46,7 @@ class Object2ObjectMap(ConfigurableDict):
                  container_conf=None,
                  inverted_conf=None,
                  **kwargs):
+        self._container_conf: Int2ObjectMapConfig | None = None
         if inverted is None:
             container_conf = self.cls_make_container_conf(
                 container_conf=container_conf)
@@ -56,7 +58,7 @@ class Object2ObjectMap(ConfigurableDict):
         elif inverted_conf is None:
             inverted_conf = inverted.container_conf
             # raise ValueError("inverted_conf has not effect")
-        self.inverted = inverted
+        self.inv = inverted
         self.refs = ConfigurableList(
             container_conf=UniqueObjectListConfig(
                 allowed_types=inverted_conf.allowed_types))
@@ -86,8 +88,12 @@ class Object2ObjectMap(ConfigurableDict):
         return new
 
     def __getitem__(self, item):
-        if not isinstance(item, self._container_conf.allowed_key_types):
-            item = id(item)
+        if not self.b_valid_key_type(item):
+            if (self._container_conf.b_get_inv_allowed
+                    and self.b_valid_item_type(item)):
+                return self.inv[item]
+            else:
+                item = id(item)
         try:
             return self.data[item]
         except KeyError:
@@ -108,9 +114,9 @@ class Object2ObjectMap(ConfigurableDict):
             key = id(item0)
         super().__setitem__(key, item1)
         if item1 is not None:
-            if item1 not in self.inverted:
-                self.inverted[item1] = item0
-            elif (item_ := self.inverted[item1]) is not item0:
+            if item1 not in self.inv:
+                self.inv[item1] = item0
+            elif (item_ := self.inv[item1]) is not item0:
                 raise ValueError(f"self.inverted[item1] = {item_} != {item0}")
 
     def update(self, m, **kwargs) -> None:
@@ -122,6 +128,5 @@ class Object2ObjectMap(ConfigurableDict):
 
 
 class Model2ObjectMap(Object2ObjectMap):
-
     class InvertedConfigClass(Int2ObjectMapConfig, frozen=True):
         allowed_types: Type[BaseModel] = BaseModel

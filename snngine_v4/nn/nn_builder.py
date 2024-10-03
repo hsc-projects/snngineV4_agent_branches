@@ -32,6 +32,6 @@ class NetworkBuilder(BuilderDict):
 
     def destroy(self):
         del self.data
-        del self.inverted.data
+        del self.inv.data
         self.data = {}
-        self.inverted.data = {}
+        self.inv.data = {}

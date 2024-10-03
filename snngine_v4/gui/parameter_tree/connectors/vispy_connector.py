@@ -129,8 +129,14 @@ class VispyConnector(ParameterConnector):
         if key in ['color']:
             if isinstance(value, (tuple, dict)):
                 value = RGBAColor.to_vispy(value)
-
             obj.set_data(color=value)
+        elif key in ['pos']:
+
+            if value.ndim == 2:
+                continue here
+                color = obj.color
+
+            obj.set_data(pos=value)
         else:
             setattr(obj, key, value)
         obj.events.update.connect(block)

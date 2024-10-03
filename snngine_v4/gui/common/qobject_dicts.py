@@ -1,4 +1,3 @@
-from operator import setitem
 from typing import ClassVar, Type
 
 from qtpy import QtCore
@@ -8,10 +7,6 @@ from snngine_v4.utils.containers.configurable_dict import (
     ConfigurableDict,
     DictContainerConfig,
 )
-from snngine_v4.utils.containers.mappings import (
-    Object2ObjectMap,
-)
-from snngine_v4.utils.containers.super_maps import TypeSortedMap
 
 
 class QObjectDictSignals(QtCore.QObject):
@@ -48,22 +43,6 @@ class QObjectDict(ConfigurableDict):
 
     __setitem__ = QObjectDictSignals.qobject__setitem__
     pop = QObjectDictSignals.qobject__pop
-
-    # def __setitem__(self, key, item):
-    #     if ((self.check_key_type(key) is False)
-    #             and isinstance(key, Enum)
-    #             and self._container_conf.b_enum_to_str_key):
-    #         key = key.name
-    #     super().__setitem__(self.validate_key(key),
-    #                         self.validate_item(item))
-# class QObjectMap(Object2ObjectMap):
-#     __setitem__ = QObjectDictSignals.qobject__setitem__
-#     pop = QObjectDictSignals.qobject__pop
-#
-#
-# class QObjectSuperMap(TypeSortedMap):
-#     __setitem__ = QObjectDictSignals.qobject__setitem__
-#     pop = QObjectDictSignals.qobject__pop
 
 
 class QWidgetDictConfig(DictContainerConfig, frozen=True):

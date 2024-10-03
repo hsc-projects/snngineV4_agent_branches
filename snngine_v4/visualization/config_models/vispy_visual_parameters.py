@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import auto, IntEnum
+from types import NoneType
 from typing import Annotated, ClassVar
 
 import numpy as np
@@ -10,9 +11,10 @@ from pydantic_extra_types.color import Color
 from snngine_v4.geometry.spatial_pars import Ax3D
 
 from snngine_v4.utils.core_utils import ConvertingEnum
-from snngine_v4.utils.array_utils import (
-    ArrayInterfaces, Float32, UInt8,
+from snngine_v4.data.validation.dtype_annotation import (
+    Float32, UInt8,
 )
+from snngine_v4.data.validation.array_annotation import ArrayInterfaces
 from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.utils.settings.xml_settings_base import (
@@ -20,20 +22,23 @@ from snngine_v4.utils.settings.xml_settings_base import (
 )
 
 
+type ColorVBO = ArrayInterfaces().vbo4.array_type
+
+
 type ColorTypeUnion = (
         str | RGBAColor
-        | ArrayInterfaces().rgb_a_f32.type
-        | ArrayInterfaces().rgb_u8.type
+        | ColorVBO
         | Color | None)
 
 
 def validate_color(v):
-    if isinstance(v, (np.ndarray, tuple)):
+    if isinstance(v, tuple) or (isinstance(v, np.ndarray) and v.ndim == 1):
         v = RGBAColor.from_iterable(v)
     return v
 
 
-ColorTypeType = Annotated[ColorTypeUnion, BeforeValidator(validate_color)]
+ColorType = Annotated[ColorTypeUnion, BeforeValidator(validate_color)]
+type VispyColorType = tuple
 
 
 class RGBAEnum(IntEnum):
@@ -80,21 +85,43 @@ class RGBAColor(XMLSettingsModel):
     B: UInt8 = Field(default=255)
     A: Float32 = Field(default=np.float32(1), ge=0., le=1.)
 
-    def as_tuple(self):
-        return self.R, self.G, self.B, self.A
+    def as_type(self, type_):
+        if type_ == self.__class__:
+            return self
+        elif type_ == ArrayInterfaces().rgb_u8.array_type:
+            return ArrayInterfaces().rgb_u8.array(self.as_type(tuple)[:3])
+        elif type_ in [VispyColorType,
+                       ArrayInterfaces().rgb_a_f32.array_type,
+                       ArrayInterfaces().vbo4.array_type]:
+            return self.to_vispy(self)
+        elif type_ == tuple:
+            return self.R, self.G, self.B, self.A
+        elif type_ == Color:
+            return Color(self.as_type(tuple))
+        elif type_ == str:
+            return self.as_type(Color).as_hex()
+        elif type_ == NoneType:
+            return None
+        else:
+            raise NotImplementedError(type_)
 
     @classmethod
     def from_iterable(cls, value):
         if isinstance(value, np.ndarray):
-            if ArrayInterfaces().rgb_a_f32.check_array(value):
-                value = [np.round(c * 255) for c in value]
-            elif ArrayInterfaces().rgb_u8.check_array(value):
+            if ArrayInterfaces().rgb_a_f32.b_is_valid(value):
+                value = [np.uint8(np.round(c * 255)) for c in value[:3]]
+            elif ArrayInterfaces().rgb_u8.b_is_valid(value):
                 pass
-        value3 = 1 if (len(value) == 3) else value[3]
+        try:
+            value3 = 1 if (len(value) == 3) else value[3]
+        except IndexError:
+            raise
         return cls(R=value[0], G=value[1], B=value[2], A=value3)
 
     @classmethod
-    def to_vispy(cls, value):
+    def to_vispy(cls, value) -> np.ndarray:
+        if isinstance(value, cls):
+            value = value.model_dump()
         if isinstance(value, dict):
             value = (
                 value[RGBAEnum.R.name],
@@ -103,7 +130,7 @@ class RGBAColor(XMLSettingsModel):
                 value[RGBAEnum.A.name],
             )
         if np.issubdtype(type(value[0]), np.integer):
-            value = np.array(value, dtype=np.float32)
+            value = ArrayInterfaces().rgb_a_f32.array(value)
             value[:3] = value[:3] / 255
         return value
 

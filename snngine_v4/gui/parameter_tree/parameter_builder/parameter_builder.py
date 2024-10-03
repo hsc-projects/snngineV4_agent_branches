@@ -1,39 +1,31 @@
 from __future__ import annotations
 
-from enum import Enum
-from types import GenericAlias, NoneType, UnionType
+from types import GenericAlias, UnionType
 from typing import (
     get_args, get_origin,
     Type,
-    TYPE_CHECKING
+    TYPE_CHECKING, TypeAliasType,
 )
 
 
 from pydantic import BaseModel
 
-from pyqtgraph.parametertree import Parameter, registerParameterType
+from pyqtgraph.parametertree import Parameter
 from pyqtgraph.parametertree.parameterTypes import (
     GroupParameter,
-    QtEnumParameter,
 )
 
 from snngine_v4.gui.parameter_tree.parameter_builder.options_builder import \
     OptionsBuilder
-from snngine_v4.gui.parameter_tree.parameters.array_parameter import \
-    ArrayParameter
 
 from snngine_v4.gui.parameter_tree.parameters.engine_group_parameter import \
     EngineGroupParameter
 from snngine_v4.gui.parameter_tree.parameters.multi_type_parameter import \
     MultiTypeParameter
-from snngine_v4.gui.parameter_tree.parameters.none_type_parameter import \
-    NoneTypeParameter
 from snngine_v4.utils.settings.settings_keywords import (
     BaseSettingsSlots,
 )
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
-from snngine_v4.gui.parameter_tree.parameters.spin_box_slider_parameter import \
-    SpinBoxSliderParameter
 
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
@@ -42,15 +34,6 @@ if TYPE_CHECKING:
 
     from snngine_v4.gui.parameter_tree.connectors \
         .basemodel_signal_register import ModelSignalRegister
-
-
-registerParameterType(Enum.__name__, QtEnumParameter, override=True)
-registerParameterType(NoneType.__name__, NoneTypeParameter, override=True)
-
-registerParameterType(UnionType.__name__, MultiTypeParameter, override=True)
-registerParameterType(int.__name__, SpinBoxSliderParameter, override=True)
-registerParameterType(float.__name__, SpinBoxSliderParameter, override=True)
-registerParameterType('NDArray', ArrayParameter, override=True)
 
 
 class ParameterBuilder:
@@ -79,7 +62,9 @@ class ParameterBuilder:
 
         parameter_ = None
 
-        if ((not isinstance(options.c_data_types, (GenericAlias, UnionType)))
+        if ((not isinstance(options.c_data_types, (GenericAlias,
+                                                   UnionType,
+                                                   TypeAliasType)))
                 and issubclass(options.c_data_types, BaseModel)):
             if isinstance(options.value, dict):
                 options.value = options.c_data_types(**options.value)

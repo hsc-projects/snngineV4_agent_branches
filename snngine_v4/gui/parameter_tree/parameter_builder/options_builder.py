@@ -11,15 +11,13 @@ from typing import (
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel
-from pydantic.fields import FieldInfo
 from pydantic_core import PydanticUndefined
+from pyqtgraph.parametertree.Parameter import PARAM_TYPES
 
-from snngine_v4.utils.array_utils import (
-    b_includes_array_annotation,
-    convert_type_alias_type,
-)
+from snngine_v4.data.validation.array_annotation import b_is_array_annotation
+
 from snngine_v4.utils.field_utils import (
-    b_annotation_includes_type, b_field_has_default,
+    AnnotationType, b_annotation_includes_type, b_field_has_default,
     b_is_int_annotation, b_is_literal_annotation, extract_field_interval,
     extract_literal_values, extract_type_from_annotation,
     get_field_json_schema_extra,
@@ -32,17 +30,24 @@ from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 class OptionsBuilder:
 
+    @staticmethod
+    def convert_type_alias_type(ann: AnnotationType):
+        if b_is_array_annotation(ann):
+            return ann
+        else:
+            return ann.__value__
+
     @classmethod
     def get_parameter_type_from_annotation(cls, ann, ):
 
-        b_array_type_checked = False
-
         if isinstance(ann, TypeAliasType):
-            if b_includes_array_annotation(ann):
-                return convert_type_alias_type(ann)
-            else:
-                ann = ann.__value__
-            b_array_type_checked = True
+            if ann.__name__ in PARAM_TYPES:
+                return ann
+            if b_is_array_annotation(ann):
+                if isinstance(ann, TypeAliasType):
+                    return ann.__value__
+                return ann
+            ann = cls.convert_type_alias_type(ann)
 
         try:
             if isinstance(ann, UnionType):

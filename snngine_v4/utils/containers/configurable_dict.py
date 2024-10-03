@@ -65,7 +65,7 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
             raise error
 
     def __setitem__(self, key, item):
-        if ((self.check_key_type(key) is False)
+        if ((self.b_valid_key_type(key) is False)
                 and isinstance(key, Enum)
                 and self._container_conf.b_enum_to_str_key):
             key = key.name

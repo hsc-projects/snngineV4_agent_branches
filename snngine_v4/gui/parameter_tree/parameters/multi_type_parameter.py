@@ -5,6 +5,7 @@ from types import GenericAlias, NoneType
 from typing import get_args, get_origin
 
 from pydantic import BaseModel
+from pydantic_core import PydanticUndefined
 from pyqtgraph.parametertree.parameterTypes import (
     ListParameter,
     WidgetParameterItem,
@@ -42,15 +43,6 @@ class MultiTypeParameterItem(EngineGroupParameterItem):
             CustomComboBox.apply_custom_settings(wdg)
             self.layoutWidget.layout().insertWidget(0, wdg)
 
-    def onTypeWidgetCreated(self, widget, key=None, type_=None):
-        pass
-
-    def onTypeChange(self, widget, key=None, type_=None):
-        pass
-
-    def showEditor(self):
-        super().showEditor()
-
 
 # noinspection PyPep8Naming
 class MultiTypeParameter(EngineGroupParameter):
@@ -64,10 +56,24 @@ class MultiTypeParameter(EngineGroupParameter):
         self.addChild(self.type_parameter, autoIncrementName=True)
         self.type_parameter.sigValueChanged.connect(self.onTypeChange)
 
-    def addChild(self, child, **kwargs):
-        if isinstance(child, EngineGroupParameter):
-            child.connect_sigValueChanged()
-        super().addChild(child, **kwargs)
+    @classmethod
+    def make_value(cls, value, type_):
+        value_ = None
+        if type_ == NoneType:
+            pass
+        elif (not isinstance(type_, GenericAlias)) and isinstance(
+                value, type_):
+            value_ = value
+        elif (isinstance(type_, GenericAlias)) and isinstance(
+                value, get_origin(type_)):
+            value_ = value
+        elif (not isinstance(type_, GenericAlias)) and issubclass(
+                type_, BaseModel):
+            value_ = type_()
+
+        if isinstance(value, BaseModel):
+            pass
+        return value_
 
     def build(self, signal_register):
         opts = copy(self.opts)
@@ -77,21 +83,13 @@ class MultiTypeParameter(EngineGroupParameter):
         opts.pop(ParamOpts.KW.TITLE)
         value = opts.pop(ParamOpts.KW.VALUE)
 
+        built_pars = []
+
         for t in self.data_types:
             from snngine_v4.gui.parameter_tree.parameter_builder \
                 .parameter_builder import ParameterBuilder
-            value_ = None
-            if t == NoneType:
-                pass
-            elif (not isinstance(t, GenericAlias)) and isinstance(value, t):
-                value_ = value
-            elif (isinstance(t, GenericAlias)) and isinstance(value, get_origin(t)):
-                value_ = value
-            elif (not isinstance(t, GenericAlias)) and issubclass(t, BaseModel):
-                value_ = t()
 
-            if isinstance(value, BaseModel):
-                pass
+            value_ = self.make_value(value, t)
 
             name = t.__name__
             # title = self.opts[ParamOpts.KW.NAME] + f" ({name})"
@@ -100,18 +98,25 @@ class MultiTypeParameter(EngineGroupParameter):
                     signal_register=signal_register,
                     # title=title,
                     ann=t, name=name, value=value_,
-                    type=name, **opts)
+                    # type=name,
+                    **opts)
             except KeyError as e:
+                # raise
                 p = None
             if p is not None:
                 self.addChild(p, autoIncrementName=True)
-
+                built_pars.append(p)
                 self.children_map[t] = p
+
                 self.type_parameter.opts[ParamOpts.KW.LIMITS] += [p.name()]
                 p.hide()
         if len(self.data_types) > 0:
             for c in self.children_map.key_map[str].values():
+                if isinstance(c, EngineGroupParameter):
+                    c.connect_sigValueChanged()
                 c.sigValueChanged.connect(self.valueChanged)
+            # self.type_parameter.sigValueChanged.connect(self.valueChanged)
+        return built_pars
 
     @property
     def data_types(self):
@@ -129,8 +134,9 @@ class MultiTypeParameter(EngineGroupParameter):
     def setValue(self, value, blockSignal=None):
         super().setValue(value, blockSignal=blockSignal)
 
-    def valueChanged(self, child=None, value=None):
-        return self.sigValueChanged.emit(self, self.value())
+    def valueChanged(self, child=None, value=PydanticUndefined):
+        value_ = self.value()
+        return self.sigValueChanged.emit(self, value_)
 
     def value(self):
         key = self.type_parameter.value()

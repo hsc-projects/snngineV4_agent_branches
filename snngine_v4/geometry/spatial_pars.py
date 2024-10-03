@@ -5,7 +5,8 @@ from typing import ClassVar
 
 from pydantic import Field, NonNegativeInt, PositiveFloat
 
-from snngine_v4.utils.array_utils import Float32
+from snngine_v4.data.validation.array_annotation import ArrayInterfaces
+from snngine_v4.data.validation.dtype_annotation import Float32
 from snngine_v4.utils.settings.ui_parameter_options import (
     FrozenParamOpts,
     GroupPrefixesType,
@@ -97,3 +98,6 @@ class Directions3DBoolPars(XMLSettingsModel):
     YM: bool
     ZP: bool
     ZM: bool
+
+
+type PositionVBO = ArrayInterfaces().vbo3.array_type

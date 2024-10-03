@@ -91,8 +91,76 @@
       </DictItem>
       <DictItem type="dict" class="SceneVisuals" key="Visuals">
         <DictItem type="dict" class="XYZAxisVisualConfig" key="axis">
-          <DictItem type="NoneType" key="pos">None</DictItem>
-          <DictItem type="str" key="color"/>
+          <DictItem type="list" key="pos">
+            <ListElementElement type="list">
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+            </ListElementElement>
+            <ListElementElement type="list">
+              <ListElementElement type="float">1.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+            </ListElementElement>
+            <ListElementElement type="list">
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+            </ListElementElement>
+            <ListElementElement type="list">
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">1.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+            </ListElementElement>
+            <ListElementElement type="list">
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+            </ListElementElement>
+            <ListElementElement type="list">
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">1.0</ListElementElement>
+            </ListElementElement>
+          </DictItem>
+          <DictItem type="list" key="color">
+            <ListElementElement type="list">
+              <ListElementElement type="float">1.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">1.0</ListElementElement>
+            </ListElementElement>
+            <ListElementElement type="list">
+              <ListElementElement type="float">1.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">1.0</ListElementElement>
+            </ListElementElement>
+            <ListElementElement type="list">
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">1.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">1.0</ListElementElement>
+            </ListElementElement>
+            <ListElementElement type="list">
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">1.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">1.0</ListElementElement>
+            </ListElementElement>
+            <ListElementElement type="list">
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">1.0</ListElementElement>
+              <ListElementElement type="float">1.0</ListElementElement>
+            </ListElementElement>
+            <ListElementElement type="list">
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">0.0</ListElementElement>
+              <ListElementElement type="float">1.0</ListElementElement>
+              <ListElementElement type="float">1.0</ListElementElement>
+            </ListElementElement>
+          </DictItem>
           <DictItem type="int" key="width">1</DictItem>
           <DictItem type="str" key="connect">segments</DictItem>
           <DictItem type="str" key="method">gl</DictItem>

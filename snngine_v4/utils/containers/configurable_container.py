@@ -83,7 +83,7 @@ class ConfigurableContainerBase:
         return self.cls_b_valid_object_type(
             item, self._container_conf.allowed_types)
 
-    def check_key_type(self, key):
+    def b_valid_key_type(self, key):
         return self.cls_b_valid_object_type(
             key, self._container_conf.allowed_key_types)
 

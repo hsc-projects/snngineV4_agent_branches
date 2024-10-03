@@ -7,13 +7,15 @@ from pydantic import Field
 
 from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import (
-    Directions3DBoolPars,
+    Directions3DBoolPars, PositionVBO,
 )
 from snngine_v4.utils.settings.ui_parameter_options import p_field, ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.visualization.config_models.vispy_visual_parameters import (
-    ColorTypeType, OpenGLState, OpenGlStateType,
+    OpenGLState, OpenGlStateType,
 )
+from snngine_v4.visualization.config_models.vispy_visual_parameters import \
+    ColorType
 
 
 type LineConnectType = Literal['strip', 'segments'] | None
@@ -22,7 +24,7 @@ type LineConnectType = Literal['strip', 'segments'] | None
 class LineVisualConfig(XMLSettingsModel):
 
     pos: None = None
-    color: ColorTypeType
+    color: ColorType
     width: int = p_field(default=1,  readonly=True)
     connect: LineConnectType = p_field(default='strip',  readonly=True)
     method: Literal['gl', 'agg'] = p_field(default='gl',  readonly=True)
@@ -30,13 +32,26 @@ class LineVisualConfig(XMLSettingsModel):
 
 
 class XYZAxisVisualConfig(LineVisualConfig):
+    pos: PositionVBO = Field(
+        default_factory=lambda: np.array([
+            [0, 0, 0],
+            [1, 0, 0],
+            [0, 0, 0],
+            [0, 1, 0],
+            [0, 0, 0],
+            [0, 0, 1]], 
+            dtype=np.float32))
     connect: LineConnectType = p_field(
         default='segments',  readonly=False)
-    color: ColorTypeType = Field(
-        default_factory=lambda: np.array((127, 127, 255), dtype=np.uint8))
-        # json_schema_extra={
-        #     ParamOpts.KW.C_REQUIRES_REBUILD: True
-        # })
+    color: ColorType = Field(
+        default_factory=lambda: np.array([
+            [1, 0, 0, 1],
+            [1, 0, 0, 1],
+            [0, 1, 0, 1],
+            [0, 1, 0, 1],
+            [0, 0, 1, 1],
+            [0, 0, 1, 1]],
+            dtype=np.float32))
 
 
 class BoxVisualConfig(FiniteGridConfig):
@@ -49,8 +64,8 @@ class BoxVisualConfig(FiniteGridConfig):
 
     vertex_colors: None = None
     face_colors: None = None
-    color: ColorTypeType
-    edge_color: ColorTypeType
+    color: ColorType
+    edge_color: ColorType
 
     border: OpenGLState = OpenGLState(
         state_type=OpenGlStateType.UPDATE,
@@ -61,8 +76,8 @@ class BoxVisualConfig(FiniteGridConfig):
 
 class OuterGridVisualConfig(BoxVisualConfig):
 
-    color: ColorTypeType = None
-    edge_color: ColorTypeType = 'white'
+    color: ColorType = None
+    edge_color: ColorType = 'white'
 
     mesh: OpenGLState = OpenGLState(
         state_type=OpenGlStateType.SET,
