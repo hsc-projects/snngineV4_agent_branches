@@ -26,6 +26,10 @@ from snngine_v4.utils.field_utils import (
 from snngine_v4.utils.interval_utils import limits_from_interval
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
+from snngine_v4.geometry.spatial_pars import Ax3D, PositionVBO, XYZPars
+from snngine_v4.visualization.config_models.vispy_visual_parameters import (
+    ColorVBO, RGBAEnum,
+)
 
 
 class OptionsBuilder:
@@ -150,6 +154,15 @@ class OptionsBuilder:
             options = m
         else:
             options = ParamOpts(**options)
+
+        options.c_annotation = ann
+
+        if ann == PositionVBO:
+            options.c_column_name_s = Ax3D._member_names_
+        elif ann == ColorVBO:
+            options.c_column_name_s = RGBAEnum._member_names_
+        else:
+            options.c_column_name_s = None
 
         if options.c_data_types is None:
             options.c_data_types = cls.get_parameter_type_from_annotation(

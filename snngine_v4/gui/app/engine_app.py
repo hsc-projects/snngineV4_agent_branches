@@ -1,9 +1,10 @@
 import qdarktheme
 from vispy.app import Application
 
+from snngine_v4.gui.windows.main_window_base import WindowTypes
 from snngine_v4.snngine_config import EngineConfig
 from snngine_v4.config.app import EngineAppSettings
-from snngine_v4.gui.windows.main_window import MainEngineWindow, WindowTypes
+from snngine_v4.gui.windows.main_window import MainEngineWindow
 from snngine_v4.snngine import SNNgine
 
 

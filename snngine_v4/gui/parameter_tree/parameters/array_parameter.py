@@ -1,7 +1,7 @@
-from pyqtgraph import functions
+import numpy as np
 from pyqtgraph.parametertree import Parameter
 from pyqtgraph.parametertree.parameterTypes import WidgetParameterItem
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore
 
 from snngine_v4.data.validation.array_annotation import ArrayInterfaces
 
@@ -22,62 +22,26 @@ class ArrayParameterItem(WidgetParameterItem):
 
         super().__init__(param, depth)
 
-        self.addRowWidget = QtWidgets.QPushButton('Add Row')
-        self.addRowWidget.clicked.connect(self.addRowClicked)
+        self.ui_widgets = self.widget.make_ui_widgets()
+        idx = self.layoutWidget.layout().count() - 2
         self.layoutWidget.layout().insertWidget(
-            self.layoutWidget.layout().count() - 2, self.addRowWidget)
-        self.addRowWidget.setEnabled(False)
-
-        self.addColWidget = QtWidgets.QPushButton('Add Col')
-        self.addColWidget.clicked.connect(self.addColClicked)
-        self.layoutWidget.layout().insertWidget(
-            self.layoutWidget.layout().count() - 2, self.addColWidget)
-        self.param.sigValueChanged.connect(self.updateTableWidgets)
-        if self.param.qdf.df is not None:
-            self.updateTableWidgets()
-
-    def addColClicked(self,):
-
-        self.param.qdf.addColumn()
-        self.updateTableWidgets()
-
-    def addRowClicked(self,):
-        self.param.qdf.addRow()
-        self.updateTableWidgets()
+            idx, self.ui_widgets.widget())
 
     def makeWidget(self):
         self.asSubItem = True
         self.hideWidget = False
 
-        table = QDataFrameTableWidget(data=self.param.qdf)
-        table.setMaximumHeight(200)
-        table.editable = not self.param.opts[ParamOpts.KW.READONLY]
+        table = QDataFrameTableWidget(qdf=self.param.qdf)
+        # table.setMaximumHeight(200)
         return table
 
     def valueChanged(self, param, val, force=False):
-        super().valueChanged(param, val, force)
+        # super().valueChanged(param, val, force)
+        self.widget.onDataChange()
+        self.updateDefaultBtn()
 
     def widgetValueChanged(self, ):
-        super().widgetValueChanged()
-
-    def updateTableWidgets(self):
-        shape = self.param.qdf.as_array().shape
-
-        add_row_enabled = (
-            (len(self.param.qdf.df.columns) > 0)
-            and (len(shape) > 1)
-            and self.param.validator.validate_shape((shape[0]+1, shape[1]))
-        )
-        self.addRowWidget.setEnabled(add_row_enabled)
-
-        add_col_enabled = (len(self.param.qdf.df.columns) > 0)
-        if len(shape) == 1:
-            next_shape = shape[0] + 1,
-        else:
-            next_shape = shape[0], shape[1] + 1
-        add_col_enabled &= self.param.validator.validate_shape(next_shape)
-
-        self.addColWidget.setEnabled(add_col_enabled)
+        raise RuntimeError
 
 
 # noinspection PyPep8Naming
@@ -89,17 +53,33 @@ class ArrayParameter(Parameter):
 
     def __init__(self, **opts):
         array_type = opts[ParamOpts.KW.C_DATA_TYPES]
-        interface = ArrayInterfaces()[array_type]
-        self.qdf = QDataFrame(validator=interface,
-                              value=opts[ParamOpts.KW.VALUE])
+        self.qdf = QDataFrame(
+            name=opts[ParamOpts.KW.NAME],
+            validator=ArrayInterfaces()[array_type],
+            column_names=opts[ParamOpts.KW.C_COLUMN_NAME_S],
+            value=opts[ParamOpts.KW.VALUE],
+            readonly=opts[ParamOpts.KW.READONLY]
+        )
         opts[ParamOpts.KW.VALUE] = self.qdf.value()
         opts[ParamOpts.KW.EXPANDED] = False
         super().__init__(**opts)
         self.qdf.sigChanged.connect(self.onDataChanged)
 
+    def compare_value(self):
+        v_par = self.opts[ParamOpts.KW.VALUE]
+        v_qdf = self.qdf.value()
+        try:
+            b_arr = v_par == v_qdf
+            return bool(np.all(b_arr))
+        except ValueError as error:
+            for i, s in enumerate(v_par.shape):
+                if v_qdf.shape[i] != s:
+                    return False
+            raise error
+
     def onDataChanged(self):
         data = self.qdf.value()
-        if functions.eq(self.opts.get(ParamOpts.KW.VALUE, None), data):
+        if self.compare_value():
             self.sigValueChanged.emit(self, data)
         else:
             super().setValue(value=data)
@@ -108,9 +88,7 @@ class ArrayParameter(Parameter):
         value = self.qdf.setValue(value, b_block_signal=True)
         return super().setValue(value=value, blockSignal=blockSignal)
 
-    @property
-    def validator(self):
-        return self.qdf.validator
-
     def value(self):
+        if self.compare_value() is False:
+            raise RuntimeError
         return self.opts[ParamOpts.KW.VALUE]

@@ -133,6 +133,13 @@ class MultiTypeParameter(EngineGroupParameter):
 
     def setValue(self, value, blockSignal=None):
         super().setValue(value, blockSignal=blockSignal)
+        try:
+            key = self.type_parameter.value()
+        except AttributeError:
+            key = ''
+        if key != '':
+            return self.children_map[key].setValue(
+                value, blockSignal=self.valueChanged)
 
     def valueChanged(self, child=None, value=PydanticUndefined):
         value_ = self.value()

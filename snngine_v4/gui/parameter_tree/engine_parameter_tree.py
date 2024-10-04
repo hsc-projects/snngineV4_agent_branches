@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from typing import Callable
+
 from pydantic import BaseModel
 from pyqtgraph.parametertree import Parameter, ParameterTree
 from qtpy import QtCore, QtWidgets
 
+from snngine_v4.gui.common.main_dock_widget import MainDockWidget
 from snngine_v4.gui.parameter_tree.parameter_builder.parameter_builder import (
     ParameterBuilder
 )
@@ -91,24 +94,16 @@ class EngineParameterTree(ParameterTree):
             raise AttributeError("settings_model already set")
         self._settings_model = value
 
-    def set_q_dock_widget(self, name=None, features=None):
-        if self._dock_widget is not None:
-            raise PermissionError
-
-        dock = QtWidgets.QDockWidget(name)
-        dock.setWidget(self)
-
-        self._dock_widget = dock
-        return self._dock_widget
-
     def sizeHint(self):
         hint = super().sizeHint()
         return QtCore.QSize(hint.width() + 100, hint.height() + 20)
 
 
-class EngineTreeDockWidget(QtWidgets.QDockWidget):
+class EngineTreeDockWidget(MainDockWidget):
 
     count: int = 0
+
+    widget: Callable[[], EngineParameterTree]
 
     def __init__(self, pars: Parameter | EngineParameterTree,
                  name=None, parent=None,
@@ -125,13 +120,6 @@ class EngineTreeDockWidget(QtWidgets.QDockWidget):
             name = pars.objectName()
             if name == '':
                 name = self.__class__.__name__ + str(count)
-        super().__init__(name, parent=parent, **kwargs)
-        self.setObjectName(name)
+        super().__init__(name, parent=parent, features=features, **kwargs)
         pars.dock_widget = self
         self.setWidget(pars)
-
-        if features is None:
-            features = (
-                    QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable
-                    | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable)
-        self.setFeatures(features)

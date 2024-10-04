@@ -60,11 +60,19 @@ class TypedNumpyInterface(NumpyInterface):
         self.validate(res)
         return res
 
-    def b_is_valid(self, array: np.ndarray):
-        return self.cls_b_is_valid(self, array)
+    def b_is_valid(self, array: np.ndarray, array_type=None):
+        return self.cls_b_is_valid(self, array, array_type=array_type)
+
+    def b_is_valid_np(self, array: np.ndarray):
+        return self.cls_b_is_valid(self, array, array_type=np.ndarray)
 
     @classmethod
-    def cls_b_is_valid(cls, interface, array: np.ndarray):
+    def cls_b_is_valid(
+            cls, interface, array: np.ndarray, array_type=None):
+
+        if (array_type is not None) and not isinstance(array, array_type):
+            return False
+
         array = interface.before_validation(array)
 
         dtype = interface.get_dtype(array)
@@ -94,6 +102,14 @@ class ArrayInterfaces(metaclass=Singleton):
 
         self.dtype_interface_map = ArrayDtype2InterfaceMap()
         self.dtype_pair_map = ArrayDtype2PairMap()
+
+        self.D2 = TypedNumpyInterface(
+            dtype=Any, shape=Shape['* x, * y'])
+
+        self.D2_i32 = TypedNumpyInterface(
+            dtype=np.int32, shape=Shape['* x, * y'])
+        self.D2_f32 = TypedNumpyInterface(
+            dtype=np.float32, shape=Shape['* x, * y'])
 
         self.rgb_a_f32 = TypedNumpyInterface(
             dtype=np.float32, shape=Shape['3-4'])

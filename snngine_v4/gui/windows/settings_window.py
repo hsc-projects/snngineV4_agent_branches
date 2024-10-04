@@ -40,17 +40,17 @@ class SettingsWindow(QtWidgets.QWidget):
         for k in engine_config.model_fields:
             self.add_settings(getattr(engine_config, k), name=k)
 
-        btn_wdgs = QtWidgets.QWidget()
-        btn_wdgs.setLayout(QtWidgets.QHBoxLayout())
+        btn_widgets = QtWidgets.QWidget()
+        btn_widgets.setLayout(QtWidgets.QHBoxLayout())
         self.save_btn = QtWidgets.QPushButton("Save")
         self.apply_btn = QtWidgets.QPushButton("Apply")
         self.restart = QtWidgets.QPushButton("Restart")
-        btn_wdgs.layout().addWidget(self.save_btn)
-        btn_wdgs.layout().addWidget(self.apply_btn)
-        btn_wdgs.layout().addWidget(self.restart)
-        btn_wdgs.layout().setContentsMargins(2, 2, 2, 2)
-        btn_wdgs.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
-        self.layout().addWidget(btn_wdgs)
+        btn_widgets.layout().addWidget(self.save_btn)
+        btn_widgets.layout().addWidget(self.apply_btn)
+        btn_widgets.layout().addWidget(self.restart)
+        btn_widgets.layout().setContentsMargins(2, 2, 2, 2)
+        btn_widgets.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignRight)
+        self.layout().addWidget(btn_widgets)
 
         self.save_btn.clicked.connect(self.engine_config.export)
 

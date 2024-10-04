@@ -164,7 +164,7 @@
           <DictItem type="int" key="width">1</DictItem>
           <DictItem type="str" key="connect">segments</DictItem>
           <DictItem type="str" key="method">gl</DictItem>
-          <DictItem type="bool" key="antialias">True</DictItem>
+          <DictItem type="bool" key="antialias">False</DictItem>
         </DictItem>
       </DictItem>
       <DictItem type="dict" class="SceneCameras" key="Cameras"/>

@@ -10,7 +10,9 @@ from snngine_v4.utils.containers.configurable_dict import (
 
 
 class QObjectDictSignals(QtCore.QObject):
+
     sigAdded = QtCore.Signal(object, object, object)
+    sigChanged = QtCore.Signal(object, object)
     sigRemoved = QtCore.Signal(object, object, object)
     sigReplaced = QtCore.Signal(object, object, object)
 
@@ -37,6 +39,7 @@ class QObjectDict(ConfigurableDict):
     def __init__(self, *arg, **kwargs):
         self.emitter = QObjectDictSignals(parent=None)
         self.sigAdded = self.emitter.sigAdded
+        self.sigChanged = self.emitter.sigRemoved
         self.sigRemoved = self.emitter.sigRemoved
         self.sigReplaced = self.emitter.sigReplaced
         super().__init__(*arg, **kwargs)
@@ -44,31 +47,37 @@ class QObjectDict(ConfigurableDict):
     __setitem__ = QObjectDictSignals.qobject__setitem__
     pop = QObjectDictSignals.qobject__pop
 
+    def onSigChanged(self, key, value):
+        raise NotImplementedError
+
 
 class QWidgetDictConfig(DictContainerConfig, frozen=True):
     allowed_types: Type[QWidget] = QWidget
+    allowed_key_types: Type[str] = str
 
 
 class QWidgetDict(QObjectDict):
+
     ContainerConfigClass: ClassVar[Type[QWidgetDictConfig]] = QWidgetDictConfig
 
     def add_widget(self, widget: QWidget):
-        name = widget.objectName()
-        self[name] = widget
+        if str in self.container_conf.allowed_key_types:
+            name = widget.objectName()
+            self[name] = widget
+        else:
+            raise NotImplementedError
 
+    def add_widgets(self, *widgets: QWidget):
+        for w in widgets:
+            self.add_widget(w)
 
-class QTreeWidgetDictConfig(QWidgetDictConfig, frozen=True):
-    allowed_types: Type[QTreeWidget] = QTreeWidget
+    def widget(self):
+        raise NotImplementedError
 
 
 class QTreeWidgetDict(QWidgetDict):
-    ContainerConfigClass: ClassVar[Type[QTreeWidgetDictConfig]] = (
-        QTreeWidgetDictConfig)
-
-
-class QDockWidgetDictConfig(QWidgetDictConfig, frozen=True):
-    allowed_types: Type[QDockWidget] = QDockWidget
+    ContainerConfigClass: ClassVar = (QWidgetDictConfig, QTreeWidget)
 
 
 class QDockWidgetDict(QWidgetDict):
-    CONFIG_CLASS: ClassVar[Type[QDockWidgetDictConfig]] = QDockWidgetDictConfig
+    ContainerConfigClass: ClassVar = (QWidgetDictConfig, QDockWidget)

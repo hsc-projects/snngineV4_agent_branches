@@ -135,8 +135,17 @@ class ConfigurableContainerBase:
         return result_list
 
     @classmethod
-    def cls_make_container_conf(cls, container_conf=None):
-        return container_conf or cls.ContainerConfigClass()
+    def cls_make_container_conf(cls, container_conf=None,
+                                default_cls=PydanticUndefined):
+        if container_conf:
+            return container_conf
+        if default_cls == PydanticUndefined:
+            default_cls = cls.ContainerConfigClass
+        if isinstance(default_cls, tuple):
+            cls_: Type[ContainerConfig] = default_cls[0]
+            type_: ContainerConfig = default_cls[1]
+            return cls_(allowed_types=type_)
+        return default_cls()
 
     @classmethod
     def cls_validate_value_type(cls, item, type_):

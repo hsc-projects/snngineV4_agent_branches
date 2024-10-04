@@ -49,6 +49,14 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
                        allowed_key_types=allowed_key_types,
                        **kwargs))
 
+    def __contains__(self, item):
+        contains = super().__contains__(item)
+        if ((contains is False)
+                and (self._container_conf.b_enum_to_str_key
+                     and isinstance(item, Enum))):
+            contains = super().__contains__(item.name)
+        return contains
+
     def __getattribute__(self, item):
         if (item == 'pop') and hasattr(self, '_container_conf'):
             if self._container_conf.b_pop_allowed is False:

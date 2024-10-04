@@ -110,6 +110,7 @@ class ParamOpts(BaseSettings, extra='allow'):
         ADD_TEXT: ClassVar[str] = 'addText'
 
         # Custom
+        C_COLUMN_NAME_S: ClassVar[str] = 'c_column_name_s'
         C_GROUP_PREFIXES: ClassVar[str] = 'c_group_prefixes'
         C_MODEL_FIELD_NAME: ClassVar[str] = 'c_model_field_name'
         C_MODEL_FIELD_INFO: ClassVar[str] = 'c_model_field_info'
@@ -117,12 +118,12 @@ class ParamOpts(BaseSettings, extra='allow'):
         C_NULLABLE_VALUE: ClassVar[str] = 'c_nullable_value'
         C_COERCE_TO_LIMITS: ClassVar[str] = 'c_coerce_to_limits'
         C_VALUE_INTERVAL: ClassVar[str] = 'c_value_interval'
-        C_AUTO_COLLAPSE: ClassVar[str] = 'c_auto_collapse'
-        C_AUTO_EXPAND: ClassVar[str] = 'c_auto_expand'
+        # C_AUTO_COLLAPSE: ClassVar[str] = 'c_auto_collapse'
+        # C_AUTO_EXPAND: ClassVar[str] = 'c_auto_expand'
         C_NONE_MEANS_UNKNOWN: ClassVar[str] = 'c_none_means_unknown'
         C_DATA_TYPES: ClassVar[str] = 'c_data_types'
-        C_REQUIRES_REBUILD: ClassVar[str] = 'c_requires_rebuild'
-        C_INITIAL_TYPE: ClassVar[str] = 'c_initial_type'
+        # C_REQUIRES_REBUILD: ClassVar[str] = 'c_requires_rebuild'
+        C_ANNOTATION: ClassVar[str] = 'c_annotation'
         C_ARRAY_INTERFACE: ClassVar[str] = 'c_array_interface'
         C_ARRAY_DEFAULT_VALUE: ClassVar[str] = 'c_array_default_value'
         # C_VALUE_INTERVAL: ClassVar[str] = 'c_value_interval'
@@ -133,6 +134,7 @@ class ParamOpts(BaseSettings, extra='allow'):
     c_model_field_name: Any = None
     c_model_field_info: Any = None
     c_data_types: Any = None
+    c_initial_type: Any = None
     c_value_interval: Any = None
     step: Any = None
     limits: Any = None
@@ -153,13 +155,15 @@ class ParamOpts(BaseSettings, extra='allow'):
     prefix: str | list[str] = ''
 
     # custom
+    c_column_name_s: list | tuple | None = None
+    c_annotation: Any = None
     c_numeric_group: bool = False
     c_nullable_value: bool = False
     c_group_prefixes: GroupPrefixesType = None
     c_coerce_to_limits: bool = False
-    c_auto_expand: bool = False
-    c_auto_collapse: bool = False
-    c_requires_rebuild: bool = False
+    # c_auto_expand: bool = False
+    # c_auto_collapse: bool = False
+    # c_requires_rebuild: bool = False
     c_array_default_value: float | int = 0
 
     def __contains__(self, item):

@@ -13,7 +13,8 @@ from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 class CameraCenter(EnginePos3D):
     parameter_ui_opts: ClassVar = SpatialParUIOpts(
         expanded=False,
-        c_auto_collapse=True)
+        # c_auto_collapse=True
+    )
 
 
 class TurnTableCameraParameters(XMLSettingsModel):

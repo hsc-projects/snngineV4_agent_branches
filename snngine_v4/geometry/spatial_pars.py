@@ -33,8 +33,8 @@ class SpatialParUIOpts(FrozenParamOpts):
     renamable: bool = False
     expanded: bool = True
     c_numeric_group: bool = True
-    c_auto_expand: bool = True
-    c_auto_collapse: bool = False
+    # c_auto_expand: bool = True
+    # c_auto_collapse: bool = False
     c_group_prefixes: GroupPrefixesType = Ax3D
 
 

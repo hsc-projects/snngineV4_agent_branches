@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Literal
 
 import numpy as np
-from pydantic import Field
+from pydantic import Field, NonNegativeInt
 
 from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import (
@@ -25,7 +25,7 @@ class LineVisualConfig(XMLSettingsModel):
 
     pos: None = None
     color: ColorType
-    width: int = p_field(default=1,  readonly=True)
+    width: NonNegativeInt = p_field(default=1,  readonly=False, le=15)
     connect: LineConnectType = p_field(default='strip',  readonly=True)
     method: Literal['gl', 'agg'] = p_field(default='gl',  readonly=True)
     antialias: bool = False
@@ -39,8 +39,12 @@ class XYZAxisVisualConfig(LineVisualConfig):
             [0, 0, 0],
             [0, 1, 0],
             [0, 0, 0],
-            [0, 0, 1]], 
-            dtype=np.float32))
+            [0, 0, 1]],
+            dtype=np.float32),
+        # json_schema_extra={
+        #     ParamOpts.KW.C_COLUMN_NAME_S: ,
+        # },
+    )
     connect: LineConnectType = p_field(
         default='segments',  readonly=False)
     color: ColorType = Field(

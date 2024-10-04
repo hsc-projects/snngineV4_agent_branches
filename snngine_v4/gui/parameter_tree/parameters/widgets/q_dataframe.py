@@ -16,19 +16,30 @@ from snngine_v4.data.validation.array_annotation import TypedNumpyInterface
 class QDataFrame(QtSql.QSqlTableModel):
 
     sigChanged = QtCore.Signal(object)
+    sigColumnNamesChanged = QtCore.Signal(object)
 
     BLOCK_SIGNAL_ROLE: ClassVar[int] = -1
 
-    def __init__(self, validator, value, default_value=PydanticUndefined,
+    def __init__(self, name,
+                 validator, value, default_value=PydanticUndefined,
+                 readonly=False,
+                 column_names=None,
                  parent=None):
 
         super().__init__(parent)
 
+        self.name = name
+        self.readonly = readonly
+        self.readonly = readonly
         self.validator = validator
+        self._column_names = column_names
+
         if default_value == PydanticUndefined:
             default_value = self.validator.dtype(0)
         self.default_value = default_value
-        self.dataChanged.connect(self.emitSigChanged)
+
+        self.dataChanged.connect(self.onDataChanged)
+
         self._df = None
 
         self.setValue(value)
@@ -73,19 +84,6 @@ class QDataFrame(QtSql.QSqlTableModel):
         if b_block_signal is False:
             self.sigChanged.emit(self)
 
-    def emitSigChanged(self, *args, **kwargs):
-        self.sigChanged.emit(self)
-
-    def insertRecord(self, row, record):
-        new_df = pd.DataFrame(index=pd.RangeIndex(len(self.df) + 1),
-                              columns=self.df.columns)
-        new_df[:row] = self.df[:row]
-        new_df[row] = record
-        if row != (len(self.df) + 1):
-            new_df[row + 1:] = new_df[row:]
-        self.df = new_df
-        self.sigChanged.emit(self)
-
     def as_array(self, value=None):
         if value is None:
             value = self.df
@@ -102,6 +100,15 @@ class QDataFrame(QtSql.QSqlTableModel):
         return pd.DataFrame(array)
 
     @property
+    def column_names(self):
+        return self._column_names
+
+    @column_names.setter
+    def column_names(self, value):
+        self._column_names = value
+        self.sigColumnNamesChanged.emit(self._column_names)
+
+    @property
     def df(self):
         return self._df
 
@@ -111,6 +118,26 @@ class QDataFrame(QtSql.QSqlTableModel):
             raise TypeError(type(value))
         self.validate(value)
         self._df = deepcopy(value)
+        if self.column_names is not None:
+            self._df.columns = self.column_names
+
+    def emitSigChanged(self, *args, **kwargs):
+        self.sigChanged.emit(self)
+
+    def insertRecord(self, row, record):
+        new_df = pd.DataFrame(index=pd.RangeIndex(len(self.df) + 1),
+                              columns=self.df.columns)
+        new_df[:row] = self.df[:row]
+        new_df[row] = record
+        if row != (len(self.df) + 1):
+            new_df[row + 1:] = new_df[row:]
+        self.df = new_df
+        self.sigChanged.emit(self)
+
+    def onDataChanged(self, topLeft=None, bottomRight=None, roles=None):
+
+        self.emitSigChanged()
+        return
 
     def setData(self, index=None, value=None, role=None):
         if not isinstance(value, pd.DataFrame):
@@ -122,6 +149,24 @@ class QDataFrame(QtSql.QSqlTableModel):
             self.df[:] = value
         if role != self.BLOCK_SIGNAL_ROLE:
             self.sigChanged.emit(self)
+
+    def setValue(self, value: np.ndarray, b_block_signal: bool = False):
+        self.setData(value=value,
+                     role=self.BLOCK_SIGNAL_ROLE
+                     if b_block_signal is True else None)
+        return self.value()
+
+    def update(self, item: QtWidgets.QTableWidgetItem | TableWidgetItem):
+        if isinstance(item, QtWidgets.QTableWidgetItem):
+            value = item.value
+            rc = item.row(), item.column()
+            old_value = self.df.iloc[*rc]
+            if old_value != value:
+                self.df.iloc[*rc] = value
+                self.sigChanged.emit(self)
+
+        else:
+            raise NotImplementedError(str(item))
 
     def validate(self, value):
         if self.validator is None:
@@ -142,24 +187,6 @@ class QDataFrame(QtSql.QSqlTableModel):
             TypedNumpyInterface.cls_b_is_valid(self.validator, value)
         else:
             raise NotImplementedError(f"type({type(self.validator)})")
-
-    def setValue(self, value: np.ndarray, b_block_signal: bool = False):
-        self.setData(value=value,
-                     role=self.BLOCK_SIGNAL_ROLE
-                     if b_block_signal is True else None)
-        return self.value()
-
-    def update(self, item: QtWidgets.QTableWidgetItem | TableWidgetItem):
-        if isinstance(item, QtWidgets.QTableWidgetItem):
-            value = item.value
-            rc = item.row(), item.column()
-            old_value = self.df.iloc[*rc]
-            if old_value != value:
-                self.df.iloc[*rc] = value
-                self.sigChanged.emit(self)
-
-        else:
-            raise NotImplementedError(str(item))
 
     def value(self):
         if self.df is not None:

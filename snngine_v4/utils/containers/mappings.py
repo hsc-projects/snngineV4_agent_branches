@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, ClassVar, Type
 
 from pydantic import BaseModel
+from pydantic_core import PydanticUndefined
 
 from snngine_v4.utils.containers.configurable_container import (
     ValidValueType
@@ -51,7 +52,7 @@ class Object2ObjectMap(ConfigurableDict):
             container_conf = self.cls_make_container_conf(
                 container_conf=container_conf)
             if inverted_conf is None:
-                inverted_conf = self.InvertedConfigClass()
+                inverted_conf = self.cls_make_inv_conf()
             inverted = Object2ObjectMap(
                 inverted=self, container_conf=inverted_conf,
                 inverted_conf=container_conf)
@@ -64,6 +65,28 @@ class Object2ObjectMap(ConfigurableDict):
                 allowed_types=inverted_conf.allowed_types))
         super().__init__(container_conf=container_conf,
                          **kwargs)
+
+    @classmethod
+    def cls_make_container_conf(cls, container_conf=None,
+                                default_cls=PydanticUndefined):
+        if default_cls == PydanticUndefined:
+            default_cls = cls.ContainerConfigClass
+        if (isinstance(default_cls, tuple)
+                and (not issubclass(default_cls[0], Int2ObjectMapConfig))):
+            cls.InvertedConfigClass = None
+            return Int2ObjectMapConfig(allowed_types=default_cls[1])
+        return super().cls_make_container_conf(
+            container_conf, default_cls=default_cls)
+
+    @classmethod
+    def cls_make_inv_conf(cls, container_conf=None):
+        if (isinstance(cls.ContainerConfigClass, tuple)
+                and (not issubclass(
+                    cls.ContainerConfigClass[0], Int2ObjectMapConfig))):
+            return Int2ObjectMapConfig(
+                allowed_types=cls.ContainerConfigClass[0])
+        return super().cls_make_container_conf(
+            container_conf, default_cls=cls.InvertedConfigClass)
 
     @property
     def data_ids(self):
