@@ -119,24 +119,24 @@ class SpinBoxSliderParameterItem(NumericParameterItem,
     def optsChanged(self, param, opts):
         super().optsChanged(param, opts)
 
-        span = opts.get(ParamOpts.KW.SPAN, None)
-        if span is None:
-            step = opts.get(ParamOpts.KW.STEP, 1)
-            start, stop = opts.get(ParamOpts.KW.BOUNDS,
-                                   param.opts[ParamOpts.KW.BOUNDS])
-            # Add a bit to 'stop' since python slicing excludes the last value
-            span = np.arange(start, stop + step, step)
-        defs = {ParamOpts.KW.STEP: span[1] - span[0],
-                ParamOpts.KW.DECIMALS: 3}
+        # span = opts.get(ParamOpts.KW.SPAN, self.param.opts[ParamOpts.KW.SPAN])
+        # if span is None:
+        #     step = opts.get(ParamOpts.KW.STEP, 1)
+        #     start, stop = opts.get(ParamOpts.KW.BOUNDS,
+        #                            param.opts[ParamOpts.KW.BOUNDS])
+        #     # Add a bit to 'stop' since python slicing excludes the last value
+        #     span = np.arange(start, stop + step, step)
+        # defs = {ParamOpts.KW.STEP: span[1] - span[0],
+        #         ParamOpts.KW.DECIMALS: 3}
 
-        self.widget.setOpts(**defs)
+        # self.widget.setOpts(**defs)
+        #
+        # precision = opts.get('precision', 2)
+        # if precision is not None:
+        #     span = span.round(precision)
 
-        precision = opts.get('precision', 2)
-        if precision is not None:
-            span = span.round(precision)
-
-        if hasattr(self, 'slider'):
-            self.slider.set_span(span)
+        if hasattr(self, 'slider') and (ParamOpts.KW.SPAN in opts):
+            self.slider.set_span(opts[ParamOpts.KW.SPAN])
 
     def displayNoneValue(self, value: bool, b_update_checkbox):
         if isinstance(value, int):

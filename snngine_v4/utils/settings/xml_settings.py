@@ -4,6 +4,7 @@ from typing import Any, ClassVar, Type
 
 from pydantic import BaseModel, computed_field, model_validator
 
+from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.utils.settings.xml_settings_base import (
     default_xml_model_config_dict, XMLSettingsConfigDict,
     XMLSettingsModelBase,
@@ -33,18 +34,25 @@ class XMLSettingsModel(XMLSettingsModelBase):
             return {c.__name__: c for c in cls.EXTRA_CLASSES}
 
     @classmethod
-    def model_interpret_dict(cls, dct: dict) -> dict | BaseModel:
+    def model_interpret_dict(
+            cls, dct: dict, b_raise: bool = False) -> dict | BaseModel:
         if cls.EXTRA_CLASSES is not None:
-            if (model_type := cls.model_interpret_dict_type(dct)) is not None:
+            if ((model_type := cls.model_interpret_dict_type(
+                    dct, b_raise=b_raise)) is not None):
                 return model_type(**dct)
         return dct
 
     @classmethod
-    def model_interpret_dict_type(cls, dct: dict) -> Type[BaseModel]:
+    def model_interpret_dict_type(
+            cls, dct: dict, b_raise: bool = False) -> Type[BaseModel]:
+        classes_dict = {}
         if cls.EXTRA_CLASSES is not None:
             class_name = dct[cls.CLASS_NAME_KW]
             if class_name in (classes_dict := cls.model_extra_class_dict()):
                 return classes_dict[class_name]
+        if b_raise:
+            raise TypeError(f"Unknown model type: {dct[cls.CLASS_NAME_KW]} "
+                            f"not in {classes_dict.keys()}")
 
     @classmethod
     def pop_model__class__name_keyword(
@@ -68,7 +76,8 @@ class XMLSettingsModel(XMLSettingsModelBase):
                 if cls.EXTRA_CLASSES is not None:
                     for k in data.model_extra:
                         if isinstance(data.model_extra[k], dict):
-                            new = cls.model_interpret_dict(data.model_extra[k])
+                            new = cls.model_interpret_dict(data.model_extra[k],
+                                                           b_raise=True)
                             if new is not None:
                                 setattr(data, k, new)
         return data
@@ -78,3 +87,15 @@ class XMLSettingsContainerModel(XMLSettingsModel):
 
     model_config: ClassVar[XMLSettingsConfigDict] = (
         default_xml_model_config_dict(extra='allow'))
+
+    parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
+        expanded=True,
+        c_auto_collapse=True,
+        c_collapsed_children=True,
+    )
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+    def __setitem__(self, key, value):
+        setattr(self, key, value)

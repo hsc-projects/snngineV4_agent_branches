@@ -40,14 +40,11 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
                 and (b_duplicate_check is True) and hasattr(self, "data")
                 and self.values_contain(item))
 
-    @classmethod
-    def from_type(cls, type_: type,
-                  data=None, allowed_key_types=str, **kwargs):
-        return cls(data=data,
-                   container_conf=cls.ContainerConfigClass(
-                       allowed_types=type_,
-                       allowed_key_types=allowed_key_types,
-                       **kwargs))
+    def clear(self, b_force: bool = False) -> None:
+        if ((self._container_conf.b_clear_allowed is False)
+                and (b_force is False)):
+            raise AttributeError("Clearing not allowed.")
+        super().clear()
 
     def __contains__(self, item):
         contains = super().__contains__(item)
@@ -56,6 +53,15 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
                      and isinstance(item, Enum))):
             contains = super().__contains__(item.name)
         return contains
+
+    @classmethod
+    def from_type(cls, type_: type,
+                  data=None, **kwargs):
+
+        return cls(data=data,
+                   container_conf=cls.ContainerConfigClass(
+                       allowed_types=type_,
+                       **kwargs))
 
     def __getattribute__(self, item):
         if (item == 'pop') and hasattr(self, '_container_conf'):
@@ -80,13 +86,14 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
         super().__setitem__(self.validate_key(key),
                             self.validate_item(item))
 
-    def update(self, m, **kwargs) -> None:
-        if isinstance(m, (dict, UserDict)):
-            for k, v in m.items():
-                self[k] = v
-        else:
-            for k, v in m:
-                self[k] = v
+    def update(self, m=None, **kwargs) -> None:
+        if m is not None:
+            if isinstance(m, (dict, UserDict)):
+                for k, v in m.items():
+                    self[k] = v
+            else:
+                for k, v in m:
+                    self[k] = v
         for k, v in kwargs.items():
             self[k] = v
 

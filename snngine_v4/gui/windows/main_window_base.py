@@ -18,7 +18,7 @@ from snngine_v4.snngine import SNNgine
 
 if TYPE_CHECKING:
     from snngine_v4.gui.parameter_tree.engine_parameter_tree import (
-        EngineParameterTree, EngineTreeDockWidget,
+        QTree, EngineTreeDockWidget,
     )
     from snngine_v4.gui.parameter_tree.parameters.widgets.array_editor import \
         ArrayEditorDockWidget
@@ -55,7 +55,12 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
         self.right_toolbar = RightToolbar()
         self.addToolBar(
             QtCore.Qt.ToolBarArea.RightToolBarArea, self.right_toolbar)
+
         self.docks: QDockWidgetDict = self.setup_dock_widgets()
+
+        self.scene_tree: QTree = self.get_tree(EngineConfig.Slots.SCENES)
+        self.constr_tree: QTree = self.get_tree(EngineConfig.Slots.CONSTR)
+        self.network_tree: QTree = self.get_tree(EngineConfig.Slots.NETWORK)
 
         self.engine = engine
         self.connect_to_engine()
@@ -82,9 +87,12 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
         settings_action.triggered.connect(
             self.windows[WindowTypes.SETTINGS].show)
 
+    def get_tree(self, slot) -> QTree:
+        return self.docks[slot.capitalize()].widget()
+
     def make_settings_dock_widget(self, key) -> EngineTreeDockWidget:
         return self.SETTINGS_DOCK_CLASS(
-            pars=self.setting_trees[key].parameters,
+            pars=self.setting_trees[key].copy(),
             name=key.capitalize())
 
     def setup_dock_widgets(self):
@@ -101,27 +109,34 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
                        QtCore.Qt.DockWidgetArea.LeftDockWidgetArea)
 
         construction = self.make_settings_dock_widget(
-            key=EngineConfig.Slots.CONSTRUCTION)
+            key=EngineConfig.Slots.CONSTR)
         scenes = self.make_settings_dock_widget(
             key=EngineConfig.Slots.SCENES)
+        network = self.make_settings_dock_widget(
+            key=EngineConfig.Slots.NETWORK)
 
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
                            scenes)
         self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
                            construction)
-        self.tabifyDockWidget(construction, scenes)
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
+                           network)
+        self.tabifyDockWidget(scenes, construction)
+        self.tabifyDockWidget(construction, network)
+
+        # construction.raise_()
 
         buttons = ButtonsDockWidget(name=self.BUTTONS_DOCK_NAME)
         self.addDockWidget(
             QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, buttons)
 
         # noinspection PyTypeChecker
-        docks.add_widgets(construction, scenes, buttons)
+        docks.add_widgets(construction, scenes, network, buttons)
 
         return docks
 
     @property
-    def setting_trees(self) -> dict[str, EngineParameterTree]:
+    def setting_trees(self) -> dict[str, QTree]:
         return self.windows[WindowTypes.SETTINGS].setting_trees
 
     def toggleArrayEditorVisibility(self):

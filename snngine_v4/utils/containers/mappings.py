@@ -40,8 +40,10 @@ class Int2ObjectMapConfig(DictContainerConfig, frozen=True):
 
 class Object2ObjectMap(ConfigurableDict):
 
-    ContainerConfigClass: ClassVar = Int2ObjectMapConfig
-    InvertedConfigClass: ClassVar = Int2ObjectMapConfig
+    ContainerConfigClass: ClassVar[Type[Int2ObjectMapConfig]] = (
+        Int2ObjectMapConfig)
+    InvertedConfigClass: ClassVar[Type[Int2ObjectMapConfig]] = (
+        Int2ObjectMapConfig)
 
     def __init__(self, inverted: Object2ObjectMap = None,
                  container_conf=None,
@@ -65,6 +67,12 @@ class Object2ObjectMap(ConfigurableDict):
                 allowed_types=inverted_conf.allowed_types))
         super().__init__(container_conf=container_conf,
                          **kwargs)
+
+    def clear(self, b_force: bool = False, b_clear_inv: bool = True):
+        super().clear(b_force=b_force)
+        self.refs.clear(b_force=True)
+        if b_clear_inv:
+            self.inv.clear(b_force=True, b_clear_inv=False)
 
     @classmethod
     def cls_make_container_conf(cls, container_conf=None,
@@ -142,12 +150,11 @@ class Object2ObjectMap(ConfigurableDict):
             elif (item_ := self.inv[item1]) is not item0:
                 raise ValueError(f"self.inverted[item1] = {item_} != {item0}")
 
-    def update(self, m, **kwargs) -> None:
+    def update(self, m=None, **kwargs) -> None:
         if isinstance(m, Object2ObjectMap):
             for k, v in m.pairs():
                 self[k] = v
-        else:
-            super().update(m, **kwargs)
+        super().update(**kwargs)
 
 
 class Model2ObjectMap(Object2ObjectMap):

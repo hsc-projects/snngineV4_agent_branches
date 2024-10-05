@@ -14,13 +14,15 @@ from snngine_v4.gui.parameter_tree.connectors.basemodel_signal_register \
     import ModelSignalRegister
 
 
+# noinspection PyPep8Naming
 class EngineParameterTree(ParameterTree):
 
     # noinspection PyPep8Naming
     def __init__(self,
                  name: str = None,
                  model: BaseModel = None,
-                 parent=None, showHeader=True):
+                 parent=None, showHeader=True,
+                 signal_register=None):
 
         if name is None:
             name = self.__class__.__name__
@@ -29,11 +31,10 @@ class EngineParameterTree(ParameterTree):
         self.setObjectName(name)
 
         self._settings_model = model
-        self.signal_register = ModelSignalRegister()
+        self.signal_register = signal_register or ModelSignalRegister()
         if model is not None:
-            settings_model_dict = self._settings_model.model_dump()
             self.parameters = self.add_parameters_from_model(
-                self._settings_model, model_dict=settings_model_dict)
+                self._settings_model)
 
         self._dock_widget = None
 
@@ -41,7 +42,6 @@ class EngineParameterTree(ParameterTree):
         mode = QtWidgets.QHeaderView.ResizeMode.Interactive
         header.setSectionResizeMode(mode)
 
-    # noinspection PyPep8Naming
     def addParameters(self, param, root=None, depth=0, showTop=True):
         super().addParameters(param, root=root, depth=depth, showTop=showTop)
 
@@ -50,26 +50,35 @@ class EngineParameterTree(ParameterTree):
         header.resizeSections(mode)
         # header.resizeSection(0, 15)
 
-    def add_parameters_from_model(self, model: BaseModel, model_dict=None):
-        if model_dict is None:
-            model_dict = model.model_dump()
+    def add_parameters_from_model(
+            self, model: BaseModel, root=None, depth=0, showTop=True):
         pars = ParameterBuilder.make_pars_from_model(
             model=model,
             signal_register=self.signal_register)
-        self.addParameters(pars)
+        self.addParameters(pars, root=root, depth=depth, showTop=showTop)
         return pars
 
-    # noinspection PyPep8Naming
+    def clear(self):
+        super().clear()
+        self._settings_model = None
+        self.signal_register.clear()
+
+    def copy(self, **kwargs):
+        return self.__class__.from_pars(
+            signal_register=self.signal_register,
+            pars=self.parameters,
+            model=self.model, **kwargs)
+
     @classmethod
     def from_pars(cls, pars: Parameter | EngineParameterTree,
-                  name=None,
+                  name=None, signal_register=None,
                   root=None, depth=0, showTop=False, model=None
                   ) -> EngineParameterTree:
         if isinstance(pars, EngineParameterTree):
             if name is None:
                 name = pars.objectName()
             pars = pars.parameters
-        tree = cls(name=name)
+        tree = cls(name=name, signal_register=signal_register)
         tree.addParameters(pars, root=root, depth=depth, showTop=showTop)
         tree.settings_model = model
         return tree
@@ -123,3 +132,6 @@ class EngineTreeDockWidget(MainDockWidget):
         super().__init__(name, parent=parent, features=features, **kwargs)
         pars.dock_widget = self
         self.setWidget(pars)
+
+
+type QTree = EngineParameterTree | QtWidgets.QTreeWidget

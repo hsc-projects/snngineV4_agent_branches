@@ -1,10 +1,10 @@
 from collections import UserDict, UserList
 from types import NoneType
-from typing import Annotated, Any, ClassVar, Type
+from typing import Any, ClassVar, Type
 
-from pydantic import BeforeValidator, field_validator
+from pydantic import field_validator
 from pydantic.types import AnyType
-from pydantic_core import PydanticUndefined, PydanticUndefinedType
+from pydantic_core import PydanticUndefined
 
 from snngine_v4.utils.field_utils import (
     extract_type_from_type_annotation, b_field_has_default,
@@ -27,6 +27,7 @@ class ContainerConfig(XMLSettingsModel, frozen=True):
     b_duplicate_check_by_id: bool = False
     b_replace_allowed: bool = False
     b_pop_allowed: bool = True
+    b_clear_allowed: bool = False
 
     class Slots:
         ALLOWED_TYPES: ClassVar[str] = 'allowed_types'
@@ -143,8 +144,10 @@ class ConfigurableContainerBase:
             default_cls = cls.ContainerConfigClass
         if isinstance(default_cls, tuple):
             cls_: Type[ContainerConfig] = default_cls[0]
-            type_: ContainerConfig = default_cls[1]
-            return cls_(allowed_types=type_)
+            kwargs = {'allowed_types': default_cls[1]}
+            if len(default_cls) == 3:
+                kwargs['allowed_key_types'] = default_cls[2]
+            return cls_(**kwargs)
         return default_cls()
 
     @classmethod

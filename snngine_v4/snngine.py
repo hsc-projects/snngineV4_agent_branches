@@ -1,10 +1,9 @@
-from snngine_v4.nn.nn_builder import NetworkBuilder
+from snngine_v4.nn.nn_builder import NetworkManager
 from snngine_v4.snngine_config import EngineConfig
 
 from snngine_v4.visualization.scenes.main_network_scene import \
     EngineSceneCanvas
 from snngine_v4.visualization.scenes.scene_manager import SceneManager
-from snngine_v4.visualization.visual_builder import VispyVisualBuilder
 
 
 class SNNgine:
@@ -24,18 +23,18 @@ class SNNgine:
         self.scene_manager: dict[str, EngineSceneCanvas] | SceneManager = (
             SceneManager(self.conf.scenes))
 
-        self.network_manager = NetworkBuilder()
+        self.network_manager = NetworkManager(
+            container_model=self.conf.current)
 
-        self.build()
+        # self.build()
 
     def build(self):
-        self.network_manager.update(self.conf.construction.network)
-
-        scene: EngineSceneCanvas = self.scene_manager[self.conf.scenes.main]
-        parent = scene.new_visual_node_parent()
-
-        box = VispyVisualBuilder.cls_build(
-            self.conf.construction.network.grid, parent=parent).built
+        self.network_manager.build(self.conf.construction)
+        self.conf.current = self.network_manager.container_model
+        self.scene_manager.build_visuals(
+            visuals={'grid': self.conf.current.network.grid},
+            scene=self.conf.scenes.main,
+        )
 
         return
 

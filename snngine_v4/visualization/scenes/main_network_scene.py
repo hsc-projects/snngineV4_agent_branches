@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from vispy.scene import BaseCamera, SceneCanvas, ViewBox, VisualNode
 
-from snngine_v4.utils.containers.configurable_dict import ConfigurableDict
 from snngine_v4.utils.containers.mappings import Model2ObjectMap
 
 

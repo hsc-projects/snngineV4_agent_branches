@@ -71,11 +71,11 @@ class BoxVisualConfig(FiniteGridConfig):
     color: ColorType
     edge_color: ColorType
 
-    border: OpenGLState = OpenGLState(
+    border: OpenGLState = Field(default_factory=lambda: OpenGLState(
         state_type=OpenGlStateType.UPDATE,
         line_width=6,
         attribute_key='_border',
-    )
+    ))
 
 
 class OuterGridVisualConfig(BoxVisualConfig):
@@ -83,9 +83,9 @@ class OuterGridVisualConfig(BoxVisualConfig):
     color: ColorType = None
     edge_color: ColorType = 'white'
 
-    mesh: OpenGLState = OpenGLState(
+    mesh: OpenGLState = Field(default_factory=lambda: OpenGLState(
         state_type=OpenGlStateType.SET,
         polygon_offset_fill=True,
         polygon_offset=(1, 1),
         depth_test=False
-    )
+    ))

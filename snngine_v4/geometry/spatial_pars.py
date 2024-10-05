@@ -7,6 +7,7 @@ from pydantic import Field, NonNegativeInt, PositiveFloat
 
 from snngine_v4.data.validation.array_annotation import ArrayInterfaces
 from snngine_v4.data.validation.dtype_annotation import Float32
+from snngine_v4.utils.core_utils import get_intenum_member
 from snngine_v4.utils.settings.ui_parameter_options import (
     FrozenParamOpts,
     GroupPrefixesType,
@@ -28,13 +29,30 @@ class AxDir3D(IntEnum):
     ZP = 4
     ZM = 5
 
+    @classmethod
+    def vispy_name_alias(cls, member):
+        member = get_intenum_member(member, cls)
+        match member:
+            case cls.XP:
+                return '+x'
+            case cls.XM:
+                return '-x'
+            case cls.YP:
+                return '+y'
+            case cls.YM:
+                return '-y'
+            case cls.ZP:
+                return '+z'
+            case cls.ZM:
+                return '-z'
+
 
 class SpatialParUIOpts(FrozenParamOpts):
     renamable: bool = False
     expanded: bool = True
     c_numeric_group: bool = True
-    # c_auto_expand: bool = True
-    # c_auto_collapse: bool = False
+    c_auto_expand: bool = True
+    c_auto_collapse: bool = True
     c_group_prefixes: GroupPrefixesType = Ax3D
 
 

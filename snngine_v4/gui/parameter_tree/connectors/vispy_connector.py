@@ -2,15 +2,21 @@ from typing import Callable
 
 import numpy as np
 
-from pydantic import BaseModel
-from vispy.scene import TurntableCamera, XYZAxis
-from vispy.visuals import BaseVisual
+from vispy.scene import Box, TurntableCamera, XYZAxis
+from vispy.visuals import BaseVisual, CompoundVisual, MeshVisual
 
 from snngine_v4.data.validation.array_annotation import ArrayInterfaces
+from snngine_v4.geometry.grid.finite_grid import FiniteGrid
+from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import Ax3D
 from snngine_v4.gui.parameter_tree.connectors.basemodel_signal_register import (
-    ModelParameterLinks, ModelSignalRegister, ObjectParameterLink,
+    ModelSignalRegister,
 )
+from snngine_v4.gui.parameter_tree.connectors.model_parameter_links import (
+    ModelParameterLinks, ObjectParameterLink,
+)
+from snngine_v4.gui.parameter_tree.connectors.object2object_links import \
+    LinkStateType
 
 from snngine_v4.gui.parameter_tree.connectors.parameter_connector import \
     ParameterConnector
@@ -20,8 +26,9 @@ from snngine_v4.visualization.config_models.vispy_camera_configs import \
     TurnTableCameraParameters
 from snngine_v4.visualization.config_models.vispy_visual_parameters import \
     RGBAColor
-from snngine_v4.visualization.config_models.visual_configs import \
-    XYZAxisVisualConfig
+from snngine_v4.visualization.config_models.visual_configs import (
+    BoxVisualConfig, XYZAxisVisualConfig,
+)
 
 from snngine_v4.visualization.scenes.event_camera import (
     EventCameraMixin,
@@ -29,20 +36,32 @@ from snngine_v4.visualization.scenes.event_camera import (
 from snngine_v4.visualization.scenes.setattribute_event import (
     Set3DAttributeEvent, SetAttributeEvent,
 )
+from snngine_v4.visualization.visual_builder import VispyVisualBuilder
 
 
 class VispyConnector(ParameterConnector):
 
     SET_DATA_KWS = {
-        XYZAxis: ['color', 'pos', 'connect', 'width']
+        XYZAxis: ['color', 'pos', 'connect', 'width'],
+        MeshVisual: ['vertices', 'faces', 'vertex_colors',
+                     'face_colors', 'color', 'vertex_values',
+                     'meshdata']
     }
+
+    @classmethod
+    def adapt_condition(cls, arr0, arr1):
+        if ((not ArrayInterfaces().D2.b_is_valid_np(arr0))
+                or (not ArrayInterfaces().D2.b_is_valid_np(arr1))):
+            return False
+        return arr0.shape[0] != arr1.shape[0]
 
     @classmethod
     def connect_object(cls, model, obj,
                        signal_register: ModelSignalRegister):
 
         model_signals: ModelParameterLinks = signal_register[model]
-        links: list[ObjectParameterLink] = model_signals.refs
+        links: list[ObjectParameterLink] = model_signals[
+            ObjectParameterLink].refs
 
         def update_object(link_, key, value):
             cls.update_object(obj, key, value, update_model)
@@ -58,12 +77,12 @@ class VispyConnector(ParameterConnector):
                 model.center]
 
             center_parameters = {
-                x.name: center_signals.str_emitter_map[x.name].parameter
+                x.name: center_signals[str][x.name].sink
                 for x in Ax3D
             }
 
             def update_camera_object(link_: ObjectParameterLink, key, value):
-                if link_.obj == model.center:
+                if link_.source == model.center:
                     key = 'center'
                     value = (
                         center_parameters[Ax3D.X.name].value(),
@@ -107,12 +126,13 @@ class VispyConnector(ParameterConnector):
                     key=link.key, value=getattr(obj, link.key))
                 update_camera_model(ev, None)
 
-                link.sigAttributeValueChanged.connect(update_camera_object)
+                link[LinkStateType.SOURCE2SINK].signal.connect(update_camera_object)
 
-            center_links: list[ObjectParameterLink] = center_signals.refs
+            center_links: list[ObjectParameterLink] = (
+                center_signals[ObjectParameterLink].refs)
 
             for link in center_links:
-                link.sigAttributeValueChanged.connect(update_camera_object)
+                link[LinkStateType.SOURCE2SINK].connect(update_camera_object)
 
         elif isinstance(obj, XYZAxis):
 
@@ -123,7 +143,7 @@ class VispyConnector(ParameterConnector):
 
             attr_changed_keys = [
                 x for x in XYZAxisVisualConfig.model_fields.keys()
-                if x not in cls.SET_DATA_KWS[XYZAxis]]
+                if x not in cls.SET_DATA_KWS[type(obj)]]
 
             def set_attr(self_, key, value):
                 setattr(self_, key, value)
@@ -138,17 +158,21 @@ class VispyConnector(ParameterConnector):
                 link.sigAttributeValueChanged.connect(update_object)
 
             obj.antialias = True
-            # obj.antialias = False
-            # obj.antialias = True
+
+        elif isinstance(obj, CompoundVisual):
+            exp_model = VispyVisualBuilder.get_model(model)
+            if model.__class__ != exp_model.__class__:
+                assert isinstance(model, FiniteGridConfig)
+                new_model = exp_model
+            # assert isinstance(model, BoxVisualConfig)
+            # for sub_visual in obj._subvisuals:
+            #     cls.connect_object(
+            #         model, sub_visual,
+            #         signal_register)
+        elif isinstance(obj, MeshVisual):
+            assert isinstance(model, BoxVisualConfig)
 
         return
-
-    @classmethod
-    def adapt_condition(cls, arr0, arr1):
-        if ((not ArrayInterfaces().D2.b_is_valid_np(arr0))
-                or (not ArrayInterfaces().D2.b_is_valid_np(arr1))):
-            return False
-        return arr0.shape[0] != arr1.shape[0]
 
     @classmethod
     def handle_set_data_kwargs(cls, obj, key, value):
@@ -190,7 +214,7 @@ class VispyConnector(ParameterConnector):
             cls, link: ObjectParameterLink, key, value, block):
         if block:
             link.sigAttributeValueChanged.disconnect(block)
-        link.set_parameter_value(
+        link[LinkStateType.SOURCE2SINK](
             link, key, value, b_block=False)
         if block:
             link.sigAttributeValueChanged.connect(block)
@@ -201,7 +225,7 @@ class VispyConnector(ParameterConnector):
         if isinstance(event, Set3DAttributeEvent):
             for ax in Ax3D:
                 try:
-                    link = model_signals.str_emitter_map[ax.name]
+                    link = model_signals[str][ax.name]
                     cls.update_model_attribute(
                         link, ax.name, event.value[ax.value], block)
                 except KeyError:
@@ -209,7 +233,7 @@ class VispyConnector(ParameterConnector):
 
         elif isinstance(event, SetAttributeEvent):
             try:
-                link = model_signals.str_emitter_map[event.key]
+                link = model_signals[str][event.key]
             except KeyError:
                 raise
             cls.update_model_attribute(link, event.key, event.value, block)

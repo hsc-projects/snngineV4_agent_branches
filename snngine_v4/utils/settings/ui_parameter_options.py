@@ -110,6 +110,10 @@ class ParamOpts(BaseSettings, extra='allow'):
         ADD_TEXT: ClassVar[str] = 'addText'
 
         # Custom
+        C_AUTO_COLLAPSE: ClassVar[str] = 'c_auto_collapse'
+        C_AUTO_EXPAND: ClassVar[str] = 'c_auto_expand'
+        C_COLLAPSED_CHILDREN: ClassVar[str] = 'c_collapsed_children'
+
         C_COLUMN_NAME_S: ClassVar[str] = 'c_column_name_s'
         C_GROUP_PREFIXES: ClassVar[str] = 'c_group_prefixes'
         C_MODEL_FIELD_NAME: ClassVar[str] = 'c_model_field_name'
@@ -118,14 +122,16 @@ class ParamOpts(BaseSettings, extra='allow'):
         C_NULLABLE_VALUE: ClassVar[str] = 'c_nullable_value'
         C_COERCE_TO_LIMITS: ClassVar[str] = 'c_coerce_to_limits'
         C_VALUE_INTERVAL: ClassVar[str] = 'c_value_interval'
-        # C_AUTO_COLLAPSE: ClassVar[str] = 'c_auto_collapse'
-        # C_AUTO_EXPAND: ClassVar[str] = 'c_auto_expand'
+
         C_NONE_MEANS_UNKNOWN: ClassVar[str] = 'c_none_means_unknown'
         C_DATA_TYPES: ClassVar[str] = 'c_data_types'
         # C_REQUIRES_REBUILD: ClassVar[str] = 'c_requires_rebuild'
+        C_B_GROUP_DEFAULT_BUTTON: ClassVar[str] = 'c_b_group_default_button'
         C_ANNOTATION: ClassVar[str] = 'c_annotation'
         C_ARRAY_INTERFACE: ClassVar[str] = 'c_array_interface'
         C_ARRAY_DEFAULT_VALUE: ClassVar[str] = 'c_array_default_value'
+        C_B_COLLECT_EXTRA_CLASSES: ClassVar[str] = 'c_b_collect_extra_classes'
+        # C_REFERENCE: ClassVar[str] = 'c_reference'
         # C_VALUE_INTERVAL: ClassVar[str] = 'c_value_interval'
 
     # keep unset
@@ -146,7 +152,7 @@ class ParamOpts(BaseSettings, extra='allow'):
     delay: float = Field(default=0.1, gt=0)
     name: str | None = None
     enum: Type[Enum] | None = None
-    expanded: bool = True
+    expanded: bool | None = None
     readonly: bool | None = False
     movable: bool = False
     dropEnabled: bool = False
@@ -161,10 +167,25 @@ class ParamOpts(BaseSettings, extra='allow'):
     c_nullable_value: bool = False
     c_group_prefixes: GroupPrefixesType = None
     c_coerce_to_limits: bool = False
-    # c_auto_expand: bool = False
-    # c_auto_collapse: bool = False
+
+    c_auto_expand: bool = False
+    c_auto_collapse: bool = False
+    c_collapsed_children: bool = False
+
     # c_requires_rebuild: bool = False
     c_array_default_value: float | int = 0
+    c_b_collect_extra_classes: bool = False
+    c_b_group_default_button: bool | None = None
+    # c_reference: Any = None
+
+    @classmethod
+    def auto_expand_condition(cls, b_expand, opts):
+        if isinstance(b_expand, (list, tuple)):
+            return any([cls.auto_expand_condition(x, opts) for x in b_expand])
+        return (
+            (b_expand and opts.get(ParamOpts.KW.C_AUTO_EXPAND, False))
+            or ((not b_expand)
+                and opts.get(ParamOpts.KW.C_AUTO_COLLAPSE, False)))
 
     def __contains__(self, item):
         return item in self.keys()
@@ -194,6 +215,8 @@ class ParamOpts(BaseSettings, extra='allow'):
                   ParamOpts.KW.DELAY,
                   ]:
             res[k] = opts[k]
+        if opts.get(ParamOpts.KW.C_COLLAPSED_CHILDREN, False) is True:
+            res[ParamOpts.KW.EXPANDED] = False
         return res
 
     def __iter__(self):

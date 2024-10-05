@@ -1,37 +1,64 @@
-from typing import ClassVar
+from copy import deepcopy
+from typing import ClassVar, Type
 
+from pydantic import BaseModel
+
+from snngine_v4.config.construction import EngineConstructionConfig
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
 from snngine_v4.geometry.grid_config import FiniteGridConfig
-from snngine_v4.nn.config_models.nn_builder_config import \
-    NetworkConstructionConfig
+from snngine_v4.utils.containers.mappings import Int2ObjectMapConfig
 
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 
 
-class NetworkBuilder(BuilderDict):
+class NetworkManager(BuilderDict):
+
+    class ContainerConfigClass(Int2ObjectMapConfig):
+        b_clear_allowed: bool = True
 
     BUILDER_OBJECT_CLASS_MAP: ClassVar = {
         FiniteGridConfig: FiniteGrid
     }
 
-    def __init__(self, model: NetworkConstructionConfig = None,
-                 b_initial_build: bool = True):
+    def __init__(
+            self,
+            container_model: EngineConstructionConfig,
+            build_model: EngineConstructionConfig = None,
+    ):
 
         super().__init__()
+        self.container_model_class: Type[EngineConstructionConfig] | None = None
+        self.container_model = container_model
 
-        if (b_initial_build is True) and (model is not None):
-            self.update(model)
+        if build_model is not None:
+            self.update(build_model)
 
-    def update(self, m, **kwargs) -> None:
-        self.destroy()
-        super().update(m, **kwargs)
+    def clear(self, b_force: bool = False, b_clear_inv: bool = True):
+        super().clear(b_force=b_force, b_clear_inv=b_clear_inv)
+        self.container_model_class = self.container_model.__class__
+        del self.container_model
 
-        data = self.data
+    def update(self, m=None, **kwargs) -> None:
+        if isinstance(m, BaseModel):
+            self.container_model = self.container_model_class(
+                **deepcopy(m).model_dump())
+            model = self.container_model
+            keys = list(model.model_fields.keys())
+            if model.model_extra is not None:
+                keys += list(model.model_extra.keys())
+            build = self.cls_build_container(model_container=model)
+            m = build.object_dict
+            super().update(m, **kwargs)
+            for k in keys:
+                v = getattr(model, k)
+                if v not in self:
+                    if isinstance(v, (list, tuple)):
+                        if not all([(x in self) for x in v]):
+                            raise AssertionError
+                    else:
+                        raise AssertionError
+
+        else:
+            super().update(m, **kwargs)
 
         return
-
-    def destroy(self):
-        del self.data
-        del self.inv.data
-        self.data = {}
-        self.inv.data = {}

@@ -17,6 +17,12 @@ class TechnicalValues(XMLSettingsModel):
 
 class FiniteGridConfig(XMLSettingsModel):
 
+    parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
+        expanded=True,
+        c_auto_collapse=True,
+        c_collapsed_children=True,
+    )
+
     technical: TechnicalValues
     shape: FloatShape3D
     seg: Segmentation3D

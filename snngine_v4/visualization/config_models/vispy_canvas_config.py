@@ -39,6 +39,7 @@ class VispyViewBoxConfig(VispyWidgetConfig):
 
     parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         renamable=False,
+        c_auto_collapse=True,
         expanded=False,
     )
 
@@ -62,11 +63,19 @@ class SceneCameras(XMLSettingsContainerModel):
     EXTRA_CLASSES: ClassVar[Type[XMLSettingsModel]] = [
         TurnTableCameraParameters]
 
+    parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
+        c_b_collect_extra_classes=True,
+        expanded=True,
+        c_auto_collapse=True,
+        c_collapsed_children=True,
+    )
+
 
 class VispyCanvasConfigOptions(XMLSettingsModel, frozen=True):
 
     parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         renamable=False,
+        c_auto_collapse=True,
         expanded=False,
     )
 

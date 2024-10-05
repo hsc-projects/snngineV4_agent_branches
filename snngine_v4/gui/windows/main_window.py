@@ -3,8 +3,6 @@ from typing import ClassVar
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.common.qobject_dicts import QWidgetDict
-from snngine_v4.gui.parameter_tree.connectors.basemodel_signal_register import \
-    ModelSignalRegister
 from snngine_v4.gui.parameter_tree.connectors.vispy_connector import \
     VispyConnector
 from snngine_v4.gui.parameter_tree.parameters.widgets.array_editor import \
@@ -15,14 +13,8 @@ from snngine_v4.gui.windows.main_window_base import (
     MainEngineWindowBase,
     WindowTypes,
 )
-from snngine_v4.snngine_config import EngineConfig
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import (
-    EngineParameterTree, EngineTreeDockWidget,
-)
-from snngine_v4.visualization.config_models.vispy_camera_configs import \
-    TurnTableCameraParameters
-from snngine_v4.visualization.config_models.vispy_canvas_config import (
-    VispyCanvasConfig
+    EngineTreeDockWidget,
 )
 
 
@@ -39,12 +31,7 @@ class MainEngineWindow(MainEngineWindowBase):
 
         super().__init__(windows, engine=engine)
 
-        scene_tree_dock = self.docks[EngineConfig.Slots.SCENES.capitalize()]
-        self.scene_tree: EngineParameterTree = scene_tree_dock.widget()
-        self.scene_tree.signal_register = (
-            self.setting_trees[EngineConfig.Slots.SCENES].signal_register)
-
-        self.update_connections()
+        self.build()
 
     def build(self):
         self.engine.build()
@@ -66,34 +53,16 @@ class MainEngineWindow(MainEngineWindowBase):
         return docks
 
     def update_connections(self):
-        scene_tree: EngineParameterTree = self.scene_tree
 
-        signal_register: ModelSignalRegister = scene_tree.signal_register
-        models = signal_register.connected_models
+        VispyConnector.connect_tree(tree=self.scene_tree,
+                                    scene_manager=self.engine.scene_manager)
+        self.network_tree.clear()
+        self.network_tree.add_parameters_from_model(
+            self.engine.network_manager.container_model,
+            showTop=False)
 
-        scene_manager = self.engine.scene_manager
-
-        object2object_map = scene_manager.get_objects(models)
-
-        VispyConnector.connect_map(
-            object2object_map=object2object_map,
-            signal_register=signal_register
-        )
-
-        scene_models: list[VispyCanvasConfig] = scene_manager.refs
-
-        for sm in scene_models:
-            if sm.Views:
-                cam_pars = signal_register.get_parameters_by_type(
-                    model_type=TurnTableCameraParameters,
-                    ancestor=sm)
-                roots = list(signal_register.group_map[sm.Cameras].items.keys())
-                root = None
-                for root in roots:
-                    if root.treeWidget() == scene_tree:
-                        break
-                for p in cam_pars:
-                    scene_tree.addParameters(p, root=root)
-            signal_register
+        VispyConnector.connect_tree(
+            tree=self.network_tree,
+            scene_manager=self.engine.scene_manager)
 
         return

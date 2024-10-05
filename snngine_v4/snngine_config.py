@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar
 
+from pydantic import Field
+
+from snngine_v4.nn.config_models.nn_builder_config import \
+    NetworkConstructionConfig
+from snngine_v4.nn.config_models.nn_element_config import EngineElementConfig
+from snngine_v4.nn.config_models.nn_reservoir_config import NetworkReservoir
 from snngine_v4.utils.settings.settings_keywords import BaseSettingsSlots
 from snngine_v4.utils.settings.xml_settings_base import (
     default_xml_model_config_dict,
@@ -12,14 +18,17 @@ from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.config.app import EngineAppSettings
 from snngine_v4.config.opengl import OpenGLSettings
 from snngine_v4.config.scenes import SceneSettings
-from snngine_v4.config.construction import EngineConstructionConfig
+from snngine_v4.config.construction import (
+    EngineConstructionConfig,
+)
 
 
 class EngineConfig(XMLSettingsModel):
 
     class Slots:
-        CONSTRUCTION: ClassVar[str] = 'construction'
+        CONSTR: ClassVar[str] = 'construction'
         SCENES: ClassVar[str] = 'scenes'
+        NETWORK: ClassVar[str] = 'current'
 
     model_config: ClassVar[XMLSettingsConfigDict] = (
         default_xml_model_config_dict(
@@ -31,7 +40,14 @@ class EngineConfig(XMLSettingsModel):
     open_gl: OpenGLSettings
     scenes: SceneSettings
 
-    construction: EngineConstructionConfig
+    construction: EngineConstructionConfig = Field(
+        default_factory=lambda:  EngineConstructionConfig(
+            network=NetworkConstructionConfig(
+                elements=[EngineElementConfig(),
+                          NetworkReservoir(),
+                          EngineElementConfig(),])))
+
+    current: EngineConstructionConfig
 
     @classmethod
     def _xml_file_paths(cls):
@@ -42,7 +58,7 @@ class EngineConfig(XMLSettingsModel):
         if (fn is not None) and (sub_setting_pat in fn):
             xml_files = []
             for k in cls.model_fields:
-                if k not in [cls.Slots.CONSTRUCTION, cls.Slots.SCENES]:
+                if k not in [cls.Slots.CONSTR, cls.Slots.SCENES]:
                     xml_files.append(fn.replace(sub_setting_pat, k))
         else:
             xml_files = fn

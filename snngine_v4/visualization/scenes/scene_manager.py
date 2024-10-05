@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from vispy.scene import BaseCamera, ViewBox
 
 from snngine_v4.config.scenes import SceneSettings
+from snngine_v4.geometry.grid.finite_grid import FiniteGrid
+from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.utils.containers.mappings import (
     Model2ObjectMap,
 )
@@ -45,7 +47,7 @@ class SceneManager(BuilderDict):
                 for scene in self.values():
                     if model in scene.camera_dict:
                         res[model] = scene.camera_dict[model]
-            elif isinstance(model, LineVisualConfig):
+            elif isinstance(model, (LineVisualConfig, FiniteGridConfig)):
                 for scene in self.values():
                     if model in scene.visual_node_dict:
                         res[model] = scene.visual_node_dict[model]
@@ -98,10 +100,20 @@ class SceneManager(BuilderDict):
             scene.camera_dict[camera_model] = camera
 
         if visuals is not None:
-            visuals = getattr(model, VispyCanvasConfig.Slots.VISUALS)
-            parent = scene.new_visual_node_parent()
-            visual_dict = VispyVisualBuilder.cls_build_container(
-                visuals, parent=parent
-            )
-            scene.visual_node_dict.update(visual_dict.object_dict)
+            cls.cls_build_visuals(
+                getattr(model, VispyCanvasConfig.Slots.VISUALS), scene)
         return scene
+
+    @classmethod
+    def cls_build_visuals(cls, visuals, scene):
+        parent = scene.new_visual_node_parent()
+        visual_dict = VispyVisualBuilder.cls_build_container(
+            visuals, parent=parent
+        )
+        scene.visual_node_dict.update(visual_dict.object_dict)
+        return visual_dict
+
+    def build_visuals(self, visuals, scene):
+        if isinstance(scene, BaseModel):
+            scene = self[scene]
+        return self.cls_build_visuals(visuals, scene=scene)

@@ -14,7 +14,6 @@ from snngine_v4.utils.containers.configurable_dict import (
     ConfigurableDict,
     DictContainerConfig,
 )
-from snngine_v4.utils.core_utils import get_intenum_member
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 from snngine_v4.utils.settings.settings_keywords import InternalOpts
 from snngine_v4.visualization.config_models.vispy_visual_parameters import (
@@ -43,23 +42,6 @@ class VispyVisualBuilder(BuilderDict):
         OuterGridVisualConfig: Box,
         XYZAxisVisualConfig: XYZAxis,
     }
-
-    @classmethod
-    def ax_dir_aliases(cls, member):
-        member = get_intenum_member(member, AxDir3D)
-        match member:
-            case AxDir3D.XP:
-                return '+x'
-            case AxDir3D.XM:
-                return '-x'
-            case AxDir3D.YP:
-                return '+y'
-            case AxDir3D.YM:
-                return '-y'
-            case AxDir3D.ZP:
-                return '+z'
-            case AxDir3D.ZM:
-                return '-z'
 
     @classmethod
     def _convert_to_vispy(cls, dct, model: BaseModel):
@@ -102,7 +84,7 @@ class VispyVisualBuilder(BuilderDict):
                     dct[k] = RGBAColor.to_vispy(dump_value_)
                 elif isinstance(model_, Directions3DBoolPars):
                     vals = list(dump_value_.keys())
-                    vals = [cls.ax_dir_aliases(x) for x in vals]
+                    vals = [AxDir3D.vispy_name_alias(x) for x in vals]
                     dct[k] = tuple(vals)
 
             for k in up_keys:

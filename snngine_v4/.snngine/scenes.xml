@@ -85,7 +85,7 @@
             <DictItem type="float" key="roll">0.0</DictItem>
             <DictItem type="NoneType" key="distance">None</DictItem>
             <DictItem type="float" key="translate_speed">1.0</DictItem>
-            <DictItem type="float" key="scale_factor">3.96</DictItem>
+            <DictItem type="float" key="scale_factor">3.962932247717592</DictItem>
           </DictItem>
         </DictItem>
       </DictItem>

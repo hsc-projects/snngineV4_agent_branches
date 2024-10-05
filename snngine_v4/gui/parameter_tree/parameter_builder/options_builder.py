@@ -26,7 +26,7 @@ from snngine_v4.utils.field_utils import (
 from snngine_v4.utils.interval_utils import limits_from_interval
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
-from snngine_v4.geometry.spatial_pars import Ax3D, PositionVBO, XYZPars
+from snngine_v4.geometry.spatial_pars import Ax3D, PositionVBO
 from snngine_v4.visualization.config_models.vispy_visual_parameters import (
     ColorVBO, RGBAEnum,
 )
@@ -102,6 +102,10 @@ class OptionsBuilder:
                     dct=model_value)
                 if model_type:
                     return model_type
+            # elif isinstance(model_value, list):
+            #     types_ = set(type(x) for x in model_value)
+            #
+            #     pass
             return type(model_value)
 
     @classmethod
@@ -182,6 +186,9 @@ class OptionsBuilder:
         options.c_nullable_value = (
             b_annotation_includes_type(ann, type_=NoneType))
 
+        if (options.name is None) and (options.c_model_field_name is not None):
+            options.name = options.c_model_field_name
+
         if options.c_group_prefixes is not None:
             if isinstance(options.c_group_prefixes, list):
                 name = options.name
@@ -216,6 +223,11 @@ class OptionsBuilder:
                     options.limits = extract_literal_values(ann)
                 else:
                     raise ValueError
+
+        if options.c_b_group_default_button is None:
+            options.c_b_group_default_button = True
+        if options.expanded is None:
+            options.expanded = True
         return options
 
     @classmethod
@@ -236,7 +248,14 @@ class OptionsBuilder:
         if model.model_config.get('frozen', False) is True:
             opts.readonly = True
 
+        if opts.name == 'main':
+            pass
         if opts.name is None:
+            if opts.c_b_group_default_button is None:
+                opts.c_b_group_default_button = False
             opts.name = model.__class__.__name__
-
+        if opts.c_b_group_default_button is None:
+            opts.c_b_group_default_button = True
+        if opts.expanded is None:
+            opts.expanded = True
         return opts

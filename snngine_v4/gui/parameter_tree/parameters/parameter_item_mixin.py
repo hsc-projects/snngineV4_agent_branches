@@ -52,6 +52,7 @@ class WidgetParameterItemMixin:
         self.layoutWidget.layout().removeItem(w)
 
     def _replace_display_label(self: WidgetParameterItemType):
+        txt = self.displayLabel.text()
         self.layoutWidget.layout().removeWidget(self.displayLabel)
         b_unknown = self.param.opts.get(ParamOpts.KW.C_NONE_MEANS_UNKNOWN,
                                         False)
@@ -60,7 +61,7 @@ class WidgetParameterItemMixin:
                 ParamOpts.KW.C_NONE_MEANS_UNKNOWN]
         else:
             conversion = self.TEXT_CONVERSIONS['nan']
-        self.displayLabel = ClickableLabel(conversion=conversion)
+        self.displayLabel = ClickableLabel(conversion=conversion, text=txt)
         self.displayLabel.sigClicked.connect(self.valueWidgetClicked)
         self.layoutWidget.layout().insertWidget(0, self.displayLabel)
 

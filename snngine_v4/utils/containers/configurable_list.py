@@ -58,15 +58,11 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
                                  container_conf=container_conf)
         return GeneratedConfigurableList
 
-    def clear(self, keep=None) -> None:
-        if self._container_conf.b_clear_allowed is False:
+    def clear(self, b_force: bool = False) -> None:
+        if ((self._container_conf.b_clear_allowed is False)
+                and (b_force is False)):
             raise AttributeError("Clearing not allowed.")
-        if keep is not None:
-            for item in self:
-                if item not in keep:
-                    self.remove(item)
-        else:
-            super().clear()
+        super().clear()
 
     def b_duplicated_item(self, item):
         b_duplicate_check = not self._container_conf.b_duplicates_allowed
