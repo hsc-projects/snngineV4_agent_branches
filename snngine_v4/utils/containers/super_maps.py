@@ -36,12 +36,13 @@ class TypeSortedMap(ConfigurableContainerBase):
 
     @classmethod
     def cls_make_container_conf(cls, container_conf=None,
-                                default_cls=PydanticUndefined):
-        if default_cls == PydanticUndefined:
+                                default_cls=None, **kwargs):
+        if default_cls is None:
             default_cls = cls.ContainerConfigClass
         return default_cls(
             allowed_key_types=tuple([x[0] for x in cls.sub_maps]),
             allowed_types=tuple([x[1] for x in cls.sub_maps]),
+            **kwargs
         )
 
     def __init__(self, data=None, **kwargs):

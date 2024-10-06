@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Type
+from typing import Any, Callable, ClassVar, Type
 
 from pydantic import BaseModel
-from pydantic_core import PydanticUndefined
 
 from snngine_v4.utils.containers.configurable_container import (
-    ValidValueType
+    # ContainerConfig,
+    ValidValueType,
 )
 from snngine_v4.utils.containers.configurable_dict import (
     ConfigurableDict, DictContainerConfig,
@@ -14,6 +14,7 @@ from snngine_v4.utils.containers.configurable_dict import (
 from snngine_v4.utils.containers.configurable_list import (
     ConfigurableList, ConfigurableListConfig,
 )
+from snngine_v4.utils.core_utils import Singleton
 
 
 class UniqueObjectListConfig(ConfigurableListConfig, frozen=True):
@@ -36,6 +37,7 @@ class Int2ObjectMapConfig(DictContainerConfig, frozen=True):
     b_replace_allowed: bool = False
     b_pop_allowed: bool = False
     b_get_inv_allowed: bool = False
+    b_list_mode: bool = False
 
 
 class Object2ObjectMap(ConfigurableDict):
@@ -45,28 +47,45 @@ class Object2ObjectMap(ConfigurableDict):
     InvertedConfigClass: ClassVar[Type[Int2ObjectMapConfig]] = (
         Int2ObjectMapConfig)
 
-    def __init__(self, inverted: Object2ObjectMap = None,
+    container_conf: Int2ObjectMapConfig
+    _container_conf: Int2ObjectMapConfig
+    __getitem__: Callable[[Any], Any]
+
+    def __init__(self, inv: Object2ObjectMap = None,
                  container_conf=None,
-                 inverted_conf=None,
+                 inv_conf=None,
+                 # node_tree=None,
                  **kwargs):
         self._container_conf: Int2ObjectMapConfig | None = None
-        if inverted is None:
+        if inv is None:
             container_conf = self.cls_make_container_conf(
                 container_conf=container_conf)
-            if inverted_conf is None:
-                inverted_conf = self.cls_make_inv_conf()
-            inverted = Object2ObjectMap(
-                inverted=self, container_conf=inverted_conf,
-                inverted_conf=container_conf)
-        elif inverted_conf is None:
-            inverted_conf = inverted.container_conf
+            if inv_conf is None:
+                inv_conf = self.cls_make_inv_conf(
+                    container_conf=container_conf
+                )
+            inv = Object2ObjectMap(
+                inv=self, container_conf=inv_conf,
+                inv_conf=container_conf)
+        elif inv_conf is None:
+            inv_conf = inv.container_conf
             # raise ValueError("inverted_conf has not effect")
-        self.inv = inverted
+        self.inv = inv
+
+        ref_types = inv_conf.allowed_types
+        if inv_conf.b_list_mode is True:
+            if isinstance(ref_types, tuple) and len(ref_types) == 1:
+                ref_types = ref_types[0]().container_conf.allowed_types
+
         self.refs = ConfigurableList(
             container_conf=UniqueObjectListConfig(
-                allowed_types=inverted_conf.allowed_types))
+                allowed_types=ref_types))
+        # self.model2nodetree_map = node_tree
         super().__init__(container_conf=container_conf,
                          **kwargs)
+
+    # def actualize_node_tree_map(self, key, value=None):
+    #     raise NotImplementedError
 
     def clear(self, b_force: bool = False, b_clear_inv: bool = True):
         super().clear(b_force=b_force)
@@ -75,26 +94,88 @@ class Object2ObjectMap(ConfigurableDict):
             self.inv.clear(b_force=True, b_clear_inv=False)
 
     @classmethod
-    def cls_make_container_conf(cls, container_conf=None,
-                                default_cls=PydanticUndefined):
-        if default_cls == PydanticUndefined:
+    def cls_make_container_conf(
+            cls, container_conf=None,
+            default_cls=None, **kwargs):
+        if default_cls is None:
             default_cls = cls.ContainerConfigClass
         if (isinstance(default_cls, tuple)
-                and (not issubclass(default_cls[0], Int2ObjectMapConfig))):
-            cls.InvertedConfigClass = None
+                and (
+                    isinstance(default_cls[0], tuple)
+                    or (not issubclass(default_cls[0], Int2ObjectMapConfig)))):
             return Int2ObjectMapConfig(allowed_types=default_cls[1])
         return super().cls_make_container_conf(
-            container_conf, default_cls=default_cls)
+            container_conf, default_cls=default_cls, **kwargs)
 
     @classmethod
-    def cls_make_inv_conf(cls, container_conf=None):
-        if (isinstance(cls.ContainerConfigClass, tuple)
+    def cls_make_inv_conf(
+        cls, container_conf: Int2ObjectMapConfig | None, inv_conf=None,
+        default_inv_conf_cls: Type | tuple = None,
+        default_conf_cls: Type | tuple = None,
+        **kwargs
+    ):
+        if default_conf_cls is None:
+            default_conf_cls = cls.ContainerConfigClass
+        if default_inv_conf_cls is None:
+            default_inv_conf_cls = cls.InvertedConfigClass
+
+        if (isinstance(default_conf_cls, tuple)
                 and (not issubclass(
-                    cls.ContainerConfigClass[0], Int2ObjectMapConfig))):
-            return Int2ObjectMapConfig(
-                allowed_types=cls.ContainerConfigClass[0])
+                    default_conf_cls[0], Int2ObjectMapConfig))):
+            kwargs['allowed_types'] = default_conf_cls[0]
+
+        else:
+            kwargs['allowed_types'] = super().cls_make_container_conf(
+                container_conf=inv_conf,
+                default_cls=default_inv_conf_cls).allowed_types
+
+        if container_conf is not None:
+            if container_conf.b_duplicates_allowed:
+                GeneratedTypeListClass = (
+                    ConfigurableList.class_from_type(kwargs['allowed_types']))
+
+                # class GeneratedTypeListClass(ConfigurableList):
+                #     ContainerConfigClass = (ConfigurableListConfig,
+                #                             kwargs['allowed_types'])
+                #
+                #     def __init__(self_, **kwargs_):
+                #         super().__init__(**kwargs_)
+                #
+                #         self._container_conf: ContainerConfig =
+                #         self.cls_make_container_conf(
+                #             container_conf=container_conf)
+                #         pass
+
+                kwargs['b_list_mode'] = True
+                kwargs['allowed_types'] = GeneratedTypeListClass
+
+        if isinstance(kwargs['allowed_types'], tuple) \
+                and len(kwargs['allowed_types']) == 1:
+            kwargs['allowed_types'] = kwargs['allowed_types'][0]
+
         return super().cls_make_container_conf(
-            container_conf, default_cls=cls.InvertedConfigClass)
+            container_conf=inv_conf, default_cls=default_inv_conf_cls,
+            **kwargs)
+
+    @classmethod
+    def cls_make_default_conf_classes(
+        cls,
+        container_conf: Type[Int2ObjectMapConfig] | None = None,
+        inv_conf: Type[Int2ObjectMapConfig] = None,
+        default_conf_cls: Type[Int2ObjectMapConfig] = None,
+        default_inv_cls: Type[Int2ObjectMapConfig] = None,
+    ):
+        if container_conf is None:
+            container_conf = cls.cls_make_container_conf(
+                default_cls=default_conf_cls
+            )
+        elif inv_conf is None:
+            inv_conf = cls.cls_make_inv_conf(
+                default_inv_conf_cls=default_inv_cls,
+                default_conf_cls=default_conf_cls,
+                container_conf=container_conf,
+            )
+        return container_conf, inv_conf
 
     @property
     def data_ids(self):
@@ -114,7 +195,7 @@ class Object2ObjectMap(ConfigurableDict):
 
         new = cls(
             container_conf=cls.ContainerConfigClass(allowed_types=type1),
-            inverted_conf=cls.InvertedConfigClass(allowed_types=type0),
+            inv_conf=cls.InvertedConfigClass(allowed_types=type0),
             **kwargs)
         return new
 
@@ -130,25 +211,60 @@ class Object2ObjectMap(ConfigurableDict):
         except KeyError:
             raise KeyError(item)
 
+    def __invert__(self):
+        return self.inv
+
     @property
     def is_empty(self):
         return super().is_empty and len(self.refs) == 0
+
+    def make_list(self):
+        return ConfigurableList(
+            container_conf=UniqueObjectListConfig(
+                allowed_types=self._container_conf.allowed_types))
 
     def pairs(self):
         for ref in self.refs:
             yield ref, self[ref]
 
     def __setitem__(self, item0, item1):
-        self.refs.append(item0)
+
+        if self.container_conf.b_list_mode and item0 in self.refs:
+            pass
+        else:
+            self.refs.append(item0)
 
         if not isinstance(key := item0, int):
             key = id(item0)
-        super().__setitem__(key, item1)
+        if self.container_conf.b_list_mode is True:
+            if key not in self:
+                list_type = self.container_conf.allowed_types
+                if (not isinstance(list_type, tuple)) or (len(list_type) != 1):
+                    raise TypeError
+                list_type = list_type[0]
+                item1: ConfigurableList = list_type(item1)
+                # print(item0.__class__.__name__, item1.__class__.__name__)
+                super().__setitem__(key, item1)
+            else:
+                # print(item0.__class__.__name__, item1.__class__.__name__)
+                self[key].append(item1)
+        else:
+            super().__setitem__(key, item1)
         if item1 is not None:
             if item1 not in self.inv:
                 self.inv[item1] = item0
+            elif ((self.inv.container_conf.b_list_mode is True)
+                  and (item1 in self.inv)
+                  and (item0 not in self.inv[item1])):
+                self.inv[item1] = item0
             elif (item_ := self.inv[item1]) is not item0:
-                raise ValueError(f"self.inverted[item1] = {item_} != {item0}")
+                if self.inv.container_conf.b_list_mode is False:
+                    raise ValueError(
+                        f"self.inverted[item1] = {item_} != {item0}")
+                elif item0 not in (item_ := self.inv[item1]):
+                    raise ValueError(
+                        f"{item0} not in self.inverted[item1] = {item_}")
+
 
     def update(self, m=None, **kwargs) -> None:
         if isinstance(m, Object2ObjectMap):
@@ -160,3 +276,45 @@ class Object2ObjectMap(ConfigurableDict):
 class Model2ObjectMap(Object2ObjectMap):
     class InvertedConfigClass(Int2ObjectMapConfig, frozen=True):
         allowed_types: Type[BaseModel] = BaseModel
+
+
+class SingletonMap(metaclass=Singleton):
+
+    ContainerConfigClass: ClassVar[Type[Int2ObjectMapConfig]] = (
+        Int2ObjectMapConfig)
+    InvertedConfigClass: ClassVar[Type[Int2ObjectMapConfig]] = (
+        Int2ObjectMapConfig)
+
+    Object2ObjectMapClass: ClassVar[Type[Object2ObjectMap]] = Object2ObjectMap
+
+    def __init__(self, obj_map=None, map_options=None):
+        self.obj_map = obj_map or self.cls_make_map(**(map_options or {}))
+
+    @classmethod
+    def cls_make_map(
+        cls, map_class: Type[Object2ObjectMap] = None,
+        container_conf: Type[Int2ObjectMapConfig] = None,
+        inv_conf: Type[Int2ObjectMapConfig] = None
+    ):
+        if map_class is None:
+            map_class = cls.Object2ObjectMapClass
+        container_conf, inv_conf = (
+            cls.Object2ObjectMapClass
+            .cls_make_default_conf_classes(
+                container_conf=container_conf, inv_conf=inv_conf,
+                default_conf_cls=cls.ContainerConfigClass,
+                default_inv_cls=cls.InvertedConfigClass,
+            ))
+        return map_class(
+            container_conf=container_conf,
+            inv_conf=inv_conf
+        )
+
+    def __invert__(self):
+        return self.obj_map.__invert__()
+
+    def __getitem__(self, item):
+        return self.obj_map[item]
+
+    def __setitem__(self, item0, item1):
+        self.obj_map[item0] = item1

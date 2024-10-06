@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum, IntEnum
 from types import GenericAlias, NoneType, UnionType
 from typing import (
@@ -274,3 +276,17 @@ def get_field_multiple_of(field: FieldInfo, default=None):
         # noinspection PyProtectedMember
         return field._attributes_set[FieldInfoSlots.MULTIPLE_OF]
     return default
+
+
+def model_keys(model):
+    keys = list(model.model_fields.keys())
+    if model.model_extra is not None:
+        keys += list(model.model_extra.keys())
+    return keys
+
+
+class Undefined:
+    pass
+
+
+type KeepUndefinedType = Type[Undefined] | None

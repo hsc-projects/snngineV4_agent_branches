@@ -9,7 +9,7 @@ from snngine_v4.visualization.opengl.visual_config import (
     EngineObjectKeys, VispyObjectLocation, VisualEngineObjectConfig,
 )
 from snngine_v4.utils.containers.typed_node import (
-    TypedTreeNode,
+    TreeNode,
     TypedTreeNodeConfig,
 )
 from snngine_v4.config.settings_model import BaseSettingsModel
@@ -20,7 +20,7 @@ class CudaObjectConfig(BaseSettingsModel):
     device: int | None = None
 
 
-class CudaNodeAttribute(TypedTreeNode):
+class CudaNodeAttribute(TreeNode):
 
     def __init__(self, node_object: CudaNode,
                  parent_node: CudaNodeAttribute = None,

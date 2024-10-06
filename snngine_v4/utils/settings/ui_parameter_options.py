@@ -193,9 +193,8 @@ class ParamOpts(BaseSettings, extra='allow'):
     def get(self, item, default=None):
         return getattr(self, item, default)
 
-    def keys(self):
-        return set(self.model_fields.keys()).union(
-            set(self.model_extra.keys()))
+    def keys(self) -> list[str]:
+        return list(self.model_fields.keys()) + list(self.model_extra.keys())
 
     def items(self):
         return ((k, getattr(self, k)) for k in self.keys())

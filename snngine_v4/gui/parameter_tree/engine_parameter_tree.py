@@ -22,7 +22,7 @@ class EngineParameterTree(ParameterTree):
                  name: str = None,
                  model: BaseModel = None,
                  parent=None, showHeader=True,
-                 signal_register=None):
+                 signal_register: ModelSignalRegister = None):
 
         if name is None:
             name = self.__class__.__name__

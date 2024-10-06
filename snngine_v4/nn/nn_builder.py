@@ -7,6 +7,7 @@ from snngine_v4.config.construction import EngineConstructionConfig
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
 from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.utils.containers.mappings import Int2ObjectMapConfig
+from snngine_v4.utils.field_utils import model_keys
 
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 
@@ -43,9 +44,7 @@ class NetworkManager(BuilderDict):
             self.container_model = self.container_model_class(
                 **deepcopy(m).model_dump())
             model = self.container_model
-            keys = list(model.model_fields.keys())
-            if model.model_extra is not None:
-                keys += list(model.model_extra.keys())
+            keys = model_keys(model)
             build = self.cls_build_container(model_container=model)
             m = build.object_dict
             super().update(m, **kwargs)

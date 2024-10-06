@@ -27,14 +27,16 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
 
         self._container_conf: ConfigurableListConfig | None = None
 
+        ConfigurableContainerBase.__init__(self, container_conf=container_conf)
+        UserList.__init__(self)
+
         if initlist is not None:
             if isinstance(initlist, (list, UserList)):
                 self.validate_items(initlist)
             else:
                 self.validate_item(initlist)
-
-        ConfigurableContainerBase.__init__(self, container_conf=container_conf)
-        UserList.__init__(self, initlist)
+                initlist = [initlist]
+            self.extend(initlist)
 
     def append(self, item, b_ignore_non_matching_types: bool = False) -> None:
         if self._container_conf.b_append_allowed is False:
@@ -49,13 +51,17 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
 
     @classmethod
     def class_from_type(cls, type_: Type, **kwargs):
-        class GeneratedConfigurableList(cls):
+        class GeneratedConfigurableList(ConfigurableList):
             def __init__(
                     self, initlist=None,
-                    container_conf: ConfigurableListConfig =
-                    ConfigurableListConfig(allowed_types=type_, **kwargs)):
-                super().__init__(initlist=initlist,
-                                 container_conf=container_conf)
+                    container_conf: ConfigurableListConfig = None):
+                container_conf = container_conf or ConfigurableListConfig(
+                    allowed_types=type_, **kwargs)
+                ConfigurableList.__init__(
+                    self, initlist=initlist, container_conf=container_conf)
+                print(id(self))
+                pass
+
         return GeneratedConfigurableList
 
     def clear(self, b_force: bool = False) -> None:
@@ -65,6 +71,7 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
         super().clear()
 
     def b_duplicated_item(self, item):
+
         b_duplicate_check = not self._container_conf.b_duplicates_allowed
         return ((b_duplicate_check is True) and hasattr(self, "data")
                 and (item in self))
@@ -113,6 +120,7 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
         idx = self.index(old)
         self.pop(idx)
         self.insert(idx, new)
+
 
     def __setitem__(self, i, value):
         if self._container_conf.b_replace_allowed is False:

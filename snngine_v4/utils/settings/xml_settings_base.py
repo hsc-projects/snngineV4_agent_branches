@@ -111,8 +111,8 @@ class XMLSettingsModelBase(BaseSettings):
 
     parameter_ui_opts: ClassVar[dict | None] = None
 
-    def load(self):
-        raise NotImplementedError
+    # def load(self):
+    #     raise NotImplementedError
 
     def _export_submodels(self, conv, fn, sub_setting_pattern):
         for k in self.model_fields:

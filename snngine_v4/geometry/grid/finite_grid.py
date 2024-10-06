@@ -4,7 +4,7 @@ from typing import Iterable, Sized
 
 import numpy as np
 import pandas as pd
-import torch
+# import torch
 
 from snngine_v4.geometry.grid.finite_grid_elements import GridStep
 from snngine_v4.geometry.grid.grid_mask_maker import (
@@ -88,7 +88,10 @@ class FiniteGrid:
 
     @staticmethod
     def get_hull_mask(value_range: pd.Interval,
-                      tensor: torch.Tensor) -> torch.Tensor:
+                      tensor):
+                      # : torch.Tensor
+
+            # -> torch.Tensor\
 
         mask = mask_value_interval(ref_array=tensor, value_range=value_range)
 

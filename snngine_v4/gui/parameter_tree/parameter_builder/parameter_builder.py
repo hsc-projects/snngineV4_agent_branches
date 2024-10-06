@@ -24,6 +24,7 @@ from snngine_v4.gui.parameter_tree.parameters.multi_type_parameter import \
     MultiTypeParameter
 from snngine_v4.gui.parameter_tree.parameters.reference_parameter import \
     ReferenceParameter
+from snngine_v4.utils.field_utils import model_keys
 from snngine_v4.utils.settings.settings_keywords import (
     BaseSettingsSlots,
 )
@@ -74,12 +75,12 @@ class ParameterBuilder:
     ):
         res = []
         if isinstance(ancestor, BaseModel):
-            ancestor = signal_register.group_map[ancestor]
+            ancestor = signal_register[ancestor].sink
         if isinstance(excluded_ancestor, BaseModel):
-            excluded_ancestor = signal_register.group_map[excluded_ancestor]
+            excluded_ancestor = signal_register[excluded_ancestor].sink
         for model in signal_register.refs:
             if isinstance(model, model_type):
-                p = signal_register.group_map[model]
+                p = signal_register[model].sink
                 if ((ancestor is not None)
                         and (ancestor.childPath(p) is None)):
                     pass
@@ -219,6 +220,10 @@ class ParameterBuilder:
                              signal_register: ModelSignalRegister,
                              **options):
 
+        if signal_register is not None:
+            if signal_register.main_node_tree.root is None:
+                signal_register.main_node_tree.root = model
+
         group = EngineGroupParameter.from_model(model=model, **options)
         heritable_options = ParamOpts.heritable_options(**group.opts)
 
@@ -227,11 +232,7 @@ class ParameterBuilder:
         n_numeric_children = 0
         if model is None:
             pass
-        keys = list(model.model_fields.keys())
-
-        if model.model_extra is not None:
-            keys += list(model.model_extra.keys())
-
+        keys = model_keys(model)
         for k in keys:
             if k not in [XMLSettingsModel.CLASS_NAME_KW]:
 
@@ -249,8 +250,7 @@ class ParameterBuilder:
         if ((signal_register is not None)
                 and (BaseSettingsSlots.b_is_frozen(model)
                      is False)):
-            signal_register.connect_group_parameter(
-                model, parameter=group)
+            signal_register[model] = group
 
         for c in group.children():
             if c.opts[ParamOpts.KW.C_B_COLLECT_EXTRA_CLASSES] is True:

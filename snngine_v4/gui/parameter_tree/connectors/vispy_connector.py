@@ -1,6 +1,7 @@
 from typing import Callable
 
 import numpy as np
+from pydantic import BaseModel
 
 from vispy.scene import Box, TurntableCamera, XYZAxis
 from vispy.visuals import BaseVisual, CompoundVisual, MeshVisual
@@ -20,6 +21,8 @@ from snngine_v4.gui.parameter_tree.connectors.object2object_links import \
 
 from snngine_v4.gui.parameter_tree.connectors.parameter_connector import \
     ParameterConnector
+from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
+    EngineParameterTree
 from snngine_v4.visualization.buffer_utils import adapt_dim
 
 from snngine_v4.visualization.config_models.vispy_camera_configs import \
@@ -36,7 +39,10 @@ from snngine_v4.visualization.scenes.event_camera import (
 from snngine_v4.visualization.scenes.setattribute_event import (
     Set3DAttributeEvent, SetAttributeEvent,
 )
-from snngine_v4.visualization.visual_builder import VispyVisualBuilder
+from snngine_v4.visualization.visual_builder import (
+    VispyVisualBuilder,
+    VisualMixins,
+)
 
 
 class VispyConnector(ParameterConnector):
@@ -81,8 +87,8 @@ class VispyConnector(ParameterConnector):
                 for x in Ax3D
             }
 
-            def update_camera_object(link_: ObjectParameterLink, key, value):
-                if link_.source == model.center:
+            def update_camera_object(model_: BaseModel, key, value):
+                if model_ == model.center:
                     key = 'center'
                     value = (
                         center_parameters[Ax3D.X.name].value(),
@@ -126,51 +132,57 @@ class VispyConnector(ParameterConnector):
                     key=link.key, value=getattr(obj, link.key))
                 update_camera_model(ev, None)
 
-                link[LinkStateType.SOURCE2SINK].signal.connect(update_camera_object)
+                link[LinkStateType.SOURCE2SINK].set_connect(
+                    value=True, func=update_camera_object)
 
             center_links: list[ObjectParameterLink] = (
                 center_signals[ObjectParameterLink].refs)
 
             for link in center_links:
-                link[LinkStateType.SOURCE2SINK].connect(update_camera_object)
+                link[LinkStateType.SOURCE2SINK].connect(
+                    func=update_camera_object)
 
         elif isinstance(obj, XYZAxis):
-
             assert isinstance(model, XYZAxisVisualConfig)
-            obj.events.add(
-                auto_connect=False,
-                attr_changed=SetAttributeEvent)
-
-            attr_changed_keys = [
-                x for x in XYZAxisVisualConfig.model_fields.keys()
-                if x not in cls.SET_DATA_KWS[type(obj)]]
-
-            def set_attr(self_, key, value):
-                setattr(self_, key, value)
-                if key in attr_changed_keys:
-                    obj.events.attr_changed(key=key, value=value)
-
-            # TODO:
-            obj.__setattr__ = set_attr
             obj.events.attr_changed.connect(update_model)
-
             for link in links:
-                link.sigAttributeValueChanged.connect(update_object)
-
+                link[LinkStateType.SOURCE2SINK].connect(update_object)
+            obj.__setattr__('antialias', True)
             obj.antialias = True
+            pass
 
         elif isinstance(obj, CompoundVisual):
             exp_model = VispyVisualBuilder.get_model(model)
             if model.__class__ != exp_model.__class__:
                 assert isinstance(model, FiniteGridConfig)
                 new_model = exp_model
+                signal_register.make_model2model_links(model, new_model)
+                # model.__setattr__(model, 'seg', (1, 2, 3))
+                pass
             # assert isinstance(model, BoxVisualConfig)
             # for sub_visual in obj._subvisuals:
             #     cls.connect_object(
             #         model, sub_visual,
             #         signal_register)
+
         elif isinstance(obj, MeshVisual):
             assert isinstance(model, BoxVisualConfig)
+            obj.events.attr_changed.connect(update_model)
+            for link in links:
+                link[LinkStateType.SOURCE2SINK].connect(update_object)
+
+        return
+
+    @classmethod
+    def connect_tree(cls, tree: EngineParameterTree, scene_manager):
+        model2model_map = tree.signal_register.model2model_map
+        extra_models = list(model2model_map.values())
+        super().connect_tree(tree=tree, scene_manager=scene_manager)
+        new_models = [x for x in model2model_map.values() if x not in
+                      extra_models]
+        new_trees = tree.signal_register.model2nodetree_map.get_unique_values(
+            *new_models
+        )
 
         return
 
@@ -192,32 +204,6 @@ class VispyConnector(ParameterConnector):
                 kwargs[other_key] = adapt_dim(other, ref=kwargs[key])
                 # cls.update_model()
         return kwargs
-
-    @classmethod
-    def update_object(cls,  obj: XYZAxis, key, value, block):
-        obj.events.update.disconnect(block)
-        new_kwargs = {}
-        if ((type(obj) in cls.SET_DATA_KWS)
-                and (key in cls.SET_DATA_KWS[type(obj)])):
-            new_kwargs = cls.handle_set_data_kwargs(obj, key, value)
-            obj.set_data(**new_kwargs)
-        else:
-            setattr(obj, key, value)
-        obj.events.update.connect(block)
-        if len(new_kwargs) > 1:
-            for k, v in new_kwargs.items():
-                if k != key:
-                    obj.events.attr_changed(key=k, value=v)
-
-    @classmethod
-    def update_model_attribute(
-            cls, link: ObjectParameterLink, key, value, block):
-        if block:
-            link.sigAttributeValueChanged.disconnect(block)
-        link[LinkStateType.SOURCE2SINK](
-            link, key, value, b_block=False)
-        if block:
-            link.sigAttributeValueChanged.connect(block)
 
     @classmethod
     def update_model(cls, event: SetAttributeEvent,
@@ -248,3 +234,29 @@ class VispyConnector(ParameterConnector):
         #                 if getattr(model, link.key) != value:
         #                     cls.update_model_attribute(
         #                         link, link.key, value, block)
+
+    @classmethod
+    def update_model_attribute(
+            cls, link: ObjectParameterLink, key, value, block):
+        if block:
+            link[LinkStateType.SOURCE2SINK].disconnect(block)
+        link[LinkStateType.SOURCE2SINK](
+            link.source, key, value, b_block=False)
+        if block:
+            link[LinkStateType.SOURCE2SINK].connect(block)
+
+    @classmethod
+    def update_object(cls,  obj: XYZAxis, key, value, block):
+        obj.events.update.disconnect(block)
+        new_kwargs = {}
+        if ((type(obj) in cls.SET_DATA_KWS)
+                and (key in cls.SET_DATA_KWS[type(obj)])):
+            new_kwargs = cls.handle_set_data_kwargs(obj, key, value)
+            obj.set_data(**new_kwargs)
+        else:
+            setattr(obj, key, value)
+        obj.events.update.connect(block)
+        if len(new_kwargs) > 1:
+            for k, v in new_kwargs.items():
+                if k != key:
+                    obj.events.attr_changed(key=k, value=v)

@@ -3,14 +3,17 @@ from __future__ import annotations
 from collections import UserDict
 from enum import Enum
 
-from typing import Any, ClassVar, Type, Union
+from typing import Any, Callable, ClassVar, Type
 
 from snngine_v4.utils.containers.configurable_container import (
-    ConfigurableContainerBase, ContainerConfig, ValidValueType, ValidKeyType
+    ConfigurableContainerBase, ContainerConfig, UndefinedDefaultError,
+    ValidValueType, ValidKeyType,
 )
+from snngine_v4.utils.field_utils import Undefined, KeepUndefinedType
 
 
-class DictContainerConfig(ContainerConfig, frozen=True):
+class DictContainerConfig(ContainerConfig,
+                          frozen=True, arbitrary_types_allowed=True):
 
     allowed_types: ValidValueType = Any
     allowed_key_types: ValidKeyType = str
@@ -18,6 +21,7 @@ class DictContainerConfig(ContainerConfig, frozen=True):
     b_replace_allowed: bool = False  # Keep False
     b_pop_allowed: bool = True  # Keep True
     b_enum_to_str_key: bool = True  # Keep True
+    default_value: KeepUndefinedType = Undefined
 
 
 class ConfigurableDict(ConfigurableContainerBase, UserDict):
@@ -36,8 +40,10 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
 
     def b_duplicated_item(self, item):
         b_duplicate_check = not self._container_conf.b_duplicates_allowed
-        return ((item is not None)
-                and (b_duplicate_check is True) and hasattr(self, "data")
+        # return ((item is not None)
+        #         and (b_duplicate_check is True) and hasattr(self, "data")
+        #         and self.values_contain(item))
+        return ((b_duplicate_check is True) and hasattr(self, "data")
                 and self.values_contain(item))
 
     def clear(self, b_force: bool = False) -> None:
@@ -69,14 +75,36 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
                 raise PermissionError("Popping not allowed.")
         return super().__getattribute__(item)
 
+    def set_default(
+            self, item,
+            error: BaseException | Type[BaseException] = UndefinedDefaultError):
+        if self._container_conf.default_value != Undefined:
+            self[item] = self._container_conf.default_value
+            return self[item]
+        else:
+            raise error
+
     def __getitem__(self, item):
         try:
             return super().__getitem__(item)
         except (KeyError, TypeError) as error:
             if (self._container_conf.b_enum_to_str_key
                     and isinstance(item, Enum)):
-                return super().__getitem__(item.name)
+                try:
+                    return super().__getitem__(item.name)
+                except KeyError as error:
+                    return self.set_default(item, error=error)
+            if self._container_conf.default_value != Undefined:
+                return self.set_default(item, error=error)
             raise error
+
+    def get_unique_values(self, *keys):
+        if len(keys) == 0:
+            keys = list(self.keys())
+        vals = []
+        for k in keys:
+            vals.append(self[k])
+        return set(vals)
 
     def __setitem__(self, key, item):
         if ((self.b_valid_key_type(key) is False)
@@ -122,3 +150,9 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
     @property
     def value_ids(self):
         return [id(v) for v in self.values()]
+
+
+class CallableKeyDict(ConfigurableDict):
+
+    class ContainerConfigClass(DictContainerConfig):
+        allowed_key_types: Any = Callable

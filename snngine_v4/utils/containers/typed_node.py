@@ -2,16 +2,13 @@ from __future__ import annotations
 
 import warnings
 from collections import UserList
+from copy import copy
 from enum import IntEnum
-from typing import ClassVar, Type
+from functools import cached_property
+from typing import Type
 
-
-from snngine_v4.utils.containers.configurable_container import (
-    ConfigurableContainerBase, ContainerConfig,
-)
 from snngine_v4.utils.containers.configurable_list import (
     ConfigurableList,
-    ConfigurableListConfig,
 )
 from snngine_v4.utils.core_utils import get_intenum_member
 
@@ -21,49 +18,19 @@ class TreeDir(IntEnum):
     DESCENDING = 1
 
 
-class TypedTreeNodeConfig(ContainerConfig, frozen=True):
+class TreeNode:
 
-    b_freeze_parent: bool = False
-    search_warning_depth: int | None = 100
-    children_container_config: ConfigurableListConfig | None = None
+    container_class: Type[list] = list
+    cls_max_search_depth: int = 100
 
-    def children_container_class(
-            self, **kwargs) -> Type[list] | Type[ConfigurableList]:
-        if self.children_container_config is None:
-            if self.allowed_types is None:
-                return list
-            else:
-                return ConfigurableList.class_from_type(
-                    type_=self.allowed_types, **kwargs)
-        else:
-            kwargs_ = self.children_container_config.model_dump(mode='python')
-            kwargs_.update(kwargs)
-            return ConfigurableList.class_from_type(**kwargs_)
+    def __init__(self, parent_node: TreeNode = None,
+                 children_nodes: list[TreeNode] | None = None):
 
-
-class TypedTreeNode(ConfigurableContainerBase):
-
-    ContainerConfigClass: ClassVar[Type[TypedTreeNodeConfig]] = (
-        TypedTreeNodeConfig)
-
-    def __init__(self, parent_node: TypedTreeNode = None,
-                 children_nodes: list[TypedTreeNode] | None = None,
-                 container_conf: TypedTreeNodeConfig = None,
-                 node_object=None,
-                 ):
-        self._container_conf: TypedTreeNodeConfig | None = None
-        self._node_object = node_object
-        if container_conf is None:
-            container_conf = self.ContainerConfigClass(
-                allowed_types=self.__class__)
-        super().__init__(container_conf=container_conf)
-
-        self._parent_node: TypedTreeNode | None = None
-        self._children_nodes: list[TypedTreeNode] | ConfigurableList | None = \
-            None
+        self._parent_node: TreeNode | None = None
+        self._children_nodes: list[TreeNode] | ConfigurableList | None = (
+            self.make_node_container(children_nodes))
 
         self.parent_node = parent_node
-        self.children_nodes = self.make_node_list(children_nodes)
 
     def __iter__(self):
         return iter(self._children_nodes)
@@ -74,9 +41,10 @@ class TypedTreeNode(ConfigurableContainerBase):
     def __contains__(self, item):
         return item in self._children_nodes
 
-    def add_children_node(self, node: TypedTreeNode):
+    def add_children_node(self, node: TreeNode):
         self._children_nodes.append(node)
-        node.parent_node = self
+        if node.parent_node is not self:
+            node.parent_node = self
         return node
 
     @property
@@ -87,18 +55,23 @@ class TypedTreeNode(ConfigurableContainerBase):
     def b_has_parent_node(self):
         return self._parent_node is not None
 
+    def check_depth(self, depth):
+        if depth == self.max_search_depth_warning:
+            warnings.warn(
+                f'Warning: search depth exceeds '
+                f'{self.max_search_depth_warning}.',
+                stacklevel=2)
+        if depth >= self.max_search_depth:
+            raise RuntimeError
+
     @property
     def children_nodes(self):
         return self._children_nodes
 
-    @property
-    def children_node_objects(self):
-        return [x._node_object for x in self.children_nodes]
-
     @children_nodes.setter
     def children_nodes(self, new_children_nodes):
-        new_children_nodes = self.validate_items(new_children_nodes)
-        self._children_nodes = self.validate_items(new_children_nodes)
+        self._children_nodes.clear()
+        self._children_nodes.extend(new_children_nodes)
         for node in new_children_nodes:
             node.parent_node = self
 
@@ -111,7 +84,7 @@ class TypedTreeNode(ConfigurableContainerBase):
         return node_list
 
     def lineage_nodes(self, order: TreeDir = TreeDir.DESCENDING
-                      ) -> list[TypedTreeNode]:
+                      ) -> list[TreeNode]:
         order = get_intenum_member(order, TreeDir)
         # noinspection PyCallingNonCallable
         node_list = [self]
@@ -125,17 +98,22 @@ class TypedTreeNode(ConfigurableContainerBase):
             else:
                 raise NotImplementedError
             node = node.parent_node
-            if i == self._container_conf.search_warning_depth:
-                self.warning_search_depth(i)
+            self.check_depth(i)
             i += 1
         return node_list
 
-    def make_node_list(self, nodes=None, **kwargs):
-        container_class = self._container_conf.children_container_class(
-            **kwargs)
-        if nodes is None:
-            return container_class()
-        return container_class(nodes)
+    def make_node_container(self, *nodes, **kwargs):
+        if len(nodes) == 1 and nodes[0] is None:
+            nodes = ()
+        return self.container_class(*nodes, **kwargs)
+
+    @cached_property
+    def max_search_depth(self):
+        return max(self.cls_max_search_depth, 2)
+
+    @cached_property
+    def max_search_depth_warning(self):
+        return self.max_search_depth // 2
 
     @property
     def node_generation(self):
@@ -145,15 +123,10 @@ class TypedTreeNode(ConfigurableContainerBase):
         while node.b_has_parent_node:
             generation += 1
             node = node.parent_node
-            if i >= self._container_conf.sea:
-                self.warning_search_depth(i)
+            self.check_depth(i)
             i += 1
 
         return generation
-
-    @property
-    def node_object(self):
-        return self._node_object
 
     def node_rank(self):
         if self._parent_node is not None:
@@ -162,7 +135,7 @@ class TypedTreeNode(ConfigurableContainerBase):
             return None
 
     @property
-    def parent_node(self):
+    def parent_node(self) -> TreeNode:
         return self._parent_node
 
     @parent_node.setter
@@ -170,22 +143,32 @@ class TypedTreeNode(ConfigurableContainerBase):
         """
            Set the parent node of the current node.
         """
-        if parent_node is not None:
-            parent_node = self.validate_item(parent_node)
-        if self.b_has_parent_node and (parent_node != self._parent_node):
-            if self._container_conf.b_freeze_parent is True:
-                raise AttributeError(
-                    'Cannot change parent node of frozen node.')
-            self._parent_node = parent_node
-        elif (not self.b_has_parent_node) and (parent_node is not None):
-            self._parent_node = parent_node
+        # if parent_node is not None:
+        #     parent_node = self.validate_item(parent_node)
+        # if self.b_has_parent_node and (parent_node != self._parent_node):
+        #     if self._container_conf.b_freeze_parent is True:
+        #         raise AttributeError(
+        #             'Cannot change parent node of frozen node.')
+        #     self._parent_node = parent_node
+        # elif (not self.b_has_parent_node) and (parent_node is not None):
+        #     self._parent_node = parent_node
+        if self.b_has_parent_node:
+            self.parent_node.remove_child_node(self)
+        self._parent_node = parent_node
         if (parent_node is not None) and (self not in parent_node):
             parent_node.add_children_node(self)
 
-    def remove_node(self, node):
+
+    def remove_child_node(self, node):
+        node.parent_node = None
         self._children_nodes.remove(node)
-        node._parent_node = None
         return node
+
+    def remove_child_nodes(self, *nodes):
+        if len(nodes) == 0:
+            nodes = self.children_nodes
+        for n in nodes:
+            self.remove_child_node(n)
 
     def root_node(self):
         if not self.b_has_parent_node:
@@ -196,17 +179,10 @@ class TypedTreeNode(ConfigurableContainerBase):
     @property
     def sibling_nodes(self):
         if self.b_has_parent_node:
-            siblings = self._parent_node.children_nodes.data
+            siblings = copy(self._parent_node.children_nodes)
             if isinstance(siblings, UserList):
                 siblings = siblings.data
             siblings.remove(self)
             return siblings
         else:
             return []
-
-    def warning_search_depth(self, i):
-        if i >= self._container_conf.search_warning_depth:
-            warnings.warn(f'Warning: search depth exceeds '
-                          f'{self._container_conf.search_warning_depth}.',
-                          stacklevel=2)
-        return i + 1

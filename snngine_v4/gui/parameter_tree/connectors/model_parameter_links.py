@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Callable, Iterable, Type
+
 import pandas as pd
 from pydantic import BaseModel, ValidationError
 from pyqtgraph.parametertree import Parameter
@@ -7,115 +9,13 @@ from pyqtgraph.parametertree.parameterTypes import GroupParameter, ListParameter
 
 from qtpy import QtCore
 
-from snngine_v4.gui.parameter_tree.connectors.object2object_links import \
-    (
-    LinkState, LinkStateType, Object2ObjectLink, SetAttributeEmitterBase,
+from snngine_v4.gui.parameter_tree.connectors.object2object_links import (
+    Object2ObjectLinks, ObjectSignal, LinkStateType, Object2ObjectLink,
 )
 from snngine_v4.gui.parameter_tree.parameters.multi_type_parameter import \
     MultiTypeParameter
-from snngine_v4.utils.containers.super_maps import TypeSortedMap
 
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
-
-
-# class ObjectParameterLink(SetAttributeEmitterBase):
-#
-#     def __init__(self, key, obj=None, parameter=None, parent=None):
-#         super().__init__(key=key, parent=parent)
-#         self._obj = obj
-#         self._parameter_connected = False
-#         self._attribute_connected = False
-#         self._parameter = None
-#         self.parameter = parameter
-#         self.connect_attribute()
-#
-#     def connect_attribute(self, b_raise: bool = True):
-#         if (self._attribute_connected is True) and (b_raise is True):
-#             raise RuntimeError
-#         self._attribute_connected = True
-#         self.sigAttributeValueChanged.connect(self.set_parameter_value)
-#
-#     def connect_parameter(self, b_raise: bool = True):
-#         if (self._parameter_connected is True) and (b_raise is True):
-#             raise RuntimeError
-#         self._parameter_connected = True
-#         self.get_parameter_signal(self._parameter).connect(
-#             self.set_obj_attribute_from_parameter)
-#
-#     def disconnect_attribute(self, b_raise: bool = True):
-#         if (self._attribute_connected is False) and (b_raise is True):
-#             raise RuntimeError
-#         self._attribute_connected = False
-#         self.sigAttributeValueChanged.disconnect(self.set_parameter_value)
-#
-#     def disconnect_parameter(self, b_raise: bool = True):
-#         if (self._parameter_connected is False) and (b_raise is True):
-#             raise RuntimeError
-#         self._parameter_connected = False
-#         self.get_parameter_signal(self._parameter).disconnect(
-#             self.set_obj_attribute_from_parameter)
-#
-#     @property
-#     def obj(self):
-#         return self._obj
-#
-#     @obj.setter
-#     def obj(self, value):
-#         if self._obj is not None:
-#             raise AttributeError("obj already set")
-#         self._obj = value
-#
-#     @property
-#     def parameter(self):
-#         return self._parameter
-#
-#     @parameter.setter
-#     def parameter(self, value):
-#         if self._parameter is not None:
-#             raise AttributeError("parameter already set")
-#         self._parameter = value
-#         self.connect_parameter()
-#
-#     def set_obj_attribute_from_parameter(self, p: Parameter, value):
-#         self.disconnect_attribute()
-#
-#         try:
-#             self._obj.__setattr__(self._obj, self.key, value)
-#         except ValidationError as err:
-#             if (value is None) or pd.isna(value):
-#                 b_none_allowed = p.opts.get(ParamOpts.KW.C_NULLABLE_VALUE)
-#                 self._obj.__setattr__(self._obj, self.key, None)
-#                 pass
-#             else:
-#                 raise err
-#
-#         print(f"Set '{self.key}' from parameter({id(p)}):",
-#               getattr(self._obj, self.key))
-#         self.connect_attribute()
-#
-#     def set_parameter_value(self, link, key, value, b_block: bool = True,):
-#         print(f"Set parameter value '{key}'", value)
-#         if b_block:
-#             self.disconnect_parameter()
-#         self._parameter.setValue(value)
-#         if b_block:
-#             self.connect_parameter()
-#
-#     @staticmethod
-#     def get_parameter_signal(parameter) -> QtCore.Signal:
-#         if isinstance(parameter, ListParameter):
-#             return parameter.sigValueChanged
-#         else:
-#             return parameter.sigValueChanged
-#             # return parameter.sigValueChanging
-#
-#     def attributeValueChanged(self, value):
-#         if ((value is None)
-#                 and (self.parameter.opts.get(
-#                     ParamOpts.KW.C_NONE_MEANS_UNKNOWN, False) is True)):
-#             pass
-#         else:
-#             self.sigAttributeValueChanged.emit(self, self.key, value)
 
 
 # noinspection PyPep8Naming
@@ -131,7 +31,7 @@ class ObjectParameterLink(Object2ObjectLink):
         if link_type == LinkStateType.SOURCE2SINK:
             super().setup(link_type=link_type, key=key, obj=obj, **kwargs)
         else:
-            self[link_type] = LinkState(
+            self[link_type] = ObjectSignal(
                 signal=self.get_parameter_signal(obj), obj=obj, **kwargs)
 
     @property
@@ -141,7 +41,7 @@ class ObjectParameterLink(Object2ObjectLink):
     def _default_call(self, *args, link_type: LinkStateType, **kwargs):
         match link_type:
             case LinkStateType.SOURCE2SINK:
-                if args[0] != self:
+                if args[0] != self.source:
                     raise AssertionError
                 elif args[1] != self.key:
                     raise AssertionError
@@ -162,8 +62,11 @@ class ObjectParameterLink(Object2ObjectLink):
                         pass
                     else:
                         raise err
-                print(f"Set '{self.key}' from parameter({id(self.sink)}):",
+                print(f"({self.source.__class__.__name__}, {id(self.source)}) "
+                      f"Set '{self.key}' from parameter({id(self.sink)}):",
                       getattr(self.source, self.key))
+            case _:
+                raise TypeError(f"{link_type.name}")
 
     @staticmethod
     def get_parameter_signal(parameter) -> QtCore.Signal:
@@ -182,51 +85,53 @@ class ObjectParameterLink(Object2ObjectLink):
             self[LinkStateType.SOURCE2SINK].signal.emit(self, self.key, value)
 
 
-class ModelParameterLinks(TypeSortedMap):
+class ModelParameterLinks(Object2ObjectLinks):
 
     sub_maps: tuple = ((ObjectParameterLink, Parameter),
                        (str, ObjectParameterLink))
 
-    # __getitem__: Callable[str, ObjectParameterLink | Parameter]
+    __getitem__: Callable[[str | Type[str] | Type[ObjectParameterLink]],
+                          dict[ObjectParameterLink, Parameter]
+                          | dict[str, ObjectParameterLink]
+                          | ObjectParameterLink | Parameter]
 
-    def __init__(self, model, **kwargs):
-        self.model = model
-        self.data: dict[int, Parameter] | None = None
+    def __init__(self, model, group_param=None, **kwargs):
+        self.data: dict[int | BaseModel, Parameter] | None = None
+        self.source: BaseModel | None = None
+        self.sink: GroupParameter | None = None
+        super().__init__(source=model, **kwargs)
 
-        def set_attr(self_, key, value):
-            try:
-                setattr(self_, key, value)
-            except ValidationError as err:
-                raise err
-            self[key].attributeValueChanged(value)
+        self.prepare_object(
+            obj=self.source, link_type=LinkStateType.SOURCE2SINK,
+            debug_catch=ValidationError)
+        self.sink = group_param
+        if group_param is not None:
+            self.add_parameter(group_param)
 
-        # TODO:
-        self.model.__setattr__ = set_attr
-        super().__init__(**kwargs)
+    def parameters(self) -> Iterable[Parameter]:
+        return self[ObjectParameterLink].values()
 
-    def add_group_parameter(
-            self, model, parameter: GroupParameter | None = None):
-        # noinspection PyTypeChecker
-        cs: list[Parameter] = parameter.children()
-        for p in cs:
-
-            if ((not isinstance(p, GroupParameter))
-                    or isinstance(p, MultiTypeParameter)):
-                self.add_parameter(model=model, param=p)
-
-    def add_link(self, link: ObjectParameterLink):
-        self[link] = link.sink
-
-    def add_parameter(self, model: BaseModel, param: Parameter):
-        key = param.opts[ParamOpts.KW.C_MODEL_FIELD_NAME]
-        self.add_link(
-            ObjectParameterLink(key=key, parameter=param, obj=model))
+    def add_parameter(
+            self, param: Parameter | GroupParameter):
+        if (isinstance(param, GroupParameter)
+                and (not isinstance(param, MultiTypeParameter))):
+            # noinspection PyTypeChecker
+            cs: list[Parameter] = param.children()
+            for p in cs:
+                if ((not isinstance(p, GroupParameter))
+                        or isinstance(p, MultiTypeParameter)):
+                    self.add_parameter(param=p)
+        else:
+            key = param.opts.get(ParamOpts.KW.C_MODEL_FIELD_NAME, None)
+            link = ObjectParameterLink(
+                key=key, parameter=param, obj=self.source)
+            self[link] = link.sink
 
     def clear(self, b_force: bool = False):
 
         for link in self[str].values():
             link: ObjectParameterLink
-            link.disconnect_attribute(b_raise=True)
+            link.clear(b_force=b_force)
         super().clear(b_force=b_force,)
 
     def __setitem__(self, link, parameter):

@@ -14,6 +14,11 @@ class ParameterConnector:
             cls.connect_object(model, obj, signal_register)
 
     @classmethod
+    def connect_object(cls, model, obj,
+                       signal_register: ModelSignalRegister):
+        raise NotImplementedError
+
+    @classmethod
     def connect_tree(cls, tree: EngineParameterTree, scene_manager):
         models = tree.signal_register.connected_models
         object2object_map = scene_manager.get_objects(models)
@@ -21,8 +26,3 @@ class ParameterConnector:
             object2object_map=object2object_map,
             signal_register=tree.signal_register
         )
-
-    @classmethod
-    def connect_object(cls, model, obj,
-                       signal_register: ModelSignalRegister):
-        raise NotImplementedError

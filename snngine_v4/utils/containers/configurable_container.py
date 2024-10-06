@@ -4,15 +4,18 @@ from typing import Any, ClassVar, Type
 
 from pydantic import field_validator
 from pydantic.types import AnyType
-from pydantic_core import PydanticUndefined
 
 from snngine_v4.utils.field_utils import (
-    extract_type_from_type_annotation, b_field_has_default,
+    extract_type_from_type_annotation, b_field_has_default, Undefined,
 )
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
-class ExtensionByDuplicateError(Exception):
+class ExtensionByDuplicateError(BaseException):
+    pass
+
+
+class UndefinedDefaultError(BaseException):
     pass
 
 
@@ -137,10 +140,10 @@ class ConfigurableContainerBase:
 
     @classmethod
     def cls_make_container_conf(cls, container_conf=None,
-                                default_cls=PydanticUndefined):
+                                default_cls=None, **kwargs):
         if container_conf:
             return container_conf
-        if default_cls == PydanticUndefined:
+        if default_cls is None:
             default_cls = cls.ContainerConfigClass
         if isinstance(default_cls, tuple):
             cls_: Type[ContainerConfig] = default_cls[0]
@@ -148,7 +151,7 @@ class ConfigurableContainerBase:
             if len(default_cls) == 3:
                 kwargs['allowed_key_types'] = default_cls[2]
             return cls_(**kwargs)
-        return default_cls()
+        return default_cls(**kwargs)
 
     @classmethod
     def cls_validate_value_type(cls, item, type_):
@@ -205,7 +208,7 @@ class ConfigurableContainerBase:
         return cls(
             container_conf=ContainerConfig(allowed_types=type_, **kwargs))
 
-    def get_valid_item_type(self, item, default=PydanticUndefined,
+    def get_valid_item_type(self, item, default=Undefined,
                             types_=None):
         if types_ is None:
             types_ = self._container_conf.allowed_types
@@ -217,7 +220,7 @@ class ConfigurableContainerBase:
                     return t
         if self.b_valid_item_type(item):
             raise ValueError("Unknown but valid type")
-        if default is not PydanticUndefined:
+        if default is not Undefined:
             return default
         raise TypeError(f"{item}")
 
@@ -225,17 +228,22 @@ class ConfigurableContainerBase:
     def is_empty(self):
         return len(self.data) == 0
 
+    def _validate_item(self, item):
+        if self.b_valid_item_type(item) is False:
+            raise TypeError(
+                f"Item must be of type"
+                f" {self._container_conf.allowed_types}."
+                f"Got {type(item).__name__} instead.")
+        elif ((not self._container_conf.b_duplicates_allowed) and
+              self.b_duplicated_item(item)):
+            raise ExtensionByDuplicateError(
+                f"Duplicated item: {item} ({id(item)})")
+        return self
+
     def validate_item(self, item):
         b_valid_item = self.b_valid_item(item)
         if b_valid_item is False:
-            if self.b_valid_item_type(item) is False:
-                raise TypeError(
-                        f"Item must be of type"
-                        f" {self._container_conf.allowed_types}."
-                        f"Got {type(item).__name__} instead.")
-            elif self.b_duplicated_item(item):
-                raise ExtensionByDuplicateError(
-                    f"Duplicated item: {item}")
+            self._validate_item(item)
             raise AttributeError("Item must be valid.")
         return item
 

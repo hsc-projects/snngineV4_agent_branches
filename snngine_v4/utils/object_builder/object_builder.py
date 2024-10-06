@@ -10,6 +10,8 @@ from pydantic import BaseModel
 from snngine_v4.utils.containers.mappings import (
     Model2ObjectMap, Int2ObjectMapConfig,
 )
+from snngine_v4.utils.class_mixer import ClassMixer
+from snngine_v4.utils.field_utils import model_keys
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
@@ -49,6 +51,7 @@ class ModelObjectBuilder:
     BUILDER_DEFAULT_OBJECT_CLASS: ClassVar[Type] = None
     BUILDER_OBJECT_CLASS_MAP: ClassVar[dict[Type[BaseModel], Type]] = {}
     BUILDER_OBJECT_SUPERCLASS_MAP: ClassVar[dict[Type[BaseModel], Type]] = {}
+    BUILDER_OBJECT_CLASS_MIXER: ClassVar[Type[ClassMixer] | None] = None
 
     @classmethod
     def find_object_class(cls, model, b_ignore_default: bool,
@@ -66,6 +69,8 @@ class ModelObjectBuilder:
                 object_class = cls.BUILDER_DEFAULT_OBJECT_CLASS
             elif b_raise:
                 raise ValueError('No object class found for model')
+        if cls.BUILDER_OBJECT_CLASS_MIXER is not None:
+            object_class = cls.BUILDER_OBJECT_CLASS_MIXER()[object_class]
         return object_class
 
     @classmethod
@@ -112,9 +117,7 @@ class ModelObjectBuilder:
             keys = model_container.keys()
             models = model_container.values()
         elif isinstance(model_container, BaseModel):
-            keys = list(model_container.model_fields.keys())
-            if model_container.model_extra is not None:
-                keys += list(model_container.model_extra.keys())
+            keys = model_keys(model=model_container)
             models = [getattr(model_container, k) for k in keys]
         elif hasattr(model_container, 'keys'):
             keys = model_container.keys()

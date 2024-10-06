@@ -1,9 +1,13 @@
-from typing import ClassVar
+from __future__ import annotations
+
+from typing import Any, Callable, ClassVar, Set, Type
 
 import numpy as np
 from pydantic import BaseModel
+from vispy.geometry import MeshData
 from vispy.scene import Box, XYZAxis
-from vispy.visuals import Visual
+from vispy.util.event import EmitterGroup
+from vispy.visuals import CompoundVisual, MeshVisual, Visual
 
 from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import (
@@ -14,6 +18,8 @@ from snngine_v4.utils.containers.configurable_dict import (
     ConfigurableDict,
     DictContainerConfig,
 )
+from snngine_v4.utils.class_mixer import ClassMixer
+from snngine_v4.utils.field_utils import Undefined
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 from snngine_v4.utils.settings.settings_keywords import InternalOpts
 from snngine_v4.visualization.config_models.vispy_visual_parameters import (
@@ -24,6 +30,115 @@ from snngine_v4.visualization.config_models.vispy_visual_parameters import (
 from snngine_v4.visualization.config_models.visual_configs import (
     BoxVisualConfig, OuterGridVisualConfig, XYZAxisVisualConfig,
 )
+from snngine_v4.visualization.scenes.setattribute_event import SetAttributeEvent
+
+
+class EmitterMap(ConfigurableDict):
+
+    class ContainerConfigClass(DictContainerConfig):
+        allowed_types: Any = Callable | ConfigurableDict
+        allowed_key_types: Any = str | int
+        b_duplicates_allowed: bool = True
+
+
+    def __init__(self, events: EmitterGroup, keys, **kwargs):
+        self.events = events
+        super().__init__(**kwargs)
+        self.set_items(*keys)
+
+    def __call__(self, key, value):
+        try:
+            self[key](key=key, value=value)
+            return
+        except KeyError:
+            pass
+
+    def set_items(self, *keys):
+        for key in keys:
+            self[key] = self.events.attr_changed
+
+
+class VisualMixin:
+
+    SET_DATA_KWS = {
+        XYZAxis: ['color', 'pos', 'connect', 'width'],
+        MeshVisual: ['vertices', 'faces', 'vertex_colors',
+                     'face_colors', 'color', 'vertex_values',
+                     'meshdata']
+    }
+
+    attr_changed_keys: ClassVar[Set[str]] = set()
+
+    def __pre_init__(self, *args, **kwargs):
+        object.__setattr__(self, "emitter_map", None)
+        self._initialized = True
+        self._compound_post_init_called = False
+        # self.emitter_map = None
+
+    def mesh_data_changed(self: MeshVisual):
+        MeshVisual.mesh_data_changed(self)
+        self.events.mesh_data_changed(key=self, value=self._meshdata)
+
+    def __post_init__(self: VisualMixin | Visual):
+        self.events.add(
+            auto_connect=False,
+            attr_changed=SetAttributeEvent)
+        self.emitter_map = EmitterMap(self.events, keys=self.attr_changed_keys)
+
+        if isinstance(self, CompoundVisual):
+            for i, v in enumerate(self._subvisuals):
+                v: Visual
+                if isinstance(v, MeshVisual):
+                    v.events.add(
+                        auto_connect=False,
+                        mesh_data_changed=SetAttributeEvent)
+                v.mesh_data_changed = VisualMixin.mesh_data_changed
+                # mesh_data: MeshData = v.mesh_data
+                # new_v: MeshVisual = VisualMixins().mix(class_item=v.__class__)(
+                #     vertices=mesh_data.get_vertices(indexed=mesh_data.),
+                #     faces=None, vertex_colors=None,
+                #     face_colors=None, color=(0.5, 0.5, 1, 1),
+                #     vertex_values=None,
+                #     meshdata=None, shading=None, mode='triangles'
+                # )
+                # self.remove_subvisual(v)
+
+
+class VisualMixins(ClassMixer):
+    Mixins: ClassVar = VisualMixin
+
+    @classmethod
+    def mix(cls, class_item: Type, name=None, attr_changed_keys=Undefined):
+
+        if class_item in [XYZAxis, MeshVisual]:
+            if class_item == XYZAxis:
+                set_data_kw = ['color', 'pos', 'connect', 'width'],
+                attr_changed_keys = [
+                    x for x in XYZAxisVisualConfig.model_fields.keys()
+                    if x not in set_data_kw]
+            elif class_item == Box:
+                attr_changed_keys = {'_mesh': ['shading']}
+            elif class_item == MeshVisual:
+                attr_changed_keys = ['color']
+
+            def init(self: VisualMixin | Visual, *args, **kwargs):
+                self.__pre_init__(*args, **kwargs)
+                class_item.__init__(self, *args, **kwargs)
+                self.__post_init__()
+
+            def set_attr(self: VisualMixin | Visual, key, value):
+                class_item.__setattr__(self, key, value)
+                if self._initialized and self.emitter_map:
+                    self.emitter_map.__call__(key, value)
+
+            kwargs = dict(__init__=init,
+                          __setattr__=set_attr,
+                          attr_changed_keys=attr_changed_keys)
+
+            new = super().mix(class_item, name, **kwargs)
+            return new
+        else:
+            return class_item
 
 
 class VispyVisualBuilder(BuilderDict):
@@ -35,6 +150,7 @@ class VispyVisualBuilder(BuilderDict):
 
     BUILDER_DEFAULT_MODEL_CLASS: ClassVar = None
     BUILDER_DEFAULT_OBJECT_CLASS: ClassVar = None
+    BUILDER_OBJECT_CLASS_MIXER: ClassVar = VisualMixins
 
     BUILDER_OBJECT_CLASS_MAP: ClassVar = {
         BoxVisualConfig: Box,

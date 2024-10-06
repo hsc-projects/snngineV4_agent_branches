@@ -7,10 +7,13 @@ from snngine_v4.visualization.scenes.scene_manager import SceneManager
 
 
 class SNNgine:
-    def __init__(self, settings: EngineConfig | str = None):
 
-        # noinspection PyUnresolvedReferences
-        from pycuda import autoinit
+    def __init__(self, settings: EngineConfig | str = None):
+        try:
+            # noinspection PyUnresolvedReferences
+            from pycuda import autoinit
+        except ModuleNotFoundError:
+            pass
         from vispy import gloo
 
         if settings is None:

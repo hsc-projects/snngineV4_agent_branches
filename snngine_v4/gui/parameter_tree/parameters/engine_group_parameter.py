@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Callable
+
 from pyqtgraph.parametertree import Parameter, ParameterItem
 from pyqtgraph.parametertree.parameterTypes import (
     GroupParameter,
@@ -149,6 +153,8 @@ class EngineGroupParameter(GroupParameter):
 
     itemClass = EngineGroupParameterItem
 
+    children: Callable[[], list[Parameter]]
+
     def connect_sigValueChanged(self, recursive: int = 0):
         for child in self.children():
             if isinstance(child, Parameter):
@@ -160,7 +166,7 @@ class EngineGroupParameter(GroupParameter):
                         else recursive)
 
     @classmethod
-    def from_model(cls, model, **options):
+    def from_model(cls, model, **options) -> EngineGroupParameter:
         return cls(**OptionsBuilder
                    .from_model(model=model, **options))
 

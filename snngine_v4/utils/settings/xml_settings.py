@@ -15,6 +15,9 @@ from snngine_v4.utils.settings.xml_converter_options import XMLConverterOptions
 
 class XMLSettingsModel(XMLSettingsModelBase):
 
+    # def load(self):
+    #     pass
+
     CLASS_NAME_XML_TAG: ClassVar[str] = 'class'
     CLASS_NAME_KW: ClassVar[str] = 'model__class__name'
     EXTRA_CLASSES: ClassVar[list[Type[BaseModel]] | None] = None

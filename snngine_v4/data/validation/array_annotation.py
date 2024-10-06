@@ -53,7 +53,7 @@ class TypedNumpyInterface(NumpyInterface):
     shape: ShapeType
     dtype: DtypeType
     # interface: NumpyInterface = field(init=False)
-    array_type: Type[NDArrayType] = field(init=False)
+    array_type: Type[NDArrayType] | tuple[Type[NDArrayType]] = field(init=False)
 
     def array(self, *arg, **kwargs):
         res = np.array(*arg, dtype=self.dtype, **kwargs)
