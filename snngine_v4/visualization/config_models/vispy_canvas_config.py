@@ -7,7 +7,7 @@ from snngine_v4.utils.settings.xml_settings import (
 )
 from snngine_v4.visualization.config_models.vispy_camera_configs import \
     TurnTableCameraParameters
-from snngine_v4.visualization.config_models.visual_configs import \
+from snngine_v4.visualization.config_models.visuals.line_configs import \
     XYZAxisVisualConfig
 
 

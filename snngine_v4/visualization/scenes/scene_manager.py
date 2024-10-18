@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from vispy.scene import BaseCamera, ViewBox
 
 from snngine_v4.config.scenes import SceneSettings
-from snngine_v4.geometry.grid.finite_grid import FiniteGrid
 from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.utils.containers.mappings import (
     Model2ObjectMap,
@@ -16,7 +15,7 @@ from snngine_v4.visualization.config_models.vispy_camera_configs import (
 from snngine_v4.visualization.config_models.vispy_canvas_config import (
     VispyCanvasConfig, VispyViewBoxConfig,
 )
-from snngine_v4.visualization.config_models.visual_configs import \
+from snngine_v4.visualization.config_models.visuals.line_configs import \
     LineVisualConfig
 from snngine_v4.visualization.scenes.event_camera import \
     EventTurntableCamera

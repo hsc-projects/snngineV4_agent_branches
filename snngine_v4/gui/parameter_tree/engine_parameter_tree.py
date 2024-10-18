@@ -10,8 +10,9 @@ from snngine_v4.gui.common.main_dock_widget import MainDockWidget
 from snngine_v4.gui.parameter_tree.parameter_builder.parameter_builder import (
     ParameterBuilder
 )
-from snngine_v4.gui.parameter_tree.connectors.basemodel_signal_register \
-    import ModelSignalRegister
+from snngine_v4.gui.parameter_tree.connectors.model_signals_register \
+    import ModelSignalsRegister
+from snngine_v4.utils.field_utils import Undefined
 
 
 # noinspection PyPep8Naming
@@ -22,7 +23,7 @@ class EngineParameterTree(ParameterTree):
                  name: str = None,
                  model: BaseModel = None,
                  parent=None, showHeader=True,
-                 signal_register: ModelSignalRegister = None):
+                 signal_register: ModelSignalsRegister = None):
 
         if name is None:
             name = self.__class__.__name__
@@ -31,7 +32,7 @@ class EngineParameterTree(ParameterTree):
         self.setObjectName(name)
 
         self._settings_model = model
-        self.signal_register = signal_register or ModelSignalRegister()
+        self.signal_register = signal_register or ModelSignalsRegister()
         if model is not None:
             self.parameters = self.add_parameters_from_model(
                 self._settings_model)
@@ -43,6 +44,14 @@ class EngineParameterTree(ParameterTree):
         header.setSectionResizeMode(mode)
 
     def addParameters(self, param, root=None, depth=0, showTop=True):
+
+        if isinstance(root, Parameter):
+            for item in root.items:
+                if item.treeWidget() is self:
+                    root = item
+                    break
+        if isinstance(root, Parameter):
+            raise TypeError
         super().addParameters(param, root=root, depth=depth, showTop=showTop)
 
         header: QtWidgets.QHeaderView = self.header()
@@ -51,10 +60,16 @@ class EngineParameterTree(ParameterTree):
         # header.resizeSection(0, 15)
 
     def add_parameters_from_model(
-            self, model: BaseModel, root=None, depth=0, showTop=True):
+        self, model: BaseModel, root=None, depth=0, showTop=True,
+        signal_register=None, exclude_keys=None, **options
+    ):
+        if signal_register is None:
+            signal_register = self.signal_register
+        elif signal_register is Undefined:
+            signal_register = None
         pars = ParameterBuilder.make_pars_from_model(
-            model=model,
-            signal_register=self.signal_register)
+            model=model, signal_register=signal_register,
+            exclude_keys=exclude_keys, **options)
         self.addParameters(pars, root=root, depth=depth, showTop=showTop)
         return pars
 

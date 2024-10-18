@@ -64,6 +64,9 @@ class XYZPars(XMLSettingsModel):
     Y: float
     Z: float
 
+    def as_tuple(self):
+        return self.X, self.Y, self.Z
+
     def __len__(self):
         return 3
 

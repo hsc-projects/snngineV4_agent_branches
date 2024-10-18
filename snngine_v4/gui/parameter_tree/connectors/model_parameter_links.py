@@ -14,6 +14,7 @@ from snngine_v4.gui.parameter_tree.connectors.object2object_links import (
 )
 from snngine_v4.gui.parameter_tree.parameters.multi_type_parameter import \
     MultiTypeParameter
+from snngine_v4.utils.containers.super_maps import TypeSortedMap
 
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
@@ -32,39 +33,36 @@ class ObjectParameterLink(Object2ObjectLink):
             super().setup(link_type=link_type, key=key, obj=obj, **kwargs)
         else:
             self[link_type] = ObjectSignal(
+                key=key,
                 signal=self.get_parameter_signal(obj), obj=obj, **kwargs)
-
-    @property
-    def key(self):
-        return self[LinkStateType.SOURCE2SINK].key
 
     def _default_call(self, *args, link_type: LinkStateType, **kwargs):
         match link_type:
             case LinkStateType.SOURCE2SINK:
                 if args[0] != self.source:
                     raise AssertionError
-                elif args[1] != self.key:
+                elif args[1] != self.source_key:
                     raise AssertionError
                 value = args[2]
-                print(f"Set parameter value '{self.key}'", value)
+                print(f"Set parameter value '{self.source_key}'", value)
                 self.sink.setValue(value)
             case LinkStateType.SINK2SOURCE:
                 if args[0] != self.sink:
                     raise AssertionError
                 value = self.sink.value()
                 try:
-                    self.source.__setattr__(self.source, self.key, value)
+                    self.source.__setattr__(self.source, self.source_key, value)
                 except ValidationError as err:
                     if (value is None) or pd.isna(value):
                         b_none_allowed = self.sink.opts.get(
                             ParamOpts.KW.C_NULLABLE_VALUE)
-                        self.source.__setattr__(self.source, self.key, None)
+                        self.source.__setattr__(self.source, self.source_key, None)
                         pass
                     else:
                         raise err
                 print(f"({self.source.__class__.__name__}, {id(self.source)}) "
-                      f"Set '{self.key}' from parameter({id(self.sink)}):",
-                      getattr(self.source, self.key))
+                      f"Set '{self.source_key}' from parameter({id(self.sink)}):",
+                      getattr(self.source, self.source_key))
             case _:
                 raise TypeError(f"{link_type.name}")
 
@@ -82,7 +80,8 @@ class ObjectParameterLink(Object2ObjectLink):
                     ParamOpts.KW.C_NONE_MEANS_UNKNOWN, False) is True)):
             pass
         else:
-            self[LinkStateType.SOURCE2SINK].signal.emit(self, self.key, value)
+            self[LinkStateType.SOURCE2SINK].signal.emit(
+                self, self.source_key, value)
 
 
 class ModelParameterLinks(Object2ObjectLinks):
@@ -99,17 +98,13 @@ class ModelParameterLinks(Object2ObjectLinks):
         self.data: dict[int | BaseModel, Parameter] | None = None
         self.source: BaseModel | None = None
         self.sink: GroupParameter | None = None
-        super().__init__(source=model, **kwargs)
+        super().__init__(source=model, sink=group_param, **kwargs)
 
         self.prepare_object(
             obj=self.source, link_type=LinkStateType.SOURCE2SINK,
             debug_catch=ValidationError)
-        self.sink = group_param
         if group_param is not None:
             self.add_parameter(group_param)
-
-    def parameters(self) -> Iterable[Parameter]:
-        return self[ObjectParameterLink].values()
 
     def add_parameter(
             self, param: Parameter | GroupParameter):
@@ -127,13 +122,9 @@ class ModelParameterLinks(Object2ObjectLinks):
                 key=key, parameter=param, obj=self.source)
             self[link] = link.sink
 
-    def clear(self, b_force: bool = False):
-
-        for link in self[str].values():
-            link: ObjectParameterLink
-            link.clear(b_force=b_force)
-        super().clear(b_force=b_force,)
+    def parameters(self) -> Iterable[Parameter]:
+        return self[ObjectParameterLink].values()
 
     def __setitem__(self, link, parameter):
-        super().__setitem__(link, parameter)
-        super().__setitem__(link.key, link)
+        TypeSortedMap.__setitem__(self, link, parameter)
+        TypeSortedMap.__setitem__(self, link.source_key, link)

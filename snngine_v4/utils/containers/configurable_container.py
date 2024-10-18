@@ -1,14 +1,20 @@
+from __future__ import annotations
+
 from collections import UserDict, UserList
 from types import NoneType
 from typing import Any, ClassVar, Type
 
-from pydantic import field_validator
+from pydantic import BaseModel, field_validator
 from pydantic.types import AnyType
 
 from snngine_v4.utils.field_utils import (
     extract_type_from_type_annotation, b_field_has_default, Undefined,
 )
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
+
+
+class ConfigurationError(BaseException):
+    pass
 
 
 class ExtensionByDuplicateError(BaseException):
@@ -25,15 +31,44 @@ type ValidValueType = tuple[Type | Any, ...] | Type | Any
 
 class ContainerConfig(XMLSettingsModel, frozen=True):
     allowed_types: ValidValueType = Any
+    forbidden_types: ValidValueType = None
     allowed_key_types: ValidKeyType = NoneType
     b_duplicates_allowed: bool = False
     b_duplicate_check_by_id: bool = False
     b_replace_allowed: bool = False
     b_pop_allowed: bool = True
     b_clear_allowed: bool = False
+    b_remove_by_id_allowed: bool = False
 
     class Slots:
         ALLOWED_TYPES: ClassVar[str] = 'allowed_types'
+
+    @classmethod
+    def b_int_allowed(cls, type_, forbidden_types=None):
+        return cls.b_valid_object_type(
+            1, type_, forbidden_types=forbidden_types)
+
+    @classmethod
+    def b_valid_object_type(cls, item, type_, forbidden_types=None):
+        if (forbidden_types is not None) and isinstance(item, forbidden_types):
+            return False
+
+        if type_ in [(Any, ), (AnyType, )]:
+            return True
+        try:
+            return isinstance(item, type_)
+        except TypeError:
+            return isinstance(item, type_)
+
+    @classmethod
+    def validate_value_type(cls, item, type_, forbidden_types=None):
+        b_allowed_type = cls.b_valid_object_type(
+            item, type_=type_, forbidden_types=forbidden_types)
+        if b_allowed_type is False:
+            raise TypeError(
+                    f"Item must be of type {type_}."
+                    f"Got {type(item).__name__} instead.")
+        return item
 
     @classmethod
     def default_allowed_types(cls):
@@ -50,15 +85,30 @@ class ContainerConfig(XMLSettingsModel, frozen=True):
 
     @classmethod
     def _validate_model_before(cls, data: Any) -> Any:
-        # if isinstance(data, dict):
-        # for k, field_info in cls.model_fields.items():
         k = cls.Slots.ALLOWED_TYPES
         field = cls.model_fields[k]
         if (k not in data) and (not b_field_has_default(field)):
             v = extract_type_from_type_annotation(field.annotation)
             data[k] = v
-
         return super()._validate_model_before(data)
+
+    @classmethod
+    def _validate_model_after(cls, data: ContainerConfig) -> Any:
+        super()._validate_model_after(data=data)
+        if isinstance(data, BaseModel | ContainerConfig):
+            if (b_int_allowed := cls.b_int_allowed(data.allowed_types,
+                                                   data.forbidden_types)
+                and (data.b_duplicate_check_by_id
+                     or data.b_remove_by_id_allowed)):
+                raise ConfigurationError(
+                    f"b_int_allowed={b_int_allowed} "
+                    f"and "
+                    f"\ndata.b_duplicate_check_by_id"
+                    f"={data.b_duplicate_check_by_id}"
+                    f"\ndata.b_remove_by_id_allowed"
+                    f"={data.b_remove_by_id_allowed}"
+                )
+        return data
 
 
 class ConfigurableContainerBase:
@@ -84,21 +134,13 @@ class ConfigurableContainerBase:
         return False
 
     def b_valid_item_type(self, item):
-        return self.cls_b_valid_object_type(
-            item, self._container_conf.allowed_types)
+        return ContainerConfig.b_valid_object_type(
+            item, self._container_conf.allowed_types,
+            forbidden_types=self._container_conf.forbidden_types)
 
     def b_valid_key_type(self, key):
-        return self.cls_b_valid_object_type(
+        return ContainerConfig.b_valid_object_type(
             key, self._container_conf.allowed_key_types)
-
-    @classmethod
-    def cls_b_valid_object_type(cls, item, type_):
-        if type_ in [(Any, ), (AnyType, )]:
-            return True
-        try:
-            return isinstance(item, type_)
-        except TypeError:
-            return isinstance(item, type_)
 
     @staticmethod
     def cls_filter_dict(
@@ -154,15 +196,6 @@ class ConfigurableContainerBase:
         return default_cls(**kwargs)
 
     @classmethod
-    def cls_validate_value_type(cls, item, type_):
-        b_allowed_type = cls.cls_b_valid_object_type(item, type_=type_)
-        if b_allowed_type is False:
-            raise TypeError(
-                    f"Item must be of type {type_}."
-                    f"Got {type(item).__name__} instead.")
-        return item
-
-    @classmethod
     def cls_validate_values(cls, items, type_, b_duplicate_check):
         if isinstance(items, dict):
             # keys = list(items.keys())
@@ -176,7 +209,7 @@ class ConfigurableContainerBase:
                 raise ExtensionByDuplicateError("Items must be unique.")
 
         for item in items:
-            cls.cls_validate_value_type(item, type_=type_)
+            ContainerConfig.validate_value_type(item, type_=type_)
         return items
 
     def __contains__(self, item):
@@ -236,6 +269,7 @@ class ConfigurableContainerBase:
                 f"Got {type(item).__name__} instead.")
         elif ((not self._container_conf.b_duplicates_allowed) and
               self.b_duplicated_item(item)):
+            b_contains = item in self
             raise ExtensionByDuplicateError(
                 f"Duplicated item: {item} ({id(item)})")
         return self

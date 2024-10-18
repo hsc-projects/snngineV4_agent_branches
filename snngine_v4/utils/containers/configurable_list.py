@@ -59,7 +59,7 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
                     allowed_types=type_, **kwargs)
                 ConfigurableList.__init__(
                     self, initlist=initlist, container_conf=container_conf)
-                print(id(self))
+                # print(id(self))
                 pass
 
         return GeneratedConfigurableList
@@ -73,6 +73,7 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
     def b_duplicated_item(self, item):
 
         b_duplicate_check = not self._container_conf.b_duplicates_allowed
+
         return ((b_duplicate_check is True) and hasattr(self, "data")
                 and (item in self))
 
@@ -112,7 +113,18 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
     def remove(self, item):
         if self._container_conf.b_remove_allowed is False:
             raise PermissionError("Remove not allowed.")
-        super().remove(item)
+        try:
+            super().remove(item)
+        except ValueError:
+            if (isinstance(item, int)
+                and self._container_conf.b_remove_by_id_allowed
+                and (item in self.data_ids)
+            ):
+                idx = self.data_ids.index(item)
+                item_ = self[idx]
+                if id(item_) != item:
+                    raise ValueError("Item not found.")
+                super().remove(item_)
 
     def replace(self, old, new):
         if self._container_conf.b_replace_allowed is False:
@@ -120,7 +132,6 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
         idx = self.index(old)
         self.pop(idx)
         self.insert(idx, new)
-
 
     def __setitem__(self, i, value):
         if self._container_conf.b_replace_allowed is False:

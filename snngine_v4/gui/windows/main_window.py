@@ -3,7 +3,7 @@ from typing import ClassVar
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.common.qobject_dicts import QWidgetDict
-from snngine_v4.gui.parameter_tree.connectors.vispy_connector import \
+from snngine_v4.gui.parameter_tree.vispy_connector import \
     VispyConnector
 from snngine_v4.gui.parameter_tree.parameters.widgets.array_editor import \
     ArrayEditorDockWidget
@@ -54,14 +54,14 @@ class MainEngineWindow(MainEngineWindowBase):
 
     def update_connections(self):
 
-        VispyConnector.connect_tree(tree=self.scene_tree,
-                                    scene_manager=self.engine.scene_manager)
+        VispyConnector.cls_connect_tree(tree=self.scene_tree,
+                                        scene_manager=self.engine.scene_manager)
         self.network_tree.clear()
         self.network_tree.add_parameters_from_model(
             self.engine.network_manager.container_model,
             showTop=False)
-
-        VispyConnector.connect_tree(
+        network_connector = VispyConnector()
+        network_connector.cls_connect_tree(
             tree=self.network_tree,
             scene_manager=self.engine.scene_manager)
 

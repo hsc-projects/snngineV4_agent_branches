@@ -24,8 +24,10 @@ type AnnotationType = (FieldInfo | GenericAlias | UnionType
                        | Type | TypeAliasType)
 
 
-def b_annotation_includes_basemodel(ann: AnnotationType) -> bool:
-    return b_annotation_includes_type(ann=ann, type_=BaseModel)
+def b_annotation_includes_basemodel(ann: AnnotationType,
+                                    b_strict: bool) -> bool:
+    return b_annotation_includes_type(
+        ann=ann, type_=BaseModel, b_strict=b_strict)
 
 
 def b_is_enum_annotation(ann: AnnotationType, b_strict: bool) -> bool:
@@ -85,11 +87,10 @@ def b_annotation_includes_type(ann: AnnotationType, type_: Type,
     if isinstance(ann, GenericAlias):
         ann = get_origin(ann)
 
-    if b_strict and isinstance(ann, UnionType):
-        return False
-
     if isinstance(ann, UnionType):
-        res = any([b_annotation_includes_type(x, type_)
+        if b_strict:
+            return False
+        res = any([b_annotation_includes_type(x, type_, b_strict=False)
                    for x in get_args(ann)])
         return res
     try:
@@ -124,22 +125,40 @@ def extract_annotation(ann: AnnotationType):
 
 
 def extract_basemodel_from_annotation(ann: UnionType | Type,
-                                      b_raise: bool = True):
-    if isinstance(ann, UnionType):
-        return extract_basemodel_from_union(ann, b_raise=b_raise)
-    if b_annotation_includes_basemodel(ann):
-        return ann
-    if b_raise:
-        raise ValueError("No BaseModel found")
+                                      b_raise: bool = True,
+                                      b_strict: bool = False):
+    # if isinstance(ann, UnionType):
+    #     return extract_basemodel_from_union(ann, b_raise=b_raise)
+    # if b_annotation_includes_basemodel(ann, b_strict=True):
+    #     return ann
+    # if b_raise:
+    #     raise ValueError("No BaseModel found")
+
+    return extract_type_from_annotation(
+        ann=ann, b_strict=b_strict, b_raise=b_raise, type_=BaseModel)
 
 
-def extract_basemodel_from_union(ann: UnionType, b_raise: bool = True):
-    type_assertion(ann, UnionType)
-    for x in get_args(ann):
-        if b_annotation_includes_basemodel(x):
-            return x
-    if b_raise:
-        raise ValueError('No BaseModel found')
+def extract_basemodels_from_annotation(
+        ann: UnionType | Type, b_raise: bool = True, b_strict: bool = False):
+    return extract_types_from_annotation(
+        ann=ann, b_strict=b_strict, b_raise=b_raise, type_=BaseModel)
+
+def extract_basemodel_from_iterable_annotation(
+    ann: AnnotationType, b_raise: bool = True,
+    allowed_union_alts: tuple[Type, ...] | Type[Undefined] = (NoneType, None)
+):
+    return extract_types_from_iterable_annotation(
+        ann=ann, type_=BaseModel, b_raise=b_raise,
+        allowed_union_alts=allowed_union_alts)
+
+# def extract_basemodel_from_union(ann: UnionType, b_raise: bool = True,
+#                                  b_strict: bool = False):
+#     type_assertion(ann, UnionType)
+#     for x in get_args(ann):
+#         if b_annotation_includes_basemodel(x, b_strict=b_strict):
+#             return x
+#     if b_raise:
+#         raise ValueError('No BaseModel found')
 
 
 def extract_field_interval(field_: FieldInfo, default='inf'):
@@ -192,8 +211,9 @@ def extract_type_from_annotation(ann: AnnotationType, type_: Type,
     ann = extract_annotation(ann=ann)
     if ann == type_:
         return ann
-    elif (isinstance(ann, UnionType) or (get_origin(ann) == Union)
-          and (b_strict is False)):
+    elif isinstance(ann, UnionType) or (get_origin(ann) == Union):
+        if b_strict is True:
+            return
         return extract_type_from_union(
             ann, type_=type_, b_raise=b_raise)
     elif isinstance(ann, GenericAlias):
@@ -209,7 +229,6 @@ def extract_type_from_annotation(ann: AnnotationType, type_: Type,
         raise ValueError(f"No {type_} found")
     return default
 
-
 def extract_type_from_type_annotation(ann: AnnotationType) -> Type | None:
     ann = extract_annotation(ann)
 
@@ -222,6 +241,48 @@ def extract_type_from_type_annotation(ann: AnnotationType) -> Type | None:
         raise NotImplementedError
     return res[0]
 
+
+
+def extract_types_from_annotation(ann: AnnotationType, type_: Type,
+                                  b_strict: bool = False,
+                                  b_raise: bool = True):
+    res = extract_type_from_annotation(ann=ann, b_strict=True, type_=type_,
+                                       b_raise=False)
+    if res is not None:
+        return (res,)
+    elif (isinstance(ann, UnionType) or (get_origin(ann) == Union)
+          and (b_strict is False)):
+        return extract_types_from_union(
+            ann, type_=type_, b_raise=b_raise)
+
+def extract_types_from_iterable_annotation(
+    ann: AnnotationType, type_: Type, b_raise: bool = True,
+    allowed_union_alts: tuple[Type, ...] | Type[Undefined] = (NoneType, None)
+):
+    orig = get_origin(ann)
+    allowed_types = []
+    if (allowed_union_alts is not Undefined) and (orig == UnionType):
+        args = get_args(ann)
+        for arg in args:
+            if (arg_og := get_origin(arg)) in [list, tuple]:
+                res = list(extract_types_from_iterable_annotation(
+                    ann=arg, type_=type_, b_raise=False,
+                    allowed_union_alts=Undefined,))
+                allowed_types += res
+            elif arg_og not in allowed_union_alts:
+                raise NotImplementedError(f"{arg_og}")
+        allowed_types = tuple(allowed_types)
+    elif orig in [list, tuple]:
+        for x in get_args(ann):
+            if b_annotation_includes_type(x, type_=type_, b_strict=False):
+                res = list(extract_types_from_annotation(
+                    x, type_=type_, b_strict=False, b_raise=False))
+                allowed_types += res
+    else:
+        raise NotImplementedError(f"{orig}")
+    if (len(allowed_types) == 0) and b_raise:
+        raise ValueError(f"No {type_} found")
+    return allowed_types
 
 def extract_type_from_union(ann: UnionType, type_: Type,
                             b_raise: bool = True, default=None):
@@ -241,6 +302,23 @@ def extract_type_from_union(ann: UnionType, type_: Type,
         raise ValueError(f"No {type_} found")
     return default
 
+def extract_types_from_union(ann: UnionType, type_: Type,
+                             b_raise: bool = True):
+    res = []
+    type_assertion(ann, UnionType)
+    for x in get_args(ann):
+        if isinstance(x, GenericAlias):
+            x_ = get_origin(x)
+        else:
+            x_ = x
+        try:
+            if issubclass(x_, type_):
+                res.append(x)
+        except TypeError:
+            raise
+    if (len(res) == 0) and b_raise:
+        raise ValueError(f"No {type_} found")
+    return tuple(res)
 
 class FieldInfoSlots:
     MULTIPLE_OF: ClassVar[str] = 'multiple_of'
@@ -281,7 +359,10 @@ def get_field_multiple_of(field: FieldInfo, default=None):
 def model_keys(model):
     keys = list(model.model_fields.keys())
     if model.model_extra is not None:
-        keys += list(model.model_extra.keys())
+        extra = list(model.model_extra.keys())
+        if '__setattr__' in extra:
+            extra.remove('__setattr__')
+        keys += extra
     return keys
 
 

@@ -4,7 +4,6 @@ from typing import Any, Callable, ClassVar, Set, Type
 
 import numpy as np
 from pydantic import BaseModel
-from vispy.geometry import MeshData
 from vispy.scene import Box, XYZAxis
 from vispy.util.event import EmitterGroup
 from vispy.visuals import CompoundVisual, MeshVisual, Visual
@@ -22,15 +21,20 @@ from snngine_v4.utils.class_mixer import ClassMixer
 from snngine_v4.utils.field_utils import Undefined
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 from snngine_v4.utils.settings.settings_keywords import InternalOpts
-from snngine_v4.visualization.config_models.vispy_visual_parameters import (
+from snngine_v4.visualization.config_models.visuals.visual_parameters import (
     OpenGLState, OpenGlStateType,
     RGBAColor, WDHKw,
     WDHSegKw,
 )
-from snngine_v4.visualization.config_models.visual_configs import (
-    BoxVisualConfig, OuterGridVisualConfig, XYZAxisVisualConfig,
+from snngine_v4.visualization.config_models.visuals.line_configs import (
+    XYZAxisVisualConfig,
 )
-from snngine_v4.visualization.scenes.setattribute_event import SetAttributeEvent
+from snngine_v4.visualization.config_models.visuals.box_configs import (
+    BoxVisualInitConfig, OuterGridVisualInitConfig,
+)
+from snngine_v4.visualization.scenes.setattribute_event import (
+    MeshDataChangedEvent, SetAttributeEvent,
+)
 
 
 class EmitterMap(ConfigurableDict):
@@ -39,7 +43,6 @@ class EmitterMap(ConfigurableDict):
         allowed_types: Any = Callable | ConfigurableDict
         allowed_key_types: Any = str | int
         b_duplicates_allowed: bool = True
-
 
     def __init__(self, events: EmitterGroup, keys, **kwargs):
         self.events = events
@@ -77,7 +80,8 @@ class VisualMixin:
 
     def mesh_data_changed(self: MeshVisual):
         MeshVisual.mesh_data_changed(self)
-        self.events.mesh_data_changed(key=self, value=self._meshdata)
+        print('mesh_data_changed', id(self))
+        self.events.mesh_data_changed(instance=self, data=self._meshdata)
 
     def __post_init__(self: VisualMixin | Visual):
         self.events.add(
@@ -85,16 +89,22 @@ class VisualMixin:
             attr_changed=SetAttributeEvent)
         self.emitter_map = EmitterMap(self.events, keys=self.attr_changed_keys)
 
+        def connect_mesh_data_changed(v_):
+            v_.mesh_data_changed = lambda: VisualMixin.mesh_data_changed(v_)
+
         if isinstance(self, CompoundVisual):
             for i, v in enumerate(self._subvisuals):
                 v: Visual
                 if isinstance(v, MeshVisual):
                     v.events.add(
                         auto_connect=False,
-                        mesh_data_changed=SetAttributeEvent)
-                v.mesh_data_changed = VisualMixin.mesh_data_changed
+                        attr_changed=SetAttributeEvent,
+                        mesh_data_changed=MeshDataChangedEvent)
+                    print('build MeshVisual', id(v))
+                    connect_mesh_data_changed(v)
                 # mesh_data: MeshData = v.mesh_data
-                # new_v: MeshVisual = VisualMixins().mix(class_item=v.__class__)(
+                # new_v: MeshVisual = VisualMixins()
+                # .mix(class_item=v.__class__)(
                 #     vertices=mesh_data.get_vertices(indexed=mesh_data.),
                 #     faces=None, vertex_colors=None,
                 #     face_colors=None, color=(0.5, 0.5, 1, 1),
@@ -110,7 +120,7 @@ class VisualMixins(ClassMixer):
     @classmethod
     def mix(cls, class_item: Type, name=None, attr_changed_keys=Undefined):
 
-        if class_item in [XYZAxis, MeshVisual]:
+        if class_item in [XYZAxis, Box, MeshVisual]:
             if class_item == XYZAxis:
                 set_data_kw = ['color', 'pos', 'connect', 'width'],
                 attr_changed_keys = [
@@ -147,15 +157,16 @@ class VispyVisualBuilder(BuilderDict):
 
     POS_KW: ClassVar[str] = 'pos'
     COLOR_KW: ClassVar[str] = 'color'
+    SUBVISUALS_KW: ClassVar[str] = 'subvisuals'
 
     BUILDER_DEFAULT_MODEL_CLASS: ClassVar = None
     BUILDER_DEFAULT_OBJECT_CLASS: ClassVar = None
     BUILDER_OBJECT_CLASS_MIXER: ClassVar = VisualMixins
 
     BUILDER_OBJECT_CLASS_MAP: ClassVar = {
-        BoxVisualConfig: Box,
+        BoxVisualInitConfig: Box,
         FiniteGridConfig: Box,
-        OuterGridVisualConfig: Box,
+        OuterGridVisualInitConfig: Box,
         XYZAxisVisualConfig: XYZAxis,
     }
 
@@ -168,6 +179,9 @@ class VispyVisualBuilder(BuilderDict):
         )
 
         dct.pop(InternalOpts.Slots.TECHNICAL, None)
+        subvisuals = dct.pop(cls.SUBVISUALS_KW, None)
+        if subvisuals and len(subvisuals) > 0:
+            raise NotImplementedError
 
         if isinstance(dct, dict):
 
@@ -214,7 +228,7 @@ class VispyVisualBuilder(BuilderDict):
     def get_model(cls, model: BaseModel | None):
         dump = model.model_dump(mode='python')
         if isinstance(model, FiniteGridConfig):
-            model = OuterGridVisualConfig(**dump)
+            model = OuterGridVisualInitConfig(**dump)
         return super().get_model(model=model)
 
     @classmethod

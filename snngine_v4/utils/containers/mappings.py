@@ -15,9 +15,11 @@ from snngine_v4.utils.containers.configurable_list import (
     ConfigurableList, ConfigurableListConfig,
 )
 from snngine_v4.utils.core_utils import Singleton
+from snngine_v4.utils.field_utils import Undefined
 
 
 class UniqueObjectListConfig(ConfigurableListConfig, frozen=True):
+    forbidden_types: Type[int] = int
     b_append_allowed: bool = True
     b_duplicates_allowed: bool = False
     b_duplicate_check_by_id: bool = True
@@ -27,12 +29,14 @@ class UniqueObjectListConfig(ConfigurableListConfig, frozen=True):
     b_extend_allowed: bool = False
     b_insert_allowed: bool = False
     b_remove_allowed: bool = False
+    b_remove_by_id_allowed: bool = True
 
 
 class Int2ObjectMapConfig(DictContainerConfig, frozen=True):
     allowed_key_types: Type[int] = int
+    forbidden_types: Type[int] = int
     allowed_types: ValidValueType = Any
-    b_duplicate_check_by_id: bool = True
+    b_duplicate_check_by_id: bool = False
     b_duplicates_allowed: bool = False
     b_replace_allowed: bool = False
     b_pop_allowed: bool = False
@@ -79,13 +83,16 @@ class Object2ObjectMap(ConfigurableDict):
 
         self.refs = ConfigurableList(
             container_conf=UniqueObjectListConfig(
-                allowed_types=ref_types))
+                allowed_types=ref_types,
+                b_remove_allowed=container_conf.b_pop_allowed))
         # self.model2nodetree_map = node_tree
         super().__init__(container_conf=container_conf,
                          **kwargs)
 
-    # def actualize_node_tree_map(self, key, value=None):
-    #     raise NotImplementedError
+    def __contains__(self, item):
+        if not isinstance(item, int):
+            item = id(item)
+        return super().__contains__(item)
 
     def clear(self, b_force: bool = False, b_clear_inv: bool = True):
         super().clear(b_force=b_force)
@@ -123,31 +130,25 @@ class Object2ObjectMap(ConfigurableDict):
                 and (not issubclass(
                     default_conf_cls[0], Int2ObjectMapConfig))):
             kwargs['allowed_types'] = default_conf_cls[0]
-
         else:
             kwargs['allowed_types'] = super().cls_make_container_conf(
                 container_conf=inv_conf,
                 default_cls=default_inv_conf_cls).allowed_types
+        if container_conf is None:
+            container_conf = super().cls_make_container_conf(
+                default_cls=default_conf_cls)
 
         if container_conf is not None:
             if container_conf.b_duplicates_allowed:
+                # noinspection PyPep8Naming
                 GeneratedTypeListClass = (
-                    ConfigurableList.class_from_type(kwargs['allowed_types']))
-
-                # class GeneratedTypeListClass(ConfigurableList):
-                #     ContainerConfigClass = (ConfigurableListConfig,
-                #                             kwargs['allowed_types'])
-                #
-                #     def __init__(self_, **kwargs_):
-                #         super().__init__(**kwargs_)
-                #
-                #         self._container_conf: ContainerConfig =
-                #         self.cls_make_container_conf(
-                #             container_conf=container_conf)
-                #         pass
-
+                    ConfigurableList.class_from_type(
+                        kwargs['allowed_types'],
+                        b_remove_allowed=container_conf.b_pop_allowed
+                    ))
                 kwargs['b_list_mode'] = True
                 kwargs['allowed_types'] = GeneratedTypeListClass
+            kwargs['b_pop_allowed'] = container_conf.b_pop_allowed
 
         if isinstance(kwargs['allowed_types'], tuple) \
                 and len(kwargs['allowed_types']) == 1:
@@ -227,6 +228,19 @@ class Object2ObjectMap(ConfigurableDict):
         for ref in self.refs:
             yield ref, self[ref]
 
+    def pop(self, key, default=Undefined):
+        if self._container_conf.b_duplicates_allowed:
+            raise NotImplementedError
+        value = self[key]
+        self.refs.remove(key)
+        if default is Undefined:
+            res = super().pop(key)
+        else:
+            res = super().pop(key, default)
+        if value in self.inv:
+            self.inv.pop(id(value))
+        return res
+
     def __setitem__(self, item0, item1):
 
         if self.container_conf.b_list_mode and item0 in self.refs:
@@ -265,12 +279,16 @@ class Object2ObjectMap(ConfigurableDict):
                     raise ValueError(
                         f"{item0} not in self.inverted[item1] = {item_}")
 
-
     def update(self, m=None, **kwargs) -> None:
         if isinstance(m, Object2ObjectMap):
             for k, v in m.pairs():
                 self[k] = v
         super().update(**kwargs)
+
+    def values_contain(self, item):
+        # if not isinstance(item, int):
+        return id(item) in self.value_ids
+        # return item in self.values()
 
 
 class Model2ObjectMap(Object2ObjectMap):

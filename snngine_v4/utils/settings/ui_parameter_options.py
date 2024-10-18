@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Annotated, Any, ClassVar, Type
 
-from pydantic import BeforeValidator, Field
+from pydantic import BeforeValidator, Field, BaseModel
 from pydantic_settings import BaseSettings
 
 
@@ -250,3 +250,13 @@ def p_field(default, readonly=False, **kwargs):
         },
         **kwargs)
     return res
+
+
+def update_param_opts(model: BaseModel, **kwargs):
+    ui_opts = getattr(model, ParamOpts.CLASS_VAR_KEY, None)
+    if ui_opts is None:
+        ui_opts = {}
+    ui_opts = dict(**ui_opts)
+    ui_opts.update(kwargs)
+    setattr(model, ParamOpts.CLASS_VAR_KEY, ui_opts)
+

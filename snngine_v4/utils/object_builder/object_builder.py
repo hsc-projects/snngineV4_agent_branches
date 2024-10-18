@@ -54,48 +54,6 @@ class ModelObjectBuilder:
     BUILDER_OBJECT_CLASS_MIXER: ClassVar[Type[ClassMixer] | None] = None
 
     @classmethod
-    def find_object_class(cls, model, b_ignore_default: bool,
-                          b_raise: bool = True):
-        object_class = None
-        if model.__class__ not in cls.BUILDER_OBJECT_CLASS_MAP:
-            for k, v in cls.BUILDER_OBJECT_SUPERCLASS_MAP.items():
-                if issubclass(model.__class__, k):
-                    object_class = v
-                    break
-        else:
-            object_class = cls.BUILDER_OBJECT_CLASS_MAP[model.__class__]
-        if object_class is None:
-            if b_ignore_default is False:
-                object_class = cls.BUILDER_DEFAULT_OBJECT_CLASS
-            elif b_raise:
-                raise ValueError('No object class found for model')
-        if cls.BUILDER_OBJECT_CLASS_MIXER is not None:
-            object_class = cls.BUILDER_OBJECT_CLASS_MIXER()[object_class]
-        return object_class
-
-    @classmethod
-    def make_object_kwargs(cls, model: BaseModel, **kwargs):
-        object_kwargs = model.model_dump(mode='python')
-        object_kwargs = XMLSettingsModel.pop_model__class__name_keyword(
-            object_kwargs)
-        object_kwargs.update(**kwargs)
-
-        if cls.b_enum_to_values is True:
-            for k, v in object_kwargs.items():
-                if isinstance(v, Enum):
-                    object_kwargs[k] = v.value
-
-        return object_kwargs
-
-    @classmethod
-    def get_model(cls, model: BaseModel | None):
-        return model or cls.BUILDER_DEFAULT_MODEL_CLASS()
-
-    @classmethod
-    def make_object(cls, object_class, model, **object_kwargs):
-        return object_class(**object_kwargs)
-
-    @classmethod
     def cls_build_container(
             cls, model_container,
             b_replace_missing_by_default_model: bool = False,
@@ -168,6 +126,48 @@ class ModelObjectBuilder:
                         pass
                     res[model] = built
         return res
+
+    @classmethod
+    def find_object_class(cls, model, b_ignore_default: bool,
+                          b_raise: bool = True):
+        object_class = None
+        if model.__class__ not in cls.BUILDER_OBJECT_CLASS_MAP:
+            for k, v in cls.BUILDER_OBJECT_SUPERCLASS_MAP.items():
+                if issubclass(model.__class__, k):
+                    object_class = v
+                    break
+        else:
+            object_class = cls.BUILDER_OBJECT_CLASS_MAP[model.__class__]
+        if object_class is None:
+            if b_ignore_default is False:
+                object_class = cls.BUILDER_DEFAULT_OBJECT_CLASS
+            elif b_raise:
+                raise ValueError('No object class found for model')
+        if cls.BUILDER_OBJECT_CLASS_MIXER is not None:
+            object_class = cls.BUILDER_OBJECT_CLASS_MIXER()[object_class]
+        return object_class
+
+    @classmethod
+    def make_object_kwargs(cls, model: BaseModel, **kwargs):
+        object_kwargs = model.model_dump(mode='python')
+        object_kwargs = XMLSettingsModel.pop_model__class__name_keyword(
+            object_kwargs)
+        object_kwargs.update(**kwargs)
+
+        if cls.b_enum_to_values is True:
+            for k, v in object_kwargs.items():
+                if isinstance(v, Enum):
+                    object_kwargs[k] = v.value
+
+        return object_kwargs
+
+    @classmethod
+    def get_model(cls, model: BaseModel | None):
+        return model or cls.BUILDER_DEFAULT_MODEL_CLASS()
+
+    @classmethod
+    def make_object(cls, object_class, model, **object_kwargs):
+        return object_class(**object_kwargs)
 
     @classmethod
     def cls_build(cls, model: BaseModel = None, object_class=None,

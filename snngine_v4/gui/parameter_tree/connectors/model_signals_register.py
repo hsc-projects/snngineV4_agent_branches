@@ -19,7 +19,7 @@ from snngine_v4.utils.containers.node_map import (
 from snngine_v4.utils.field_utils import model_keys
 
 
-class ModelSignalRegister(Model2ObjectMap):
+class ModelSignalsRegister(Model2ObjectMap):
 
     class ContainerConfigClass(Int2ObjectMapConfig, frozen=True):
         allowed_types: Type[ModelParameterLinks]
@@ -56,17 +56,16 @@ class ModelSignalRegister(Model2ObjectMap):
             v.clear(b_force=self.container_conf.b_clear_allowed or b_force)
         super().clear(b_force=b_force, b_clear_inv=b_clear_inv)
         self.group_map.clear(b_force=True)
+        self.model2model_map.clear(b_force=True)
+        self.model2nodetree_map.clear(b_force=True)
+        self.main_node_tree.clear(b_force=True)
 
     @property
     def connected_models(self):
         return self.refs
 
-    def __setitem__(self, model, value):
-        if isinstance(value, GroupParameter):
-            value = ModelParameterLinks(model=model, group_param=value)
-        super().__setitem__(model, value)
-        self.group_map[model] = self[model].sink
-        self.actualize_node_tree_map(model, self[model])
+    def get_group(self, model):
+        return self[model].sink
 
     @cached_property
     def main_node_tree(self) -> NodeTree:
@@ -76,10 +75,11 @@ class ModelSignalRegister(Model2ObjectMap):
     def make_model2model_links(self, model0: BaseModel, model1: BaseModel,
                                node_tree=None):
         self.model2model_map[model0] = model1
-        self[model1] = ModelParameterLinks(model=model1, sink=self[model0])
+        self[model1] = ModelParameterLinks(
+            model=model1, group_param=self.get_group(model0))
         if node_tree is None:
-            node_tree = NodeTree(root=model1)
-        elif model1 not in NodeTree:
+            node_tree = ModelTree(root=model1)
+        elif model1 not in node_tree:
             raise AssertionError
         self.model2nodetree_map[model1] = node_tree
 
@@ -89,3 +89,12 @@ class ModelSignalRegister(Model2ObjectMap):
             if isinstance(v0, BaseModel):
                 self.make_model2model_links(
                     v0, getattr(model1, k0), node_tree=node_tree)
+        return node_tree
+
+    def __setitem__(self, model, value):
+        if isinstance(value, GroupParameter):
+            value = ModelParameterLinks(model=model, group_param=value)
+            self.group_map[model] = value.sink
+        super().__setitem__(model, value)
+
+        self.actualize_node_tree_map(model, self[model])

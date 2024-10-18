@@ -16,3 +16,13 @@ class SetAttributeEvent(Event):
 
 class Set3DAttributeEvent(SetAttributeEvent):
     pass
+
+
+class MeshDataChangedEvent(Event):
+    def __init__(self, *arg, **kwargs):
+        instance = kwargs.pop('instance', None)
+        data = kwargs.pop('data', None)
+        kwargs.setdefault('type', 'mesh_data_changed')
+        super().__init__(*arg, **kwargs)
+        self.instance = instance
+        self.data = data

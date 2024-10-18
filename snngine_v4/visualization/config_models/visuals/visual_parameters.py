@@ -30,6 +30,10 @@ type ColorTypeUnion = (
         | ColorVBO
         | Color | None)
 
+type RGBAColorTypeUnion = (
+        str | RGBAColor
+        | Color | None)
+
 
 def validate_color(v):
     if isinstance(v, tuple) or (isinstance(v, np.ndarray) and v.ndim == 1):
@@ -38,6 +42,8 @@ def validate_color(v):
 
 
 ColorType = Annotated[ColorTypeUnion, BeforeValidator(validate_color)]
+RGBAColorType = Annotated[RGBAColorTypeUnion, BeforeValidator(validate_color)]
+
 type VispyColorType = tuple
 
 

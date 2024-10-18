@@ -4,14 +4,13 @@ from pydantic import BaseModel
 
 from snngine_v4.utils.containers.configurable_list import (
     ConfigurableList,
-    ConfigurableListConfig,
 )
 from snngine_v4.utils.containers.mappings import (
     Int2ObjectMapConfig,
-    Object2ObjectMap,
+    Object2ObjectMap, UniqueObjectListConfig,
 )
 from snngine_v4.utils.containers.typed_node import TreeDir, TreeNode
-from snngine_v4.utils.field_utils import model_keys
+from snngine_v4.utils.field_utils import model_keys, Undefined
 
 
 class NodeTreeConfig(Int2ObjectMapConfig):
@@ -21,7 +20,8 @@ class NodeTreeConfig(Int2ObjectMapConfig):
     b_free_nodes_allowed: bool = False
     b_root_frozen: bool = True
 
-class FreeElementListConfig(ConfigurableListConfig):
+
+class FreeElementListConfig(UniqueObjectListConfig):
     b_remove_allowed: bool = True
 
 
@@ -33,31 +33,37 @@ class NodeTree(Object2ObjectMap):
 
     container_conf: NodeTreeConfig
     _container_conf: NodeTreeConfig
-    __getitem__: Callable[[Any], TreeNode]
+    # __getitem__: Callable[[Any], TreeNode]
 
     def __init__(self, root=None, free_nodes_config=None,
                  container_conf: NodeTreeConfig | None = None):
         super().__init__(container_conf=container_conf)
 
         self.free_elements = ConfigurableList(
-            free_nodes_config or self.FreeElementListConfigClass(
+            container_conf=free_nodes_config or self.FreeElementListConfigClass(
                 allowed_types=self.inv.container_conf.allowed_types))
 
         self._root = None
         if root is not None:
             self.root = root
 
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> TreeNode:
         if key is None:
             raise KeyError('None')
         return super().__getitem__(key)
 
     def __setitem__(self, key, value):
+        if isinstance(key, int):
+            raise AssertionError
         if value is None:
             value = TreeNode(parent_node=None)
         super().__setitem__(key, value)
-        if (value.parent_node is None) and (key is not self._root):
-            self.free_elements.append(self.inv[value])
+        if self.b_has_root and (value.parent_node is None):
+            # and (key is not self._root):
+            if id(key) != id(self.inv[value]):
+                raise AssertionError
+            # print('append', key.__class__.__name__, id(key))
+            self.free_elements.append(key)
 
     # noinspection PyPep8Naming
     @property
@@ -69,11 +75,15 @@ class NodeTree(Object2ObjectMap):
             cls = cls[0]
         return cls
 
+    @property
+    def b_has_root(self):
+        return self._root is not None
+
     def b_valid_item(self, item):
         return super().b_valid_item(item) and self.b_valid_parent(item)
 
     def b_valid_parent(self, item: TreeNode):
-        if self._root is not None:
+        if self.b_has_root:
             if ((item.parent_node is None)
                     and (not self._container_conf.b_free_nodes_allowed)
                     and (item is not self.root_node)):
@@ -97,8 +107,7 @@ class NodeTree(Object2ObjectMap):
         return self
 
     def add_free_element(self, element):
-        print(element.__class__.__name__, id(element))
-
+        # print(element.__class__.__name__, id(element))
         self[element] = None
         return self
 
@@ -109,9 +118,7 @@ class NodeTree(Object2ObjectMap):
         return self[element].b_has_parent_node
 
     def b_is_free(self, element):
-        res = ((element is not self._root)
-                and (element in self)
-                and (self[element].parent_node is None))
+        res = self.parent(element) is None
         if res and element not in self.free_elements:
             raise RuntimeError
         return res
@@ -142,11 +149,11 @@ class NodeTree(Object2ObjectMap):
         if parent_node is not None:
             return self[parent_node]
 
-    def pop(self, element):
+    def pop(self, element, default=Undefined):
         node = self[element]
         self.parent(element).remove_child_node(node)
         self[element].remove_child_nodes()
-        return super().pop(element)
+        return super().pop(element, default=default)
 
     def rank(self, element):
         return self[element].node_rank()
@@ -183,12 +190,15 @@ class NodeTree(Object2ObjectMap):
         if (self.b_has_parent(element)
                 and (self._container_conf.b_freeze_parent is True)):
             raise PermissionError("frozen parent node.")
-        child_node.parent_node = parent_node
+
         if (parent_node is not None) and self.b_is_free(element):
+            # print('remove', element.__class__.__name__, id(element))
             self.free_elements.remove(element)
+        child_node.parent_node = parent_node
         self.validate_parent(child_node)
         if parent_node is None:
-            self.free_elements.append(child_node)
+            # print('append', element.__class__.__name__, id(element))
+            self.free_elements.append(element)
         return self
 
     def siblings(self, element):
@@ -200,9 +210,10 @@ class NodeTree(Object2ObjectMap):
 
     def validate_parent(self, item):
         if not self.b_valid_parent(item):
-            if self._root is not None:
+            if self.b_has_root:
                 if ((item.parent_node is None)
-                    and (self._container_conf.b_free_nodes_allowed is False)):
+                        and (self._container_conf.b_free_nodes_allowed
+                             is False)):
                     raise PermissionError("free nodes are not allowed.")
                 elif item.parent_node is not None:
                     if item.parent_node not in self.inv:
@@ -230,10 +241,48 @@ class ModelTree(NodeTree):
 
     def __setitem__(self, model: BaseModel, value, ):
         super().__setitem__(model, value)
+        if isinstance(model, BaseModel):
+            self.read_model(model, b_ignore_existing=False)
+        else:
+            self.read_list(model, b_ignore_existing=False)
+
+    def read_list(self, lst, b_ignore_existing=False, parent=None):
+        for item in lst:
+            if isinstance(item, BaseModel):
+                if lst not in self:
+                    if parent is None:
+                        raise RuntimeError
+                    self.add_element(lst, parent=parent)
+                elif self.b_is_free(lst):
+                    raise RuntimeError
+                if ((b_exists := (item in self))
+                        and self.b_is_free(item)):
+                    self.set_parent(item, lst)
+                    # raise RuntimeError
+                elif b_exists and (self.parent(item) is not lst):
+                    raise RuntimeError
+                    # self.set_parent(item, model)
+                elif b_exists and (b_ignore_existing
+                                   or (self.parent(item) is lst)):
+                    pass
+                else:
+                    # print(id(item))
+                    self.add_element(item, parent=lst)
+
+    def read_model(self, model, b_ignore_existing=False):
         for k in model_keys(model):
             v = getattr(model, k)
             if isinstance(v, BaseModel):
-                if (v in self) and self.b_is_free(v):
+                if (b_exists := (v in self)) and self.b_is_free(v):
                     self.set_parent(v, model)
+                elif (b_exists and (b_ignore_existing
+                                    and (self.parent(v) is model))):
+                    pass
+                elif b_exists:
+                    raise RuntimeError
                 else:
                     self.add_element(v, parent=model)
+            elif isinstance(v, list):
+                self.read_list(v, b_ignore_existing=b_ignore_existing,
+                               parent=model)
+

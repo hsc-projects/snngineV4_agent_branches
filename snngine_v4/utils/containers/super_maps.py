@@ -125,6 +125,8 @@ class TypeSortedMap(ConfigurableContainerBase):
         if sm is None:
             raise TypeError(key)
         if (sm[0] not in self.key_map) and self._container_conf.b_auto_create:
+            # if len(self.key_map.refs) == 1:
+            #     sm[0] not in self.key_map
             map_ = self.create_sub_map(key_type=sm[0], value_type=sm[1])
         else:
             map_ = self.key_map[sm[0]]

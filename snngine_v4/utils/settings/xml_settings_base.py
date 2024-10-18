@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from types import NoneType
-from typing import Any, ClassVar, get_origin, Literal
+from types import NoneType, UnionType
+from typing import Any, ClassVar, get_args, get_origin, Literal
 
-from pydantic import model_validator
+from pydantic import BaseModel, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic_settings.sources import (
     ConfigFileSourceMixin, InitSettingsSource,
@@ -18,6 +18,8 @@ from snngine_v4.utils.field_utils import (
     b_is_enum_annotation, b_is_intenum_annotation,
     extract_basemodel_from_annotation,
     b_annotation_includes_basemodel, b_field_has_default,
+    extract_basemodel_from_iterable_annotation,
+    extract_basemodels_from_annotation,
 )
 from snngine_v4.utils.settings.settings_keywords import (
     BaseSettingsSlots,
@@ -164,38 +166,40 @@ class XMLSettingsModelBase(BaseSettings):
         return cls._validate_model_before(data)
 
     @classmethod
+    def _validate_model_item(cls, data, key, field_info=None, ):
+        if key == 'elements':
+            pass
+
+        if field_info is None:
+            field_info = cls.model_fields[key]
+
+        ann = field_info.annotation
+        if key not in data:
+            if not b_field_has_default(field_info):
+                if b_annotation_includes_type(ann, type_=NoneType):
+                    data[key] = None
+                elif b_annotation_includes_basemodel(
+                        ann, b_strict=False):
+                    if b_annotation_includes_type(ann=ann, type_=dict):
+                        data[key] = {}
+                    else:
+                        data[key] = extract_basemodel_from_annotation(
+                            ann, b_strict=False)()
+        elif isinstance(data[key], list):
+            if b_annotation_includes_type(ann, type_=tuple):
+                data[key] = tuple(data[key])
+        elif (isinstance(data[key], (int, str))
+              and (b_is_intenum_annotation(ann, True))):
+            data[key] = get_intenum_member(data[key], ann)
+
+    @classmethod
     def _validate_model_before(cls, data: Any) -> Any:
         if isinstance(data, dict):
-
             for k in cls.model_computed_fields:
                 data.pop(k, None)
-
             for k, field_info in cls.model_fields.items():
-
-                if k == 'method':
-                    pass
-
-                ann = field_info.annotation
-                if k not in data:
-                    if not b_field_has_default(field_info):
-                        if b_annotation_includes_type(ann, type_=NoneType):
-                            data[k] = None
-                        elif b_annotation_includes_basemodel(ann):
-                            if b_annotation_includes_type(ann=ann, type_=dict):
-                                data[k] = {}
-                            else:
-                                data[k] = extract_basemodel_from_annotation(ann)()
-
-                elif (isinstance(data[k], list) and
-                      b_annotation_includes_type(ann, type_=tuple)):
-                    data[k] = tuple(data[k])
-                elif (isinstance(data[k], (int, str))
-                      and (b_is_intenum_annotation(ann, True))):
-                    data[k] = get_intenum_member(data[k], ann)
-                elif (isinstance(data[k], str)
-                      and (b_is_enum_annotation(ann, True))):
-                    data[k] = get_intenum_member(data[k], ann)
-
+                cls._validate_model_item(
+                    data=data, key=k, field_info=field_info)
         return data
 
     @classmethod

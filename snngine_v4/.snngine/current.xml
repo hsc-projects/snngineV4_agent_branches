@@ -18,15 +18,12 @@
         </DictItem>
       </DictItem>
       <DictItem type="list" key="elements">
-        <ListElementElement type="dict" class="NetworkReservoir">
+        <ListElementElement type="dict" class="EngineElementConfig">
           <DictItem type="dict" class="EnginePos3D" key="pos">
             <DictItem type="float" key="X">0.0</DictItem>
             <DictItem type="float" key="Y">0.0</DictItem>
             <DictItem type="float" key="Z">0.0</DictItem>
           </DictItem>
-          <DictItem type="int" key="N">200</DictItem>
-          <DictItem type="int" key="S">1</DictItem>
-          <DictItem type="int" key="D">0</DictItem>
         </ListElementElement>
         <ListElementElement type="dict" class="NetworkReservoir">
           <DictItem type="dict" class="EnginePos3D" key="pos">
@@ -38,15 +35,12 @@
           <DictItem type="int" key="S">1</DictItem>
           <DictItem type="int" key="D">0</DictItem>
         </ListElementElement>
-        <ListElementElement type="dict" class="NetworkReservoir">
+        <ListElementElement type="dict" class="EngineElementConfig">
           <DictItem type="dict" class="EnginePos3D" key="pos">
             <DictItem type="float" key="X">0.0</DictItem>
             <DictItem type="float" key="Y">0.0</DictItem>
             <DictItem type="float" key="Z">0.0</DictItem>
           </DictItem>
-          <DictItem type="int" key="N">200</DictItem>
-          <DictItem type="int" key="S">1</DictItem>
-          <DictItem type="int" key="D">0</DictItem>
         </ListElementElement>
       </DictItem>
       <DictItem type="list" key="bools">

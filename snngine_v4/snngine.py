@@ -9,11 +9,14 @@ from snngine_v4.visualization.scenes.scene_manager import SceneManager
 class SNNgine:
 
     def __init__(self, settings: EngineConfig | str = None):
-        try:
-            # noinspection PyUnresolvedReferences
-            from pycuda import autoinit
-        except ModuleNotFoundError:
-            pass
+        # noinspection PyUnresolvedReferences
+        from pycuda import autoinit
+        # try:
+        #     # noinspection PyUnresolvedReferences
+        #     from pycuda import autoinit
+        #     pass
+        # except (ModuleNotFoundError, RuntimeError):
+        #     pass
         from vispy import gloo
 
         if settings is None:
@@ -28,8 +31,6 @@ class SNNgine:
 
         self.network_manager = NetworkManager(
             container_model=self.conf.current)
-
-        # self.build()
 
     def build(self):
         self.network_manager.build(self.conf.construction)

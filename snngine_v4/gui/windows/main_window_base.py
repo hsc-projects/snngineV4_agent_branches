@@ -144,6 +144,6 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
             editor.hide()
             editor.close()
         else:
-            print(editor.sizeHint())
+            # print(editor.sizeHint())
             editor.show()
-            print(editor.sizeHint())
+            # print(editor.sizeHint())

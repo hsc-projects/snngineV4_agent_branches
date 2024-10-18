@@ -105,7 +105,10 @@ class ObjectSignal(BaseModel,
             func = self.default_func
         if self.is_connected[func] is value:
             if b_raise is True:
-                raise RuntimeError
+                if value:
+                    raise RuntimeError('already connected')
+                else:
+                    raise RuntimeError('already disconnected')
         else:
             self._set_connect(func=func, value=value)
             self.is_connected[func] = value
@@ -159,8 +162,16 @@ class Object2ObjectLink(ConfigurableDict):
         return self[LinkStateType.SOURCE2SINK].obj
 
     @property
+    def source_key(self):
+        return self[LinkStateType.SOURCE2SINK].key
+
+    @property
     def sink(self):
         return self[LinkStateType.SINK2SOURCE].obj
+
+    @property
+    def sink_key(self):
+        return self[LinkStateType.SINK2SOURCE].key
 
     def _default_call(self, *args, link_type: LinkStateType, **kwargs):
         raise NotImplementedError
@@ -173,12 +184,21 @@ class Object2ObjectLink(ConfigurableDict):
 
 class Object2ObjectLinks(TypeSortedMap):
 
-    sub_maps: tuple = ((str, Object2ObjectLink), (Object2ObjectLink, str),)
+    sub_maps: tuple = ((str, Object2ObjectLink),
+                       (Object2ObjectLink, str),
+                       )
 
     def __init__(self, source=None, sink=None, **kwargs):
         super().__init__(**kwargs)
         self.source = source
         self.sink = sink
+
+    def clear(self, b_force: bool = False):
+
+        for link in self[str].values():
+            link: Object2ObjectLink
+            link.clear(b_force=b_force)
+        super().clear(b_force=b_force,)
 
     def get_sub_map_by_type(
             self, link_type: LinkStateType) -> dict[str, Object2ObjectLink]:
@@ -201,3 +221,9 @@ class Object2ObjectLinks(TypeSortedMap):
                 raise error
         # TODO:
         obj.__setattr__ = set_attr
+
+    def __setitem__(self, key, link: Object2ObjectLink):
+        if key != link.source_key:
+            raise AssertionError
+        super().__setitem__(link.source_key, link)
+        super().__setitem__(link, link.sink_key)

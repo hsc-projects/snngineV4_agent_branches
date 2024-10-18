@@ -1,28 +1,50 @@
-from snngine_v4.gui.parameter_tree.connectors.basemodel_signal_register import \
-    ModelSignalRegister
+from snngine_v4.gui.parameter_tree.connectors.model_signals_register import \
+    ModelSignalsRegister
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
     EngineParameterTree
-from snngine_v4.utils.containers.mappings import Object2ObjectMap
+from snngine_v4.utils.containers.mappings import (
+    Model2ObjectMap,
+    Object2ObjectMap,
+)
 
 
-class ParameterConnector:
+class ParameterConnector(Model2ObjectMap):
+
+    def connect_tree(self, **kwargs):
+        return self.cls_connect_tree(container=self, **kwargs)
+
+    def connect_map(self, **kwargs):
+        return self.cls_connect_map(container=self, **kwargs)
 
     @classmethod
-    def connect_map(cls, object2object_map: Object2ObjectMap,
-                    signal_register: ModelSignalRegister):
+    def cls_connect_map(cls, object2object_map: Object2ObjectMap,
+                        signal_register: ModelSignalsRegister,
+                        container=None):
+        if container is None:
+            container = cls.make_container()
         for model, obj in object2object_map.pairs():
-            cls.connect_object(model, obj, signal_register)
+            container[model] = (
+                cls.connect_object(model, obj, signal_register))
+        return container
 
     @classmethod
     def connect_object(cls, model, obj,
-                       signal_register: ModelSignalRegister):
+                       signal_register: ModelSignalsRegister):
         raise NotImplementedError
 
     @classmethod
-    def connect_tree(cls, tree: EngineParameterTree, scene_manager):
+    def cls_connect_tree(cls, tree: EngineParameterTree, scene_manager,
+                         container=None):
+        if container is None:
+            container = cls.make_container()
         models = tree.signal_register.connected_models
         object2object_map = scene_manager.get_objects(models)
-        cls.connect_map(
+        return cls.cls_connect_map(
             object2object_map=object2object_map,
-            signal_register=tree.signal_register
+            signal_register=tree.signal_register,
+            container=container
         )
+
+    @classmethod
+    def make_container(cls):
+        return Model2ObjectMap(container_conf=cls.cls_make_container_conf())

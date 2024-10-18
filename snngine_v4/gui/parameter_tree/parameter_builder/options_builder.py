@@ -27,7 +27,7 @@ from snngine_v4.utils.interval_utils import limits_from_interval
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.geometry.spatial_pars import Ax3D, PositionVBO
-from snngine_v4.visualization.config_models.vispy_visual_parameters import (
+from snngine_v4.visualization.config_models.visuals.visual_parameters import (
     ColorVBO, RGBAEnum,
 )
 
@@ -98,14 +98,10 @@ class OptionsBuilder:
             model_value = getattr(parent_model, key)
             if (isinstance(model_value, dict)
                     and isinstance(parent_model, XMLSettingsModel)):
-                model_type = parent_model.model_interpret_dict_type(
+                model_type = parent_model.model_interpret_extra_dict_type(
                     dct=model_value)
                 if model_type:
                     return model_type
-            # elif isinstance(model_value, list):
-            #     types_ = set(type(x) for x in model_value)
-            #
-            #     pass
             return type(model_value)
 
     @classmethod
@@ -222,6 +218,7 @@ class OptionsBuilder:
                 if b_is_literal_annotation(ann, b_strict=False):
                     options.limits = extract_literal_values(ann)
                 else:
+                    # pass
                     raise ValueError
 
         if options.c_b_group_default_button is None:

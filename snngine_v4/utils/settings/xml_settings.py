@@ -4,6 +4,10 @@ from typing import Any, ClassVar, Type
 
 from pydantic import BaseModel, computed_field, model_validator
 
+from snngine_v4.utils.field_utils import \
+    (
+    b_annotation_includes_type, extract_basemodel_from_iterable_annotation,
+)
 from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.utils.settings.xml_settings_base import (
     default_xml_model_config_dict, XMLSettingsConfigDict,
@@ -32,30 +36,57 @@ class XMLSettingsModel(XMLSettingsModelBase):
         return self.__class__.__name__
 
     @classmethod
-    def model_extra_class_dict(cls) -> dict[str, Type[BaseModel]]:
-        if cls.EXTRA_CLASSES is not None:
-            return {c.__name__: c for c in cls.EXTRA_CLASSES}
+    def model_interpret_basemodel_iterable(
+            cls, values, ann=None, allowed_types=None):
+        if allowed_types is None:
+            allowed_types = extract_basemodel_from_iterable_annotation(
+                ann, b_raise=True)
+        class_dict = {c.__name__: c for c in allowed_types}
+        for i, x in enumerate(values):
+            if isinstance(x, dict):
+                new = cls.model_interpret_dict(
+                    dct=x, b_raise=True, class_dict=class_dict)
+                values[i] = new
 
     @classmethod
     def model_interpret_dict(
-            cls, dct: dict, b_raise: bool = False) -> dict | BaseModel:
-        if cls.EXTRA_CLASSES is not None:
+        cls, dct: dict, b_raise: bool = False, class_dict=None
+    ) -> dict | BaseModel:
+        if (class_dict is None) and (cls.EXTRA_CLASSES is not None):
+            class_dict = {c.__name__: c for c in cls.EXTRA_CLASSES}
+        if class_dict is not None:
             if ((model_type := cls.model_interpret_dict_type(
-                    dct, b_raise=b_raise)) is not None):
+                    dct, b_raise=b_raise, class_dict=class_dict)) is not None):
                 return model_type(**dct)
         return dct
 
     @classmethod
+    def model_interpret_extra_dict(
+        cls, dct: dict, b_raise: bool = False, class_dict=None
+    ) -> dict | BaseModel:
+        return cls.model_interpret_dict(
+            dct=dct, b_raise=b_raise, class_dict=class_dict)
+
+    @classmethod
+    def model_interpret_extra_dict_type(
+        cls, dct: dict, b_raise: bool = False, class_dict=None
+    ) -> Type[BaseModel]:
+        if (class_dict is None) and (cls.EXTRA_CLASSES is not None):
+            class_dict = {c.__name__: c for c in cls.EXTRA_CLASSES}
+        return cls.model_interpret_dict_type(
+            dct=dct, b_raise=b_raise, class_dict=class_dict)
+
+    @classmethod
     def model_interpret_dict_type(
-            cls, dct: dict, b_raise: bool = False) -> Type[BaseModel]:
-        classes_dict = {}
-        if cls.EXTRA_CLASSES is not None:
+        cls, dct: dict, b_raise: bool = False, class_dict=None,
+    ) -> Type[BaseModel]:
+        if class_dict is not None:
             class_name = dct[cls.CLASS_NAME_KW]
-            if class_name in (classes_dict := cls.model_extra_class_dict()):
-                return classes_dict[class_name]
+            if class_name in class_dict:
+                return class_dict[class_name]
         if b_raise:
             raise TypeError(f"Unknown model type: {dct[cls.CLASS_NAME_KW]} "
-                            f"not in {classes_dict.keys()}")
+                            f"not in {class_dict.keys()}")
 
     @classmethod
     def pop_model__class__name_keyword(
@@ -69,18 +100,37 @@ class XMLSettingsModel(XMLSettingsModelBase):
                     dct[k], b_recursive=True)
         return dct
 
+    @classmethod
+    def _validate_model_item(cls, data, key, field_info=None)-> Any:
+        if field_info is None:
+            field_info = cls.model_fields[key]
+        ann = field_info.annotation
+        if ((key in data) and isinstance(data[key], (list, tuple))
+                and any([isinstance(x, dict) for x in data[key]])
+                and b_annotation_includes_type(ann, type_=list)):
+            allowed_types = extract_basemodel_from_iterable_annotation(
+                ann=ann, b_raise=False)
+            if len(allowed_types) > 0:
+                cls.model_interpret_basemodel_iterable(
+                    values=data[key], allowed_types=allowed_types
+                )
+        super()._validate_model_item(data=data, key=key, field_info=field_info)
+
     # noinspection PyNestedDecorators
     @model_validator(mode='after')
     @classmethod
     def validate_model_after(cls, data: Any) -> Any:
+        return cls._validate_model_after(data=data)
 
+    @classmethod
+    def _validate_model_after(cls, data: Any) -> Any:
         if isinstance(data, BaseModel):
             if data.model_extra is not None:
                 if cls.EXTRA_CLASSES is not None:
                     for k in data.model_extra:
                         if isinstance(data.model_extra[k], dict):
-                            new = cls.model_interpret_dict(data.model_extra[k],
-                                                           b_raise=True)
+                            new = cls.model_interpret_dict(
+                                data.model_extra[k], b_raise=True)
                             if new is not None:
                                 setattr(data, k, new)
         return data

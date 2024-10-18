@@ -129,7 +129,8 @@ class MultiTypeParameter(EngineGroupParameter):
                     c.hide()
                 else:
                     c.show()
-        # self.valueChanged(p, p.value())
+        if value == NoneType.__name__:
+            self.valueChanged(p, p.value())
 
     def setValue(self, value, blockSignal=None):
         super().setValue(value, blockSignal=blockSignal)

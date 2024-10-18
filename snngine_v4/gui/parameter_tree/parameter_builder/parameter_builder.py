@@ -24,7 +24,7 @@ from snngine_v4.gui.parameter_tree.parameters.multi_type_parameter import \
     MultiTypeParameter
 from snngine_v4.gui.parameter_tree.parameters.reference_parameter import \
     ReferenceParameter
-from snngine_v4.utils.field_utils import model_keys
+from snngine_v4.utils.field_utils import model_keys, Undefined
 from snngine_v4.utils.settings.settings_keywords import (
     BaseSettingsSlots,
 )
@@ -36,7 +36,7 @@ from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 if TYPE_CHECKING:
 
     from snngine_v4.gui.parameter_tree.connectors \
-        .basemodel_signal_register import ModelSignalRegister
+        .model_signals_register import ModelSignalsRegister
 
 
 class ParameterBuilder:
@@ -69,18 +69,18 @@ class ParameterBuilder:
     @classmethod
     def get_parameters_by_type(
         cls, model_type: Type[BaseModel],
-        signal_register: ModelSignalRegister,
+        signal_register: ModelSignalsRegister,
         ancestor: GroupParameter | BaseModel | None,
         excluded_ancestor: GroupParameter | BaseModel | None,
     ):
         res = []
         if isinstance(ancestor, BaseModel):
-            ancestor = signal_register[ancestor].sink
+            ancestor = signal_register.get_group(ancestor)
         if isinstance(excluded_ancestor, BaseModel):
-            excluded_ancestor = signal_register[excluded_ancestor].sink
+            excluded_ancestor = signal_register.get_group(excluded_ancestor)
         for model in signal_register.refs:
             if isinstance(model, model_type):
-                p = signal_register[model].sink
+                p = signal_register.get_group(model)
                 if ((ancestor is not None)
                         and (ancestor.childPath(p) is None)):
                     pass
@@ -108,7 +108,8 @@ class ParameterBuilder:
                 signal_register=signal_register, title=options.title)
 
         if parameter_ is None:
-            if isinstance(options.c_data_types, GenericAlias):
+            if (isinstance(options.c_data_types, GenericAlias)
+                    or (options.c_data_types in [tuple])):
                 parameter_ = cls._make_pars_from_iterable(
                     parameter_type=options.c_data_types,
                     model_value=options.value,
@@ -163,8 +164,10 @@ class ParameterBuilder:
         options[ParamOpts.KW.EXPANDED] = True
         group = EngineGroupParameter(**options)
         heritable_options = ParamOpts.heritable_options(**group.opts)
-
-        iterable_type = get_origin(parameter_type)
+        if parameter_type in [tuple]:
+            iterable_type = parameter_type
+        else:
+            iterable_type = get_origin(parameter_type)
         if iterable_type == tuple:
             args_ = get_args(parameter_type)
             for i, t in enumerate(args_):
@@ -179,21 +182,23 @@ class ParameterBuilder:
             if model_value is None:
                 pass
             else:
-
-                t_args_ = get_args(parameter_type)
-                if len(t_args_) != 1:
-                    raise NotImplementedError("len(t_args_) != 1")
-                t_arg0 = t_args_[0]
-                if isinstance(t_arg0, UnionType):
-                    t_args = get_args(t_arg0)
+                if parameter_type in [tuple]:
+                    t_args = set([type(x)for x in model_value])
                 else:
-                    t_args = [t_arg0]
+                    t_args_ = get_args(parameter_type)
+                    if len(t_args_) != 1:
+                        raise NotImplementedError("len(t_args_) != 1")
+                    t_arg0 = t_args_[0]
+                    if isinstance(t_arg0, UnionType):
+                        t_args = get_args(t_arg0)
+                    else:
+                        t_args = [t_arg0]
 
                 for i, v in enumerate(model_value):
                     g_par = None
                     for t in t_args:
 
-                        if issubclass(t, BaseModel):
+                        if issubclass(t, BaseModel) and isinstance(v, t):
                             name = model_value[i].__class__.__name__ + str(i)
                             g_par = cls.make_pars_from_model(
                                 model=model_value[i],
@@ -216,14 +221,17 @@ class ParameterBuilder:
         return group
 
     @classmethod
-    def make_pars_from_model(cls, model,
-                             signal_register: ModelSignalRegister,
-                             **options):
+    def make_pars_from_model(
+            cls, model, signal_register: ModelSignalsRegister,
+            exclude_keys=None, **options):
 
         if signal_register is not None:
             if signal_register.main_node_tree.root is None:
                 signal_register.main_node_tree.root = model
 
+        if exclude_keys is None:
+            exclude_keys = []
+        exclude_keys += [XMLSettingsModel.CLASS_NAME_KW]
         group = EngineGroupParameter.from_model(model=model, **options)
         heritable_options = ParamOpts.heritable_options(**group.opts)
 
@@ -234,8 +242,7 @@ class ParameterBuilder:
             pass
         keys = model_keys(model)
         for k in keys:
-            if k not in [XMLSettingsModel.CLASS_NAME_KW]:
-
+            if k not in exclude_keys:
                 par = cls.make_par_from_field(
                     parent_model=model, key=k,
                     value=getattr(model, k),
@@ -248,9 +255,11 @@ class ParameterBuilder:
                 children.append(par)
                 group.addChild(par)
         if ((signal_register is not None)
-                and (BaseSettingsSlots.b_is_frozen(model)
-                     is False)):
-            signal_register[model] = group
+                and (BaseSettingsSlots.b_is_frozen(model) is False)):
+            if model in signal_register.model2model_map.inv:
+                signal_register.group_map[model] = group
+            else:
+                signal_register[model] = group
 
         for c in group.children():
             if c.opts[ParamOpts.KW.C_B_COLLECT_EXTRA_CLASSES] is True:

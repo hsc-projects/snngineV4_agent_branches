@@ -102,9 +102,13 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
         if len(keys) == 0:
             keys = list(self.keys())
         vals = []
+        ids = []
         for k in keys:
-            vals.append(self[k])
-        return set(vals)
+            v = self[k]
+            if (id_v := id(v)) not in ids:
+                vals.append(v)
+                ids.append(id_v)
+        return vals
 
     def __setitem__(self, key, item):
         if ((self.b_valid_key_type(key) is False)
@@ -127,7 +131,7 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
 
     def validate_key(self, key, b_skip_typecheck: bool = False):
         if b_skip_typecheck is False:
-            self.cls_validate_value_type(
+            ContainerConfig.validate_value_type(
                 key, self._container_conf.allowed_key_types)
 
         if self._container_conf.b_replace_allowed is False:

@@ -5,16 +5,14 @@ from typing import Literal
 import numpy as np
 from pydantic import Field, NonNegativeInt
 
-from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import (
-    Directions3DBoolPars, PositionVBO,
+    PositionVBO,
 )
-from snngine_v4.utils.settings.ui_parameter_options import p_field, ParamOpts
-from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
-from snngine_v4.visualization.config_models.vispy_visual_parameters import (
-    OpenGLState, OpenGlStateType,
+from snngine_v4.utils.settings.ui_parameter_options import p_field
+from snngine_v4.utils.settings.xml_settings import (
+    XMLSettingsModel,
 )
-from snngine_v4.visualization.config_models.vispy_visual_parameters import \
+from snngine_v4.visualization.config_models.visuals.visual_parameters import \
     ColorType
 
 
@@ -58,34 +56,3 @@ class XYZAxisVisualConfig(LineVisualConfig):
             dtype=np.float32))
 
 
-class BoxVisualConfig(FiniteGridConfig):
-
-    planes: Directions3DBoolPars = Directions3DBoolPars(
-        XP=True, XM=True,
-        YP=True, YM=True,
-        ZP=True, ZM=True
-    )
-
-    vertex_colors: None = None
-    face_colors: None = None
-    color: ColorType
-    edge_color: ColorType
-
-    border: OpenGLState = Field(default_factory=lambda: OpenGLState(
-        state_type=OpenGlStateType.UPDATE,
-        line_width=6,
-        attribute_key='_border',
-    ))
-
-
-class OuterGridVisualConfig(BoxVisualConfig):
-
-    color: ColorType = None
-    edge_color: ColorType = 'white'
-
-    mesh: OpenGLState = Field(default_factory=lambda: OpenGLState(
-        state_type=OpenGlStateType.SET,
-        polygon_offset_fill=True,
-        polygon_offset=(1, 1),
-        depth_test=False
-    ))
