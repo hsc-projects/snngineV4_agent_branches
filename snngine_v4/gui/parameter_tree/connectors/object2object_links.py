@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+
 from enum import IntEnum
 from functools import cached_property
 from typing import Any, Callable, Type
 
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel, computed_field, Field
 from qtpy import QtCore
 
 from snngine_v4.utils.containers.configurable_dict import (
@@ -20,14 +20,6 @@ class SetAttributeEmitterBase(QtCore.QObject):
     Base class for emitting signals when attributes are set.
     """
     sigAttributeValueChanged = QtCore.Signal(object, str, object)
-
-    # def __init__(self, key, parent=None):
-    #     self.key = key
-    #     super().__init__(parent=parent)
-    #
-    # # noinspection PyMethodOverriding
-    # def emit(self, value):
-    #     self.sigAttributeValueChanged.emit(self, self.key, value)
 
 
 class LinkStateType(IntEnum):
@@ -49,10 +41,10 @@ class ObjectSignal(BaseModel,
                    extra='forbid'):
 
     key: str | None = None
-    signal: Any | QtCore.Signal
-    emitter: Any | None = None
-    obj: Any = None
-    default_func: Callable | None = None
+    signal: Any | QtCore.Signal = Field(repr=False)
+    emitter: Any | None = Field(default=None, repr=False)
+    obj: Any = Field(default=None, repr=False)
+    default_func: Callable | None = Field(default=None, repr=False)
 
     @computed_field
     @cached_property
@@ -215,12 +207,17 @@ class Object2ObjectLinks(TypeSortedMap):
 
         def set_attr(self_, key, value):
             try:
-                setattr(self_, key, value)
+                object.__setattr__(self_, key, value)
+                # setattr(self_, key, value)
+                if self_.__setattr__ != set_attr:
+                    # self_.__setattr__ = set_attr
+                    raise AssertionError
                 link_map[key][LinkStateType.SOURCE2SINK].emit(value)
             except debug_catch as error:
                 raise error
         # TODO:
         obj.__setattr__ = set_attr
+        return
 
     def __setitem__(self, key, link: Object2ObjectLink):
         if key != link.source_key:

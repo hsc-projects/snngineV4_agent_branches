@@ -21,6 +21,10 @@ from snngine_v4.gui.parameter_tree.parameters.type_parameter_map import \
     MultiTypeParameterMap
 from snngine_v4.gui.parameter_tree.parameters.widgets.custom_combobox import \
     CustomComboBox
+from snngine_v4.utils.field_utils import (
+    b_is_annotated, b_is_literal_annotation,
+    extract_literal_values,
+)
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 
@@ -61,6 +65,11 @@ class MultiTypeParameter(EngineGroupParameter):
         value_ = None
         if type_ == NoneType:
             pass
+        elif b_is_literal_annotation(type_):
+            return extract_literal_values(type_)[0]
+        elif b_is_annotated(type_):
+            if isinstance(value, type_.__origin__):
+                value_ = value
         elif (not isinstance(type_, GenericAlias)) and isinstance(
                 value, type_):
             value_ = value
@@ -91,7 +100,13 @@ class MultiTypeParameter(EngineGroupParameter):
 
             value_ = self.make_value(value, t)
 
-            name = t.__name__
+            if b_is_annotated(t):
+                og_t = get_args(t)[0]
+                if og_t not in [float, int]:
+                    raise NotImplementedError()
+                name = og_t.__name__
+            else:
+                name = t.__name__
             # title = self.opts[ParamOpts.KW.NAME] + f" ({name})"
             try:
                 p = ParameterBuilder.make_par_from_annotation(

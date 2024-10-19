@@ -105,6 +105,7 @@ class XMLConfigSettingsSource(InitSettingsSource, ConfigFileSourceMixin):
 
 
 class XMLSettingsModelBase(BaseSettings):
+    CLASS_NAME_KW: ClassVar[str] = 'class__name'
 
     xml_model: ClassVar[XMLSettingsModelBase] = None
 
@@ -116,14 +117,15 @@ class XMLSettingsModelBase(BaseSettings):
     # def load(self):
     #     raise NotImplementedError
 
-    def _export_submodels(self, conv, fn, sub_setting_pattern):
+    def _export_submodels(self, conv, fn, sub_setting_pattern, **kwargs):
         for k in self.model_fields:
-            sub_model = getattr(self, k)
-            conv.to_xml_file(
-                data={k: sub_model.model_dump(mode='json')},
-                fn=fn.replace(sub_setting_pattern, k))
+            if k != self.CLASS_NAME_KW:
+                sub_model = getattr(self, k)
+                conv.to_xml_file(
+                    data={k: sub_model.model_dump(mode='json', **kwargs)},
+                    fn=fn.replace(sub_setting_pattern, k))
 
-    def export(self, fn: str = None, mode='xml'):
+    def export(self, fn: str = None, mode='xml', round_trip=True, **kwargs):
 
         if mode != 'xml':
             raise NotImplementedError
@@ -144,9 +146,10 @@ class XMLSettingsModelBase(BaseSettings):
 
         sub_setting_pat = BaseSettingsSlots.SUB_SETTINGS_FILE_NAME_PATTERN
         if sub_setting_pat in fn:
-            self._export_submodels(conv, fn, sub_setting_pat)
+            self._export_submodels(conv, fn, sub_setting_pat,
+                                   round_trip=round_trip, **kwargs)
         else:
-            conv.to_xml_file(data=self, fn=fn)
+            conv.to_xml_file(data=self, fn=fn, round_trip=round_trip, **kwargs)
 
     @classmethod
     def settings_customise_sources(

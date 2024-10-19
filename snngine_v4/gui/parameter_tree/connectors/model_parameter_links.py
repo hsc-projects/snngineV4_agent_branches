@@ -51,17 +51,29 @@ class ObjectParameterLink(Object2ObjectLink):
                     raise AssertionError
                 value = self.sink.value()
                 try:
+                    # noinspection PyArgumentList
                     self.source.__setattr__(self.source, self.source_key, value)
+                # except TypeError as err:
+                #     if '__setattr__' in self.source.model_extra:
+                #         self.source.__setattr__ = self.source.model_extra.pop(
+                #             '__setattr__')
+                #         self.source.__setattr__(self.source, self.source_key,
+                #                                 value)
+                #     else:
+                #         raise err
                 except ValidationError as err:
                     if (value is None) or pd.isna(value):
                         b_none_allowed = self.sink.opts.get(
                             ParamOpts.KW.C_NULLABLE_VALUE)
-                        self.source.__setattr__(self.source, self.source_key, None)
+                        # noinspection PyArgumentList
+                        self.source.__setattr__(
+                            self.source, self.source_key, None)
                         pass
                     else:
                         raise err
                 print(f"({self.source.__class__.__name__}, {id(self.source)}) "
-                      f"Set '{self.source_key}' from parameter({id(self.sink)}):",
+                      f"Set '{self.source_key}' "
+                      f"from parameter({id(self.sink)}):",
                       getattr(self.source, self.source_key))
             case _:
                 raise TypeError(f"{link_type.name}")

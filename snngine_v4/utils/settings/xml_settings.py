@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, Type
 
-from pydantic import BaseModel, computed_field, model_validator
+from pydantic import BaseModel, computed_field, field_validator, model_validator
 
 from snngine_v4.utils.field_utils import \
     (
     b_annotation_includes_type, extract_basemodel_from_iterable_annotation,
+    model_keys,
 )
 from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.utils.settings.xml_settings_base import (
@@ -23,17 +24,43 @@ class XMLSettingsModel(XMLSettingsModelBase):
     #     pass
 
     CLASS_NAME_XML_TAG: ClassVar[str] = 'class'
-    CLASS_NAME_KW: ClassVar[str] = 'model__class__name'
+    # CLASS_NAME_KW: ClassVar[str] = 'model__class__name'
+
     EXTRA_CLASSES: ClassVar[list[Type[BaseModel]] | None] = None
 
     xml_model: ClassVar[XMLConverterOptions] = XMLConverterOptions(
-        dict_key_to_tag_attributes={CLASS_NAME_KW: CLASS_NAME_XML_TAG},
+        dict_key_to_tag_attributes={
+            XMLSettingsModelBase.CLASS_NAME_KW: CLASS_NAME_XML_TAG},
     )
 
-    @computed_field
-    @property
-    def model__class__name(self) -> str:
-        return self.__class__.__name__
+    class__name: str = ''
+
+    # noinspection PyNestedDecorators
+    @field_validator(XMLSettingsModelBase.CLASS_NAME_KW, mode='before')
+    @classmethod
+    def set_class__name(cls, v: str) -> str:
+        if v == '':
+            v = cls.__name__
+        elif v != cls.__name__:
+            raise AssertionError
+        return v
+
+    # @computed_field()
+    # @property
+    # def model__class__name(self) -> str:
+    #     self.class__name = self.__class__.__name__
+    #     return self.__class__.__name__
+
+    def model_dump(self, include=None, round_trip=False, **kwargs):
+        # if round_trip is True:
+        #     if include is None:
+        #         include = model_keys(self)
+        #     include += [{self.CLASS_NAME_KW: '__all__'}]
+        res = super().model_dump(
+            include=include, round_trip=round_trip, **kwargs)
+        # if round_trip:
+        #     res[self.CLASS_NAME_KW] = getattr(self, self.CLASS_NAME_KW)
+        return res
 
     @classmethod
     def model_interpret_basemodel_iterable(

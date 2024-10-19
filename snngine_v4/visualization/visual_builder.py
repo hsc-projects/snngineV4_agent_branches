@@ -4,32 +4,38 @@ from typing import Any, Callable, ClassVar, Set, Type
 
 import numpy as np
 from pydantic import BaseModel
-from vispy.scene import Box, XYZAxis
+from vispy.scene import Box, Markers, VisualNode, XYZAxis
 from vispy.util.event import EmitterGroup
-from vispy.visuals import CompoundVisual, MeshVisual, Visual
+from vispy.visuals import CompoundVisual, MarkersVisual, MeshVisual, Visual
 
 from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import (
     AxDir3D, Directions3DBoolPars, FloatShape3D,
     Segmentation3D,
 )
+from snngine_v4.nn.config_models.nn_reservoir_config import NetworkReservoir
 from snngine_v4.utils.containers.configurable_dict import (
     ConfigurableDict,
     DictContainerConfig,
 )
 from snngine_v4.utils.class_mixer import ClassMixer
-from snngine_v4.utils.field_utils import Undefined
+from snngine_v4.utils.field_utils import model_keys, Undefined
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 from snngine_v4.utils.settings.settings_keywords import InternalOpts
-from snngine_v4.visualization.config_models.visuals.visual_parameters import (
+from snngine_v4.utils.settings.xml_settings_base import XMLSettingsModelBase
+from snngine_v4.visualization.config_models.visuals.markers import \
+    MarkersVisualConfig
+# from snngine_v4.visualization.config_models.visuals.neurons import \
+#     NeuronMarkersVisualConfig
+from snngine_v4.visualization.config_models.visuals.parameters import (
     OpenGLState, OpenGlStateType,
-    RGBAColor, WDHKw,
+    RGBAColor, VispyKeyWords, WDHKw,
     WDHSegKw,
 )
-from snngine_v4.visualization.config_models.visuals.line_configs import (
+from snngine_v4.visualization.config_models.visuals.lines import (
     XYZAxisVisualConfig,
 )
-from snngine_v4.visualization.config_models.visuals.box_configs import (
+from snngine_v4.visualization.config_models.visuals.boxes import (
     BoxVisualInitConfig, OuterGridVisualInitConfig,
 )
 from snngine_v4.visualization.scenes.setattribute_event import (
@@ -64,9 +70,21 @@ class EmitterMap(ConfigurableDict):
 class VisualMixin:
 
     SET_DATA_KWS = {
-        XYZAxis: ['color', 'pos', 'connect', 'width'],
-        MeshVisual: ['vertices', 'faces', 'vertex_colors',
-                     'face_colors', 'color', 'vertex_values',
+        Box: [VispyKeyWords.COLOR],
+        Markers: [VispyKeyWords.POS,
+                  VispyKeyWords.EDGE_COLOR,
+                  VispyKeyWords.FACE_COLOR,
+                  VispyKeyWords.SIZE,
+                  VispyKeyWords.EDGE_WIDTH,
+                  ],
+        XYZAxis: [VispyKeyWords.COLOR,
+                  VispyKeyWords.POS,
+                  VispyKeyWords.CONNECT,
+                  'width'],
+        MeshVisual: ['vertices', 'faces',
+                     VispyKeyWords.VERTEX_COLORS,
+                     VispyKeyWords.FACE_COLORS,
+                     'vertex_values',
                      'meshdata']
     }
 
@@ -91,6 +109,11 @@ class VisualMixin:
 
         def connect_mesh_data_changed(v_):
             v_.mesh_data_changed = lambda: VisualMixin.mesh_data_changed(v_)
+
+        # if isinstance(self, MarkersVisual):
+        #     self.events.add(
+        #         auto_connect=False,
+        #         attr_changed=SetAttributeEvent)
 
         if isinstance(self, CompoundVisual):
             for i, v in enumerate(self._subvisuals):
@@ -120,16 +143,22 @@ class VisualMixins(ClassMixer):
     @classmethod
     def mix(cls, class_item: Type, name=None, attr_changed_keys=Undefined):
 
-        if class_item in [XYZAxis, Box, MeshVisual]:
+        if issubclass(class_item, (VisualNode, )):
             if class_item == XYZAxis:
-                set_data_kw = ['color', 'pos', 'connect', 'width'],
-                attr_changed_keys = [
-                    x for x in XYZAxisVisualConfig.model_fields.keys()
-                    if x not in set_data_kw]
+                # set_data_kw = VisualMixin.SET_DATA_KWS[XYZAxis]
+                # attr_changed_keys = [
+                #     x for x in XYZAxisVisualConfig.model_fields.keys()
+                #     if x not in set_data_kw]
+                attr_changed_keys = model_keys(XYZAxisVisualConfig)
             elif class_item == Box:
                 attr_changed_keys = {'_mesh': ['shading']}
             elif class_item == MeshVisual:
                 attr_changed_keys = ['color']
+            elif class_item == Markers:
+                attr_changed_keys = (['alpha'] +
+                                     model_keys(MarkersVisualConfig))
+            else:
+                raise NotImplementedError()
 
             def init(self: VisualMixin | Visual, *args, **kwargs):
                 self.__pre_init__(*args, **kwargs)
@@ -146,9 +175,13 @@ class VisualMixins(ClassMixer):
                           attr_changed_keys=attr_changed_keys)
 
             new = super().mix(class_item, name, **kwargs)
+
+            VisualMixin.SET_DATA_KWS[new] = VisualMixin.SET_DATA_KWS[class_item]
+
             return new
         else:
-            return class_item
+            raise AssertionError
+            # return class_item
 
 
 class VispyVisualBuilder(BuilderDict):
@@ -168,6 +201,8 @@ class VispyVisualBuilder(BuilderDict):
         FiniteGridConfig: Box,
         OuterGridVisualInitConfig: Box,
         XYZAxisVisualConfig: XYZAxis,
+        MarkersVisualConfig: Markers,
+        NetworkReservoir: Markers,
     }
 
     @classmethod
@@ -226,9 +261,12 @@ class VispyVisualBuilder(BuilderDict):
 
     @classmethod
     def get_model(cls, model: BaseModel | None):
-        dump = model.model_dump(mode='python')
+        dump = model.model_dump(mode='python',
+                                exclude={XMLSettingsModelBase.CLASS_NAME_KW})
         if isinstance(model, FiniteGridConfig):
             model = OuterGridVisualInitConfig(**dump)
+        elif isinstance(model, NetworkReservoir):
+            model = MarkersVisualConfig()
         return super().get_model(model=model)
 
     @classmethod

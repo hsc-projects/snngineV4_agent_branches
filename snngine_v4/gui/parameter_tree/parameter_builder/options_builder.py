@@ -4,8 +4,8 @@ from copy import copy
 from enum import Enum
 from types import NoneType, UnionType
 from typing import (
-    Annotated, get_args, get_origin, Literal, TypeAliasType,
-    Union,
+    Annotated, get_args, get_origin, Literal, Optional, TypeAliasType,
+    Union, _LiteralGenericAlias
 )
 
 import numpy as np
@@ -18,7 +18,8 @@ from snngine_v4.data.validation.array_annotation import b_is_array_annotation
 
 from snngine_v4.utils.field_utils import (
     AnnotationType, b_annotation_includes_type, b_field_has_default,
-    b_is_int_annotation, b_is_literal_annotation, extract_field_interval,
+    b_is_annotated, b_is_int_annotation, b_is_literal_annotation, b_is_optional,
+    b_is_union, extract_field_interval,
     extract_literal_values, extract_type_from_annotation,
     get_field_json_schema_extra,
     get_field_multiple_of,
@@ -27,7 +28,7 @@ from snngine_v4.utils.interval_utils import limits_from_interval
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.geometry.spatial_pars import Ax3D, PositionVBO
-from snngine_v4.visualization.config_models.visuals.visual_parameters import (
+from snngine_v4.visualization.config_models.visuals.parameters import (
     ColorVBO, RGBAEnum,
 )
 
@@ -52,37 +53,29 @@ class OptionsBuilder:
                     return ann.__value__
                 return ann
             ann = cls.convert_type_alias_type(ann)
-
+        Optional
         try:
-            if isinstance(ann, UnionType):
+            if isinstance(ann, UnionType) or b_is_optional(ann):
                 args = get_args(ann)
-                if ((len(args) == 2) and (NoneType in args)
-                        and ((b_float := (float in args)) or (int in args))):
-                    return float if b_float else int
+                if (len(args) == 2) and (NoneType in args):
+                    if (b_float := (float in args)) or (int in args):
+                        return float if b_float else int
+                    elif b_is_annotated(ann, b_strict=False):
+                        for arg in args:
+                            if ((arg != NoneType)
+                                    and (arg.__origin__ in [int, float])):
+                                return arg.__origin__
                 return ann
-                # if ((not b_array_type_checked)
-                #         and b_includes_array_annotation(annotation)):
-                #     return annotation
-                # args = get_args(annotation)
-                # args0 = args[0]
-                # return args0
             elif issubclass(ann, Enum):
                 return Enum
         except TypeError:
-            origin = get_origin(ann)
-            if origin == Union:
-                new_annotation = get_args(ann)[0]
-                return cls.get_parameter_type_from_annotation(
-                    new_annotation
-                )
-            elif origin == Literal:
+            if b_is_literal_annotation(ann=ann, b_strict=True):
                 return list
-            elif origin == Annotated:
-                args = get_args(ann)
-                args0 = args[0]
+            elif b_is_union(ann):
                 pass
+            elif b_is_annotated(ann):
+                return ann.__origin__
             raise
-
         return ann
 
     @classmethod
@@ -174,12 +167,16 @@ class OptionsBuilder:
             else:
                 options.type = UnionType.__name__
 
+        if options.type == 'Optional':
+            options.type = UnionType.__name__
+
         if options.c_data_types == Enum:
             # see pyqtgraphQtEnumParameter
             options.enum = extract_type_from_annotation(
                 ann, type_=Enum)
 
         options.c_nullable_value = (
+            b_is_optional(ann) or
             b_annotation_includes_type(ann, type_=NoneType))
 
         if (options.name is None) and (options.c_model_field_name is not None):
@@ -194,16 +191,24 @@ class OptionsBuilder:
         if options.c_data_types in [float, int]:
 
             if options.c_value_interval is None:
-                options.c_value_interval = pd.Interval(-np.inf, np.inf)
+                if options.c_model_field_info is not None:
+                    options.c_value_interval = extract_field_interval(
+                        options.c_model_field_info)
+                else:
+                    options.c_value_interval = pd.Interval(-np.inf, np.inf)
 
             if options.step is None:
-                is_int = b_is_int_annotation(ann, True)
+                if options.c_model_field_info is not None:
+                    options.step = get_field_multiple_of(
+                        options.c_model_field_info)
                 if options.step is None:
-                    if is_int:
-                        options.step = 1
-                    else:
-                        options.step = .01
-                        options.decimals = 6
+                    is_int = b_is_int_annotation(ann, True)
+                    if options.step is None:
+                        if is_int:
+                            options.step = 1
+                        else:
+                            options.step = .01
+                            options.decimals = 6
 
             if (options.c_nullable_value and
                     options.default is None):
@@ -215,7 +220,7 @@ class OptionsBuilder:
 
         if options.c_data_types == list:
             if options.limits is None:
-                if b_is_literal_annotation(ann, b_strict=False):
+                if b_is_literal_annotation(ann, b_strict=True):
                     options.limits = extract_literal_values(ann)
                 else:
                     # pass

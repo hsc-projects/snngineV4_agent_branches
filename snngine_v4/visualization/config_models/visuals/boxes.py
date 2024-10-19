@@ -6,13 +6,12 @@ from pydantic import Field
 
 from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import Directions3DBoolPars
-from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.utils.settings.xml_settings_base import (
     default_xml_model_config_dict, XMLSettingsConfigDict,
 )
-from snngine_v4.visualization.config_models.visuals.mesh_visual_config import \
+from snngine_v4.visualization.config_models.visuals.mesh import \
     MeshVisualConfig
-from snngine_v4.visualization.config_models.visuals.visual_parameters import (
+from snngine_v4.visualization.config_models.visuals.parameters import (
     RGBAColorType,
     OpenGLState,
     OpenGlStateType
@@ -49,9 +48,10 @@ class OuterGridVisualInitConfig(BoxVisualInitConfig):
     color: RGBAColorType = None
     edge_color: RGBAColorType = 'white'
 
-    mesh: OpenGLState = Field(default_factory=lambda: OpenGLState(
+    mesh_opengl: OpenGLState = Field(default_factory=lambda: OpenGLState(
         state_type=OpenGlStateType.SET,
         polygon_offset_fill=True,
         polygon_offset=(1, 1),
-        depth_test=False
+        depth_test=False,
+        attribute_key='_mesh',
     ))

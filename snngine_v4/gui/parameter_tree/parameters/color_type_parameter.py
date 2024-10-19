@@ -5,7 +5,7 @@ from snngine_v4.data.validation.array_annotation import ArrayInterfaces
 from snngine_v4.gui.parameter_tree.parameters.multi_type_parameter import \
     MultiTypeParameter
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
-from snngine_v4.visualization.config_models.visuals.visual_parameters import (
+from snngine_v4.visualization.config_models.visuals.parameters import (
     ColorVBO, RGBAColor, RGBAColorTypeUnion
 )
 

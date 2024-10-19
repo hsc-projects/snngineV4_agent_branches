@@ -12,7 +12,7 @@ from snngine_v4.utils.settings.ui_parameter_options import p_field
 from snngine_v4.utils.settings.xml_settings import (
     XMLSettingsModel,
 )
-from snngine_v4.visualization.config_models.visuals.visual_parameters import \
+from snngine_v4.visualization.config_models.visuals.parameters import \
     ColorType
 
 
@@ -21,7 +21,7 @@ type LineConnectType = Literal['strip', 'segments'] | None
 
 class LineVisualConfig(XMLSettingsModel):
 
-    pos: None = None
+    pos: PositionVBO = None
     color: ColorType
     width: NonNegativeInt = p_field(default=1,  readonly=False, le=15)
     connect: LineConnectType = p_field(default='strip',  readonly=True)

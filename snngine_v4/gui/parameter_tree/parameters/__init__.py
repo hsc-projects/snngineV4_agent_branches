@@ -14,7 +14,7 @@ from snngine_v4.gui.parameter_tree.parameters.none_type_parameter import \
     NoneTypeParameter
 from snngine_v4.gui.parameter_tree.parameters.spin_box_slider_parameter import \
     SpinBoxSliderParameter
-from snngine_v4.visualization.config_models.visuals.visual_parameters import (
+from snngine_v4.visualization.config_models.visuals.parameters import (
     ColorTypeUnion, RGBAColorTypeUnion
 )
 

@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from vispy.scene import BaseCamera, ViewBox
 
 from snngine_v4.config.scenes import SceneSettings
-from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.utils.containers.mappings import (
     Model2ObjectMap,
 )
@@ -15,8 +14,7 @@ from snngine_v4.visualization.config_models.vispy_camera_configs import (
 from snngine_v4.visualization.config_models.vispy_canvas_config import (
     VispyCanvasConfig, VispyViewBoxConfig,
 )
-from snngine_v4.visualization.config_models.visuals.line_configs import \
-    LineVisualConfig
+from snngine_v4.visualization.config_models.visuals import VisualConfig
 from snngine_v4.visualization.scenes.event_camera import \
     EventTurntableCamera
 from snngine_v4.visualization.scenes.main_network_scene import EngineSceneCanvas
@@ -46,7 +44,10 @@ class SceneManager(BuilderDict):
                 for scene in self.values():
                     if model in scene.camera_dict:
                         res[model] = scene.camera_dict[model]
-            elif isinstance(model, (LineVisualConfig, FiniteGridConfig)):
+            elif isinstance(model, VisualConfig.__value__):
+                # elif isinstance(model, (LineVisualConfig,
+                #                         FiniteGridConfig,
+                #                         )):
                 for scene in self.values():
                     if model in scene.visual_node_dict:
                         res[model] = scene.visual_node_dict[model]

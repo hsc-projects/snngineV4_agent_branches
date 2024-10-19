@@ -87,6 +87,9 @@ class ModelObjectBuilder:
 
         dct = dict(zip(keys, models))
 
+        dct = XMLSettingsModel.pop_model__class__name_keyword(
+            dct)
+
         for key, model in dct.items():
 
             if isinstance(model, list):

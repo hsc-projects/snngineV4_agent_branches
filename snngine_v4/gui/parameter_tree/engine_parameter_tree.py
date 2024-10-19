@@ -11,7 +11,7 @@ from snngine_v4.gui.parameter_tree.parameter_builder.parameter_builder import (
     ParameterBuilder
 )
 from snngine_v4.gui.parameter_tree.connectors.model_signals_register \
-    import ModelSignalsRegister
+    import ExtendedModelSignalsRegister
 from snngine_v4.utils.field_utils import Undefined
 
 
@@ -23,7 +23,7 @@ class EngineParameterTree(ParameterTree):
                  name: str = None,
                  model: BaseModel = None,
                  parent=None, showHeader=True,
-                 signal_register: ModelSignalsRegister = None):
+                 signal_register: ExtendedModelSignalsRegister = None):
 
         if name is None:
             name = self.__class__.__name__
@@ -32,7 +32,7 @@ class EngineParameterTree(ParameterTree):
         self.setObjectName(name)
 
         self._settings_model = model
-        self.signal_register = signal_register or ModelSignalsRegister()
+        self.signal_register = signal_register or ExtendedModelSignalsRegister()
         if model is not None:
             self.parameters = self.add_parameters_from_model(
                 self._settings_model)

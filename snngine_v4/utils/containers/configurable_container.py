@@ -269,7 +269,6 @@ class ConfigurableContainerBase:
                 f"Got {type(item).__name__} instead.")
         elif ((not self._container_conf.b_duplicates_allowed) and
               self.b_duplicated_item(item)):
-            b_contains = item in self
             raise ExtensionByDuplicateError(
                 f"Duplicated item: {item} ({id(item)})")
         return self

@@ -30,7 +30,7 @@ class EngineApp(Application):
         )
 
         self.window = MainEngineWindow(engine)
-        self.engine.conf.export()
+        # self.engine.conf.export()
 
         self.main_network_scene = self.engine.scene_manager[
             self.engine.conf.scenes.main

@@ -24,7 +24,7 @@ from snngine_v4.gui.parameter_tree.parameters.multi_type_parameter import \
     MultiTypeParameter
 from snngine_v4.gui.parameter_tree.parameters.reference_parameter import \
     ReferenceParameter
-from snngine_v4.utils.field_utils import model_keys, Undefined
+from snngine_v4.utils.field_utils import b_is_optional, model_keys, Undefined
 from snngine_v4.utils.settings.settings_keywords import (
     BaseSettingsSlots,
 )
@@ -36,7 +36,7 @@ from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 if TYPE_CHECKING:
 
     from snngine_v4.gui.parameter_tree.connectors \
-        .model_signals_register import ModelSignalsRegister
+        .model_signals_register import ExtendedModelSignalsRegister
 
 
 class ParameterBuilder:
@@ -69,7 +69,7 @@ class ParameterBuilder:
     @classmethod
     def get_parameters_by_type(
         cls, model_type: Type[BaseModel],
-        signal_register: ModelSignalsRegister,
+        signal_register: ExtendedModelSignalsRegister,
         ancestor: GroupParameter | BaseModel | None,
         excluded_ancestor: GroupParameter | BaseModel | None,
     ):
@@ -99,6 +99,7 @@ class ParameterBuilder:
         if ((not isinstance(options.c_data_types, (GenericAlias,
                                                    UnionType,
                                                    TypeAliasType)))
+                and (not b_is_optional(options.c_data_types))
                 and issubclass(options.c_data_types, BaseModel)):
             if isinstance(options.value, dict):
                 options.value = options.c_data_types(**options.value)
@@ -222,12 +223,12 @@ class ParameterBuilder:
 
     @classmethod
     def make_pars_from_model(
-            cls, model, signal_register: ModelSignalsRegister,
+            cls, model, signal_register: ExtendedModelSignalsRegister,
             exclude_keys=None, **options):
 
         if signal_register is not None:
-            if signal_register.main_node_tree.root is None:
-                signal_register.main_node_tree.root = model
+            if signal_register.node_tree.root is None:
+                signal_register.node_tree.root = model
 
         if exclude_keys is None:
             exclude_keys = []
@@ -257,7 +258,8 @@ class ParameterBuilder:
         if ((signal_register is not None)
                 and (BaseSettingsSlots.b_is_frozen(model) is False)):
             if model in signal_register.model2model_map.inv:
-                signal_register.group_map[model] = group
+                # signal_register.group_map[model] = group
+                signal_register.add_linked_model_pars(model, group)
             else:
                 signal_register[model] = group
 

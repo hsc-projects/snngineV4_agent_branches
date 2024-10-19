@@ -44,6 +44,7 @@ def validate_color(v):
 ColorType = Annotated[ColorTypeUnion, BeforeValidator(validate_color)]
 RGBAColorType = Annotated[RGBAColorTypeUnion, BeforeValidator(validate_color)]
 
+
 type VispyColorType = tuple
 
 
@@ -76,6 +77,27 @@ class WDHSegKw(ConvertingEnum):
         return {WDHSegKw.width_segments.name: Ax3D.X.name,
                 WDHSegKw.depth_segments.name: Ax3D.Y.name,
                 WDHSegKw.height_segments.name: Ax3D.Z.name}
+
+
+class VispyKeyWords:
+
+    VISUAL: ClassVar[str] = 'color'
+    _SUBVISUALS: ClassVar[str] = '_subvisuals'
+    COLOR: ClassVar[str] = 'color'
+    POS: ClassVar[str] = 'pos'
+    CONNECT: ClassVar[str] = 'connect'
+    SIZE: ClassVar[str] = 'size'
+
+    VERTEX_COLORS: ClassVar[str] = 'vertex_colors'
+    FACE_COLOR: ClassVar[str] = 'face_color'
+    FACE_COLORS: ClassVar[str] = 'face_colors'
+    EDGE_COLOR: ClassVar[str] = 'edge_color'
+    EDGE_WIDTH: ClassVar[str] = 'edge_width'
+
+    MESH: ClassVar[str] = 'mesh'
+    _MESH: ClassVar[str] = '_mesh'
+    BORDER: ClassVar[str] = 'border'
+    _BORDER: ClassVar[str] = '_border'
 
 
 class RGBAColor(XMLSettingsModel):

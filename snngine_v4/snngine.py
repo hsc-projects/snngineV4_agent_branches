@@ -1,3 +1,4 @@
+from snngine_v4.nn.config_models.nn_reservoir_config import NetworkReservoir
 from snngine_v4.nn.nn_builder import NetworkManager
 from snngine_v4.snngine_config import EngineConfig
 
@@ -35,8 +36,16 @@ class SNNgine:
     def build(self):
         self.network_manager.build(self.conf.construction)
         self.conf.current = self.network_manager.container_model
+
+        visuals = {'grid': self.conf.current.network.grid}
+
+        if self.conf.current.network.elements:
+            for i, el in enumerate(self.conf.current.network.elements):
+                if isinstance(el, NetworkReservoir):
+                    visuals[f"el{i}"] = el
+
         self.scene_manager.build_visuals(
-            visuals={'grid': self.conf.current.network.grid},
+            visuals=visuals,
             scene=self.conf.scenes.main,
         )
 

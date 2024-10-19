@@ -10,6 +10,7 @@ from snngine_v4.utils.containers.mappings import Int2ObjectMapConfig
 from snngine_v4.utils.field_utils import model_keys
 
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
+from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
 class NetworkManager(BuilderDict):
@@ -46,16 +47,17 @@ class NetworkManager(BuilderDict):
             model = self.container_model
             keys = model_keys(model)
             build = self.cls_build_container(model_container=model)
-            m = build.object_dict
-            super().update(m, **kwargs)
+            m_ = build.object_dict
+            super().update(m_, **kwargs)
             for k in keys:
-                v = getattr(model, k)
-                if v not in self:
-                    if isinstance(v, (list, tuple)):
-                        if not all([(x in self) for x in v]):
+                if k != XMLSettingsModel.CLASS_NAME_KW:
+                    v = getattr(model, k)
+                    if v not in self:
+                        if isinstance(v, (list, tuple)):
+                            if not all([(x in self) for x in v]):
+                                raise AssertionError
+                        else:
                             raise AssertionError
-                    else:
-                        raise AssertionError
 
         else:
             super().update(m, **kwargs)

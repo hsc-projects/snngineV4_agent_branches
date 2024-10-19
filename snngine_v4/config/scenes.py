@@ -3,7 +3,7 @@ from snngine_v4.visualization.config_models.vispy_canvas_config import (
     SceneViews, SceneVisuals, VispyCanvasConfig,
     VispyCanvasConfigOptions, VispyViewBoxConfig,
 )
-from snngine_v4.visualization.config_models.visuals.line_configs import \
+from snngine_v4.visualization.config_models.visuals.lines import \
     XYZAxisVisualConfig
 
 

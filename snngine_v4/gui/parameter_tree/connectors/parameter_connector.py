@@ -1,5 +1,5 @@
 from snngine_v4.gui.parameter_tree.connectors.model_signals_register import \
-    ModelSignalsRegister
+    ExtendedModelSignalsRegister
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
     EngineParameterTree
 from snngine_v4.utils.containers.mappings import (
@@ -18,7 +18,7 @@ class ParameterConnector(Model2ObjectMap):
 
     @classmethod
     def cls_connect_map(cls, object2object_map: Object2ObjectMap,
-                        signal_register: ModelSignalsRegister,
+                        signal_register: ExtendedModelSignalsRegister,
                         container=None):
         if container is None:
             container = cls.make_container()
@@ -29,7 +29,7 @@ class ParameterConnector(Model2ObjectMap):
 
     @classmethod
     def connect_object(cls, model, obj,
-                       signal_register: ModelSignalsRegister):
+                       signal_register: ExtendedModelSignalsRegister):
         raise NotImplementedError
 
     @classmethod

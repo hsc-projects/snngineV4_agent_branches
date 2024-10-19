@@ -4,7 +4,10 @@ import numpy as np
 from pydantic import BaseModel
 from vispy.scene import TurntableCamera, VisualNode, XYZAxis
 from vispy.util.event import Event
-from vispy.visuals import BoxVisual, CompoundVisual, LineVisual, MeshVisual
+from vispy.visuals import (
+    BoxVisual, CompoundVisual, LineVisual, MarkersVisual,
+    MeshVisual, Visual,
+)
 
 from snngine_v4.data.validation.array_annotation import ArrayInterfaces
 from snngine_v4.geometry.grid_config import FiniteGridConfig
@@ -13,10 +16,11 @@ from snngine_v4.gui.parameter_tree.connectors.model_parameter_links import (
     ModelParameterLinks, ObjectParameterLink,
 )
 from snngine_v4.gui.parameter_tree.connectors.model_signals_register import \
-    ModelSignalsRegister
+    ExtendedModelSignalsRegister
 from snngine_v4.gui.parameter_tree.connectors.object2object_links import (
     LinkStateType, Object2ObjectLinks,
 )
+from snngine_v4.nn.config_models.nn_reservoir_config import NetworkReservoir
 from snngine_v4.utils.containers.mappings import Model2ObjectMap
 from snngine_v4.utils.field_utils import Undefined
 # from snngine_v4.utils.settings.ui_parameter_options import update_param_opts
@@ -24,15 +28,15 @@ from snngine_v4.visualization.buffer_utils import adapt_dim
 from snngine_v4.visualization.config_models.vispy_camera_configs import (
     CameraCenter, TurnTableCameraParameters,
 )
-from snngine_v4.visualization.config_models.visuals.box_configs import \
+from snngine_v4.visualization.config_models.visuals.boxes import \
     BoxVisualInitConfig
-
-from snngine_v4.visualization.config_models.visuals.line_configs import \
+from snngine_v4.visualization.config_models.visuals.lines import \
     XYZAxisVisualConfig
-from snngine_v4.visualization.config_models.visuals.mesh_visual_config import \
+from snngine_v4.visualization.config_models.visuals.mesh import \
     MeshVisualConfig
-from snngine_v4.visualization.config_models.visuals.visual_parameters import \
-    RGBAColor
+from snngine_v4.visualization.config_models.visuals.parameters import (
+    RGBAColor, VispyKeyWords,
+)
 from snngine_v4.visualization.scenes.event_camera import EventCameraMixin
 from snngine_v4.visualization.scenes.setattribute_event import (
     MeshDataChangedEvent, Set3DAttributeEvent, SetAttributeEvent,
@@ -44,6 +48,7 @@ from snngine_v4.visualization.visual_builder import (
 
 
 type VispyObject = (VisualNode | VisualMixin | LineVisual | BoxVisual
+                    | Visual | MarkersVisual
                     | EventCameraMixin | TurntableCamera)
 
 
@@ -52,16 +57,10 @@ type VispyObjectConfig = TurnTableCameraParameters
 
 class VispyLinks(Object2ObjectLinks):
 
-    SET_DATA_KWS = {
-        XYZAxis: ['color', 'pos', 'connect', 'width'],
-        MeshVisual: ['vertices', 'faces', 'vertex_colors',
-                     'face_colors', 'vertex_values',
-                     'meshdata']
-    }
-
     def add_links(self, func, links=None):
         if links is None:
             links = self.model_links
+        print([x.source_key for x in links])
         for link in links:
             link[LinkStateType.SOURCE2SINK].connect(func)
             self[link.source_key] = link
@@ -71,7 +70,10 @@ class VispyLinks(Object2ObjectLinks):
         return self.model_signals[ObjectParameterLink].refs
 
     def __init__(self, model, vispy_obj,
-                 signal_register: ModelSignalsRegister, **kwargs):
+                 signal_register: ExtendedModelSignalsRegister,
+                 model_signals=None,
+                 **kwargs):
+
         self.data: dict[int | BaseModel, VispyObject] | None = None
         self.source: VispyObjectConfig | None = None
         self.sink: VispyObject | None = None
@@ -79,11 +81,11 @@ class VispyLinks(Object2ObjectLinks):
         self.sub_visual_map = Model2ObjectMap()
 
         node_tree = None
-        if isinstance(vispy_obj, CompoundVisual):
+        if isinstance(vispy_obj, (BoxVisual, MarkersVisual)):
             exp_model = VispyVisualBuilder.get_model(model)
             if model.__class__ != exp_model.__class__:
-                assert isinstance(model, FiniteGridConfig)
-                node_tree = signal_register.make_model2model_links(
+                assert isinstance(model, (FiniteGridConfig, NetworkReservoir))
+                node_tree = signal_register.add_linked_model(
                     model, exp_model)
                 model = exp_model
                 # model.__setattr__(model, 'seg', (1, 2, 3))
@@ -91,7 +93,8 @@ class VispyLinks(Object2ObjectLinks):
 
         super().__init__(source=model, sink=vispy_obj, **kwargs)
 
-        self.model_signals: ModelParameterLinks = signal_register[self.source]
+        self.model_signals: ModelParameterLinks = (
+            model_signals) if model_signals else signal_register[self.source]
         self.center_signals = None
         if isinstance(self.source, TurnTableCameraParameters):
             self.center_signals: ModelParameterLinks = signal_register[
@@ -110,54 +113,45 @@ class VispyLinks(Object2ObjectLinks):
             center_links: list[ObjectParameterLink] = (
                 self.center_signals[ObjectParameterLink].refs)
             self.add_links(self.update_camera_object, center_links)
+        else:
+            if (isinstance(vispy_obj, VisualNode)
+                    and type(vispy_obj) not in VisualMixin.SET_DATA_KWS):
+                raise AssertionError
+            if isinstance(self.sink, XYZAxis):
 
-        elif isinstance(self.sink, XYZAxis):
-            if type(self.sink) not in self.SET_DATA_KWS:
-                self.SET_DATA_KWS[type(self.sink)] = self.SET_DATA_KWS[XYZAxis]
-            assert isinstance(self.source, XYZAxisVisualConfig)
-            self.sink.events.attr_changed.connect(self.update_model)
-            self.add_links(self.update_object)
-            self.sink.__setattr__('antialias', True)
-            self.sink.antialias = True
-            pass
+                assert isinstance(self.source, XYZAxisVisualConfig)
+                self.sink.events.attr_changed.connect(self.update_model)
+                self.add_links(self.update_object)
+                self.sink.__setattr__('antialias', True)
+                self.sink.antialias = True
+                pass
 
-        elif isinstance(self.sink, CompoundVisual):
-            assert isinstance(self.source, BoxVisualInitConfig)
-            assert isinstance(self.sink, BoxVisual)
-            # if type(self.sink) not in self.SET_DATA_KWS:
-            #     if isinstance(self.sink, BoxVisual):
-            #         self.SET_DATA_KWS[type(self.sink)] =
-            #         self.SET_DATA_KWS[BoxVisual]
-            color = 'blue'
-            # noinspection PyProtectedMember
-            if len(self.sink._subvisuals) > 0:
-                # sub_visuals_model = SubVisualsConfig()
-                self.source.subvisuals = []
+            elif isinstance(self.sink, MarkersVisual):
+                self.sink.events.attr_changed.connect(self.update_model)
+                self.add_links(self.update_object)
+
+            elif isinstance(self.sink, CompoundVisual):
+                assert isinstance(self.source, BoxVisualInitConfig)
+                assert isinstance(self.sink, BoxVisual)
+                color = 'blue'
                 # noinspection PyProtectedMember
-                for sub_visual in self.sink._subvisuals:
+                if len(self.sink._subvisuals) > 0:
+                    self.source.subvisuals = []
+                    # noinspection PyProtectedMember
+                    for sub_visual in self.sink._subvisuals:
+                        if isinstance(sub_visual, MeshVisual):
+                            sub_visual_model = MeshVisualConfig()
+                        else:
+                            raise NotImplementedError
+                        self.sub_visual_map[sub_visual_model] = sub_visual
+                        self.source.subvisuals.append(
+                            sub_visual_model)
+                        color = 'red'
+                node_tree.read_model(self.source, b_ignore_existing=True)
 
-                    if isinstance(sub_visual, MeshVisual):
-                        sub_visual_model = MeshVisualConfig()
-                    else:
-                        raise NotImplementedError
-                    self.sub_visual_map[sub_visual_model] = sub_visual
-                    # if isinstance(self.source, BoxVisualInitConfig):
-                    #     if sub_visual == self.sink.mesh:
-                    #         update_param_opts(sub_visual_model, name='mesh')
-                    #     elif sub_visual == self.sink.border:
-                    #         update_param_opts(sub_visual_model, name='border')
-
-                    self.source.subvisuals.append(
-                        sub_visual_model)
-                    # self.connect_mesh_visual(
-                    #     obj=sub_visual, model=sub_visual_model)
-                    # sub_visual.color = color
-                    color = 'red'
-            node_tree.read_model(self.source, b_ignore_existing=True)
-
-        elif isinstance(self.sink, MeshVisual):
-            self.connect_mesh_visual(self.sink, self.source,
-                                     sr=signal_register)
+            elif isinstance(self.sink, MeshVisual):
+                self.connect_mesh_visual(self.sink, self.source,
+                                         sr=signal_register)
 
     @classmethod
     def adapt_condition(cls, arr0, arr1):
@@ -166,9 +160,11 @@ class VispyLinks(Object2ObjectLinks):
             return False
         return arr0.shape[0] != arr1.shape[0]
 
-    def connect_mesh_visual(self, obj, model, sr: ModelSignalsRegister = None):
-        if type(obj) not in self.SET_DATA_KWS:
-            self.SET_DATA_KWS[type(obj)] = self.SET_DATA_KWS[MeshVisual]
+    def connect_mesh_visual(self, obj, model,
+                            sr: ExtendedModelSignalsRegister = None):
+        if type(obj) not in VisualMixin.SET_DATA_KWS:
+            VisualMixin.SET_DATA_KWS[type(obj)] = (
+                VisualMixin.SET_DATA_KWS)[MeshVisual]
         assert isinstance(model, MeshVisualConfig)
         # obj.events.attr_changed.connect(update_model)
         print('connect MeshVisual', id(obj))
@@ -217,21 +213,44 @@ class VispyLinks(Object2ObjectLinks):
     def handle_set_data_kwargs(cls, obj, key, value):
         kwargs = {key: value}
 
-        if key == 'color':
+        if key.endswith(VispyKeyWords.COLOR):
             if isinstance(kwargs[key], (tuple, dict)):
                 kwargs[key] = RGBAColor.to_vispy(kwargs[key])
 
         if isinstance(obj, XYZAxis):
             if ((key == 'width')
-                    or ((key == 'connect') and isinstance(value, str))):
+                    or ((key == VispyKeyWords.CONNECT)
+                        and isinstance(value, str))):
                 return kwargs
-            if key == 'color':
-                other_key = 'pos'
+            if key == VispyKeyWords.COLOR:
+                other_key = VispyKeyWords.POS
             else:
-                other_key = 'color'
+                other_key = VispyKeyWords.COLOR
             if cls.adapt_condition(
                     kwargs[key], other := getattr(obj, other_key)):
                 kwargs[other_key] = adapt_dim(other, ref=kwargs[key])
+        elif isinstance(obj, MarkersVisual):
+            kw_to_rec = {
+                'pos': 'a_position',
+                'edge_color': 'a_fg_color',
+                'face_color': 'a_bg_color',
+                'size': 'a_size',
+                'edge_width': 'a_edgewidth',
+                # 'symbol': 'a_symbol',
+            }
+            if key in [VispyKeyWords.SIZE, VispyKeyWords.EDGE_WIDTH]:
+                pass
+            else:
+                if key == VispyKeyWords.COLOR:
+                    other_key = VispyKeyWords.POS
+                else:
+                    other_key = VispyKeyWords.FACE_COLOR
+                if cls.adapt_condition(
+                        kwargs[key], other := obj._data[kw_to_rec[other_key]]):
+                    kwargs[other_key] = adapt_dim(other, ref=kwargs[key])
+            for k in kw_to_rec:
+                if k not in kwargs:
+                    kwargs[k] = obj._data[kw_to_rec[k]]
         return kwargs
 
     def update_camera_object(
@@ -286,8 +305,8 @@ class VispyLinks(Object2ObjectLinks):
             block = self.update_model
         event_block.disconnect(block)
         new_kwargs = {}
-        if ((type(self.sink) in self.SET_DATA_KWS)
-                and (key in self.SET_DATA_KWS[type(self.sink)])):
+        if ((type(self.sink) in VisualMixin.SET_DATA_KWS)
+                and (key in VisualMixin.SET_DATA_KWS[type(self.sink)])):
             new_kwargs = self.handle_set_data_kwargs(self.sink, key, value)
             self.sink.set_data(**new_kwargs)
         else:
@@ -297,7 +316,7 @@ class VispyLinks(Object2ObjectLinks):
             setattr(self.sink, key, value)
 
         event_block.connect(block)
-        if len(new_kwargs) > 1:
-            for k, v in new_kwargs.items():
-                if k != key:
-                    event_block(key=k, value=v)
+        # if len(new_kwargs) > 1:
+        #     for k, v in new_kwargs.items():
+        #         if k != key:
+        #             event_block(key=k, value=v)

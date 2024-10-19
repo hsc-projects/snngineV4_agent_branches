@@ -79,23 +79,23 @@ class XMLConverter:
         return res
 
     def to_xml(self, data: BaseModel | dict,
-               parent: Element | None = None):
+               parent: Element | None = None, **kwargs):
         parent = parent or Element(data.__class__.__name__)
         if not isinstance(data, dict):
-            dct = data.model_dump(mode='json')
+            dct = data.model_dump(mode='json', **kwargs)
         else:
             dct = data
         for k, v in dct.items():
             self.value_to_xml(parent, k, v, ref=dct)
         return parent
 
-    def test_conversion(self, model: BaseModel):
+    def test_conversion(self, model: BaseModel, **kwargs):
 
-        model_dict = model.model_dump(mode='json')
+        model_dict = model.model_dump(mode='json', **kwargs)
         model_xml_data = self.to_xml(model_dict)
         model_xml_data_dict = self.dict_from_xml(model_xml_data)
         model_xml = model.__class__(**model_xml_data_dict)
-        model_xml_dict = model_xml.model_dump(mode='json')
+        model_xml_dict = model_xml.model_dump(mode='json', **kwargs)
 
         result = DeepDiff(model_dict, model_xml_dict,
                           ignore_private_variables=False)
@@ -126,12 +126,12 @@ class XMLConverter:
 
     def to_xml_file(self, data, fn,
                     b_make_dir: bool = True,
-                    b_dir_exist_ok=True):
+                    b_dir_exist_ok=True, **kwargs):
         if not os.path.isfile(fn):
             directory = os.path.dirname(os.path.abspath(fn))
             if b_make_dir:
                 os.makedirs(directory, exist_ok=b_dir_exist_ok)
-        content = self.to_xml_str(data=data)
+        content = self.to_xml_str(data=data, **kwargs)
         with open(fn, 'wb') as file:
             file.write(content)
 
