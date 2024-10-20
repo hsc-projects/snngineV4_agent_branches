@@ -12,10 +12,13 @@ from xml.etree.ElementTree import (
 )
 
 from deepdiff import DeepDiff
+from numpydantic.interface.numpy import NumpyJsonDict
 from pydantic import BaseModel
 
 from pydantic_settings.sources import PathType
 
+from snngine_v4.utils.data.validation.export_data import extract_arrays
+from snngine_v4.utils.data.validation.np_interface import ExtendedNumpyJsonDict
 from snngine_v4.utils.settings.xml_converter_options import (
     XMLConverterOptions,
     XMLStringOptions,
@@ -85,6 +88,9 @@ class XMLConverter:
             dct = data.model_dump(mode='json', **kwargs)
         else:
             dct = data
+
+        # array_dct = extract_arrays(dct, b_recursive=True)
+
         for k, v in dct.items():
             self.value_to_xml(parent, k, v, ref=dct)
         return parent
@@ -180,6 +186,11 @@ class XMLConverter:
 
     def value_to_xml(self, parent, tag, v, ref=None):
 
+        if isinstance(v, dict):
+            b_array = ExtendedNumpyJsonDict.is_valid(v)
+            if b_array:
+                raise RuntimeError
+
         v_xml = SubElement(parent, tag)
         if hasattr(ref, tag):
             child_ref = getattr(ref, tag)
@@ -216,16 +227,20 @@ class XMLConverter:
 
             elif isinstance(v, dict):
                 for key, value in v.items():
-                    if not hasattr(child_ref, key):
-                        tag = self.conf.dict_item_tag
-                    else:
-                        tag = key
+                    b_array_ = False
+                    if isinstance(value, dict):
+                        b_array_ = ExtendedNumpyJsonDict.is_valid(value)
+                    if not b_array_:
+                        if not hasattr(child_ref, key):
+                            tag = self.conf.dict_item_tag
+                        else:
+                            tag = key
 
-                    value_xml = self.value_to_xml(v_xml, tag, value,
-                                                  ref=child_ref)
+                        value_xml = self.value_to_xml(v_xml, tag, value,
+                                                      ref=child_ref)
 
-                    if not hasattr(child_ref, key):
-                        value_xml.set(self.conf.dict_key_attribute, key)
+                        if not hasattr(child_ref, key):
+                            value_xml.set(self.conf.dict_key_attribute, key)
 
             else:
                 raise NotImplementedError(

@@ -1,7 +1,7 @@
 from types import NoneType
 from typing import get_args
 
-from snngine_v4.data.validation.array_annotation import ArrayInterfaces
+from snngine_v4.utils.data.validation.array_annotation import ArrayInterfaces
 from snngine_v4.gui.parameter_tree.parameters.multi_type_parameter import \
     MultiTypeParameter
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts

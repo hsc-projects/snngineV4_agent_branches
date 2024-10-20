@@ -6,6 +6,8 @@ from snngine_v4.gui.common.qobject_dicts import QTreeWidgetDict
 from snngine_v4.snngine_config import EngineConfig
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
     EngineParameterTree
+from snngine_v4.utils.field_utils import model_keys
+from snngine_v4.utils.settings.settings_keywords import BaseModelSlots
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
@@ -38,9 +40,8 @@ class SettingsWindow(QtWidgets.QWidget):
         self.options_layout.setContentsMargins(0, 0, 0, 0)
         self.top_layout.addLayout(self.options_layout)
 
-        for k in engine_config.model_fields:
-            if k != XMLSettingsModel.CLASS_NAME_KW:
-                self.add_settings(getattr(engine_config, k), name=k)
+        for k in model_keys(engine_config, exclude=BaseModelSlots.CLASS__NAME):
+            self.add_settings(getattr(engine_config, k), name=k)
 
         btn_widgets = QtWidgets.QWidget()
         btn_widgets.setLayout(QtWidgets.QHBoxLayout())

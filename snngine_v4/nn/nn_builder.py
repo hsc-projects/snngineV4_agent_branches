@@ -10,6 +10,7 @@ from snngine_v4.utils.containers.mappings import Int2ObjectMapConfig
 from snngine_v4.utils.field_utils import model_keys
 
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
+from snngine_v4.utils.settings.settings_keywords import BaseModelSlots
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
@@ -45,19 +46,18 @@ class NetworkManager(BuilderDict):
             self.container_model = self.container_model_class(
                 **deepcopy(m).model_dump())
             model = self.container_model
-            keys = model_keys(model)
+            keys = model_keys(model, exclude=BaseModelSlots.CLASS__NAME)
             build = self.cls_build_container(model_container=model)
             m_ = build.object_dict
             super().update(m_, **kwargs)
             for k in keys:
-                if k != XMLSettingsModel.CLASS_NAME_KW:
-                    v = getattr(model, k)
-                    if v not in self:
-                        if isinstance(v, (list, tuple)):
-                            if not all([(x in self) for x in v]):
-                                raise AssertionError
-                        else:
+                v = getattr(model, k)
+                if v not in self:
+                    if isinstance(v, (list, tuple)):
+                        if not all([(x in self) for x in v]):
                             raise AssertionError
+                    else:
+                        raise AssertionError
 
         else:
             super().update(m, **kwargs)

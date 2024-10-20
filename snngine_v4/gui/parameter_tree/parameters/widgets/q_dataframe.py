@@ -9,7 +9,7 @@ from pydantic_core import PydanticUndefined
 from pyqtgraph.widgets.TableWidget import TableWidgetItem
 from qtpy import QtCore, QtSql, QtWidgets
 
-from snngine_v4.data.validation.array_annotation import TypedNumpyInterface
+from snngine_v4.utils.data.validation.np_interface import TypedNumpyInterface
 
 
 # noinspection PyPep8Naming

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import os
+from enum import auto, IntEnum
 from pathlib import Path
-from types import NoneType, UnionType
-from typing import Any, ClassVar, get_args, get_origin, Literal
+from typing import Any, ClassVar, Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic_settings.sources import (
     ConfigFileSourceMixin, InitSettingsSource,
@@ -13,17 +13,23 @@ from pydantic_settings.sources import (
 )
 
 from snngine_v4.utils.core_utils import get_intenum_member
+from snngine_v4.utils.data.validation.export_data import extract_arrays
+from snngine_v4.utils.data.deepdish_pack import deepdish
 from snngine_v4.utils.field_utils import (
     b_annotation_includes_type,
-    b_is_enum_annotation, b_is_intenum_annotation,
-    extract_basemodel_from_annotation,
-    b_annotation_includes_basemodel, b_field_has_default,
-    extract_basemodel_from_iterable_annotation,
-    extract_basemodels_from_annotation,
+    b_is_intenum_annotation,
+    b_is_optional, extract_basemodel_from_annotation,
+    b_annotation_includes_basemodel, b_field_has_default, model_keys,
 )
 from snngine_v4.utils.settings.settings_keywords import (
-    BaseSettingsSlots,
+    BaseModelSlots, BaseSettingsSlots,
 )
+
+
+class ModelDumpTypes(IntEnum):
+    python = 0
+    json = auto()
+    only_arrays = auto()
 
 
 class XMLSettingsConfigDict(SettingsConfigDict, total=False):
@@ -77,16 +83,25 @@ class XMLConfigSettingsSource(InitSettingsSource, ConfigFileSourceMixin):
             return {}
         if isinstance(files, (str, os.PathLike)):
             files = [files]
-        vars: dict[str, Any] = {}
+        vars_: dict[str, Any] = {}
         for file in files:
             file_path = Path(file).expanduser()
             if file_path.is_file():
                 new_vals = self._read_file(file_path)
                 for k in new_vals:
-                    if k in vars:
+                    if k in vars_:
                         raise KeyError(k)
-                vars.update(new_vals)
-        return vars
+                array_path = file.replace(
+                    BaseSettingsSlots.XML_FILE_ENDING,
+                    BaseSettingsSlots.H5_FILE_ENDING)
+                array_file_path = Path(array_path).expanduser()
+                if array_file_path.is_file():
+                    arrays = deepdish.io.load(array_file_path)
+                    extract_arrays(arrays, dests=[new_vals])
+                    pass
+                vars_.update(new_vals)
+
+        return vars_
 
     def _read_file(self, file_path: Path) -> dict[str, Any]:
         from snngine_v4.utils.settings.xml_converter import XMLConverter
@@ -105,7 +120,6 @@ class XMLConfigSettingsSource(InitSettingsSource, ConfigFileSourceMixin):
 
 
 class XMLSettingsModelBase(BaseSettings):
-    CLASS_NAME_KW: ClassVar[str] = 'class__name'
 
     xml_model: ClassVar[XMLSettingsModelBase] = None
 
@@ -114,16 +128,23 @@ class XMLSettingsModelBase(BaseSettings):
 
     parameter_ui_opts: ClassVar[dict | None] = None
 
-    # def load(self):
-    #     raise NotImplementedError
-
     def _export_submodels(self, conv, fn, sub_setting_pattern, **kwargs):
-        for k in self.model_fields:
-            if k != self.CLASS_NAME_KW:
-                sub_model = getattr(self, k)
-                conv.to_xml_file(
-                    data={k: sub_model.model_dump(mode='json', **kwargs)},
-                    fn=fn.replace(sub_setting_pattern, k))
+        for k in model_keys(self, exclude=BaseModelSlots.CLASS__NAME):
+            sub_model = getattr(self, k)
+            fn_ = fn.replace(sub_setting_pattern, k)
+            data = {k: sub_model.model_dump(mode='json', **kwargs)}
+            conv.to_xml_file(data=data, fn=fn_)
+
+            data = BaseModelSlots.pop_class__name_kw(data)
+            array_dct, array_list = extract_arrays(
+                data, b_recursive=True, dests=({}, []))
+            array_path = fn_.replace(
+                BaseSettingsSlots.XML_FILE_ENDING,
+                BaseSettingsSlots.H5_FILE_ENDING)
+            if len(array_list) > 0:
+                deepdish.io.save(array_path, array_dct)
+                a = deepdish.io.load(array_path)
+                pass
 
     def export(self, fn: str = None, mode='xml', round_trip=True, **kwargs):
 
@@ -151,6 +172,28 @@ class XMLSettingsModelBase(BaseSettings):
         else:
             conv.to_xml_file(data=self, fn=fn, round_trip=round_trip, **kwargs)
 
+    def model_dump(self, mode: str | ModelDumpTypes = 'python',
+                   include=None, round_trip=False,
+                   **kwargs):
+        if isinstance(mode, (int, ModelDumpTypes)):
+            mode = get_intenum_member(mode, ModelDumpTypes).name
+        match mode:
+            case ModelDumpTypes.only_arrays.name:
+                res = {}
+                extract_arrays(self, b_recursive=True, dests=[res])
+            case _:
+                # if round_trip is True:
+                #     if include is None:
+                #         include = model_keys(self)
+                #     include += [{BaseModelSlots.CLASS_NAME_KW: '__all__'}]
+                res = super().model_dump(
+                    mode=mode,
+                    include=include, round_trip=round_trip, **kwargs)
+                # if round_trip:
+                #     res[self.CLASS_NAME_KW] =
+                #     getattr(self, BaseModelSlots.CLASS_NAME_KW)
+        return res
+
     @classmethod
     def settings_customise_sources(
             cls, settings_cls: type[XMLSettingsModelBase],
@@ -169,6 +212,16 @@ class XMLSettingsModelBase(BaseSettings):
         return cls._validate_model_before(data)
 
     @classmethod
+    def _validate_model_before(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            for k in cls.model_computed_fields:
+                data.pop(k, None)
+            for k, field_info in cls.model_fields.items():
+                cls._validate_model_item(
+                    data=data, key=k, field_info=field_info)
+        return data
+
+    @classmethod
     def _validate_model_item(cls, data, key, field_info=None, ):
         if key == 'elements':
             pass
@@ -179,7 +232,7 @@ class XMLSettingsModelBase(BaseSettings):
         ann = field_info.annotation
         if key not in data:
             if not b_field_has_default(field_info):
-                if b_annotation_includes_type(ann, type_=NoneType):
+                if b_is_optional(ann, b_strict=False):
                     data[key] = None
                 elif b_annotation_includes_basemodel(
                         ann, b_strict=False):
@@ -194,16 +247,6 @@ class XMLSettingsModelBase(BaseSettings):
         elif (isinstance(data[key], (int, str))
               and (b_is_intenum_annotation(ann, True))):
             data[key] = get_intenum_member(data[key], ann)
-
-    @classmethod
-    def _validate_model_before(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            for k in cls.model_computed_fields:
-                data.pop(k, None)
-            for k, field_info in cls.model_fields.items():
-                cls._validate_model_item(
-                    data=data, key=k, field_info=field_info)
-        return data
 
     @classmethod
     def _xml_file_paths(cls):

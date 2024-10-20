@@ -34,42 +34,6 @@
           <DictItem type="int" key="N">200</DictItem>
           <DictItem type="int" key="S">1</DictItem>
           <DictItem type="int" key="D">0</DictItem>
-          <DictItem type="dict" key="pos">
-            <DictItem type="str" key="type">numpy</DictItem>
-            <DictItem type="str" key="dtype">float32</DictItem>
-            <DictItem type="list" key="value">
-              <ListElementElement type="list">
-                <ListElementElement type="float">1.5</ListElementElement>
-                <ListElementElement type="float">1.5</ListElementElement>
-                <ListElementElement type="float">1.5</ListElementElement>
-              </ListElementElement>
-              <ListElementElement type="list">
-                <ListElementElement type="float">1.5</ListElementElement>
-                <ListElementElement type="float">1.5</ListElementElement>
-                <ListElementElement type="float">0.0</ListElementElement>
-              </ListElementElement>
-              <ListElementElement type="list">
-                <ListElementElement type="float">0.0</ListElementElement>
-                <ListElementElement type="float">1.5</ListElementElement>
-                <ListElementElement type="float">1.5</ListElementElement>
-              </ListElementElement>
-              <ListElementElement type="list">
-                <ListElementElement type="float">1.5</ListElementElement>
-                <ListElementElement type="float">0.0</ListElementElement>
-                <ListElementElement type="float">1.5</ListElementElement>
-              </ListElementElement>
-              <ListElementElement type="list">
-                <ListElementElement type="float">-1.5</ListElementElement>
-                <ListElementElement type="float">1.5</ListElementElement>
-                <ListElementElement type="float">1.5</ListElementElement>
-              </ListElementElement>
-              <ListElementElement type="list">
-                <ListElementElement type="float">-1.5</ListElementElement>
-                <ListElementElement type="float">1.5</ListElementElement>
-                <ListElementElement type="float">0.0</ListElementElement>
-              </ListElementElement>
-            </DictItem>
-          </DictItem>
         </ListElementElement>
         <ListElementElement type="dict" class="EngineElementConfig">
           <DictItem type="dict" class="EnginePos3D" key="center">

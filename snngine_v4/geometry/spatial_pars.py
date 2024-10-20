@@ -5,8 +5,8 @@ from typing import ClassVar
 
 from pydantic import Field, NonNegativeInt, PositiveFloat
 
-from snngine_v4.data.validation.array_annotation import ArrayInterfaces
-from snngine_v4.data.validation.dtype_annotation import Float32
+from snngine_v4.utils.data.validation.array_annotation import ArrayInterfaces
+from snngine_v4.utils.data.validation.dtype_annotation import Float32
 from snngine_v4.utils.core_utils import get_intenum_member
 from snngine_v4.utils.settings.ui_parameter_options import (
     FrozenParamOpts,

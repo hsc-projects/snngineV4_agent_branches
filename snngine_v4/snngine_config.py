@@ -34,7 +34,7 @@ class EngineConfig(XMLSettingsModel):
         default_xml_model_config_dict(
             xml_file=f".snngine/"
                      f"{BaseSettingsSlots.SUB_SETTINGS_FILE_NAME_PATTERN}"
-                     f".xml"))
+                     f"{BaseSettingsSlots.XML_FILE_ENDING}"))
 
     app: EngineAppSettings
     open_gl: OpenGLSettings
@@ -58,7 +58,10 @@ class EngineConfig(XMLSettingsModel):
         if (fn is not None) and (sub_setting_pat in fn):
             xml_files = []
             for k in cls.model_fields:
-                if k not in [cls.Slots.CONSTR, cls.Slots.SCENES]:
+                if k not in [
+                    # cls.Slots.CONSTR,
+                    cls.Slots.SCENES
+                ]:
                     xml_files.append(fn.replace(sub_setting_pat, k))
         else:
             xml_files = fn

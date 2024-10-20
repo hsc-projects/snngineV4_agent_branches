@@ -9,7 +9,7 @@ from vispy.visuals import (
     MeshVisual, Visual,
 )
 
-from snngine_v4.data.validation.array_annotation import ArrayInterfaces
+from snngine_v4.utils.data.validation.array_annotation import ArrayInterfaces
 from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import Ax3D
 from snngine_v4.gui.parameter_tree.connectors.model_parameter_links import (

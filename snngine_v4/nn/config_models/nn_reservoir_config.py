@@ -17,6 +17,7 @@ class NetworkReservoir(EngineElementConfig):
     S: NonNegativeInt = 1
     D: int = Field(default=0, ge=0, le=20)
 
+    # pos_file: PositionVBO = ['./data.h5']
     pos: PositionVBO = Field(
         default_factory=lambda: np.array([
             [1.5, 1.5, 1.5],

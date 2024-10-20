@@ -21,7 +21,10 @@ from snngine_v4.utils.containers.configurable_dict import (
 from snngine_v4.utils.class_mixer import ClassMixer
 from snngine_v4.utils.field_utils import model_keys, Undefined
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
-from snngine_v4.utils.settings.settings_keywords import InternalOpts
+from snngine_v4.utils.settings.settings_keywords import (
+    BaseModelSlots,
+    InternalOpts,
+)
 from snngine_v4.utils.settings.xml_settings_base import XMLSettingsModelBase
 from snngine_v4.visualization.config_models.visuals.markers import \
     MarkersVisualConfig
@@ -149,20 +152,23 @@ class VisualMixins(ClassMixer):
                 # attr_changed_keys = [
                 #     x for x in XYZAxisVisualConfig.model_fields.keys()
                 #     if x not in set_data_kw]
-                attr_changed_keys = model_keys(XYZAxisVisualConfig)
+                attr_changed_keys = model_keys(
+                    XYZAxisVisualConfig, exclude=BaseModelSlots.CLASS__NAME)
             elif class_item == Box:
                 attr_changed_keys = {'_mesh': ['shading']}
             elif class_item == MeshVisual:
                 attr_changed_keys = ['color']
             elif class_item == Markers:
-                attr_changed_keys = (['alpha'] +
-                                     model_keys(MarkersVisualConfig))
+                attr_changed_keys = (
+                    ['alpha'] +
+                    model_keys(MarkersVisualConfig,
+                               exclude=BaseModelSlots.CLASS__NAME))
             else:
                 raise NotImplementedError()
 
-            def init(self: VisualMixin | Visual, *args, **kwargs):
-                self.__pre_init__(*args, **kwargs)
-                class_item.__init__(self, *args, **kwargs)
+            def init(self: VisualMixin | Visual, *args, **kwargs_):
+                self.__pre_init__(*args, **kwargs_)
+                class_item.__init__(self, *args, **kwargs_)
                 self.__post_init__()
 
             def set_attr(self: VisualMixin | Visual, key, value):
@@ -262,7 +268,7 @@ class VispyVisualBuilder(BuilderDict):
     @classmethod
     def get_model(cls, model: BaseModel | None):
         dump = model.model_dump(mode='python',
-                                exclude={XMLSettingsModelBase.CLASS_NAME_KW})
+                                exclude={BaseModelSlots.CLASS__NAME})
         if isinstance(model, FiniteGridConfig):
             model = OuterGridVisualInitConfig(**dump)
         elif isinstance(model, NetworkReservoir):

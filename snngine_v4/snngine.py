@@ -1,6 +1,7 @@
 from snngine_v4.nn.config_models.nn_reservoir_config import NetworkReservoir
 from snngine_v4.nn.nn_builder import NetworkManager
 from snngine_v4.snngine_config import EngineConfig
+from snngine_v4.utils.settings.xml_settings_base import ModelDumpTypes
 
 from snngine_v4.visualization.scenes.main_network_scene import \
     EngineSceneCanvas
@@ -48,6 +49,8 @@ class SNNgine:
             visuals=visuals,
             scene=self.conf.scenes.main,
         )
+
+        # data = self.conf.current.model_dump(mode=ModelDumpTypes.only_arrays)
 
         return
 

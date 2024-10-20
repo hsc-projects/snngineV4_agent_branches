@@ -4,8 +4,7 @@ from copy import copy
 from enum import Enum
 from types import NoneType, UnionType
 from typing import (
-    Annotated, get_args, get_origin, Literal, Optional, TypeAliasType,
-    Union, _LiteralGenericAlias
+    get_args, Optional, TypeAliasType
 )
 
 import numpy as np
@@ -14,10 +13,10 @@ from pydantic import BaseModel
 from pydantic_core import PydanticUndefined
 from pyqtgraph.parametertree.Parameter import PARAM_TYPES
 
-from snngine_v4.data.validation.array_annotation import b_is_array_annotation
+from snngine_v4.utils.data.validation.array_annotation import b_is_array_annotation
 
 from snngine_v4.utils.field_utils import (
-    AnnotationType, b_annotation_includes_type, b_field_has_default,
+    AnnotationType, b_field_has_default,
     b_is_annotated, b_is_int_annotation, b_is_literal_annotation, b_is_optional,
     b_is_union, extract_field_interval,
     extract_literal_values, extract_type_from_annotation,
@@ -55,7 +54,7 @@ class OptionsBuilder:
             ann = cls.convert_type_alias_type(ann)
         Optional
         try:
-            if isinstance(ann, UnionType) or b_is_optional(ann):
+            if isinstance(ann, UnionType) or b_is_optional(ann, b_strict=True):
                 args = get_args(ann)
                 if (len(args) == 2) and (NoneType in args):
                     if (b_float := (float in args)) or (int in args):
@@ -175,9 +174,7 @@ class OptionsBuilder:
             options.enum = extract_type_from_annotation(
                 ann, type_=Enum)
 
-        options.c_nullable_value = (
-            b_is_optional(ann) or
-            b_annotation_includes_type(ann, type_=NoneType))
+        options.c_nullable_value = b_is_optional(ann, b_strict=False)
 
         if (options.name is None) and (options.c_model_field_name is not None):
             options.name = options.c_model_field_name

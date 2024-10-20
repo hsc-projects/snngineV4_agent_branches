@@ -3,7 +3,7 @@ from pyqtgraph.parametertree import Parameter
 from pyqtgraph.parametertree.parameterTypes import WidgetParameterItem
 from qtpy import QtCore
 
-from snngine_v4.data.validation.array_annotation import ArrayInterfaces
+from snngine_v4.utils.data.validation.array_annotation import ArrayInterfaces
 
 from snngine_v4.gui.parameter_tree.parameters.widgets \
     .dataframe_table_widget import QDataFrameTableWidget

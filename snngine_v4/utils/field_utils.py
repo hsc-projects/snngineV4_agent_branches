@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from pydantic.types import AnyType
 from pydantic_core import PydanticUndefined
+from sympy.codegen.fnodes import ubound
 from typing_extensions import TypeAliasType
 
 from .core_utils import type_assertion
@@ -36,7 +37,7 @@ def b_is_annotated(ann: AnnotationType, b_strict: bool = True):
     res = get_origin(ann) == Annotated
     if res or b_strict:
         return res
-    if b_is_optional(ann):
+    if b_is_optional(ann, b_strict=True):
         return any([b_is_annotated(x) for x in get_args(ann)])
     return False
 
@@ -67,7 +68,9 @@ def b_is_literal_annotation(ann: AnnotationType, b_strict: bool = True):
     return False
 
 
-def b_is_optional(ann: AnnotationType):
+def b_is_optional(ann: AnnotationType, b_strict: bool = True):
+    if b_strict is False:
+        return b_annotation_includes_type(ann, type_=NoneType, b_strict=False)
     ann = extract_annotation(ann=ann)
     res = (get_origin(ann) is Union) and (type(None) in get_args(ann))
     if res and (ann.__name__ != 'Optional'):
@@ -105,23 +108,29 @@ def b_annotation_includes_instance(
 
 def b_annotation_includes_type(ann: AnnotationType, type_: Type,
                                b_strict=False) -> bool:
+    """
 
+    :param ann:
+    :param type_:
+    :param b_strict: If True, ignore UnionType arguments
+    :return:
+    """
     ann = extract_annotation(ann=ann)
 
     if isinstance(ann, GenericAlias):
         ann = get_origin(ann)
 
-    if isinstance(ann, UnionType):
-        if b_strict:
-            return False
-        res = any([b_annotation_includes_type(x, type_, b_strict=False)
-                   for x in get_args(ann)])
-        return res
     try:
         # noinspection PyTypeChecker
         return issubclass(ann, type_)
     except TypeError:
-        pass
+        if b_strict:
+            return False
+
+    if isinstance(ann, UnionType) or (get_origin(ann) == Union):
+        for arg in get_args(ann):
+            if b_annotation_includes_type(arg, type_=type_, b_strict=False):
+                return True
     return False
 
 
@@ -154,7 +163,7 @@ def extract_annotations_from_annotation(
     if b_strict:
         assert b_is_annotated(ann, b_strict=True)
         return get_args(ann)
-    if b_is_optional(ann):
+    if b_is_optional(ann, b_strict=True):
         for x in get_args(ann):
             if b_is_annotated(x, b_strict=True):
                 return extract_annotations_from_annotation(x, True)
@@ -408,13 +417,25 @@ def get_field_multiple_of(field: FieldInfo, default=None):
     return default
 
 
-def model_keys(model):
+def model_keys(model: BaseModel | Type[BaseModel],
+               b_include_extra=True, b_include_computed=True,
+               exclude=None):
     keys = list(model.model_fields.keys())
-    if not isinstance(model, type) and (model.model_extra is not None):
-        extra = list(model.model_extra.keys())
-        if '__setattr__' in extra:
-            extra.remove('__setattr__')
-        keys += extra
+    if not isinstance(model, type):
+        if b_include_extra and (model.model_extra is not None):
+            extra = list(model.model_extra.keys())
+            if '__setattr__' in extra:
+                extra.remove('__setattr__')
+                # raise RuntimeError
+            keys += extra
+    if b_include_computed and (model.model_computed_fields is not None):
+        computed = list(model.model_computed_fields.keys())
+        keys += computed
+    if exclude is not None:
+        if isinstance(exclude, str):
+            exclude = [exclude]
+        for item in exclude:
+            keys.remove(item)
     return keys
 
 

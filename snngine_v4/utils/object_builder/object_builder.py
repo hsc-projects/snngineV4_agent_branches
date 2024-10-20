@@ -12,6 +12,7 @@ from snngine_v4.utils.containers.mappings import (
 )
 from snngine_v4.utils.class_mixer import ClassMixer
 from snngine_v4.utils.field_utils import model_keys
+from snngine_v4.utils.settings.settings_keywords import BaseModelSlots
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
@@ -75,20 +76,19 @@ class ModelObjectBuilder:
             keys = model_container.keys()
             models = model_container.values()
         elif isinstance(model_container, BaseModel):
-            keys = model_keys(model=model_container)
+            keys = model_keys(model=model_container,
+                              exclude=BaseModelSlots.CLASS__NAME)
             models = [getattr(model_container, k) for k in keys]
         elif hasattr(model_container, 'keys'):
             keys = model_container.keys()
             models = model_container.values()
         else:
-            # noinspection PyTypeChecker
+            # noinspection PyTypeChecker,PydanticTypeChecker
             keys = list(range(len(model_container)))
             models = model_container
 
         dct = dict(zip(keys, models))
-
-        dct = XMLSettingsModel.pop_model__class__name_keyword(
-            dct)
+        dct = BaseModelSlots.pop_class__name_kw(dct)
 
         for key, model in dct.items():
 
@@ -153,8 +153,7 @@ class ModelObjectBuilder:
     @classmethod
     def make_object_kwargs(cls, model: BaseModel, **kwargs):
         object_kwargs = model.model_dump(mode='python')
-        object_kwargs = XMLSettingsModel.pop_model__class__name_keyword(
-            object_kwargs)
+        object_kwargs = BaseModelSlots.pop_class__name_kw(object_kwargs)
         object_kwargs.update(**kwargs)
 
         if cls.b_enum_to_values is True:

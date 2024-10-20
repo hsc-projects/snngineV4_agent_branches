@@ -24,14 +24,11 @@ from snngine_v4.gui.parameter_tree.parameters.multi_type_parameter import \
     MultiTypeParameter
 from snngine_v4.gui.parameter_tree.parameters.reference_parameter import \
     ReferenceParameter
-from snngine_v4.utils.field_utils import b_is_optional, model_keys, Undefined
+from snngine_v4.utils.field_utils import b_is_optional, model_keys
 from snngine_v4.utils.settings.settings_keywords import (
-    BaseSettingsSlots,
+    BaseModelSlots, BaseSettingsSlots,
 )
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
-
-from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
-
 
 if TYPE_CHECKING:
 
@@ -47,9 +44,10 @@ class ParameterBuilder:
         if (v := collector_par.opts[
                 k := ParamOpts.KW.C_B_COLLECT_EXTRA_CLASSES]) is False:
             raise PermissionError(f"{k}={v} for ({collector_par})")
-        collector_model: XMLSettingsModel = signal_register.group_map.inv[
+        collector_model = signal_register.group_map.inv[
             collector_par]
-        extra_classes = collector_model.EXTRA_CLASSES
+        extra_classes = getattr(
+            collector_model, BaseModelSlots.EXTRA_CLASSES, [])
         for cl in extra_classes:
             pars = cls.get_parameters_by_type(
                 signal_register=signal_register,
@@ -232,7 +230,7 @@ class ParameterBuilder:
 
         if exclude_keys is None:
             exclude_keys = []
-        exclude_keys += [XMLSettingsModel.CLASS_NAME_KW]
+        exclude_keys += [BaseModelSlots.CLASS__NAME]
         group = EngineGroupParameter.from_model(model=model, **options)
         heritable_options = ParamOpts.heritable_options(**group.opts)
 
@@ -241,20 +239,19 @@ class ParameterBuilder:
         n_numeric_children = 0
         if model is None:
             pass
-        keys = model_keys(model)
+        keys = model_keys(model, exclude=set(exclude_keys))
         for k in keys:
-            if k not in exclude_keys:
-                par = cls.make_par_from_field(
-                    parent_model=model, key=k,
-                    value=getattr(model, k),
-                    signal_register=signal_register,
-                    **heritable_options)
+            par = cls.make_par_from_field(
+                parent_model=model, key=k,
+                value=getattr(model, k),
+                signal_register=signal_register,
+                **heritable_options)
 
-                n_children += 1
-                if par.opts[ParamOpts.KW.TYPE] in ['int', 'float']:
-                    n_numeric_children += 1
-                children.append(par)
-                group.addChild(par)
+            n_children += 1
+            if par.opts[ParamOpts.KW.TYPE] in ['int', 'float']:
+                n_numeric_children += 1
+            children.append(par)
+            group.addChild(par)
         if ((signal_register is not None)
                 and (BaseSettingsSlots.b_is_frozen(model) is False)):
             if model in signal_register.model2model_map.inv:
