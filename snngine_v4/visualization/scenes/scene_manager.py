@@ -1,12 +1,16 @@
+from collections import UserDict
 from typing import ClassVar
 
 from pydantic import BaseModel
+from vispy.gloo import get_current_canvas
 from vispy.scene import BaseCamera, ViewBox
+from vispy.visuals import MarkersVisual, Visual
 
 from snngine_v4.config.scenes import SceneSettings
 from snngine_v4.utils.containers.mappings import (
     Model2ObjectMap,
 )
+from snngine_v4.utils.object_builder.object_builder import BuildResult
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 from snngine_v4.visualization.config_models.vispy_camera_configs import (
     CameraCenter, TurnTableCameraParameters,
@@ -34,6 +38,11 @@ class SceneManager(BuilderDict):
         super().__init__()
         if isinstance(scenes, (list, SceneSettings)):
             self.update(scenes)
+
+    def build_visuals(self, visuals, scene):
+        if isinstance(scene, BaseModel):
+            scene = self[scene]
+        return self.cls_build_visuals(visuals, scene=scene)
 
     def get_objects(self, model_list):
         res = Model2ObjectMap()
@@ -112,8 +121,3 @@ class SceneManager(BuilderDict):
         )
         scene.visual_node_dict.update(visual_dict.object_dict)
         return visual_dict
-
-    def build_visuals(self, visuals, scene):
-        if isinstance(scene, BaseModel):
-            scene = self[scene]
-        return self.cls_build_visuals(visuals, scene=scene)

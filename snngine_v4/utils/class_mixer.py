@@ -16,7 +16,7 @@ class ClassMixer(SingletonMap):
             super().__getitem__(class_item)
         except KeyError:
             new = self.mix(class_item)
-            self.obj_map[class_item] = new
+            self.container[class_item] = new
             return new
 
     @classmethod

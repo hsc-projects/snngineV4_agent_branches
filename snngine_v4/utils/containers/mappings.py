@@ -9,7 +9,7 @@ from snngine_v4.utils.containers.configurable_container import (
     ValidValueType,
 )
 from snngine_v4.utils.containers.configurable_dict import (
-    ConfigurableDict, DictContainerConfig,
+    ConfigurableDict, DictContainerConfig, SingletonDict,
 )
 from snngine_v4.utils.containers.configurable_list import (
     ConfigurableList, ConfigurableListConfig,
@@ -127,8 +127,9 @@ class Object2ObjectMap(ConfigurableDict):
             default_inv_conf_cls = cls.InvertedConfigClass
 
         if (isinstance(default_conf_cls, tuple)
-                and (not issubclass(
-                    default_conf_cls[0], Int2ObjectMapConfig))):
+                and (isinstance(default_conf_cls[0], tuple)
+                     or not issubclass(
+                     default_conf_cls[0], Int2ObjectMapConfig))):
             kwargs['allowed_types'] = default_conf_cls[0]
         else:
             kwargs['allowed_types'] = super().cls_make_container_conf(
@@ -158,25 +159,25 @@ class Object2ObjectMap(ConfigurableDict):
             container_conf=inv_conf, default_cls=default_inv_conf_cls,
             **kwargs)
 
-    @classmethod
-    def cls_make_default_conf_classes(
-        cls,
-        container_conf: Type[Int2ObjectMapConfig] | None = None,
-        inv_conf: Type[Int2ObjectMapConfig] = None,
-        default_conf_cls: Type[Int2ObjectMapConfig] = None,
-        default_inv_cls: Type[Int2ObjectMapConfig] = None,
-    ):
-        if container_conf is None:
-            container_conf = cls.cls_make_container_conf(
-                default_cls=default_conf_cls
-            )
-        elif inv_conf is None:
-            inv_conf = cls.cls_make_inv_conf(
-                default_inv_conf_cls=default_inv_cls,
-                default_conf_cls=default_conf_cls,
-                container_conf=container_conf,
-            )
-        return container_conf, inv_conf
+    # @classmethod
+    # def cls_make_default_conf_classes(
+    #     cls,
+    #     container_conf: Type[Int2ObjectMapConfig] | None = None,
+    #     inv_conf: Type[Int2ObjectMapConfig] = None,
+    #     default_conf_cls: Type[Int2ObjectMapConfig] = None,
+    #     default_inv_cls: Type[Int2ObjectMapConfig] = None,
+    # ):
+    #     if container_conf is None:
+    #         container_conf = cls.cls_make_container_conf(
+    #             default_cls=default_conf_cls
+    #         )
+    #     elif inv_conf is None:
+    #         inv_conf = cls.cls_make_inv_conf(
+    #             default_inv_conf_cls=default_inv_cls,
+    #             default_conf_cls=default_conf_cls,
+    #             container_conf=container_conf,
+    #         )
+    #     return container_conf, inv_conf
 
     @property
     def data_ids(self):
@@ -250,6 +251,8 @@ class Object2ObjectMap(ConfigurableDict):
 
         if not isinstance(key := item0, int):
             key = id(item0)
+        else:
+            raise RuntimeError
         if self.container_conf.b_list_mode is True:
             if key not in self:
                 list_type = self.container_conf.allowed_types
@@ -296,43 +299,34 @@ class Model2ObjectMap(Object2ObjectMap):
         allowed_types: Type[BaseModel] = BaseModel
 
 
-class SingletonMap(metaclass=Singleton):
+class SingletonMap(SingletonDict):
 
     ContainerConfigClass: ClassVar[Type[Int2ObjectMapConfig]] = (
         Int2ObjectMapConfig)
     InvertedConfigClass: ClassVar[Type[Int2ObjectMapConfig]] = (
         Int2ObjectMapConfig)
 
-    Object2ObjectMapClass: ClassVar[Type[Object2ObjectMap]] = Object2ObjectMap
-
-    def __init__(self, obj_map=None, map_options=None):
-        self.obj_map = obj_map or self.cls_make_map(**(map_options or {}))
+    ContainerClass: ClassVar[Type[Object2ObjectMap]] = Object2ObjectMap
 
     @classmethod
-    def cls_make_map(
-        cls, map_class: Type[Object2ObjectMap] = None,
-        container_conf: Type[Int2ObjectMapConfig] = None,
-        inv_conf: Type[Int2ObjectMapConfig] = None
+    def cls_make_container(
+        cls, container, container_class: Type[ConfigurableDict] = None,
+        container_conf: Type[ConfigurableDict] = None,
+        inv_conf: Type[Int2ObjectMapConfig] = None, **kwargs
     ):
-        if map_class is None:
-            map_class = cls.Object2ObjectMapClass
-        container_conf, inv_conf = (
-            cls.Object2ObjectMapClass
-            .cls_make_default_conf_classes(
+        if container_class is None:
+            container_class = cls.ContainerClass
+        container_conf = container_class.cls_make_container_conf(
+                container_conf=container_conf,
+                default_cls=cls.ContainerConfigClass, **kwargs)
+
+        inv_conf = container_class.cls_make_inv_conf(
                 container_conf=container_conf, inv_conf=inv_conf,
-                default_conf_cls=cls.ContainerConfigClass,
-                default_inv_cls=cls.InvertedConfigClass,
-            ))
-        return map_class(
-            container_conf=container_conf,
-            inv_conf=inv_conf
-        )
+                default_conf_cls=container_conf.__class__,
+                default_inv_conf_cls=cls.InvertedConfigClass)
+
+        return container_class(container_conf=container_conf,
+                               inv_conf=inv_conf)
 
     def __invert__(self):
-        return self.obj_map.__invert__()
-
-    def __getitem__(self, item):
-        return self.obj_map[item]
-
-    def __setitem__(self, item0, item1):
-        self.obj_map[item0] = item1
+        return self.container.__invert__()

@@ -9,6 +9,7 @@ from snngine_v4.utils.containers.configurable_container import (
     ConfigurableContainerBase, ContainerConfig, UndefinedDefaultError,
     ValidValueType, ValidKeyType,
 )
+from snngine_v4.utils.core_utils import Singleton
 from snngine_v4.utils.field_utils import Undefined, KeepUndefinedType
 
 
@@ -160,3 +161,43 @@ class CallableKeyDict(ConfigurableDict):
 
     class ContainerConfigClass(DictContainerConfig):
         allowed_key_types: Any = Callable
+
+
+class SingletonDict(metaclass=Singleton):
+
+    ContainerConfigClass: ClassVar[Type[DictContainerConfig]] = (
+        DictContainerConfig)
+    ContainerClass: ClassVar[Type[ConfigurableDict]] = ConfigurableDict
+
+    def __init__(self, container=None, container_options=None):
+        self.container: ConfigurableDict = self.cls_make_container(
+            container=container,
+            **(container_options or {}))
+
+    @classmethod
+    def cls_make_container(
+        cls, container, container_class: Type[ConfigurableDict] = None,
+        container_conf: Type[ConfigurableDict] = None,
+        **kwargs
+    ):
+        if container is not None:
+            return container
+        if container_class is None:
+            container_class = cls.ContainerClass
+        container_conf = container_class.cls_make_container_conf(
+                container_conf=container_conf,
+                default_cls=cls.ContainerConfigClass, **kwargs)
+        return container_class(container_conf=container_conf)
+
+    def __getitem__(self, item):
+        return self.container[item]
+
+    def pop(self, key, default=Undefined):
+        if default is Undefined:
+            res = self.container.pop(key)
+        else:
+            res = self.container.pop(key, default)
+        return res
+
+    def __setitem__(self, item0, item1):
+        self.container[item0] = item1

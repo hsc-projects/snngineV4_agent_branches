@@ -2,10 +2,12 @@ from snngine_v4.nn.config_models.nn_reservoir_config import NetworkReservoir
 from snngine_v4.nn.nn_builder import NetworkManager
 from snngine_v4.snngine_config import EngineConfig
 from snngine_v4.utils.settings.xml_settings_base import ModelDumpTypes
+from snngine_v4.visualization.cuda.gl_interop.gl_buffer import GLBufferMap
 
 from snngine_v4.visualization.scenes.main_network_scene import \
     EngineSceneCanvas
 from snngine_v4.visualization.scenes.scene_manager import SceneManager
+from snngine_v4.visualization.visual_builder import VispyVisualBuilder
 
 
 class SNNgine:
@@ -38,22 +40,20 @@ class SNNgine:
         self.network_manager.build(self.conf.construction)
         self.conf.current = self.network_manager.container_model
 
-        visuals = {'grid': self.conf.current.network.grid}
+        visual_models = {'grid': self.conf.current.network.grid}
 
         if self.conf.current.network.elements:
             for i, el in enumerate(self.conf.current.network.elements):
                 if isinstance(el, NetworkReservoir):
-                    visuals[f"el{i}"] = el
+                    visual_models[f"el{i}"] = el
 
-        self.scene_manager.build_visuals(
-            visuals=visuals,
+        new_visuals = self.scene_manager.build_visuals(
+            visuals=visual_models,
             scene=self.conf.scenes.main,
         )
-
-        # data = self.conf.current.model_dump(mode=ModelDumpTypes.only_arrays)
 
         return
 
     def close(self):
         from snngine_v4.visualization.cuda.gl_interop.gl_buffer import GLBuffer
-        GLBuffer.GLOBAL_MAP.unregister_all()
+        GLBufferMap().unregister_all()

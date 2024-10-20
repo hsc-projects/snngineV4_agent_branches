@@ -3,7 +3,8 @@ from __future__ import annotations
 import ctypes
 from copy import copy
 from dataclasses import dataclass
-from typing import ClassVar
+from functools import cached_property
+from typing import ClassVar, Type
 
 import numba.cuda
 import numpy as np
@@ -13,23 +14,11 @@ import pycuda.gpuarray
 import torch
 from pycuda.gl import RegisteredBuffer, RegisteredMapping
 
-from snngine_v4.utils.containers.typed_container import ContainerConfig
-from snngine_v4.utils.containers.configurable_dict import ConfigurableDict
 
-
-class GLBufferMap(ConfigurableDict):
-
-    def __init__(self, data=None):
-        self.data: dict[int, GLBuffer] | None = None
-        super().__init__(
-            data=data,
-            container_conf=ContainerConfig(
-                allowed_types=GLBuffer))
-
-    def unregister_all(self):
-        registered_buffers = copy(self.data)
-        for rb in registered_buffers.values():
-            rb.unregister()
+from snngine_v4.utils.containers.configurable_dict import (
+    ConfigurableDict,
+    DictContainerConfig, SingletonDict,
+)
 
 
 class ExternalMemory(object):
@@ -45,10 +34,8 @@ class ExternalMemory(object):
         self._cuda_memsize_ = size
 
 
-@dataclass(frozen=True, repr=False)
+@dataclass(frozen=True, repr=False, eq=False)
 class GLBuffer:
-
-    GLOBAL_MAP: ClassVar[GLBufferMap] = GLBufferMap()
 
     shape: tuple
     strides: tuple
@@ -61,8 +48,7 @@ class GLBuffer:
     stream: int = 0
 
     def __post_init__(self):
-        if self.GLOBAL_MAP is not None:
-            self.GLOBAL_MAP[self.opengl_id] = self
+        GLBufferMap()[self.opengl_id] = self
         self.unmap()
 
     def __repr__(self):
@@ -101,11 +87,12 @@ class GLBuffer:
 
     def unregister(self):
         self.registered_buffer.unregister()
-        self.GLOBAL_MAP.pop(self.opengl_id)
+        GLBufferMap().pop(self.opengl_id)
 
     def unmap(self):
         self.mapping.unmap()
 
+    @cached_property
     def numba_device_array(self):
         # noinspection PyUnresolvedReferences
         numba_device_array = numba.cuda.cudadrv.devicearray.DeviceNDArray(
@@ -115,3 +102,13 @@ class GLBuffer:
             stream=self.stream,
             gpu_data=self.gpu_data)
         return numba_device_array
+
+
+class GLBufferMap(SingletonDict):
+    ContainerClass: ClassVar = ConfigurableDict
+    ContainerConfigClass: ClassVar = (DictContainerConfig, GLBuffer, int)
+
+    def unregister_all(self):
+        registered_buffers = copy(self.container.data)
+        for rb in registered_buffers.values():
+            rb.unregister()

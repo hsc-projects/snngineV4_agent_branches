@@ -4,6 +4,7 @@ from typing import Any, Callable, ClassVar, Set, Type
 
 import numpy as np
 from pydantic import BaseModel
+from vispy.gloo import get_current_canvas
 from vispy.scene import Box, Markers, VisualNode, XYZAxis
 from vispy.util.event import EmitterGroup
 from vispy.visuals import CompoundVisual, MarkersVisual, MeshVisual, Visual
@@ -25,11 +26,10 @@ from snngine_v4.utils.settings.settings_keywords import (
     BaseModelSlots,
     InternalOpts,
 )
-from snngine_v4.utils.settings.xml_settings_base import XMLSettingsModelBase
+
 from snngine_v4.visualization.config_models.visuals.markers import \
     MarkersVisualConfig
-# from snngine_v4.visualization.config_models.visuals.neurons import \
-#     NeuronMarkersVisualConfig
+
 from snngine_v4.visualization.config_models.visuals.parameters import (
     OpenGLState, OpenGlStateType,
     RGBAColor, VispyKeyWords, WDHKw,

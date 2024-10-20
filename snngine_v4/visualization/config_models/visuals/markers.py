@@ -25,5 +25,3 @@ class MarkersVisualConfig(XMLSettingsModel):
     # edge_width_rel: NonNegativeFloat | None = Field(default=None, le=15)
     edge_color: RGBAColorType = 'green'
     face_color: ColorType = 'white'
-
-

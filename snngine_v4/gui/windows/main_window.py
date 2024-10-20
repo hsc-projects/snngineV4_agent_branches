@@ -8,6 +8,7 @@ from snngine_v4.gui.parameter_tree.vispy_connector import \
 from snngine_v4.gui.parameter_tree.parameters.widgets.array_editor import \
     ArrayEditorDockWidget
 from snngine_v4.gui.windows.settings_window import SettingsWindow
+from snngine_v4.nn.config_models.nn_reservoir_config import NetworkReservoir
 from snngine_v4.snngine import SNNgine
 from snngine_v4.gui.windows.main_window_base import (
     MainEngineWindowBase,
@@ -16,6 +17,7 @@ from snngine_v4.gui.windows.main_window_base import (
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import (
     EngineTreeDockWidget,
 )
+from snngine_v4.visualization.cuda.cuda_connector import CudaVispyConnector
 
 
 # noinspection PyPep8Naming
@@ -31,7 +33,7 @@ class MainEngineWindow(MainEngineWindowBase):
 
         super().__init__(windows, engine=engine)
 
-        self.build()
+        # self.build()
 
     def build(self):
         self.engine.build()
@@ -64,5 +66,24 @@ class MainEngineWindow(MainEngineWindowBase):
         network_connector.cls_connect_tree(
             tree=self.network_tree,
             scene_manager=self.engine.scene_manager)
+
+        buffers = CudaVispyConnector.get_buffers(
+            self.engine.scene_manager[self.engine.conf.scenes.main])
+
+        marker_model: NetworkReservoir = (
+            self.engine.conf.current.network.elements)[1]
+
+        marker_buffers = buffers[marker_model]
+
+        # from snngine_v4.visualization.cuda.gl_interop.gl_tensor import \
+        #     GLVBOTensor
+        # tensor = GLVBOTensor(
+        #     opengl_id=marker_buffers['vbo'],
+        #     shape=(len(marker_model.pos), 14
+        #            # self._config.technical.vispy_scatter_plot_stride
+        #            ),
+        #     device=0)
+        # a = tensor.tensor
+        # data = self.conf.current.model_dump(mode=ModelDumpTypes.only_arrays)
 
         return

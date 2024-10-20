@@ -24,16 +24,6 @@ qtpy~=2.4.1
 torch==2.4.1  # +cu124
 vispy==0.14.3
 
-
-# PYCUDA
-# git clone https://github.com/inducer/pycuda.git
-# git submodule update --init
-# cd ./pycuda
-# python ./configure.py --cuda-root=/usr/local/cuda/bin   --no-cuda-enable-gl
-# make
-# sudo make install
-# pip instal (-e) .
-# pycuda~=2021.1
 pycuda==2024.1.2
 
 
