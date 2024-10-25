@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import auto, IntEnum
+from enum import auto, IntEnum, unique
 from types import NoneType
 from typing import Annotated, ClassVar
 
@@ -22,7 +22,7 @@ from snngine_v4.utils.settings.xml_settings_base import (
 )
 
 
-type ColorVBO = ArrayInterfaces().vbo4.array_type
+type ColorVBO = ArrayInterfaces().vbo_array_type(4)
 
 
 type ColorTypeUnion = (
@@ -48,6 +48,7 @@ RGBAColorType = Annotated[RGBAColorTypeUnion, BeforeValidator(validate_color)]
 type VispyColorType = tuple
 
 
+@unique
 class RGBAEnum(IntEnum):
     R = 0
     G = auto()
@@ -120,7 +121,7 @@ class RGBAColor(XMLSettingsModel):
             return ArrayInterfaces().rgb_u8.array(self.as_type(tuple)[:3])
         elif type_ in [VispyColorType,
                        ArrayInterfaces().rgb_a_f32.array_type,
-                       ArrayInterfaces().vbo4.array_type]:
+                       ArrayInterfaces().vbo4]:
             return self.to_vispy(self)
         elif type_ == tuple:
             return self.R, self.G, self.B, self.A
@@ -163,6 +164,7 @@ class RGBAColor(XMLSettingsModel):
         return value
 
 
+@unique
 class OpenGlStateType(IntEnum):
 
     SET = 0

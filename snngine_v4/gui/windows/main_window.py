@@ -17,7 +17,7 @@ from snngine_v4.gui.windows.main_window_base import (
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import (
     EngineTreeDockWidget,
 )
-from snngine_v4.visualization.cuda.cuda_connector import CudaVispyConnector
+from snngine_v4.gui.parameter_tree.cuda_connector import CudaVispyConnector
 
 
 # noinspection PyPep8Naming
@@ -56,19 +56,23 @@ class MainEngineWindow(MainEngineWindowBase):
 
     def update_connections(self):
 
-        VispyConnector.cls_connect_tree(tree=self.scene_tree,
-                                        scene_manager=self.engine.scene_manager)
+        VispyConnector.cls_connect_tree(
+            tree=self.scene_tree,
+            scene_manager=self.engine.scene_manager)
+
         self.network_tree.clear()
         self.network_tree.add_parameters_from_model(
             self.engine.network_manager.container_model,
             showTop=False)
         network_connector = VispyConnector()
+        # network_connector.connect_tree(
         network_connector.cls_connect_tree(
             tree=self.network_tree,
             scene_manager=self.engine.scene_manager)
 
-        buffers = CudaVispyConnector.get_buffers(
-            self.engine.scene_manager[self.engine.conf.scenes.main])
+        buffers = CudaVispyConnector.cls_connect_tree(
+            tree=self.network_tree,
+            scene_manager=self.engine.scene_manager)
 
         marker_model: NetworkReservoir = (
             self.engine.conf.current.network.elements)[1]

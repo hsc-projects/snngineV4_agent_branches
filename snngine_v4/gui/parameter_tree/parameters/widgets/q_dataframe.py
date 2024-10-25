@@ -1,4 +1,5 @@
 from copy import deepcopy
+from enum import auto, IntEnum
 from typing import ClassVar
 
 import numpy as np
@@ -12,10 +13,20 @@ from qtpy import QtCore, QtSql, QtWidgets
 from snngine_v4.utils.data.validation.np_interface import TypedNumpyInterface
 
 
+class DataChangeType(IntEnum):
+
+    UNKOWN = 0
+    ROW_ADDED = auto()
+    COLUMN_ADDED = auto()
+    CELL_UPDATED = auto()
+    DATA_CHANGED = auto()
+
+
 # noinspection PyPep8Naming
 class QDataFrame(QtSql.QSqlTableModel):
 
-    sigChanged = QtCore.Signal(object)
+    sigChanged = QtCore.Signal(object, int, object)
+
     sigColumnNamesChanged = QtCore.Signal(object)
 
     BLOCK_SIGNAL_ROLE: ClassVar[int] = -1
@@ -35,13 +46,13 @@ class QDataFrame(QtSql.QSqlTableModel):
         self._column_names = column_names
 
         if default_value == PydanticUndefined:
-            default_value = self.validator.dtype(0)
+            default_value = value
         self.default_value = default_value
 
         self.dataChanged.connect(self.onDataChanged)
 
         self._df = None
-
+        # if value is not None:
         self.setValue(value)
 
     def addRow(self, vals=PydanticUndefined):
@@ -53,7 +64,7 @@ class QDataFrame(QtSql.QSqlTableModel):
             index=pd.RangeIndex(len(self.df) + 1))
         new_df.loc[: len(self.df.index)] = self.df
         new_df.loc[len(self.df.index), :] = vals
-        self.setData(value=new_df)
+        self.setData(value=new_df, role=DataChangeType.ROW_ADDED)
 
     def addColumn(self, vals=PydanticUndefined, dtype=None):
         if vals == PydanticUndefined:
@@ -70,7 +81,7 @@ class QDataFrame(QtSql.QSqlTableModel):
                 new_col = f"f{init_new_col} ({i})"
         new_df = deepcopy(self.df)
         new_df[new_col] = vals
-        self.setData(value=new_df)
+        self.setData(value=new_df, role=DataChangeType.COLUMN_ADDED)
 
     def appendData(self, data: pd.DataFrame, b_block_signal: bool = False):
         if len(data.shape) == 1:
@@ -82,7 +93,8 @@ class QDataFrame(QtSql.QSqlTableModel):
         new_df[:len(self.df)] = self.df[:]
         new_df[len(self.df):] = data
         if b_block_signal is False:
-            self.sigChanged.emit(self)
+            self.sigChanged.emit(self, DataChangeType.ROW_ADDED,
+                                 len(new_df) - len(self.df))
 
     def as_array(self, value=None):
         if value is None:
@@ -121,9 +133,6 @@ class QDataFrame(QtSql.QSqlTableModel):
         if self.column_names is not None:
             self._df.columns = self.column_names
 
-    def emitSigChanged(self, *args, **kwargs):
-        self.sigChanged.emit(self)
-
     def insertRecord(self, row, record):
         new_df = pd.DataFrame(index=pd.RangeIndex(len(self.df) + 1),
                               columns=self.df.columns)
@@ -132,12 +141,11 @@ class QDataFrame(QtSql.QSqlTableModel):
         if row != (len(self.df) + 1):
             new_df[row + 1:] = new_df[row:]
         self.df = new_df
-        self.sigChanged.emit(self)
+        self.sigChanged.emit(self, DataChangeType.ROW_ADDED, row)
 
     def onDataChanged(self, topLeft=None, bottomRight=None, roles=None):
-
-        self.emitSigChanged()
-        return
+        self.sigChanged.emit(self, DataChangeType.DATA_CHANGED,
+                             (topLeft, bottomRight, roles))
 
     def setData(self, index=None, value=None, role=None):
         if not isinstance(value, pd.DataFrame):
@@ -148,7 +156,7 @@ class QDataFrame(QtSql.QSqlTableModel):
             self.validate(value)
             self.df[:] = value
         if role != self.BLOCK_SIGNAL_ROLE:
-            self.sigChanged.emit(self)
+            self.sigChanged.emit(self, role, None)
 
     def setValue(self, value: np.ndarray, b_block_signal: bool = False):
         self.setData(value=value,
@@ -156,14 +164,16 @@ class QDataFrame(QtSql.QSqlTableModel):
                      if b_block_signal is True else None)
         return self.value()
 
-    def update(self, item: QtWidgets.QTableWidgetItem | TableWidgetItem):
+    def update_from_item(
+            self, item: QtWidgets.QTableWidgetItem | TableWidgetItem):
         if isinstance(item, QtWidgets.QTableWidgetItem):
             value = item.value
             rc = item.row(), item.column()
             old_value = self.df.iloc[*rc]
             if old_value != value:
                 self.df.iloc[*rc] = value
-                self.sigChanged.emit(self)
+                self.sigChanged.emit(self, DataChangeType.CELL_UPDATED,
+                                     (rc[0], rc[1], value))
 
         else:
             raise NotImplementedError(str(item))

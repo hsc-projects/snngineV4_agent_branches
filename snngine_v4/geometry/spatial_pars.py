@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import IntEnum
+from enum import IntEnum, unique
 from typing import ClassVar
 
 from pydantic import Field, NonNegativeInt, PositiveFloat
@@ -15,12 +15,14 @@ from snngine_v4.utils.settings.ui_parameter_options import (
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
+@unique
 class Ax3D(IntEnum):
     X = 0
     Y = 1
     Z = 2
 
 
+@unique
 class AxDir3D(IntEnum):
     XP = 0
     XM = 1
@@ -121,4 +123,4 @@ class Directions3DBoolPars(XMLSettingsModel):
     ZM: bool
 
 
-type PositionVBO = ArrayInterfaces().vbo3.array_type
+type PositionVBO = ArrayInterfaces().vbo_array_type(3)

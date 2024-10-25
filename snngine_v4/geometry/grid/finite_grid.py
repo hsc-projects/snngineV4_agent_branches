@@ -4,7 +4,7 @@ from typing import Iterable, Sized
 
 import numpy as np
 import pandas as pd
-# import torch
+import torch
 
 from snngine_v4.geometry.grid.finite_grid_elements import GridStep
 from snngine_v4.geometry.grid.grid_mask_maker import (

@@ -32,11 +32,11 @@ class VispyConnector(ParameterConnector):
     def cls_connect_map(cls, **kwargs):
 
         container: Model2ObjectMap = super().cls_connect_map(**kwargs)
-        pop_keys = []
+        replace_source_keys = []
         for k, v in container.items():
             if isinstance(v, VispyLinks) and (v.source != container.inv[v]):
-                pop_keys.append(k)
-        for k in pop_keys:
+                replace_source_keys.append(k)
+        for k in replace_source_keys:
             v = container.pop(k)
             container[v.source] = v
         return container
@@ -57,14 +57,17 @@ class VispyConnector(ParameterConnector):
         sr: ExtendedModelSignalsRegister = tree.signal_register
 
         extra_models = list(sr.model2model_map.values())
+        models = tree.signal_register.connected_models
+        mapping = scene_manager.get_built_objects(*models)
+        # mapping = scene_manager.get_visual_nodes()
         container = super().cls_connect_tree(
-            tree=tree, scene_manager=scene_manager,
-            container=container)
+            tree=tree, mapping=mapping, container=container)
+
         new_models = [x for x in sr.model2model_map.values() if x not in
                       extra_models]
         if len(new_models) > 0:
-            new_model_node_trees = sr.model2nodetree_map.get_unique_values(
-                *new_models)
+            new_model_node_trees = sr.model2nodetree_map.values(
+                *new_models, b_unique=True)
 
             for node_tree in new_model_node_trees:
                 # new_model = CompoundVisualNodeConfig(

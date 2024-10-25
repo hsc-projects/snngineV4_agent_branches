@@ -1,16 +1,13 @@
-from collections import UserDict
 from typing import ClassVar
 
 from pydantic import BaseModel
-from vispy.gloo import get_current_canvas
 from vispy.scene import BaseCamera, ViewBox
-from vispy.visuals import MarkersVisual, Visual
 
 from snngine_v4.config.scenes import SceneSettings
 from snngine_v4.utils.containers.mappings import (
     Model2ObjectMap,
 )
-from snngine_v4.utils.object_builder.object_builder import BuildResult
+
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 from snngine_v4.visualization.config_models.vispy_camera_configs import (
     CameraCenter, TurnTableCameraParameters,
@@ -25,17 +22,24 @@ from snngine_v4.visualization.scenes.main_network_scene import EngineSceneCanvas
 from snngine_v4.visualization.visual_builder import VispyVisualBuilder
 
 
+# class Object2SceneMap(SurjectiveMap):
+#     ContainerConfigClass: ClassVar = (Visual, EngineSceneCanvas)
+
+
 class SceneManager(BuilderDict):
 
+    # VISUAL_BUILDER_KW: ClassVar = 'visual_builder'
     BUILDER_DEFAULT_MODEL_CLASS: ClassVar = VispyCanvasConfig
     BUILDER_DEFAULT_OBJECT_CLASS: ClassVar = EngineSceneCanvas
     BUILDER_OBJECT_CLASS_MAP: ClassVar = {
         VispyCanvasConfig: EngineSceneCanvas
     }
 
-    def __init__(self, scenes):
+    def __init__(self, scenes, **kwargs):
         self.data: dict[BaseModel, EngineSceneCanvas] | None = None
-        super().__init__()
+        # self.visual_builder = VispyVisualBuilder()
+        # self.obj2scene_map: dict[BaseModel, Object2SceneMap] =
+        super().__init__(**kwargs)
         if isinstance(scenes, (list, SceneSettings)):
             self.update(scenes)
 
@@ -44,23 +48,44 @@ class SceneManager(BuilderDict):
             scene = self[scene]
         return self.cls_build_visuals(visuals, scene=scene)
 
-    def get_objects(self, model_list):
-        res = Model2ObjectMap()
-        for model in model_list:
-            if isinstance(model, VispyCanvasConfig):
-                res[model] = self[model]
-            elif isinstance(model, TurnTableCameraParameters):
-                for scene in self.values():
-                    if model in scene.camera_dict:
-                        res[model] = scene.camera_dict[model]
-            elif isinstance(model, VisualConfig.__value__):
-                # elif isinstance(model, (LineVisualConfig,
-                #                         FiniteGridConfig,
-                #                         )):
-                for scene in self.values():
-                    if model in scene.visual_node_dict:
-                        res[model] = scene.visual_node_dict[model]
-        return res
+    @classmethod
+    def cls_build_visuals(cls, visuals, scene):
+        parent = scene.new_visual_node_parent()
+        visual_dict = VispyVisualBuilder.cls_build_container(
+            visuals, parent=parent
+        )
+        scene.visual_node_dict.update(visual_dict.object_dict)
+        return visual_dict
+
+    def get_built_objects(self, *models, container=None,
+                          b_assert_key_exists=True):
+        if container is None:
+            container = Model2ObjectMap()
+        for k in models:
+            try:
+                if isinstance(k, VispyCanvasConfig):
+                    container[k] = self[k]
+                elif isinstance(k, TurnTableCameraParameters):
+                    for scene in self.values():
+                        if k in scene.camera_dict:
+                            container[k] = scene.camera_dict[k]
+                elif isinstance(k, VisualConfig.__value__):
+                    for scene in self.values():
+                        if k in scene.visual_node_dict:
+                            container[k] = scene.visual_node_dict[k]
+            except KeyError as error:
+                if b_assert_key_exists:
+                    raise error
+        return container
+
+    def get_visual_nodes(self, *models, container=None):
+        if container is None:
+            container = Model2ObjectMap()
+        for scene in self.values():
+            for model in scene.visual_node_dict.refs:
+                if (len(models) == 0) or (model in models):
+                    container[model] = scene.visual_node_dict[model]
+        return container
 
     @classmethod
     def _make_camera(cls, **kwargs) -> BaseCamera:
@@ -86,6 +111,8 @@ class SceneManager(BuilderDict):
             VispyCanvasConfig.Slots.VISUALS, None)
         views = object_kwargs.pop(
             VispyCanvasConfig.Slots.VIEWS, {})
+        # visual_builder = object_kwargs.pop(
+        #     cls.VISUAL_BUILDER_KW, None)
 
         scene: EngineSceneCanvas = super().make_object(
             object_class=object_class,
@@ -113,11 +140,7 @@ class SceneManager(BuilderDict):
                 getattr(model, VispyCanvasConfig.Slots.VISUALS), scene)
         return scene
 
-    @classmethod
-    def cls_build_visuals(cls, visuals, scene):
-        parent = scene.new_visual_node_parent()
-        visual_dict = VispyVisualBuilder.cls_build_container(
-            visuals, parent=parent
-        )
-        scene.visual_node_dict.update(visual_dict.object_dict)
-        return visual_dict
+    # def __setitem__(self, key, value):
+    #     super().__setitem__(key, value)
+    #     self.
+

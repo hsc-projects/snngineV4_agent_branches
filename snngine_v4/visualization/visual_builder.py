@@ -4,10 +4,9 @@ from typing import Any, Callable, ClassVar, Set, Type
 
 import numpy as np
 from pydantic import BaseModel
-from vispy.gloo import get_current_canvas
 from vispy.scene import Box, Markers, VisualNode, XYZAxis
 from vispy.util.event import EmitterGroup
-from vispy.visuals import CompoundVisual, MarkersVisual, MeshVisual, Visual
+from vispy.visuals import CompoundVisual, MeshVisual, Visual
 
 from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import (

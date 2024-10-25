@@ -4,8 +4,7 @@ from typing import Any, ClassVar, Type
 
 from pydantic import BaseModel, field_validator, model_validator
 
-from snngine_v4.utils.field_utils import \
-    (
+from snngine_v4.utils.field_utils import (
     b_annotation_includes_type, extract_basemodel_from_iterable_annotation,
 )
 from snngine_v4.utils.settings.settings_keywords import (

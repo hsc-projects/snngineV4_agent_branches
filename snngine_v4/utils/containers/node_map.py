@@ -36,8 +36,8 @@ class NodeTree(Object2ObjectMap):
     # __getitem__: Callable[[Any], TreeNode]
 
     def __init__(self, root=None, free_nodes_config=None,
-                 container_conf: NodeTreeConfig | None = None):
-        super().__init__(container_conf=container_conf)
+                 container_conf: NodeTreeConfig | None = None, **kwargs):
+        super().__init__(container_conf=container_conf, **kwargs)
 
         self.free_elements = ConfigurableList(
             container_conf=free_nodes_config or self.FreeElementListConfigClass(
@@ -221,19 +221,15 @@ class NodeTree(Object2ObjectMap):
         return self
 
 
-class NodeTreeMapConfig(NodeTreeConfig):
-    b_get_inv_allowed: bool = True
-    allowed_types: Type = NodeTree
-    b_duplicates_allowed: bool = True
+class Object2NodeTreeMap(Object2ObjectMap):
 
+    class ContainerConfigClass(Int2ObjectMapConfig):
+        b_get_inv_allowed: bool = True
+        allowed_types: Type = NodeTree
+        b_duplicates_allowed: bool = True
 
-class NodeTreeMap(Object2ObjectMap):
-
-    ContainerConfigClass: ClassVar = NodeTreeMapConfig
+    # ContainerConfigClass: ClassVar = NodeTreeMapConfig
     __getitem__: Callable[[Any], NodeTree]
-
-    def __init__(self):
-        super().__init__()
 
 
 class ModelTree(NodeTree):

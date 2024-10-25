@@ -45,6 +45,12 @@ class BuilderDict(Model2ObjectMap, ModelObjectBuilder):
         self.clear()
         self.update(m=m, **kwargs)
 
+    def get_built_objects(self, *models, container=None,
+                          b_assert_key_exists=True):
+        return self.make_subset(*models,
+                                subset_container=container,
+                                b_assert_key_exists=b_assert_key_exists)
+
     def update(self, m=None, **kwargs) -> None:
         if isinstance(m, BaseModel):
             build = self.cls_build_container(model_container=m)

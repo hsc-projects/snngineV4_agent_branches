@@ -8,7 +8,7 @@ from numpydantic import Shape
 from numpydantic.exceptions import DtypeError, ShapeError
 
 # noinspection PyUnresolvedReferences
-from numpydantic.ndarray import NDArrayMeta
+from numpydantic.ndarray import NDArray, NDArrayMeta
 from numpydantic.interface import NumpyInterface
 
 # noinspection PyProtectedMember
@@ -64,6 +64,7 @@ class ArrayInterfaces(metaclass=Singleton):
             dtype=np.float32, shape=Shape['* x, 3'])
         self.vbo4 = TypedNumpyInterface(
             dtype=np.float32, shape=Shape['* x, 4'])
+
         self.rgb_u8 = TypedNumpyInterface(
             dtype=np.uint8, shape=Shape['3'])
 
@@ -79,6 +80,23 @@ class ArrayInterfaces(metaclass=Singleton):
         if hasattr(self, name):
             raise AttributeError(f"{name} has already been set")
         super().__setattr__(name, value)
+
+    def vbo_array_interface(self, y):
+        return self[self.vbo_array_type(y)]
+
+    def vbo_array_type(self, y):
+        return self.array_2d_type(x='* x', y=y, dtype=np.float32)
+
+    def ibo_array_type(self, y):
+        return self.array_2d_type(x='* x', y=y, dtype=np.int32)
+
+    def array_2d_type(self, x, y, dtype):
+        shape = Shape[f'{x}, {y}']
+        dt = NDArray[shape, dtype]
+        if dt not in self.dtype_interface_map.values():
+            v = TypedNumpyInterface(dtype=dtype, shape=shape,)
+            self.dtype_interface_map[v] = v.array_type
+        return dt
 
 
 def b_includes_array_annotation(ann: AnnotationType):

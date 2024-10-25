@@ -145,8 +145,7 @@ class Object2ObjectMap(ConfigurableDict):
                 GeneratedTypeListClass = (
                     ConfigurableList.class_from_type(
                         kwargs['allowed_types'],
-                        b_remove_allowed=container_conf.b_pop_allowed
-                    ))
+                        b_remove_allowed=container_conf.b_pop_allowed))
                 kwargs['b_list_mode'] = True
                 kwargs['allowed_types'] = GeneratedTypeListClass
             kwargs['b_pop_allowed'] = container_conf.b_pop_allowed
@@ -158,26 +157,6 @@ class Object2ObjectMap(ConfigurableDict):
         return super().cls_make_container_conf(
             container_conf=inv_conf, default_cls=default_inv_conf_cls,
             **kwargs)
-
-    # @classmethod
-    # def cls_make_default_conf_classes(
-    #     cls,
-    #     container_conf: Type[Int2ObjectMapConfig] | None = None,
-    #     inv_conf: Type[Int2ObjectMapConfig] = None,
-    #     default_conf_cls: Type[Int2ObjectMapConfig] = None,
-    #     default_inv_cls: Type[Int2ObjectMapConfig] = None,
-    # ):
-    #     if container_conf is None:
-    #         container_conf = cls.cls_make_container_conf(
-    #             default_cls=default_conf_cls
-    #         )
-    #     elif inv_conf is None:
-    #         inv_conf = cls.cls_make_inv_conf(
-    #             default_inv_conf_cls=default_inv_cls,
-    #             default_conf_cls=default_conf_cls,
-    #             container_conf=container_conf,
-    #         )
-    #     return container_conf, inv_conf
 
     @property
     def data_ids(self):
@@ -224,6 +203,16 @@ class Object2ObjectMap(ConfigurableDict):
         return ConfigurableList(
             container_conf=UniqueObjectListConfig(
                 allowed_types=self._container_conf.allowed_types))
+
+    def make_subset(self, *keys, subset_container=None,
+                    b_assert_key_exists=True):
+        if subset_container is None:
+            subset_container = Object2ObjectMap(
+                container_conf=self._container_conf,
+                inv_conf=self.inv._container_conf)
+        subset_container.update(**self._make_sub_dict(
+            *keys, b_assert_key_exists=b_assert_key_exists))
+        return subset_container
 
     def pairs(self):
         for ref in self.refs:
@@ -330,3 +319,9 @@ class SingletonMap(SingletonDict):
 
     def __invert__(self):
         return self.container.__invert__()
+
+
+class SurjectiveMap(Object2ObjectMap):
+
+    class ContainerConfigClass(Int2ObjectMapConfig):
+        b_duplicates_allowed: bool = True

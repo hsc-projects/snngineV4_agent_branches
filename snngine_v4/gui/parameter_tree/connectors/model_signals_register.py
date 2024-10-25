@@ -14,7 +14,7 @@ from snngine_v4.utils.containers.mappings import (
 )
 from snngine_v4.utils.containers.node_map import (
     ModelTree, NodeTree,
-    NodeTreeConfig, NodeTreeMap,
+    NodeTreeConfig, Object2NodeTreeMap,
 )
 from snngine_v4.utils.field_utils import model_keys
 
@@ -83,8 +83,8 @@ class ExtendedModelSignalsRegister(ModelSignalsRegister):
     def __init__(self, node_tree_map=None, **kwargs):
         self.model2model_map = Model2ObjectMap.from_type(BaseModel)
         self.extensions_map = ModelSignalsRegister()
-        self.model2nodetree_map: NodeTreeMap | None = (
-                node_tree_map or NodeTreeMap())
+        self.model2nodetree_map: Object2NodeTreeMap | None = (
+                node_tree_map or Object2NodeTreeMap())
         super().__init__(**kwargs)
 
     def actualize_node_tree_map(

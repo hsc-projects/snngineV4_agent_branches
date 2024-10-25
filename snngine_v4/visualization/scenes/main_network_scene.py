@@ -11,11 +11,11 @@ class EngineSceneCanvas(SceneCanvas):
 
         self.unfreeze()
 
-        self.camera_dict: dict[BaseModel, BaseCamera] = (
+        self.camera_dict: dict[BaseModel, BaseCamera] | Model2ObjectMap = (
             Model2ObjectMap.from_type(BaseCamera))
-        self.view_dict: dict[BaseModel, ViewBox] = (
+        self.view_dict: dict[BaseModel, ViewBox] | Model2ObjectMap = (
             Model2ObjectMap.from_type(ViewBox))
-        self.visual_node_dict: dict[BaseModel, ViewBox] = (
+        self.visual_node_dict: dict[BaseModel, ViewBox] | Model2ObjectMap = (
             Model2ObjectMap.from_type(VisualNode))
 
         self.freeze()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import auto, IntEnum
+from enum import auto, IntEnum, unique
 from typing import Callable, ClassVar, TYPE_CHECKING
 
 from pyqtgraph import TableWidget
@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 # noinspection PyPep8Naming
 class QDataFrameUIWidgets(QWidgetDict):
 
+    @unique
     class WidgetID(IntEnum):
         ADD_ROW = 0
         ADD_COLUMN = auto()
@@ -150,7 +151,7 @@ class QDataFrameTableWidget(TableWidget):
         self.qdf.sigChanged.connect(self.onDataChange)
         self.qdf.sigColumnNamesChanged.connect(self.setColumnNames)
         self.qdf.sigColumnNamesChanged.emit(self.qdf.column_names)
-        self.itemChanged.connect(self.onWidgetChange)
+        self.itemChanged.connect(self.onItemChange)
 
         self.itemSelectionChanged.connect(self.onItemSelectionChanged)
         self.itemPressed.connect(self.onItemPressed)
@@ -172,9 +173,9 @@ class QDataFrameTableWidget(TableWidget):
         return widgets
 
     def onDataChange(self):
-        self.itemChanged.disconnect(self.onWidgetChange)
+        self.itemChanged.disconnect(self.onItemChange)
         self.setData(self.qdf.value())
-        self.itemChanged.connect(self.onWidgetChange)
+        self.itemChanged.connect(self.onItemChange)
 
     def onItemPressed(
             self, item: QtWidgets.QTableWidgetItem | None = None):
@@ -186,7 +187,7 @@ class QDataFrameTableWidget(TableWidget):
         self.selected_item = self.currentItem()
         return
 
-    def onWidgetChange(self, row_or_item=-1, col=-1):
+    def onItemChange(self, row_or_item=-1, col=-1):
         if isinstance(row_or_item, QtWidgets.QTableWidgetItem):
             if col != -1:
                 raise RuntimeError("col != -1")
@@ -195,7 +196,7 @@ class QDataFrameTableWidget(TableWidget):
             item = self.item(row_or_item, col)
 
         if item == self.selected_item:
-            self.qdf.update(item)
+            self.qdf.update_from_item(item)
 
     def setColumnNames(self, names):
         if names:

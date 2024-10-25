@@ -34,6 +34,36 @@
           <DictItem type="int" key="N">200</DictItem>
           <DictItem type="int" key="S">1</DictItem>
           <DictItem type="int" key="D">0</DictItem>
+          <DictItem type="int" key="pos_gen_mode">1</DictItem>
+          <DictItem type="dict" class="FloatShape3D" key="reservoir_shape">
+            <DictItem type="float" key="X">1.0</DictItem>
+            <DictItem type="float" key="Y">1.0</DictItem>
+            <DictItem type="float" key="Z">1.0</DictItem>
+          </DictItem>
+          <DictItem type="dict" class="FloatShape3D" key="reservoir_segmentation">
+            <DictItem type="float" key="X">1.0</DictItem>
+            <DictItem type="float" key="Y">1.0</DictItem>
+            <DictItem type="float" key="Z">1.0</DictItem>
+          </DictItem>
+          <DictItem type="dict" class="NeuronTypeGroupList" key="type_groups">
+            <DictItem type="int" key="gen_mode">1</DictItem>
+            <DictItem type="list" key="groups">
+              <ListElementElement type="dict" class="NeuronTypeGroup">
+                <DictItem type="int" key="ntype">1</DictItem>
+                <DictItem type="int" key="start_idx">0</DictItem>
+                <DictItem type="int" key="end_idx">39</DictItem>
+              </ListElementElement>
+              <ListElementElement type="dict" class="NeuronTypeGroup">
+                <DictItem type="int" key="ntype">2</DictItem>
+                <DictItem type="int" key="start_idx">40</DictItem>
+                <DictItem type="int" key="end_idx">199</DictItem>
+              </ListElementElement>
+            </DictItem>
+            <DictItem type="list" key="gen_factors">
+              <ListElementElement type="int">1</ListElementElement>
+              <ListElementElement type="int">4</ListElementElement>
+            </DictItem>
+          </DictItem>
         </ListElementElement>
         <ListElementElement type="dict" class="EngineElementConfig">
           <DictItem type="dict" class="EnginePos3D" key="center">

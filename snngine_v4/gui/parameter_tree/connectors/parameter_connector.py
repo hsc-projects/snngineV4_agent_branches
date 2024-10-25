@@ -17,12 +17,12 @@ class ParameterConnector(Model2ObjectMap):
         return self.cls_connect_map(container=self, **kwargs)
 
     @classmethod
-    def cls_connect_map(cls, object2object_map: Object2ObjectMap,
+    def cls_connect_map(cls, mapping: Object2ObjectMap,
                         signal_register: ExtendedModelSignalsRegister,
                         container=None):
         if container is None:
             container = cls.make_container()
-        for model, obj in object2object_map.pairs():
+        for model, obj in mapping.pairs():
             container[model] = (
                 cls.connect_object(model, obj, signal_register))
         return container
@@ -33,14 +33,14 @@ class ParameterConnector(Model2ObjectMap):
         raise NotImplementedError
 
     @classmethod
-    def cls_connect_tree(cls, tree: EngineParameterTree, scene_manager,
+    def cls_connect_tree(cls, tree: EngineParameterTree,
+                         mapping,
                          container=None):
         if container is None:
             container = cls.make_container()
-        models = tree.signal_register.connected_models
-        object2object_map = scene_manager.get_objects(models)
+
         return cls.cls_connect_map(
-            object2object_map=object2object_map,
+            mapping=mapping,
             signal_register=tree.signal_register,
             container=container
         )

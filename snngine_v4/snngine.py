@@ -1,13 +1,11 @@
 from snngine_v4.nn.config_models.nn_reservoir_config import NetworkReservoir
 from snngine_v4.nn.nn_builder import NetworkManager
 from snngine_v4.snngine_config import EngineConfig
-from snngine_v4.utils.settings.xml_settings_base import ModelDumpTypes
 from snngine_v4.visualization.cuda.gl_interop.gl_buffer import GLBufferMap
 
 from snngine_v4.visualization.scenes.main_network_scene import \
     EngineSceneCanvas
 from snngine_v4.visualization.scenes.scene_manager import SceneManager
-from snngine_v4.visualization.visual_builder import VispyVisualBuilder
 
 
 class SNNgine:

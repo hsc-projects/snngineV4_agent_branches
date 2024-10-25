@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from enum import IntEnum
+from enum import IntEnum, unique
 from functools import cached_property
 from typing import Any, Callable, Type
 
@@ -22,6 +22,7 @@ class SetAttributeEmitterBase(QtCore.QObject):
     sigAttributeValueChanged = QtCore.Signal(object, str, object)
 
 
+@unique
 class LinkStateType(IntEnum):
     SOURCE2SINK = 0
     SINK2SOURCE = 1

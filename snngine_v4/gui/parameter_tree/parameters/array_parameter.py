@@ -1,14 +1,15 @@
 import numpy as np
 from pyqtgraph.parametertree import Parameter
 from pyqtgraph.parametertree.parameterTypes import WidgetParameterItem
-from qtpy import QtCore
+# from qtpy import QtCore
 
 from snngine_v4.utils.data.validation.array_annotation import ArrayInterfaces
 
 from snngine_v4.gui.parameter_tree.parameters.widgets \
     .dataframe_table_widget import QDataFrameTableWidget
-from snngine_v4.gui.parameter_tree.parameters.widgets.q_dataframe import \
-    QDataFrame
+from snngine_v4.gui.parameter_tree.parameters.widgets.q_dataframe import (
+    DataChangeType, QDataFrame,
+)
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 
@@ -41,6 +42,9 @@ class ArrayParameterItem(WidgetParameterItem):
         self.updateDefaultBtn()
 
     def widgetValueChanged(self, ):
+        val = self.widget.value()
+        if val is None:
+            return
         raise RuntimeError
 
 
@@ -49,16 +53,16 @@ class ArrayParameter(Parameter):
 
     itemClass = ArrayParameterItem
 
-    sigDataChanged = QtCore.Signal(object)
+    # sigDataChanged = QtCore.Signal(object)
 
     def __init__(self, **opts):
         array_type = opts[ParamOpts.KW.C_DATA_TYPES]
         self.qdf = QDataFrame(
             name=opts[ParamOpts.KW.NAME],
             validator=ArrayInterfaces()[array_type],
-            column_names=opts[ParamOpts.KW.C_COLUMN_NAME_S],
+            column_names=opts.get(ParamOpts.KW.C_COLUMN_NAME_S, None),
             value=opts[ParamOpts.KW.VALUE],
-            readonly=opts[ParamOpts.KW.READONLY]
+            readonly=opts.get(ParamOpts.KW.READONLY, False)
         )
         opts[ParamOpts.KW.VALUE] = self.qdf.value()
         opts[ParamOpts.KW.EXPANDED] = False
@@ -77,7 +81,7 @@ class ArrayParameter(Parameter):
                     return False
             raise error
 
-    def onDataChanged(self):
+    def onDataChanged(self, qdf, change_type: DataChangeType, changes):
         data = self.qdf.value()
         if self.compare_value():
             self.sigValueChanged.emit(self, data)

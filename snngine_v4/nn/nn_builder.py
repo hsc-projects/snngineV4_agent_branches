@@ -24,12 +24,11 @@ class NetworkManager(BuilderDict):
     }
 
     def __init__(
-            self,
-            container_model: EngineConstructionConfig,
-            build_model: EngineConstructionConfig = None,
+        self, container_model: EngineConstructionConfig,
+        build_model: EngineConstructionConfig = None, **kwargs
     ):
 
-        super().__init__()
+        super().__init__(**kwargs)
         self.container_model_class: Type[EngineConstructionConfig] | None = None
         self.container_model = container_model
 

@@ -99,7 +99,7 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
                 return self.set_default(item, error=error)
             raise error
 
-    def get_unique_values(self, *keys):
+    def _get_unique_values(self, *keys):
         if len(keys) == 0:
             keys = list(self.keys())
         vals = []
@@ -110,6 +110,25 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
                 vals.append(v)
                 ids.append(id_v)
         return vals
+
+    def _make_sub_dict(self, *keys, b_assert_key_exists: bool = True):
+        res = dict()
+        for k in keys:
+            try:
+                res[k] = self[k]
+            except KeyError as error:
+                if b_assert_key_exists:
+                    raise error
+        return res
+
+    def make_subset(self, *keys,
+                    subset_container=None,
+                    b_assert_key_exists: bool = True):
+        if subset_container is None:
+            subset_container = {}
+        subset_container.update(**self._make_sub_dict(
+            *keys, b_assert_key_exists=b_assert_key_exists))
+        return subset_container
 
     def __setitem__(self, key, item):
         if ((self.b_valid_key_type(key) is False)
@@ -146,15 +165,26 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
             for k in keys:
                 self.validate_key(k, b_skip_typecheck=True)
 
+    @property
+    def value_ids(self):
+        return [id(v) for v in self.values()]
+
+    def values(self, *keys, b_unique: bool = False):
+        if not b_unique:
+            if len(keys) == 0:
+                return super().values()
+            vals = []
+            for k in keys:
+                vals.append(self[k])
+            return vals
+        else:
+            return self._get_unique_values(*keys)
+
     def values_contain(self, item):
         if (not isinstance(item, int) and
                 self._container_conf.b_duplicate_check_by_id):
             return id(item) in self.value_ids
         return item in self.values()
-
-    @property
-    def value_ids(self):
-        return [id(v) for v in self.values()]
 
 
 class CallableKeyDict(ConfigurableDict):

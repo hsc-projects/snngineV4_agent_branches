@@ -1,14 +1,16 @@
-from enum import IntEnum
+from enum import IntEnum, unique
 
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
+@unique
 class AppThemeType(IntEnum):
     dark = 0
     light = 1
     auto = 2
 
 
+@unique
 class AppCornerShapeType(IntEnum):
     rounded = 0
     sharp = 1
