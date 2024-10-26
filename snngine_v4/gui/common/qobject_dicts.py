@@ -36,8 +36,8 @@ class QObjectDictSignals(QtCore.QObject):
 
 class QObjectDict(ConfigurableDict):
 
-    def __init__(self, *arg, **kwargs):
-        self.emitter = QObjectDictSignals(parent=None)
+    def __init__(self, *arg, emitter=None, **kwargs):
+        self.emitter = emitter or QObjectDictSignals(parent=None)
         self.sigAdded = self.emitter.sigAdded
         self.sigChanged = self.emitter.sigRemoved
         self.sigRemoved = self.emitter.sigRemoved

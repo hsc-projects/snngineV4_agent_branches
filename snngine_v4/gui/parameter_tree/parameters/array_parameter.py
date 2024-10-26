@@ -6,7 +6,7 @@ from pyqtgraph.parametertree.parameterTypes import WidgetParameterItem
 from snngine_v4.utils.data.validation.array_annotation import ArrayInterfaces
 
 from snngine_v4.gui.parameter_tree.parameters.widgets \
-    .dataframe_table_widget import QDataFrameTableWidget
+    .df_table_widget import QDataFrameTableWidget
 from snngine_v4.gui.parameter_tree.parameters.widgets.q_dataframe import (
     DataChangeType, QDataFrame,
 )

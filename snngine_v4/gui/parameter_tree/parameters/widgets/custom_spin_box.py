@@ -34,9 +34,6 @@ class CustomSpinBox(SpinBox):
         return sp
 
     def selectNumber(self):
-        """
-        Select the numerical portion of the text to allow quick editing by the user.
-        """
         le = self.lineEdit()
         text = le.text()
         prefix = self.opts['prefix']

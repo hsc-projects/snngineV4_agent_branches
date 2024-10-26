@@ -271,7 +271,7 @@ class VispyVisualBuilder(BuilderDict):
         if isinstance(model, FiniteGridConfig):
             model = OuterGridVisualInitConfig(**dump)
         elif isinstance(model, NetworkReservoir):
-            model = MarkersVisualConfig()
+            model = MarkersVisualConfig(pos=dump['pos'])
         return super().get_model(model=model)
 
     @classmethod

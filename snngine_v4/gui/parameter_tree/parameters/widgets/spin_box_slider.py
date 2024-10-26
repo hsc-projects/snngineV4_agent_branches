@@ -3,8 +3,7 @@ import pandas as pd
 from pyqtgraph import SpinBox
 from qtpy import QtCore, QtWidgets
 
-from snngine_v4.gui.parameter_tree.parameters.widgets.clickable_label import \
-    (
+from snngine_v4.gui.parameter_tree.parameters.widgets.clickable_label import (
     ClickableLabel,
 )
 from snngine_v4.gui.parameter_tree.parameters.widgets.custom_spin_box import \

@@ -1,6 +1,9 @@
+from typing import ClassVar
+
 import numpy as np
 from pydantic import Field, NonNegativeFloat
 
+from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
@@ -10,6 +13,12 @@ from snngine_v4.visualization.config_models.visuals.parameters import \
 
 
 class MarkersVisualConfig(XMLSettingsModel):
+
+    parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
+        expanded=False,
+        c_auto_collapse=True,
+        c_collapsed_children=True,
+    )
 
     pos: PositionVBO = Field(
         default_factory=lambda: np.array([

@@ -1,5 +1,6 @@
 from enum import IntEnum, unique
 from functools import cached_property
+from typing import ClassVar
 
 import numpy as np
 from pydantic import Field, NonNegativeInt
@@ -9,6 +10,7 @@ from snngine_v4.nn.config_models.n_type_groups import NeuronTypeGroupList
 from snngine_v4.nn.config_models.nn_element_config import EngineElementConfig
 from snngine_v4.geometry.spatial_pars import FloatShape3D, PositionVBO
 from snngine_v4.utils.data.validation.array_annotation import ArrayInterfaces
+from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 
 
 @unique
@@ -18,6 +20,13 @@ class PosGenerationMode(IntEnum):
 
 
 class NetworkReservoir(EngineElementConfig):
+
+    parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
+        expanded=False,
+        c_auto_collapse=True,
+        c_collapsed_children=True,
+    )
+
     N: NonNegativeInt = 200
     S: NonNegativeInt = 1
     D: int = Field(default=0, ge=0, le=20)
