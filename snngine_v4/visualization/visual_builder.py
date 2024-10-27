@@ -267,6 +267,7 @@ class VispyVisualBuilder(BuilderDict):
     @classmethod
     def get_model(cls, model: BaseModel | None):
         dump = model.model_dump(mode='python',
+                                round_trip=True,
                                 exclude={BaseModelSlots.CLASS__NAME})
         if isinstance(model, FiniteGridConfig):
             model = OuterGridVisualInitConfig(**dump)

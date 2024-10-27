@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from pyqtgraph import SpinBox
 from qtpy import QtCore, QtWidgets
+from torchvision.transforms.v2.functional import invert
 
 from snngine_v4.gui.parameter_tree.parameters.widgets.clickable_label import (
     ClickableLabel,
@@ -9,14 +10,18 @@ from snngine_v4.gui.parameter_tree.parameters.widgets.clickable_label import (
 from snngine_v4.gui.parameter_tree.parameters.widgets.custom_spin_box import \
     CustomSpinBox
 from snngine_v4.utils.core_utils import IntervalClosedType
-from snngine_v4.utils.interval_utils import linspace_from_interval
+from snngine_v4.utils.interval_utils import (
+    linspace_from_interval,
+    restricted_linspace_interval,
+)
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 
 class CustomSlider(QtWidgets.QSlider):
 
     @classmethod
-    def make_span(cls, interval, step_size, value):
+    def make_span(cls, interval, step_size, value,
+                  n_offset_steps=1000):
 
         b_value_is_none = pd.isna(value)
         if b_value_is_none:
@@ -38,7 +43,7 @@ class CustomSlider(QtWidgets.QSlider):
         if interval.length == np.inf:
             if step_size is None:
                 step_size = 1
-            offset = 1000 * step_size
+            offset = n_offset_steps * step_size
 
             if abs(value) * 9 < offset:
                 ref_value = 0
@@ -68,16 +73,26 @@ class CustomSlider(QtWidgets.QSlider):
                 interval = pd.Interval(
                     interval.left, ref_value + offset,
                     closed=closed)
+
+        max_n_steps = 2 * n_offset_steps + 1
         if step_size is None:
-            n_steps_if_closed = 2001
+            n_steps_if_closed = max_n_steps
         else:
-            # noinspection PyTypeChecker
-            n_steps_if_closed = int(interval.length / step_size) + 1
+            # noinspection PyTypeChecker,PydanticTypeChecker
+            n_steps_if_closed = int(interval.length / step_size + .5) + 1
+
+        if n_steps_if_closed > 1e6:
+            interval, n_steps_if_closed = restricted_linspace_interval(
+                interval=interval,
+                step_size=step_size,
+                value=value, max_n_steps=max_n_steps
+            )
 
         span = linspace_from_interval(
             interval=interval,
             n_steps_if_closed=n_steps_if_closed,
             b_change_n_steps_if_open=True)
+
         return span
 
     def wheelEvent(self, e) -> None:
@@ -180,9 +195,10 @@ class SpinBoxSlider(CustomSlider):
     def _reset_span(self, value):
         lims = self.bounds
         step = float(self.opts.get(ParamOpts.KW.STEP, 1))
+
         span = np.arange(
-            max(lims[0], value - step * 500),
-            min(lims[1], value + step * 500), step)
+            max(lims[0], value - step * 100),
+            min(lims[1], value + step * 100), step)
         self.set_span(span)
         new_value = self.spanToSliderValue(value)
         return new_value

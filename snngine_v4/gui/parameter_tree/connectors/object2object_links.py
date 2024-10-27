@@ -213,7 +213,10 @@ class Object2ObjectLinks(TypeSortedMap):
                 if self_.__setattr__ != set_attr:
                     # self_.__setattr__ = set_attr
                     raise AssertionError
-                link_map[key][LinkStateType.SOURCE2SINK].emit(value)
+                try:
+                    link_map[key][LinkStateType.SOURCE2SINK].emit(value)
+                except KeyError:
+                    raise
             except debug_catch as error:
                 raise error
         # TODO:

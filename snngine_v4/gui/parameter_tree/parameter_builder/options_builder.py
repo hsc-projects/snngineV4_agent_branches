@@ -3,9 +3,7 @@ from __future__ import annotations
 from copy import copy
 from enum import Enum
 from types import NoneType, UnionType
-from typing import (
-    get_args, Optional, TypeAliasType
-)
+from typing import get_args, TypeAliasType
 
 import numpy as np
 import pandas as pd
@@ -13,12 +11,13 @@ from pydantic import BaseModel
 from pydantic_core import PydanticUndefined
 from pyqtgraph.parametertree.Parameter import PARAM_TYPES
 
-from snngine_v4.utils.data.validation.array_annotation import b_is_array_annotation
+from snngine_v4.utils.data.validation.array_annotation import (
+    b_is_array_annotation)
 
 from snngine_v4.utils.field_utils import (
     AnnotationType, b_field_has_default,
     b_is_annotated, b_is_int_annotation, b_is_literal_annotation, b_is_optional,
-    b_is_union, extract_field_interval,
+    b_is_union, interval_from_annotated, interval_from_field,
     extract_literal_values, extract_type_from_annotation,
     get_field_json_schema_extra,
     get_field_multiple_of,
@@ -52,7 +51,6 @@ class OptionsBuilder:
                     return ann.__value__
                 return ann
             ann = cls.convert_type_alias_type(ann)
-        Optional
         try:
             if isinstance(ann, UnionType) or b_is_optional(ann, b_strict=True):
                 args = get_args(ann)
@@ -74,13 +72,15 @@ class OptionsBuilder:
                 pass
             elif b_is_annotated(ann):
                 return ann.__origin__
+            elif ann.__name__ == 'List':
+                return list[*get_args(ann)]
             raise
         return ann
 
     @classmethod
     def get_parameter_type(cls, parent_model: BaseModel, key):
 
-        if key == 'color':
+        if key == 'size':
             pass
 
         if key in parent_model.model_fields:
@@ -131,7 +131,7 @@ class OptionsBuilder:
             options.title = fi.title
 
         if options.c_data_types in [float, int]:
-            options.c_value_interval = extract_field_interval(fi)
+            options.c_value_interval = interval_from_field(fi)
             options.step = get_field_multiple_of(fi)
 
         return cls.from_annotation(ann=fi.annotation, m=options)
@@ -159,6 +159,12 @@ class OptionsBuilder:
         if options.c_data_types is None:
             options.c_data_types = cls.get_parameter_type_from_annotation(
                 ann=ann)
+        else:
+            try:
+                if issubclass(options.c_data_types, Enum):
+                    options.c_data_types = Enum
+            except TypeError:
+                pass
 
         if options.type is None:
             if not isinstance(options.c_data_types, UnionType):
@@ -189,8 +195,11 @@ class OptionsBuilder:
 
             if options.c_value_interval is None:
                 if options.c_model_field_info is not None:
-                    options.c_value_interval = extract_field_interval(
+                    options.c_value_interval = interval_from_field(
                         options.c_model_field_info)
+                elif b_is_annotated(ann, b_strict=True):
+                    options.c_value_interval = interval_from_annotated(
+                        ann, b_strict=True)
                 else:
                     options.c_value_interval = pd.Interval(-np.inf, np.inf)
 

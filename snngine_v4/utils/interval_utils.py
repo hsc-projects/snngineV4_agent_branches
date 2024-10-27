@@ -44,7 +44,7 @@ def make_interval(ge=None, gt=None, lt=None, le=None):
         interval_type = IntervalClosingType.neither
     else:
         raise ValueError('Invalid interval type')
-    # noinspection PyTypeChecker
+    # noinspection PyTypeChecker,PydanticTypeChecker
     return pd.Interval(left=left, right=right, closed=interval_type.name)
 
 
@@ -59,6 +59,62 @@ def limits_from_interval(interval: pd.Interval, step_size):
     return start, stop
 
 
+def restricted_linspace_interval(
+        interval: pd.Interval,
+        step_size,
+        max_n_steps,
+        value=None):
+
+    if value is None:
+        if interval.closed in ['neither', 'right']:
+            value = interval.left + step_size
+        else:
+            value = interval.left
+
+    min_value = value - ((max_n_steps - 1) // 2 * step_size)
+    max_value = value + ((max_n_steps - 1) // 2 * step_size)
+
+    new_interval = pd.Interval(
+        max(interval.left, min_value),
+        min(interval.right, max_value),
+        closed=interval.closed)
+
+    bounds = list(limits_from_interval(new_interval, step_size=step_size))
+
+    n_steps = int(((bounds[1] - bounds[0]) / step_size) + .5)
+
+    span_diff = max_n_steps - n_steps
+
+    available_diff0 = 0
+    available_diff1 = 0
+
+    if span_diff > 0:
+
+        init_bounds = limits_from_interval(interval, step_size=step_size)
+
+        if bounds[0] > init_bounds[0]:
+            available_diff0 = (bounds[0] - init_bounds[0]) / step_size
+            if available_diff0 > span_diff:
+                bounds[0] -= span_diff * step_size
+            else:
+                bounds[0] -= available_diff0 * step_size
+                span_diff -= available_diff0
+                if (span_diff > 0) and bounds[1] < init_bounds[1]:
+                    available_diff1 = (init_bounds[1] - bounds[1]) / step_size
+                    if available_diff1 > span_diff:
+                        bounds[1] += span_diff * step_size
+                    else:
+                        bounds[1] += available_diff1
+    if (bounds[0] not in interval) or (bounds[1] not in interval):
+        raise ValueError()
+    new_n_steps = int((bounds[1] - bounds[0]) / step_size + .5)
+    if span_diff > 0:
+        if (((available_diff0 > span_diff) or (available_diff1 > span_diff))
+                and (new_n_steps != max_n_steps)):
+            raise ValueError()
+    return pd.Interval(bounds[0], bounds[1], closed='both'), new_n_steps
+
+
 def linspace_from_interval(interval: pd.Interval,
                            n_steps_if_closed=101,
                            b_change_n_steps_if_open=True,
@@ -66,6 +122,7 @@ def linspace_from_interval(interval: pd.Interval,
 
     endpoint = True
     n_steps = n_steps_if_closed
+
     step_size = interval.length / (n_steps - 1)
 
     start = interval.left

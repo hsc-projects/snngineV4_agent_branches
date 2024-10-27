@@ -12,12 +12,10 @@ from xml.etree.ElementTree import (
 )
 
 from deepdiff import DeepDiff
-from numpydantic.interface.numpy import NumpyJsonDict
 from pydantic import BaseModel
 
 from pydantic_settings.sources import PathType
 
-from snngine_v4.utils.data.validation.export_data import extract_arrays
 from snngine_v4.utils.data.validation.np_interface import ExtendedNumpyJsonDict
 from snngine_v4.utils.settings.xml_converter_options import (
     XMLConverterOptions,
@@ -88,8 +86,6 @@ class XMLConverter:
             dct = data.model_dump(mode='json', **kwargs)
         else:
             dct = data
-
-        # array_dct = extract_arrays(dct, b_recursive=True)
 
         for k, v in dct.items():
             self.value_to_xml(parent, k, v, ref=dct)

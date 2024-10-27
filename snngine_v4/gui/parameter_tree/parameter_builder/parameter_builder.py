@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from types import GenericAlias, UnionType
 from typing import (
     get_args, get_origin,
@@ -24,7 +25,10 @@ from snngine_v4.gui.parameter_tree.parameters.multi_type_parameter import \
     MultiTypeParameter
 from snngine_v4.gui.parameter_tree.parameters.reference_parameter import \
     ReferenceParameter
-from snngine_v4.utils.field_utils import b_is_optional, model_keys
+from snngine_v4.utils.field_utils import (
+    b_is_annotated, b_is_optional,
+    extract_annotations_from_annotated_annotation, model_keys,
+)
 from snngine_v4.utils.settings.settings_keywords import (
     BaseModelSlots, BaseSettingsSlots,
 )
@@ -158,7 +162,10 @@ class ParameterBuilder:
     def _make_pars_from_iterable(
             cls, parameter_type, model_value,
             signal_register, options):
+        # tmp_value = options.value
+        # options.value = None
         options = options.model_dump()
+        # options[ParamOpts.KW.VALUE] = tmp_value
         options[ParamOpts.KW.C_COLLAPSED_CHILDREN] = True
         options[ParamOpts.KW.EXPANDED] = True
         group = EngineGroupParameter(**options)
@@ -186,7 +193,8 @@ class ParameterBuilder:
                 else:
                     t_args_ = get_args(parameter_type)
                     if len(t_args_) != 1:
-                        raise NotImplementedError("len(t_args_) != 1")
+                        raise NotImplementedError(
+                            f"len(t_args_) = {len(t_args_)} != 1")
                     t_arg0 = t_args_[0]
                     if isinstance(t_arg0, UnionType):
                         t_args = get_args(t_arg0)
@@ -197,7 +205,9 @@ class ParameterBuilder:
                     g_par = None
                     for t in t_args:
 
-                        if issubclass(t, BaseModel) and isinstance(v, t):
+                        t_0 = get_args(t)[0] if b_is_annotated(t) else t
+
+                        if issubclass(t_0, BaseModel) and isinstance(v, t_0):
                             name = model_value[i].__class__.__name__ + str(i)
                             g_par = cls.make_pars_from_model(
                                 model=model_value[i],
@@ -205,9 +215,10 @@ class ParameterBuilder:
                                 signal_register=signal_register)
                             pass
                             break
-                        elif isinstance(v, t):
+                        elif isinstance(v, t_0):
                             g_opts = OptionsBuilder.from_annotation(
-                                name=str(i), c_data_types=t, type=None,
+                                name=str(i), c_data_types=t_0,
+                                type=None,
                                 value=model_value[
                                     i] if model_value is not None else None,
                                 ann=t, **heritable_options)
@@ -239,7 +250,8 @@ class ParameterBuilder:
         n_numeric_children = 0
         if model is None:
             pass
-        keys = model_keys(model, exclude=set(exclude_keys))
+        keys = model_keys(model, exclude=set(exclude_keys),
+                          b_include_computed=False)
         for k in keys:
             par = cls.make_par_from_field(
                 parent_model=model, key=k,

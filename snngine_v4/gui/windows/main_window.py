@@ -79,15 +79,4 @@ class MainEngineWindow(MainEngineWindowBase):
 
         marker_buffers = buffers[marker_model]
 
-        # from snngine_v4.visualization.cuda.gl_interop.gl_tensor import \
-        #     GLVBOTensor
-        # tensor = GLVBOTensor(
-        #     opengl_id=marker_buffers['vbo'],
-        #     shape=(len(marker_model.pos), 14
-        #            # self._config.technical.vispy_scatter_plot_stride
-        #            ),
-        #     device=0)
-        # a = tensor.tensor
-        # data = self.conf.current.model_dump(mode=ModelDumpTypes.only_arrays)
-
         return

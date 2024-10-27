@@ -266,7 +266,7 @@ class ModelTree(NodeTree):
                     self.add_element(item, parent=lst)
 
     def read_model(self, model, b_ignore_existing=False):
-        for k in model_keys(model):
+        for k in model_keys(model, b_include_computed=False):
             v = getattr(model, k)
             if isinstance(v, BaseModel):
                 if (b_exists := (v in self)) and self.b_is_free(v):

@@ -45,7 +45,7 @@
             <DictItem type="float" key="Y">1.0</DictItem>
             <DictItem type="float" key="Z">1.0</DictItem>
           </DictItem>
-          <DictItem type="dict" class="NeuronTypeGroupList" key="type_groups">
+          <DictItem type="dict" class="NTypeGroupList" key="type_groups">
             <DictItem type="int" key="gen_mode">1</DictItem>
             <DictItem type="list" key="groups">
               <ListElementElement type="dict" class="NeuronTypeGroup">
@@ -60,8 +60,61 @@
               </ListElementElement>
             </DictItem>
             <DictItem type="list" key="gen_factors">
-              <ListElementElement type="int">1</ListElementElement>
-              <ListElementElement type="int">4</ListElementElement>
+              <ListElementElement type="float">1.0</ListElementElement>
+              <ListElementElement type="float">4.0</ListElementElement>
+            </DictItem>
+          </DictItem>
+          <DictItem type="dict" class="NTypeGroupConnList" key="type_conns">
+            <DictItem type="int" key="gen_mode">1</DictItem>
+            <DictItem type="list" key="conns">
+              <ListElementElement type="dict" class="NTypeGroupConn">
+                <DictItem type="dict" class="NeuronTypeGroup" key="src">
+                  <DictItem type="int" key="ntype">1</DictItem>
+                  <DictItem type="int" key="start_idx">0</DictItem>
+                  <DictItem type="int" key="end_idx">39</DictItem>
+                </DictItem>
+                <DictItem type="dict" class="NeuronTypeGroup" key="snk">
+                  <DictItem type="int" key="ntype">2</DictItem>
+                  <DictItem type="int" key="start_idx">40</DictItem>
+                  <DictItem type="int" key="end_idx">199</DictItem>
+                </DictItem>
+                <DictItem type="float" key="w0">-0.4399999999999995</DictItem>
+                <DictItem type="int" key="n_synapses">1</DictItem>
+                <DictItem type="int" key="col">1</DictItem>
+                <DictItem type="int" key="nbytes">4</DictItem>
+              </ListElementElement>
+              <ListElementElement type="dict" class="NTypeGroupConn">
+                <DictItem type="dict" class="NeuronTypeGroup" key="src">
+                  <DictItem type="int" key="ntype">2</DictItem>
+                  <DictItem type="int" key="start_idx">40</DictItem>
+                  <DictItem type="int" key="end_idx">199</DictItem>
+                </DictItem>
+                <DictItem type="dict" class="NeuronTypeGroup" key="snk">
+                  <DictItem type="int" key="ntype">1</DictItem>
+                  <DictItem type="int" key="start_idx">0</DictItem>
+                  <DictItem type="int" key="end_idx">39</DictItem>
+                </DictItem>
+                <DictItem type="float" key="w0">0.4499999999999993</DictItem>
+                <DictItem type="int" key="n_synapses">0</DictItem>
+                <DictItem type="int" key="col">0</DictItem>
+                <DictItem type="int" key="nbytes">4</DictItem>
+              </ListElementElement>
+              <ListElementElement type="dict" class="NTypeGroupConn">
+                <DictItem type="dict" class="NeuronTypeGroup" key="src">
+                  <DictItem type="int" key="ntype">2</DictItem>
+                  <DictItem type="int" key="start_idx">40</DictItem>
+                  <DictItem type="int" key="end_idx">199</DictItem>
+                </DictItem>
+                <DictItem type="dict" class="NeuronTypeGroup" key="snk">
+                  <DictItem type="int" key="ntype">2</DictItem>
+                  <DictItem type="int" key="start_idx">40</DictItem>
+                  <DictItem type="int" key="end_idx">199</DictItem>
+                </DictItem>
+                <DictItem type="float" key="w0">0.47000000000000064</DictItem>
+                <DictItem type="int" key="n_synapses">1</DictItem>
+                <DictItem type="int" key="col">1</DictItem>
+                <DictItem type="int" key="nbytes">4</DictItem>
+              </ListElementElement>
             </DictItem>
           </DictItem>
         </ListElementElement>

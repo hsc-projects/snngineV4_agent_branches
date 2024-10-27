@@ -50,6 +50,8 @@ class ObjectParameterLink(Object2ObjectLink):
                 if args[0] != self.sink:
                     raise AssertionError
                 value = self.sink.value()
+                if value is None:
+                    pass
                 try:
                     # noinspection PyArgumentList
                     self.source.__setattr__(self.source, self.source_key, value)

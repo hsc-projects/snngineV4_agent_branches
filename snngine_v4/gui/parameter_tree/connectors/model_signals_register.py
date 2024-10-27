@@ -116,7 +116,7 @@ class ExtendedModelSignalsRegister(ModelSignalsRegister):
             raise AssertionError
         self.model2nodetree_map[model1] = node_tree
 
-        keys0 = model_keys(model0)
+        keys0 = model_keys(model0, b_include_computed=False)
         for k0 in keys0:
             v0 = getattr(model0, k0)
             if isinstance(v0, BaseModel):

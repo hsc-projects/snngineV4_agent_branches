@@ -13,7 +13,7 @@ from pydantic_settings.sources import (
 )
 
 from snngine_v4.utils.core_utils import get_intenum_member
-from snngine_v4.utils.data.validation.export_data import extract_arrays
+from snngine_v4.utils.data.validation.array_io import ArrayDictRW
 from snngine_v4.utils.data.deepdish_pack import deepdish
 from snngine_v4.utils.field_utils import (
     b_annotation_includes_type,
@@ -96,8 +96,7 @@ class XMLConfigSettingsSource(InitSettingsSource, ConfigFileSourceMixin):
                     BaseSettingsSlots.H5_FILE_ENDING)
                 array_file_path = Path(array_path).expanduser()
                 if array_file_path.is_file():
-                    arrays = deepdish.io.load(array_file_path)
-                    extract_arrays(arrays, dests=[new_vals])
+                    ArrayDictRW.extract_arrays(array_file_path, dests=[new_vals])
                     pass
                 vars_.update(new_vals)
 
@@ -136,14 +135,14 @@ class XMLSettingsModelBase(BaseSettings):
             conv.to_xml_file(data=data, fn=fn_)
 
             data = BaseModelSlots.pop_class__name_kw(data)
-            array_dct, array_list = extract_arrays(
+            array_dct, array_list = ArrayDictRW.extract_arrays(
                 data, b_recursive=True, dests=({}, []))
             array_path = fn_.replace(
                 BaseSettingsSlots.XML_FILE_ENDING,
                 BaseSettingsSlots.H5_FILE_ENDING)
             if len(array_list) > 0:
                 deepdish.io.save(array_path, array_dct)
-                a = deepdish.io.load(array_path)
+                # a = deepdish.io.load(array_path)
                 pass
 
     def export(self, fn: str = None, mode='xml', round_trip=True, **kwargs):
@@ -180,7 +179,7 @@ class XMLSettingsModelBase(BaseSettings):
         match mode:
             case ModelDumpTypes.only_arrays.name:
                 res = {}
-                extract_arrays(self, b_recursive=True, dests=[res])
+                ArrayDictRW.extract_arrays(self, b_recursive=True, dests=[res])
             case _:
                 # if round_trip is True:
                 #     if include is None:

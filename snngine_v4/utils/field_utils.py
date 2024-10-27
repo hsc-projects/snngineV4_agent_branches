@@ -26,6 +26,40 @@ type AnnotationType = (FieldInfo | GenericAlias | UnionType
                        | Type | TypeAliasType)
 
 
+type FieldInfoInputType = FieldInfo | tuple[Type[BaseModel] | BaseModel, str]
+type FieldInfoType = FieldInfo
+
+
+class FieldInfoSlots:
+    MULTIPLE_OF: ClassVar[str] = 'multiple_of'
+    DEFAULT: ClassVar[str] = 'default'
+    DEFAULT_FACTORY: ClassVar[str] = 'DEFAULT_FACTORY'
+    JSON_SCHEMA_EXTRA: ClassVar[str] = 'json_schema_extra'
+
+
+class Undefined:
+    pass
+
+
+type KeepUndefinedType = Type[Undefined] | None
+
+
+def as_annotation(ann: AnnotationType):
+    if isinstance(ann, FieldInfo):
+        ann = ann.annotation
+    if isinstance(ann, TypeAliasType):
+        ann = ann.__value__
+    return ann
+
+
+def as_field_info(field_info: FieldInfoInputType) -> FieldInfoType:
+    if isinstance(field_info, tuple):
+        field_info = field_info[0].model_fields[field_info[1]]
+    if not isinstance(field_info, FieldInfo):
+        raise NotImplementedError
+    return field_info
+
+
 def b_annotation_includes_basemodel(ann: AnnotationType,
                                     b_strict: bool) -> bool:
     return b_annotation_includes_type(
@@ -33,7 +67,7 @@ def b_annotation_includes_basemodel(ann: AnnotationType,
 
 
 def b_is_annotated(ann: AnnotationType, b_strict: bool = True):
-    ann = extract_annotation(ann=ann)
+    ann = as_annotation(ann=ann)
     res = get_origin(ann) == Annotated
     if res or b_strict:
         return res
@@ -55,7 +89,7 @@ def b_is_intenum_annotation(ann: AnnotationType, b_strict: bool) -> bool:
 
 
 def b_is_literal_annotation(ann: AnnotationType, b_strict: bool = True):
-    ann = extract_annotation(ann=ann)
+    ann = as_annotation(ann=ann)
     b_literal = get_origin(ann) == Literal
     if (b_strict is True) or (b_literal is True):
         return b_literal
@@ -71,7 +105,7 @@ def b_is_literal_annotation(ann: AnnotationType, b_strict: bool = True):
 def b_is_optional(ann: AnnotationType, b_strict: bool = True):
     if b_strict is False:
         return b_annotation_includes_type(ann, type_=NoneType, b_strict=False)
-    ann = extract_annotation(ann=ann)
+    ann = as_annotation(ann=ann)
     res = (get_origin(ann) is Union) and (type(None) in get_args(ann))
     if res and (ann.__name__ != 'Optional'):
         raise RuntimeError
@@ -79,14 +113,14 @@ def b_is_optional(ann: AnnotationType, b_strict: bool = True):
 
 
 def b_is_union(ann: AnnotationType):
-    ann = extract_annotation(ann=ann)
+    ann = as_annotation(ann=ann)
     return get_origin(ann) == Union
 
 
 def b_annotation_includes_instance(
         ann: AnnotationType, type_: Type, b_strict=False) -> bool:
 
-    ann = extract_annotation(ann=ann)
+    ann = as_annotation(ann=ann)
 
     if isinstance(ann, GenericAlias):
         ann = get_origin(ann)
@@ -115,7 +149,7 @@ def b_annotation_includes_type(ann: AnnotationType, type_: Type,
     :param b_strict: If True, ignore UnionType arguments
     :return:
     """
-    ann = extract_annotation(ann=ann)
+    ann = as_annotation(ann=ann)
 
     if isinstance(ann, GenericAlias):
         ann = get_origin(ann)
@@ -143,30 +177,37 @@ def b_is_str_annotation(ann: AnnotationType, b_strict: bool) -> bool:
 
 
 def b_field_has_default(field_info: FieldInfo) -> bool:
-    b_has_default = field_info.default is not PydanticUndefined
-    if not b_has_default:
-        return field_info.default_factory is not None
-    return True
+    if isinstance(field_info, FieldInfo):
+        b_has_explicit_default = field_info.default is not PydanticUndefined
+        if not b_has_explicit_default:
+            return field_info.default_factory is not None
+        return True
+    else:
+        raise NotImplementedError
 
 
-def extract_annotation(ann: AnnotationType):
-    if isinstance(ann, FieldInfo):
-        ann = ann.annotation
-    if isinstance(ann, TypeAliasType):
-        ann = ann.__value__
-    return ann
+def extract_field_default(field_info: FieldInfo) -> bool:
+    if isinstance(field_info, tuple):
+        field_info = field_info[0].model_fields[field_info[1]]
+    if isinstance(field_info, FieldInfo):
+        if b_field_has_default(field_info):
+            if field_info.default is not PydanticUndefined:
+                return field_info.default
+            else:
+                return field_info.default_factory()
+    else:
+        raise NotImplementedError
 
 
-def extract_annotations_from_annotation(
+def extract_annotations_from_annotated_annotation(
         ann: AnnotationType, b_strict: bool = True):
-    ann = extract_annotation(ann)
-    if b_strict:
-        assert b_is_annotated(ann, b_strict=True)
+    ann = as_annotation(ann)
+    if b_strict or b_is_annotated(ann, b_strict=True):
         return get_args(ann)
     if b_is_optional(ann, b_strict=True):
         for x in get_args(ann):
             if b_is_annotated(x, b_strict=True):
-                return extract_annotations_from_annotation(x, True)
+                return extract_annotations_from_annotated_annotation(x, True)
     raise TypeError(f"{ann}")
 
 
@@ -208,38 +249,6 @@ def extract_basemodel_from_iterable_annotation(
 #         raise ValueError('No BaseModel found')
 
 
-def extract_field_interval(field_: FieldInfo, default='inf'):
-    if len(field_.metadata) == 0:
-        return pd.Interval(-np.inf, np.inf) if (default == 'inf') else default
-    metadata_types = [type(x) for x in field_.metadata]
-
-    ge = None
-    gt = None
-    le = None
-    lt = None
-
-    metadata = copy(field_.metadata)
-
-    if b_is_annotated(field_, b_strict=False):
-        anns = extract_annotations_from_annotation(
-            field_.annotation, b_strict=False)
-        metadata += list(anns)
-        metadata_types += [type(x) for x in anns]
-
-    for i, metadata_type in enumerate(metadata_types):
-        if metadata_type == Gt:
-            gt = metadata[i].gt
-        elif metadata_type == Ge:
-            ge = metadata[i].ge
-        elif metadata_type == Lt:
-            lt = metadata[i].lt
-        elif metadata_type == Le:
-            le = metadata[i].le
-
-    interval = make_interval(ge=ge, gt=gt, lt=lt, le=le)
-    return interval
-
-
 def extract_field_values_by_type(model: BaseModel, type_: Type):
     res = {}
     keys = list(model.model_fields) + list(model.model_extra.keys())
@@ -250,22 +259,18 @@ def extract_field_values_by_type(model: BaseModel, type_: Type):
 
 
 def extract_literal_values(ann: AnnotationType):
-    ann = extract_annotation(ann=ann)
+    ann = as_annotation(ann=ann)
     if b_is_literal_annotation(ann, True):
         return get_args(ann)
     else:
         raise RuntimeError
-    # args = get_args(ann)
-    # for arg in args:
-    #     if b_is_literal_annotation(arg, False):
-    #         return extract_literal_values(arg)
 
 
 def extract_type_from_annotation(ann: AnnotationType, type_: Type,
                                  b_strict: bool = False,
                                  b_raise: bool = True, default=None):
 
-    ann = extract_annotation(ann=ann)
+    ann = as_annotation(ann=ann)
     if ann == type_:
         return ann
     elif isinstance(ann, UnionType) or (get_origin(ann) == Union):
@@ -288,7 +293,7 @@ def extract_type_from_annotation(ann: AnnotationType, type_: Type,
 
 
 def extract_type_from_type_annotation(ann: AnnotationType) -> Type | None:
-    ann = extract_annotation(ann)
+    ann = as_annotation(ann)
 
     if ann in [Any, NoneType, type, AnyType]:
         return ann
@@ -369,6 +374,10 @@ def extract_types_from_union(ann: UnionType, type_: Type,
     for x in get_args(ann):
         if isinstance(x, GenericAlias):
             x_ = get_origin(x)
+        elif isinstance(x, TypeAliasType):
+            x_ = x.__value__
+            if b_is_annotated(x_, True):
+                x_ = get_args(x_)[0]
         else:
             x_ = x
         try:
@@ -381,11 +390,22 @@ def extract_types_from_union(ann: UnionType, type_: Type,
     return tuple(res)
 
 
-class FieldInfoSlots:
-    MULTIPLE_OF: ClassVar[str] = 'multiple_of'
-    DEFAULT: ClassVar[str] = 'default'
-    DEFAULT_FACTORY: ClassVar[str] = 'DEFAULT_FACTORY'
-    JSON_SCHEMA_EXTRA: ClassVar[str] = 'json_schema_extra'
+def fill_field_default(
+        dct, model: Type[BaseModel] | BaseModel, key,
+        pre_field_default=Undefined, post_field_default=Undefined,
+        field_model=None):
+    field_info = as_field_info((model, key))
+    if key not in dct:
+        if pre_field_default is not Undefined:
+            dct[key] = pre_field_default
+        elif ((post_field_default is Undefined)
+              or b_field_has_default(field_info)):
+            dct[key] = extract_field_default(field_info)
+        else:
+            dct[key] = post_field_default
+    if field_model and isinstance(dct[key], dict):
+        dct[key] = field_model(**dct[key])
+    return dct[key]
 
 
 def get_field_info_value(field: FieldInfo, key: str, default=None):
@@ -417,6 +437,53 @@ def get_field_multiple_of(field: FieldInfo, default=None):
     return default
 
 
+def interval_from_annotated(ann: AnnotationType, default='inf', b_strict=True):
+    ann = as_annotation(ann)
+    anns = extract_annotations_from_annotated_annotation(
+        ann, b_strict=b_strict)
+    metadata = list(anns)
+    return interval_from_metadata(metadata, default=default)
+
+
+def interval_from_field(field_: FieldInfo, default='inf'):
+    field_ = as_field_info(field_)
+
+    if b_is_annotated(field_, b_strict=False):
+        anns = extract_annotations_from_annotated_annotation(
+            field_.annotation, b_strict=False)
+        metadata = list(anns)
+
+    else:
+        metadata = []
+    metadata += copy(field_.metadata)
+    return interval_from_metadata(metadata, default=default)
+
+
+def interval_from_metadata(metadata: list, default='inf'):
+    if len(metadata) == 0:
+        return pd.Interval(-np.inf, np.inf) if (default == 'inf') else default
+
+    metadata_types = [type(x) for x in metadata]
+
+    ge = None
+    gt = None
+    le = None
+    lt = None
+
+    for i, metadata_type in enumerate(metadata_types):
+        if metadata_type == Gt:
+            gt = metadata[i].gt
+        elif metadata_type == Ge:
+            ge = metadata[i].ge
+        elif metadata_type == Lt:
+            lt = metadata[i].lt
+        elif metadata_type == Le:
+            le = metadata[i].le
+
+    interval = make_interval(ge=ge, gt=gt, lt=lt, le=le)
+    return interval
+
+
 def model_keys(model: BaseModel | Type[BaseModel],
                b_include_extra=True, b_include_computed=True,
                exclude=None):
@@ -437,10 +504,3 @@ def model_keys(model: BaseModel | Type[BaseModel],
         for item in exclude:
             keys.remove(item)
     return keys
-
-
-class Undefined:
-    pass
-
-
-type KeepUndefinedType = Type[Undefined] | None

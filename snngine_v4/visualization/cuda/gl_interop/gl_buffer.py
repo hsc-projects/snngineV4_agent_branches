@@ -4,7 +4,7 @@ import ctypes
 from copy import copy
 from dataclasses import dataclass
 from functools import cached_property
-from typing import ClassVar, Type
+from typing import ClassVar
 
 import numba.cuda
 import numpy as np

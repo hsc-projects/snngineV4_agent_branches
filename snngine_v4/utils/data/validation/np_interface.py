@@ -97,3 +97,4 @@ class TypedNumpyInterface(NumpyInterface):
 
 TypedNumpyInterface.__name__ = NumpyInterface.__name__
 
+

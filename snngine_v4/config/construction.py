@@ -1,4 +1,4 @@
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from snngine_v4.nn.config_models.nn_builder_config import \
     NetworkConstructionConfig
@@ -17,3 +17,13 @@ class EngineConstructionConfig(XMLSettingsContainerModel):
     )
 
     network: NetworkConstructionConfig | None = None
+
+    @classmethod
+    def _validate_model_before(cls, data: Any) -> Any:
+        data = super()._validate_model_before(data)
+        return data
+
+    @classmethod
+    def _validate_model_after(cls, data: Any) -> Any:
+        data = super()._validate_model_after(data)
+        return data

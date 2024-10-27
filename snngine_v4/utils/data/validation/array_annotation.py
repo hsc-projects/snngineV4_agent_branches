@@ -10,6 +10,7 @@ from numpydantic.exceptions import DtypeError, ShapeError
 # noinspection PyUnresolvedReferences
 from numpydantic.ndarray import NDArray, NDArrayMeta
 from numpydantic.interface import NumpyInterface
+from pydantic import BaseModel
 
 # noinspection PyProtectedMember
 from pydantic.fields import FieldInfo
@@ -20,8 +21,14 @@ from snngine_v4.utils.containers.mappings import (
     Object2ObjectMap,
 )
 from snngine_v4.utils.core_utils import Singleton
-from snngine_v4.utils.data.validation.np_interface import TypedNumpyInterface
-from snngine_v4.utils.field_utils import AnnotationType, extract_annotation
+from snngine_v4.utils.data.validation.np_interface import (
+    ExtendedNumpyJsonDict,
+    TypedNumpyInterface,
+)
+from snngine_v4.utils.field_utils import (
+    AnnotationType, as_annotation,
+    fill_field_default,
+)
 
 
 class ArrayDtype2ObjectMap(Object2ObjectMap):
@@ -60,6 +67,8 @@ class ArrayInterfaces(metaclass=Singleton):
 
         self.rgb_a_f32 = TypedNumpyInterface(
             dtype=np.float32, shape=Shape['3-4'])
+        self.ibo3 = TypedNumpyInterface(
+            dtype=np.int32, shape=Shape['* x, 3'])
         self.vbo3 = TypedNumpyInterface(
             dtype=np.float32, shape=Shape['* x, 3'])
         self.vbo4 = TypedNumpyInterface(
@@ -101,7 +110,7 @@ class ArrayInterfaces(metaclass=Singleton):
 
 def b_includes_array_annotation(ann: AnnotationType):
     try:
-        ann = extract_annotation(ann)
+        ann = as_annotation(ann)
     except (AttributeError, TypeError):
         pass
     if isinstance(ann, UnionType) or get_origin(ann) == Union:
@@ -129,3 +138,11 @@ def b_is_array_annotation(ann: AnnotationType):
     if isinstance(res, np.ndarray):
         return True
     raise TypeError(f"{res} is not a numpy array")
+
+
+def fill_array_field_default(
+        dct, model: Type[BaseModel] | BaseModel, key, **kwargs):
+    fill_field_default(dct, model, key, **kwargs)
+    if isinstance(dct[key], dict):
+        dct[key] = ExtendedNumpyJsonDict.handle_input(dct[key])
+    return dct[key]

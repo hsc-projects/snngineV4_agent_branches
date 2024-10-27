@@ -104,3 +104,4 @@ def int_annotation(dtype):
 Int8 = int_annotation(np.int8)
 Int32 = int_annotation(np.int32)
 UInt8 = int_annotation(np.uint8)
+UInt64 = int_annotation(np.uint64)

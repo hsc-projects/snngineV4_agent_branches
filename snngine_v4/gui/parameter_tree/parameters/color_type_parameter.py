@@ -31,28 +31,33 @@ class ColorTypeParameter(MultiTypeParameter):
 
     @classmethod
     def make_value(cls, value, type_):
+        b_is_og = False
         if type_ == NoneType:
-            return None
+            return None, value is None
         elif (value is None) or (isinstance(value, str) and (type_ != str)):
             value = ArrayInterfaces()[ColorVBO].array([[0, 0, 0, 0]])
+
         if type_ == RGBAColor:
             if ArrayInterfaces()[ColorVBO].b_is_valid(value):
                 value_ = RGBAColor()
             else:
                 value_ = value
+                b_is_og = True
             if value_ is None:
                 value_ = RGBAColor()
                 # raise ValueError
         elif isinstance(value, str) and (type_ == str):
             value_ = value
+            b_is_og = True
         else:
             if ArrayInterfaces()[ColorVBO].b_is_valid(value):
                 if type_ == ColorVBO:
                     value_ = value
+                    b_is_og = True
                 else:
                     value_ = RGBAColor().as_type(type_)
             elif isinstance(value, RGBAColor):
                 value_ = value.as_type(type_)
             else:
                 raise TypeError(type(value))
-        return value_
+        return value_, b_is_og

@@ -91,7 +91,7 @@ class VispyCanvasConfigOptions(XMLSettingsModel, frozen=True):
     decorate: bool = True
     fullscreen: bool = False
     config: VispyOpenGLConfig
-    keys: str | dict = 'interactive'
+    keys: str = 'interactive'
     dpi: float | None
     always_on_top: bool = False
     px_scale: int = 1

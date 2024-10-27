@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import copy
+
 from types import GenericAlias, NoneType
 from typing import get_args, get_origin
 
@@ -63,32 +64,47 @@ class MultiTypeParameter(EngineGroupParameter):
     @classmethod
     def make_value(cls, value, type_):
         value_ = None
+
+        b_is_og = False
+
         if type_ == NoneType:
             pass
         elif b_is_literal_annotation(type_):
-            return extract_literal_values(type_)[0]
+            values = extract_literal_values(type_)
+            b_is_og = value in values
+            if b_is_og:
+                value_ = value
+            else:
+                value_ = values[0]
         elif b_is_annotated(type_):
             if isinstance(value, type_.__origin__):
                 value_ = value
+                b_is_og = True
+
         elif (not isinstance(type_, GenericAlias)) and isinstance(
                 value, type_):
             value_ = value
+            b_is_og = True
         elif (isinstance(type_, GenericAlias)) and isinstance(
                 value, get_origin(type_)):
             value_ = value
+            b_is_og = True
         elif (not isinstance(type_, GenericAlias)) and issubclass(
                 type_, BaseModel):
             value_ = type_()
+            b_is_og = True
 
         if isinstance(value, BaseModel):
             pass
-        return value_
+
+        return value_, b_is_og
 
     def build(self, signal_register):
         opts = copy(self.opts)
+
         opts.pop(ParamOpts.KW.C_DATA_TYPES)
         opts.pop(ParamOpts.KW.TYPE)
-        opts.pop(ParamOpts.KW.NAME)
+        name = opts.pop(ParamOpts.KW.NAME)
         opts.pop(ParamOpts.KW.TITLE)
         value = opts.pop(ParamOpts.KW.VALUE)
 
@@ -98,7 +114,7 @@ class MultiTypeParameter(EngineGroupParameter):
             from snngine_v4.gui.parameter_tree.parameter_builder \
                 .parameter_builder import ParameterBuilder
 
-            value_ = self.make_value(value, t)
+            value_, b_is_default = self.make_value(value, t)
 
             if b_is_annotated(t):
                 og_t = get_args(t)[0]
@@ -116,6 +132,8 @@ class MultiTypeParameter(EngineGroupParameter):
                     # type=name,
                     **opts)
             except KeyError as e:
+                if name != 'Color':
+                    raise
                 # raise
                 p = None
             if p is not None:
@@ -124,6 +142,13 @@ class MultiTypeParameter(EngineGroupParameter):
                 self.children_map[t] = p
 
                 self.type_parameter.opts[ParamOpts.KW.LIMITS] += [p.name()]
+                # b_is_default = (((value_ is None) and (value is None))
+                #                 or (value_ is value)
+                #                 or ((not isinstance(value, np.ndarray))
+                #                     and (value_ == value)))
+                if b_is_default:
+                    self.type_parameter.setDefault(p.name())
+
                 p.hide()
         if len(self.data_types) > 0:
             for c in self.children_map.key_map[str].values():
@@ -131,6 +156,9 @@ class MultiTypeParameter(EngineGroupParameter):
                     c.connect_sigValueChanged()
                 c.sigValueChanged.connect(self.valueChanged)
             # self.type_parameter.sigValueChanged.connect(self.valueChanged)
+
+        self.type_parameter.setToDefault()
+        self.onTypeChange(self.type_parameter, self.type_parameter.value())
         return built_pars
 
     @property
@@ -163,5 +191,7 @@ class MultiTypeParameter(EngineGroupParameter):
 
     def value(self):
         key = self.type_parameter.value()
+        if key is None:
+            key = NoneType
         if key != '':
             return self.children_map[key].value()
