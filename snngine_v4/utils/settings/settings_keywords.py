@@ -5,6 +5,8 @@ from typing import ClassVar
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
+from snngine_v4.utils.field_utils import model_keys
+
 
 class InternalOpts(BaseSettings, frozen=True):
     class Slots:
@@ -26,6 +28,16 @@ class BaseModelSlots:
                 dct[k] = cls.pop_class__name_kw(
                     dct[k], b_recursive=True)
         return dct
+
+    @classmethod
+    def model_keys(cls, model, b_exclude_class_name, **kwargs):
+        keys = model_keys(model=model, **kwargs)
+        if b_exclude_class_name is True:
+            try:
+                keys.remove(BaseModelSlots.CLASS__NAME)
+            except ValueError:
+                pass
+        return keys
 
 
 class BaseSettingsSlots:

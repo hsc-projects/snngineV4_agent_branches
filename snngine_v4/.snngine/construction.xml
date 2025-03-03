@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf8"?>
+<dict>
+  <construction type="dict" class="EngineConstructionConfig">
+    <DictItem type="dict" class="NetworkConstructionConfig" key="network">
+      <DictItem type="int" key="device">1</DictItem>
+      <DictItem type="dict" class="FiniteGridConfig" key="grid">
+        <DictItem type="dict" class="EnginePos3D" key="pos_origin">
+          <DictItem type="float" key="X">0.0</DictItem>
+          <DictItem type="float" key="Y">0.0</DictItem>
+          <DictItem type="float" key="Z">0.0</DictItem>
+        </DictItem>
+        <DictItem type="dict" class="TechnicalValues" key="technical">
+          <DictItem type="int" key="max_z">100</DictItem>
+        </DictItem>
+        <DictItem type="dict" class="FloatShape3D" key="shape">
+          <DictItem type="float" key="X">1.0</DictItem>
+          <DictItem type="float" key="Y">1.0</DictItem>
+          <DictItem type="float" key="Z">1.0</DictItem>
+        </DictItem>
+        <DictItem type="dict" class="Segmentation3D" key="seg">
+          <DictItem type="int" key="X">10</DictItem>
+          <DictItem type="int" key="Y">10</DictItem>
+          <DictItem type="int" key="Z">10</DictItem>
+        </DictItem>
+      </DictItem>
+      <DictItem type="list" key="elements">
+        <ListElementElement type="dict" class="EngineElementConfig">
+          <DictItem type="dict" class="EnginePos3D" key="pos_origin">
+            <DictItem type="float" key="X">0.0</DictItem>
+            <DictItem type="float" key="Y">0.0</DictItem>
+            <DictItem type="float" key="Z">0.0</DictItem>
+          </DictItem>
+        </ListElementElement>
+        <ListElementElement type="dict" class="NetworkReservoirConfig">
+          <DictItem type="dict" class="EnginePos3D" key="pos_origin">
+            <DictItem type="float" key="X">0.0</DictItem>
+            <DictItem type="float" key="Y">0.0</DictItem>
+            <DictItem type="float" key="Z">0.0</DictItem>
+          </DictItem>
+          <DictItem type="int" key="N">200</DictItem>
+          <DictItem type="int" key="S">1</DictItem>
+          <DictItem type="int" key="D">5</DictItem>
+          <DictItem type="int" key="G">8</DictItem>
+          <DictItem type="int" key="pos_gen_mode">1</DictItem>
+          <DictItem type="dict" class="FiniteGridConfig" key="grid">
+            <DictItem type="dict" class="EnginePos3D" key="pos_origin">
+              <DictItem type="float" key="X">0.0</DictItem>
+              <DictItem type="float" key="Y">0.0</DictItem>
+              <DictItem type="float" key="Z">0.0</DictItem>
+            </DictItem>
+            <DictItem type="dict" class="TechnicalValues" key="technical">
+              <DictItem type="int" key="max_z">100</DictItem>
+            </DictItem>
+            <DictItem type="dict" class="FloatShape3D" key="shape">
+              <DictItem type="float" key="X">1.0</DictItem>
+              <DictItem type="float" key="Y">1.0</DictItem>
+              <DictItem type="float" key="Z">1.0</DictItem>
+            </DictItem>
+            <DictItem type="dict" class="Segmentation3D" key="seg">
+              <DictItem type="int" key="X">2</DictItem>
+              <DictItem type="int" key="Y">2</DictItem>
+              <DictItem type="int" key="Z">2</DictItem>
+            </DictItem>
+          </DictItem>
+          <DictItem type="dict" class="NTypeGroupList" key="type_groups">
+            <DictItem type="int" key="gen_mode">1</DictItem>
+            <DictItem type="list" key="groups">
+              <ListElementElement type="dict" class="NeuronTypeGroup">
+                <DictItem type="int" key="ntype">1</DictItem>
+                <DictItem type="int" key="start_idx">0</DictItem>
+                <DictItem type="int" key="end_idx">39</DictItem>
+              </ListElementElement>
+              <ListElementElement type="dict" class="NeuronTypeGroup">
+                <DictItem type="int" key="ntype">2</DictItem>
+                <DictItem type="int" key="start_idx">40</DictItem>
+                <DictItem type="int" key="end_idx">199</DictItem>
+              </ListElementElement>
+            </DictItem>
+            <DictItem type="list" key="gen_factors">
+              <ListElementElement type="float">1.0</ListElementElement>
+              <ListElementElement type="float">4.0</ListElementElement>
+            </DictItem>
+          </DictItem>
+          <DictItem type="dict" class="NTypeGroupConnList" key="type_conns">
+            <DictItem type="int" key="gen_mode">1</DictItem>
+            <DictItem type="list" key="conns">
+              <ListElementElement type="dict" class="NTypeGroupConn">
+                <DictItem type="dict" class="NeuronTypeGroup" key="src">
+                  <DictItem type="int" key="ntype">1</DictItem>
+                  <DictItem type="int" key="start_idx">0</DictItem>
+                  <DictItem type="int" key="end_idx">39</DictItem>
+                </DictItem>
+                <DictItem type="dict" class="NeuronTypeGroup" key="snk">
+                  <DictItem type="int" key="ntype">2</DictItem>
+                  <DictItem type="int" key="start_idx">40</DictItem>
+                  <DictItem type="int" key="end_idx">199</DictItem>
+                </DictItem>
+                <DictItem type="float" key="w0">-0.4399999999999995</DictItem>
+                <DictItem type="int" key="n_synapses">1</DictItem>
+                <DictItem type="int" key="col">1</DictItem>
+                <DictItem type="int" key="nbytes">4</DictItem>
+              </ListElementElement>
+              <ListElementElement type="dict" class="NTypeGroupConn">
+                <DictItem type="dict" class="NeuronTypeGroup" key="src">
+                  <DictItem type="int" key="ntype">2</DictItem>
+                  <DictItem type="int" key="start_idx">40</DictItem>
+                  <DictItem type="int" key="end_idx">199</DictItem>
+                </DictItem>
+                <DictItem type="dict" class="NeuronTypeGroup" key="snk">
+                  <DictItem type="int" key="ntype">1</DictItem>
+                  <DictItem type="int" key="start_idx">0</DictItem>
+                  <DictItem type="int" key="end_idx">39</DictItem>
+                </DictItem>
+                <DictItem type="float" key="w0">0.4499999999999993</DictItem>
+                <DictItem type="int" key="n_synapses">0</DictItem>
+                <DictItem type="int" key="col">0</DictItem>
+                <DictItem type="int" key="nbytes">4</DictItem>
+              </ListElementElement>
+              <ListElementElement type="dict" class="NTypeGroupConn">
+                <DictItem type="dict" class="NeuronTypeGroup" key="src">
+                  <DictItem type="int" key="ntype">2</DictItem>
+                  <DictItem type="int" key="start_idx">40</DictItem>
+                  <DictItem type="int" key="end_idx">199</DictItem>
+                </DictItem>
+                <DictItem type="dict" class="NeuronTypeGroup" key="snk">
+                  <DictItem type="int" key="ntype">2</DictItem>
+                  <DictItem type="int" key="start_idx">40</DictItem>
+                  <DictItem type="int" key="end_idx">199</DictItem>
+                </DictItem>
+                <DictItem type="float" key="w0">0.47000000000000064</DictItem>
+                <DictItem type="int" key="n_synapses">1</DictItem>
+                <DictItem type="int" key="col">1</DictItem>
+                <DictItem type="int" key="nbytes">4</DictItem>
+              </ListElementElement>
+            </DictItem>
+          </DictItem>
+          <DictItem type="dict" class="NeuronFlags" key="N_flags">
+            <DictItem type="dict" class="NeuronFlagsColumns" key="index">
+              <DictItem type="dict" class="FrameVector" key="b_sensory_input">
+                <DictItem type="str" key="name">b_sensory_input</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="N_type">
+                <DictItem type="str" key="name">N_type</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="L_group">
+                <DictItem type="str" key="name">L_group</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="N_model">
+                <DictItem type="str" key="name">N_model</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="b_selected">
+                <DictItem type="str" key="name">b_selected</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="b_selected_tmp">
+                <DictItem type="str" key="name">b_selected_tmp</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+            </DictItem>
+            <DictItem type="NoneType" key="columns">None</DictItem>
+          </DictItem>
+          <DictItem type="dict" class="LGNeuronCounts" key="L_Group_neuronCounts">
+            <DictItem type="list" key="index">
+              <ListElementElement type="str">#N inh (LG)</ListElementElement>
+              <ListElementElement type="str">#N exc (LG)</ListElementElement>
+              <ListElementElement type="str">#N inh(d=0)</ListElementElement>
+              <ListElementElement type="str">#N inh(d=1)</ListElementElement>
+              <ListElementElement type="str">#N inh(d=2)</ListElementElement>
+              <ListElementElement type="str">#N inh(d=3)</ListElementElement>
+              <ListElementElement type="str">#N inh(d=4)</ListElementElement>
+              <ListElementElement type="str">#N exc(d=0)</ListElementElement>
+              <ListElementElement type="str">#N exc(d=1)</ListElementElement>
+              <ListElementElement type="str">#N exc(d=2)</ListElementElement>
+              <ListElementElement type="str">#N exc(d=3)</ListElementElement>
+              <ListElementElement type="str">#N exc(d=4)</ListElementElement>
+            </DictItem>
+            <DictItem type="NoneType" key="columns">None</DictItem>
+          </DictItem>
+          <DictItem type="dict" class="LGroupFlags" key="L_Group_flags">
+            <DictItem type="dict" class="LGroupFlagsColumns" key="index">
+              <DictItem type="dict" class="FrameVector" key="sensory_input_type">
+                <DictItem type="str" key="name">sensory_input_type</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="b_thalamic_input">
+                <DictItem type="str" key="name">b_thalamic_input</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="b_sensory_group">
+                <DictItem type="str" key="name">b_sensory_group</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="b_sensory_input">
+                <DictItem type="str" key="name">b_sensory_input</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="b_output_group">
+                <DictItem type="str" key="name">b_output_group</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="output_type">
+                <DictItem type="str" key="name">output_type</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="b_monitor_group_firing_count">
+                <DictItem type="str" key="name">b_monitor_group_firing_count</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+            </DictItem>
+            <DictItem type="NoneType" key="columns">None</DictItem>
+          </DictItem>
+          <DictItem type="dict" class="LGroupProps" key="L_Group_properties">
+            <DictItem type="dict" class="LGroupPropLabels" key="index">
+              <DictItem type="dict" class="FrameVector" key="thalamic_inh_input_current">
+                <DictItem type="str" key="name">thalamic_inh_input_current</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="thalamic_exc_input_current">
+                <DictItem type="str" key="name">thalamic_exc_input_current</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="sensory_input_current0">
+                <DictItem type="str" key="name">sensory_input_current0</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="sensory_input_current1">
+                <DictItem type="str" key="name">sensory_input_current1</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+            </DictItem>
+            <DictItem type="NoneType" key="columns">None</DictItem>
+          </DictItem>
+          <DictItem type="dict" class="LG2LGFlags" key="L_Group2Group_flags">
+            <DictItem type="dict" class="LG2LGFlagLabels" key="index">
+              <DictItem type="dict" class="FrameVector" key="delay_distance">
+                <DictItem type="str" key="name">delay_distance</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="stdp_config0">
+                <DictItem type="str" key="name">stdp_config0</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="stdp_config1">
+                <DictItem type="str" key="name">stdp_config1</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="syn_count_inh">
+                <DictItem type="str" key="name">syn_count_inh</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="syn_count_exc">
+                <DictItem type="str" key="name">syn_count_exc</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="rep">
+                <DictItem type="str" key="name">rep</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+            </DictItem>
+            <DictItem type="NoneType" key="columns">None</DictItem>
+          </DictItem>
+          <DictItem type="dict" class="LG2LGProp" key="L_Group2Group_properties">
+            <DictItem type="dict" class="LG2LGPropLabels" key="index">
+              <DictItem type="dict" class="FrameVector" key="distance">
+                <DictItem type="str" key="name">distance</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="avg_weight_inh">
+                <DictItem type="str" key="name">avg_weight_inh</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="FrameVector" key="avg_weight_exc">
+                <DictItem type="str" key="name">avg_weight_exc</DictItem>
+                <DictItem type="int" key="default_scalar">0</DictItem>
+              </DictItem>
+            </DictItem>
+            <DictItem type="NoneType" key="columns">None</DictItem>
+          </DictItem>
+        </ListElementElement>
+        <ListElementElement type="dict" class="EngineElementConfig">
+          <DictItem type="dict" class="EnginePos3D" key="pos_origin">
+            <DictItem type="float" key="X">0.0</DictItem>
+            <DictItem type="float" key="Y">0.0</DictItem>
+            <DictItem type="float" key="Z">0.0</DictItem>
+          </DictItem>
+        </ListElementElement>
+      </DictItem>
+      <DictItem type="list" key="bools">
+        <ListElementElement type="NoneType">None</ListElementElement>
+        <ListElementElement type="bool">True</ListElementElement>
+        <ListElementElement type="bool">False</ListElementElement>
+        <ListElementElement type="bool">True</ListElementElement>
+      </DictItem>
+    </DictItem>
+  </construction>
+</dict>

@@ -21,7 +21,7 @@ from snngine_v4.utils.containers.configurable_dict import (
     DictContainerConfig,
 )
 from snngine_v4.utils.class_mixer import ClassMixer
-from snngine_v4.utils.field_utils import model_keys, Undefined
+from snngine_v4.utils.field_utils import Undefined
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 from snngine_v4.utils.settings.settings_keywords import (
     BaseModelSlots,
@@ -167,17 +167,14 @@ class VisualMixins(ClassMixer):
                 # attr_changed_keys = [
                 #     x for x in XYZAxisVisualConfig.model_fields.keys()
                 #     if x not in set_data_kw]
-                attr_changed_keys = model_keys(
-                    XYZAxisVisualConfig, exclude=BaseModelSlots.CLASS__NAME)
+                attr_changed_keys = XYZAxisVisualConfig.cls_model_keys()
             elif class_item in (Box, FiniteGridLines):
                 attr_changed_keys = {'_mesh': ['shading']}
             elif class_item == MeshVisual:
                 attr_changed_keys = ['color']
             elif class_item == Markers:
                 attr_changed_keys = (
-                    ['alpha'] +
-                    model_keys(MarkersVisualConfig,
-                               exclude=BaseModelSlots.CLASS__NAME))
+                    ['alpha'] + MarkersVisualConfig.cls_model_keys())
             else:
                 raise NotImplementedError()
             if 'visible' not in attr_changed_keys:

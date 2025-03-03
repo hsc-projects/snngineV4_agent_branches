@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from pydantic_core import PydanticUndefined
 from pyqtgraph.parametertree.Parameter import PARAM_TYPES
 
+from snngine_v4.utils.data_utils.dataframe_config import TypedDataFrameBase
 from snngine_v4.utils.data_utils.validation.array_annotation import (
     b_is_array_annotation)
 
@@ -52,6 +53,7 @@ class OptionsBuilder:
                 return ann
             ann = cls.convert_type_alias_type(ann)
         try:
+            from torch import OptionalType
             if isinstance(ann, UnionType) or b_is_optional(ann, b_strict=True):
                 args = get_args(ann)
                 if (len(args) == 2) and (NoneType in args):

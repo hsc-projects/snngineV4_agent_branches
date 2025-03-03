@@ -4,13 +4,14 @@ from collections import UserDict, UserList
 from types import NoneType
 from typing import Any, ClassVar, Type
 
-from pydantic import BaseModel, field_validator
+from pydantic import field_validator
 from pydantic.types import AnyType
 
+from snngine_v4.utils.core_utils import filter_dict, filter_list
 from snngine_v4.utils.field_utils import (
     extract_type_from_type_annotation, b_field_has_default, Undefined,
 )
-from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
+from snngine_v4.utils.settings.config_model import ConfigModel
 
 
 class ConfigurationError(BaseException):
@@ -29,7 +30,7 @@ type ValidKeyType = tuple[Type, ...] | Type
 type ValidValueType = tuple[Type | Any, ...] | Type | Any
 
 
-class ContainerConfig(XMLSettingsModel, frozen=True):
+class ContainerConfig(ConfigModel, frozen=True):
     allowed_types: ValidValueType = Any
     forbidden_types: ValidValueType = None
     allowed_key_types: ValidKeyType = NoneType
@@ -92,23 +93,27 @@ class ContainerConfig(XMLSettingsModel, frozen=True):
             data[k] = v
         return super()._validate_model_before(data)
 
-    @classmethod
-    def _validate_model_after(cls, data: ContainerConfig) -> Any:
-        super()._validate_model_after(data=data)
-        if isinstance(data, BaseModel | ContainerConfig):
-            if (b_int_allowed := cls.b_int_allowed(data.allowed_types,
-                                                   data.forbidden_types)
-                and (data.b_duplicate_check_by_id
-                     or data.b_remove_by_id_allowed)):
-                raise ConfigurationError(
-                    f"b_int_allowed={b_int_allowed} "
-                    f"and "
-                    f"\ndata.b_duplicate_check_by_id"
-                    f"={data.b_duplicate_check_by_id}"
-                    f"\ndata.b_remove_by_id_allowed"
-                    f"={data.b_remove_by_id_allowed}"
-                )
-        return data
+    # @classmethod
+    # def _validate_model_after(cls, data: ContainerConfig) -> Any:
+    #     super()._validate_model_after(data=data)
+    def model_post_init(self, __context):
+        # super()._validate_model_after(data=data)
+        super().model_post_init(__context)
+        data = self
+        # if isinstance(data, BaseModel | ContainerConfig):
+        if (b_int_allowed := self.b_int_allowed(
+                data.allowed_types, data.forbidden_types)
+            and (data.b_duplicate_check_by_id
+                 or data.b_remove_by_id_allowed)):
+            raise ConfigurationError(
+                f"b_int_allowed={b_int_allowed} "
+                f"and "
+                f"\ndata.b_duplicate_check_by_id"
+                f"={data.b_duplicate_check_by_id}"
+                f"\ndata.b_remove_by_id_allowed"
+                f"={data.b_remove_by_id_allowed}"
+            )
+        # return data
 
 
 class ConfigurableContainerBase:
@@ -141,44 +146,6 @@ class ConfigurableContainerBase:
     def b_valid_key_type(self, key):
         return ContainerConfig.b_valid_object_type(
             key, self._container_conf.allowed_key_types)
-
-    @staticmethod
-    def cls_filter_dict(
-            dict_: dict, type_, result_dict: UserDict | dict = None,
-            b_pop: bool = True) -> dict:
-        if result_dict is None:
-            result_dict = {}
-
-        valid_keys = []
-        for k, v in dict_.items():
-            if isinstance(v, type_):
-                valid_keys.append(k)
-
-        for k in valid_keys:
-            if b_pop is True:
-                result_dict[k] = dict_.pop(k)
-            else:
-                result_dict[k] = dict_[k]
-        return result_dict
-
-    @staticmethod
-    def cls_filter_list(
-            list_: list, type_,
-            b_pop: bool = True,
-            result_list: list | UserList | None = None):
-        if result_list is None:
-            result_list = []
-        if b_pop is True:
-            offset = 0
-            for i in range(len(list_)):
-                if isinstance(list_[i - offset], type_):
-                    result_list.append(list_.pop(i - offset))
-                    offset += 1
-        else:
-            for i in range(len(list_)):
-                if isinstance(list_[i], type_):
-                    result_list.append(list_[i])
-        return result_list
 
     @classmethod
     def cls_make_container_conf(cls, container_conf=None,
@@ -227,12 +194,12 @@ class ConfigurableContainerBase:
         return [id(x) for x in self.data]
 
     def filter_dict(self, dict_: dict | UserDict, result_dict=None, b_pop=True):
-        return self.cls_filter_dict(
-            dict_, type_=self._container_conf.allowed_types,
+        return filter_dict(
+            dict_, include_type=self._container_conf.allowed_types,
             result_dict=result_dict, b_pop=b_pop)
 
     def filter_list(self, list_: list | UserList, result_list=None, b_pop=True):
-        return self.cls_filter_list(
+        return filter_list(
             list_, type_=self._container_conf.allowed_types,
             result_list=result_list, b_pop=b_pop)
 

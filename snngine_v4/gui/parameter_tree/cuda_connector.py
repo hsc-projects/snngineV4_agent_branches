@@ -11,12 +11,9 @@ from snngine_v4.gui.parameter_tree.connectors.parameter_connector import \
     ParameterConnector
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
     EngineParameterTree
-from snngine_v4.gui.parameter_tree.parameters.tensor_parameter import \
-    (
+from snngine_v4.gui.parameter_tree.parameters.tensor_parameter import (
     TensorDictParameter, TensorParameter,
 )
-from snngine_v4.nn.config_models.nn_builder_config import \
-    NetworkConstructionConfig
 from snngine_v4.nn.engine_element import EngineElement
 from snngine_v4.nn.nn_builder import NetworkManager
 from snngine_v4.utils.containers.mappings import (

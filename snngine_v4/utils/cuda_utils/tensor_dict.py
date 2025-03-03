@@ -15,11 +15,11 @@ from snngine_v4.utils.containers.mappings import (
 from snngine_v4.utils.containers.super_maps import TypeSortedMap
 from snngine_v4.utils.cuda_utils.cuda_functions import \
     (
-    assert_device_equivalency, CudaKeywords,
+    assert_device_equivalency, compare_devices, CudaKeywords,
 )
 from snngine_v4.utils.cuda_utils.tensor_dataframe import TensorDataFrame
 from snngine_v4.utils.data_utils.dataframe_config import (
-    TypedDataFrameBase,
+    FrameVector, TypedDataFrameBase,
     TypedDataFrameBase3D,
 )
 
@@ -71,6 +71,11 @@ class TensorDict(ConfigurableDict):
         self.df2tensor.clear(b_force=True)
         self.tdf_dict.clear(b_force=True)
 
+    def __getitem__(self, item):
+        if isinstance(item, FrameVector):
+            item = item.name
+        return super().__getitem__(item)
+
     @property
     def main_tensor(self):
         return self._main_tensor
@@ -105,95 +110,11 @@ class TensorDict(ConfigurableDict):
                 data=v, columns=model.columns)
         return main_tensor
 
-    # @classmethod
-    # def from_dataframe_3d_config(
-    #         cls, device, model: TypedDataFrameBase3D):
-    #     new = cls()
-    #     main_tensor = new.update_from_dataframe_3d_config(
-    #         device=device, model=model)
-    #     return new, main_tensor
+    def sync_to_cpu(self):
+        for k, v in self.items():
+            if compare_devices(v.device, 'cpu') is False:
+                if isinstance(v, TensorDataFrame):
+                    v.sync_to_df()
+                elif isinstance(v, torch.Tensor):
+                    self.array2tensor.inv[v][:] = v.cpu().numpy()
 
-
-# # class Model2TensorMap(Model2ObjectMap):
-# #     values: Callable[[], Iterable[TensorDict]]
-# #     ContainerConfigClass: ClassVar = (DictContainerConfig, torch.Tensor)
-#
-#
-# # class Model2TensorDictMap(Model2ObjectMap):
-# #     values: Callable[[], Iterable[TensorDict]]
-# #     ContainerConfigClass: ClassVar = (DictContainerConfig, TensorDict)
-# #
-# #     def __init__(self, **kwargs):
-# #         self.tensor_dict = Model2TensorMap()
-# #         self.tensor_map = Model2TensorMap()
-# #         super().__init__(**kwargs)
-# #
-# #     def add_model(self, model: TypedDataFrameBase3D, device):
-# #         dct, main_tensor = TensorDict.from_dataframe_3d_config(
-# #             device=device, model=model)
-# #         self[model] = dct
-# #         self.tensor_dict[model] = main_tensor
-#
-# class TensorDictMap(TypeSortedMap):
-#
-#     sub_maps: tuple = ((str, TensorDict),
-#                        (TensorDict, TypedDataFrameBase3D),)
-#
-#     def add_model(self, key, model: TypedDataFrameBase3D, device):
-#         dct, main_tensor = TensorDict.from_dataframe_3d_config(
-#             device=device, model=model)
-#         self[key] = dct
-#         self[dct] = model
-#         return dct, main_tensor
-#
-#
-# # class TensorMap(TypeSortedMap):
-# class TensorMap(TensorDict):
-#
-#     # sub_maps: tuple = (
-#     #     (str, (torch.Tensor, TensorDataFrame)),
-#     #     ((torch.Tensor, TensorDataFrame), TypedDataFrameBase),
-#     # )
-#
-#     def __init__(self, device=None, **kwargs):
-#         self.device = device
-#
-#         self.tensor_dict_map = TensorDictMap()
-#         self.model2tensor_map = TensorDictMap()
-#
-#         super().__init__(**kwargs)
-#
-#     def __setitem__(self, key, value):
-#
-#         if isinstance(value, TypedDataFrameBase3D):
-#             model = value
-#             dct, value = self.tensor_dict_map.add_model(
-#                 key, model, device=self.device)
-#
-#         elif isinstance(value, TypedDataFrameBase):
-#             model = value
-#             value = TensorDataFrame(self.device, model)
-#         else:
-#             model = None
-#         super().__setitem__(key, value)
-#         if model is not None:
-#             self.model2tensor_map[key] = value
-#         #     super().__setitem__(value, model)
-#
-# # class DataSetDict(TensorDict):
-# #     def __init__(self, device=None, model=None, **kwargs):
-# #         super().__init__(**kwargs)
-# #         if model is not None:
-# #             self._tensor = self.update_from_dataframe_3d_config(
-# #                 device, model
-# #             )
-# #
-# #     @property
-# #     def tensor(self):
-# #         return self._tensor
-# #
-# #     @tensor.setter
-# #     def tensor(self, tensor):
-# #         if self._tensor is not None:
-# #             raise AttributeError("tensor already set")
-# #         self._tensor = tensor

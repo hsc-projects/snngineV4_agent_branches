@@ -4,7 +4,7 @@ import torch
 from snngine_v4.utils.cuda_utils.cuda_functions import assert_device_equivalency
 from snngine_v4.utils.data_utils.dataframe_config import (
     DataFrameIndex,
-    TypedDataFrameBase,
+    FrameVector, TypedDataFrameBase,
 )
 
 
@@ -49,7 +49,7 @@ class TensorDataFrame:
         if isinstance(item, (int, slice, tuple)):
             # return self.__class__(self.tensor[item])
             return self.tensor[item]
-        elif isinstance(item, str):
+        elif isinstance(item, (str, FrameVector)):
             return self.tensor[self.get_idx_loc(item)]
         return [self.tensor[i] for i in item]
 
@@ -59,7 +59,7 @@ class TensorDataFrame:
         elif isinstance(item, slice):
             self.tensor[item] = value
             # raise ValueError('Cannot interpret slice with multiindexing')
-        elif isinstance(item, str):
+        elif isinstance(item, (str, FrameVector)):
             self.tensor[self.get_idx_loc(item), :] = value
         else:
             for i in item:
@@ -71,6 +71,10 @@ class TensorDataFrame:
     def data_ptr(self):
         return self.tensor.data_ptr()
 
+    @property
+    def device(self):
+        return self.tensor.device
+
     # @classmethod
     # def from_dataframe_config(cls, model: TypedDataFrameBase, device):
     #     return cls(device=device, data=model.data, columns=model.columns,
@@ -78,6 +82,8 @@ class TensorDataFrame:
     #                dtype=model.data.dtype)
 
     def get_idx_loc(self, item):
+        if isinstance(item, FrameVector):
+            item = item.name
         return self.df.index.get_loc(item)
 
     @property

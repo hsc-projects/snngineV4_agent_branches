@@ -48,12 +48,12 @@ class SNNgine:
                     raise error
                 pass
 
-            import cupy
+            # import cupy
             import torch
             from numba import cuda
-            from rmm.allocators.cupy import rmm_cupy_allocator
-            from rmm.allocators.torch import rmm_torch_allocator
-            from rmm.allocators.numba import RMMNumbaManager
+            # from rmm.allocators.cupy import rmm_cupy_allocator
+            # from rmm.allocators.torch import rmm_torch_allocator
+            # from rmm.allocators.numba import RMMNumbaManager
 
             # cupy.cuda.set_allocator(rmm_cupy_allocator)
             # torch.cuda.change_current_allocator(rmm_torch_allocator)

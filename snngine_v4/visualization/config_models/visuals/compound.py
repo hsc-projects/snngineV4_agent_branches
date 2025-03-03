@@ -2,18 +2,18 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from snngine_v4.utils.settings.xml_settings import (
-    XMLSettingsContainerModel,
-    XMLSettingsModel,
+from snngine_v4.utils.settings.config_model import (
+    ConfigContainerModel,
+    ConfigModel,
 )
 
 
-class CompoundVisualNodeConfig(XMLSettingsContainerModel):
+class CompoundVisualNodeConfig(ConfigContainerModel):
     # EXTRA_CLASSES: ClassVar[Type[XMLSettingsModel]] = [VispyViewBoxConfig]
 
-    initialization: XMLSettingsModel
-    visuals: list[XMLSettingsModel] | None = None
+    initialization: ConfigModel
+    visuals: list[ConfigModel] | None = None
 
 
-class SubVisualsConfig(XMLSettingsModel):
-    sub_visuals: list[XMLSettingsModel] = Field(default_factory=list)
+class SubVisualsConfig(ConfigModel):
+    sub_visuals: list[ConfigModel] = Field(default_factory=list)

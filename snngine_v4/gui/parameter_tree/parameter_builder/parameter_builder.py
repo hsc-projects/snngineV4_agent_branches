@@ -19,6 +19,7 @@ from pyqtgraph.parametertree.parameterTypes import (
 
 from snngine_v4.gui.parameter_tree.parameter_builder.options_builder import \
     OptionsBuilder
+from snngine_v4.gui.parameter_tree.parameters import TensorDictParameter
 
 from snngine_v4.gui.parameter_tree.parameters.engine_group_parameter import \
     EngineGroupParameter
@@ -26,6 +27,7 @@ from snngine_v4.gui.parameter_tree.parameters.multi_type_parameter import \
     MultiTypeParameter
 from snngine_v4.gui.parameter_tree.parameters.reference_parameter import \
     ReferenceParameter
+from snngine_v4.utils.data_utils.dataframe_config import TypedDataFrameBase
 from snngine_v4.utils.field_utils import (
     b_is_annotated, b_is_optional,
     model_keys,
@@ -106,17 +108,23 @@ class ParameterBuilder:
                 and issubclass(options.c_data_types, BaseModel)):
             if isinstance(options.value, dict):
                 options.value = options.c_data_types(**options.value)
+            b_not_tdf = not isinstance(options.value, TypedDataFrameBase)
+            if ((options.value.__class__.__name__ not in PARAM_TYPES)
+                    and b_not_tdf):
 
-            if options.value.__class__.__name__ not in PARAM_TYPES:
                 parameter_ = cls.make_pars_from_model(
                     model=options.value, name=options.name,
                     parent_model=parent_model,
                     signal_register=signal_register, title=options.title)
             else:
+                if b_not_tdf:
+                    type_ = options.value.__class__.__name__
+                else:
+                    type_ = TypedDataFrameBase.__name__
                 parameter_ = Parameter.create(
                     model=options.value, name=options.name,
                     parent_model=parent_model,
-                    type=options.value.__class__.__name__,
+                    type=type_,
                     signal_register=signal_register, title=options.title)
 
         if parameter_ is None:
@@ -256,6 +264,11 @@ class ParameterBuilder:
         if exclude_keys is None:
             exclude_keys = []
         exclude_keys += [BaseModelSlots.CLASS__NAME]
+        # if isinstance(model, TypedDataFrameBase):
+        #     group = Parameter.create(type=TypedDataFrameBase.__name__,
+        #                              **options)
+        #     return group
+        # else:
         group = EngineGroupParameter.from_model(model=model, **options)
         heritable_options = ParamOpts.heritable_options(**group.opts)
 

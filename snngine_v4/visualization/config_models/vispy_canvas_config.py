@@ -1,17 +1,17 @@
 from typing import ClassVar, Type
 
-from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
-from snngine_v4.utils.settings.xml_settings import (
-    XMLSettingsContainerModel,
-    XMLSettingsModel,
+from snngine_v4.utils.settings.config_model import (
+    ConfigContainerModel,
+    ConfigModel,
 )
+from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.visualization.config_models.vispy_camera_configs import \
     TurnTableCameraParameters
 from snngine_v4.visualization.config_models.visuals.lines import \
     XYZAxisVisualConfig
 
 
-class VispyOpenGLConfig(XMLSettingsModel, frozen=True):
+class VispyOpenGLConfig(ConfigModel, frozen=True):
 
     red_size: int = 8
     green_size: int = 8
@@ -24,7 +24,7 @@ class VispyOpenGLConfig(XMLSettingsModel, frozen=True):
     samples: int = 0
 
 
-class VispyWidgetConfig(XMLSettingsModel, frozen=True):
+class VispyWidgetConfig(ConfigModel, frozen=True):
 
     pos: tuple[int, int] = (0, 0)
     size: tuple[int, int] = (10, 10)
@@ -49,18 +49,18 @@ class VispyViewBoxConfig(VispyWidgetConfig):
     camera: TurnTableCameraParameters
 
 
-class SceneViews(XMLSettingsContainerModel):
-    EXTRA_CLASSES: ClassVar[Type[XMLSettingsModel]] = [VispyViewBoxConfig]
+class SceneViews(ConfigContainerModel):
+    EXTRA_CLASSES: ClassVar[Type[ConfigModel]] = [VispyViewBoxConfig]
 
 
-class SceneVisuals(XMLSettingsContainerModel):
-    EXTRA_CLASSES: ClassVar[Type[XMLSettingsModel]] = [
+class SceneVisuals(ConfigContainerModel):
+    EXTRA_CLASSES: ClassVar[Type[ConfigModel]] = [
         XYZAxisVisualConfig,
     ]
 
 
-class SceneCameras(XMLSettingsContainerModel):
-    EXTRA_CLASSES: ClassVar[Type[XMLSettingsModel]] = [
+class SceneCameras(ConfigContainerModel):
+    EXTRA_CLASSES: ClassVar[Type[ConfigModel]] = [
         TurnTableCameraParameters]
 
     parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
@@ -71,7 +71,7 @@ class SceneCameras(XMLSettingsContainerModel):
     )
 
 
-class VispyCanvasConfigOptions(XMLSettingsModel, frozen=True):
+class VispyCanvasConfigOptions(ConfigModel, frozen=True):
 
     parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         renamable=False,
@@ -100,7 +100,7 @@ class VispyCanvasConfigOptions(XMLSettingsModel, frozen=True):
     central_widget_options: VispyWidgetConfig
 
 
-class VispyCanvasConfig(XMLSettingsModel):
+class VispyCanvasConfig(ConfigModel):
 
     class Slots:
         OPTIONS: ClassVar[str] = 'Options'

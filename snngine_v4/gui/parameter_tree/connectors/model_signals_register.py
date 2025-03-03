@@ -119,7 +119,8 @@ class ExtendedModelSignalsRegister(ModelSignalsRegister):
         self.model2model_map[model0] = model1
 
         self[model1] = ModelParameterLinks(
-            allowed_keys=model_keys(model1, exclude=BaseModelSlots.CLASS__NAME),
+            allowed_keys=model_keys(
+                model1, exclude=BaseModelSlots.CLASS__NAME),
             model=model1, group_param=group0 or self.get_group(model0))
 
         if node_tree is None:

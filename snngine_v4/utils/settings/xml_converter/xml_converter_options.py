@@ -4,15 +4,10 @@ import pydoc
 from types import NoneType
 from typing import ClassVar, Type
 
-
-from snngine_v4.utils.settings.xml_settings_base import (
-    default_xml_model_config_dict,
-    XMLSettingsConfigDict,
-    XMLSettingsModelBase,
-)
+from pydantic import BaseModel, Field
 
 
-class XMLStringOptions(XMLSettingsModelBase):
+class XMLStringOptions(BaseModel):
 
     class Slots:
         B_PRETTY: ClassVar[str] = 'b_pretty'
@@ -27,11 +22,7 @@ class XMLStringOptions(XMLSettingsModelBase):
     newl: str = "\n"
 
 
-class XMLConverterOptions(XMLSettingsModelBase):
-
-    model_config: ClassVar[XMLSettingsConfigDict] = (
-        default_xml_model_config_dict(
-            xml_file='./xml_converter_settings.xml'))
+class XMLConverterOptions(BaseModel):
 
     base_types_str: str = "int,float,str,bool,NoneType"
 
@@ -45,7 +36,8 @@ class XMLConverterOptions(XMLSettingsModelBase):
 
     dict_key_to_tag_attributes: dict[str, str] | None = None
 
-    to_string_options: XMLStringOptions
+    to_string_options: XMLStringOptions = Field(
+        default=XMLStringOptions())
 
     @property
     def base_types(self) -> tuple[Type, ...]:
@@ -69,7 +61,7 @@ class XMLConverterOptions(XMLSettingsModelBase):
         res = []
         for t in types:
             res.append(pydoc.locate(t.strip(' ')))
-        # noinspection PyTypeChecker
+        # noinspection PyTypeChecker,PydanticTypeChecker
         return res
 
     @property
@@ -79,19 +71,3 @@ class XMLConverterOptions(XMLSettingsModelBase):
         for t in types:
             res.append(self.make_seq_element_name(t))
         return res
-
-    @classmethod
-    def settings_customise_sources(
-            cls, settings_cls: type[XMLSettingsModelBase],
-            init_settings, env_settings,
-            dotenv_settings, file_secret_settings):
-        # noinspection PyTypeChecker
-        return (
-            init_settings,
-            # XMLConfigSettingsSource(settings_cls),
-        )
-
-
-if __name__ == '__main__':
-    opts_ = XMLConverterOptions()
-    opts_.export()

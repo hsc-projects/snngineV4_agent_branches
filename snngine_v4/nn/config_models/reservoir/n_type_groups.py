@@ -13,7 +13,7 @@ from pydantic import (
 
 from snngine_v4.utils.core_utils import get_intenum_member
 from snngine_v4.utils.data_utils.validation.dtype_annotation import UInt64, UInt8
-from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
+from snngine_v4.utils.settings.config_model import ConfigModel
 
 
 @unique
@@ -78,7 +78,7 @@ class NTypeGroupGenerationMode(IntEnum):
     UNIFORM_RATIO = auto()
 
 
-class NeuronTypeGroup(XMLSettingsModel):
+class NeuronTypeGroup(ConfigModel):
     ntype: NeuronType
     start_idx: NonNegativeInt
     end_idx: NonNegativeInt
@@ -135,7 +135,7 @@ def make_counts(ratios, exp_total):
 type NonNegativeFloatList = List[Annotated[float, Ge(0)]]
 
 
-class NTypeGroupList(XMLSettingsModel):
+class NTypeGroupList(ConfigModel):
 
     gen_mode: NTypeGroupGenerationMode = NTypeGroupGenerationMode.UNIFORM_RATIO
     groups: list[NeuronTypeGroup | AnnotatedNeuronType] = Field(
@@ -205,13 +205,13 @@ class TypeConnGenerationMode(IntEnum):
     UNIFORM = auto()
 
 
-class NTypeGroupConnInit(XMLSettingsModel):
+class NTypeGroupConnInit(ConfigModel):
     src: NonNegativeInt
     snk: NonNegativeInt
     w0: float
 
 
-class NTypeGroupConn(XMLSettingsModel):
+class NTypeGroupConn(ConfigModel):
     src: NeuronTypeGroup
     snk: NeuronTypeGroup
     w0: float
@@ -232,7 +232,7 @@ class NTypeGroupConn(XMLSettingsModel):
         return len(self.src), self.n_synapses
 
 
-class NTypeGroupConnList(XMLSettingsModel):
+class NTypeGroupConnList(ConfigModel):
 
     gen_mode: TypeConnGenerationMode = TypeConnGenerationMode.UNIFORM
     conns: list[NTypeGroupConn | NTypeGroupConnInit]

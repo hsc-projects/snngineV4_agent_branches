@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from snngine_v4.utils.containers.configurable_container import (
     ConfigurableContainerBase, ContainerConfig,
 )
+from snngine_v4.utils.core_utils import filter_list
 
 
 class ConfigurableListConfig(ContainerConfig, frozen=True):
@@ -89,7 +90,7 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
         self.validate_items(self.data)
 
     def filtered_extend(self, list_: list, b_pop=False) -> None:
-        list_ = self.cls_filter_list(
+        list_ = filter_list(
             list_=list_, type_=self._container_conf.allowed_types,
             result_list=[], b_pop=b_pop)
         self.extend(list_)

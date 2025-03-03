@@ -8,11 +8,11 @@ from snngine_v4.geometry.spatial_pars import (
     EnginePos3D, FloatShape3D,
     Object3DConfig, Segmentation3D,
 )
+from snngine_v4.utils.settings.config_model import ConfigModel
 from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
-from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
-class TechnicalValues(XMLSettingsModel):
+class TechnicalValues(ConfigModel):
 
     parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         expanded=False)

@@ -1,4 +1,4 @@
-from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
+from snngine_v4.utils.settings.config_model import ConfigModel
 from snngine_v4.visualization.config_models.vispy_canvas_config import (
     SceneViews, SceneVisuals, VispyCanvasConfig,
     VispyCanvasConfigOptions, VispyViewBoxConfig,
@@ -7,7 +7,7 @@ from snngine_v4.visualization.config_models.visuals.lines import \
     XYZAxisVisualConfig
 
 
-class SceneSettings(XMLSettingsModel):
+class SceneSettings(ConfigModel):
 
     main: VispyCanvasConfig = VispyCanvasConfig(
         Options=VispyCanvasConfigOptions(title='NetworkView'),

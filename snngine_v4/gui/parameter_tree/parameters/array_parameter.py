@@ -1,13 +1,21 @@
 from typing import Type
 
 import numpy as np
-from pyqtgraph.parametertree import Parameter
-from pyqtgraph.parametertree.parameterTypes import WidgetParameterItem
+from pyqtgraph.parametertree import ParameterItem
+from pyqtgraph.parametertree.parameterTypes import (
+    ActionParameter
+)
+from pyqtgraph.parametertree.parameterTypes.action import \
+    ParameterControlledButton
+from qtpy import QtWidgets
 
 from snngine_v4.gui.parameter_tree.parameter_builder.options_builder import \
     OptionsBuilder
 from snngine_v4.gui.parameter_tree.parameters.engine_group_parameter import \
     EngineGroupParameter
+from snngine_v4.gui.parameter_tree.parameters.widgets.table \
+    .array_editor import ArrayEditorArea
+from snngine_v4.gui.windows.main_window_base import MainEngineWindowBase
 from snngine_v4.utils.data_utils.dataframe_config import (
     DataFrameIndex,
     TypedDataFrameBase, TypedDataFrameBase3D,
@@ -17,8 +25,7 @@ from snngine_v4.utils.data_utils.dataframe_config import (
 from snngine_v4.utils.data_utils.validation.array_annotation \
     import ArrayInterfaces
 
-from snngine_v4.gui.parameter_tree.parameters.widgets.table.df_table_widget \
-    import QDataFrameTableWidget
+
 from snngine_v4.gui.parameter_tree.parameters.widgets.table \
     .q_dataframe import (
         DataChangeType, QDataFrame,
@@ -26,45 +33,64 @@ from snngine_v4.gui.parameter_tree.parameters.widgets.table \
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 
-# noinspection PyPep8Naming
-class ArrayParameterItem(WidgetParameterItem):
-
+class ActionWidgetParameterItem(ParameterItem):
+    """ParameterItem displaying a clickable button."""
     def __init__(self, param, depth):
-
-        self.param: ArrayParameter | None = None
-        self.widget: QDataFrameTableWidget | None = None
-
+        self.param = param
         super().__init__(param, depth)
+        self.layoutWidget = QtWidgets.QWidget()
+        self.layout = QtWidgets.QHBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layoutWidget.setLayout(self.layout)
+        self.button: QtWidgets.QPushButton | ParameterControlledButton = (
+            ParameterControlledButton(param, self.layoutWidget))
+        param.sigNameChanged.disconnect(self.button.onNameChange)
+        param.sigOptionsChanged.disconnect(self.button.updateOpts)
+        self.button.updateOpts(None, dict(title='show'))
+        # self.layout.addSpacing(100)
+        self.layout.addWidget(self.button)
+        self.layout.addStretch()
+        self.titleChanged()
 
-        self.ui_widgets = self.widget.make_ui_widgets()
-        idx = self.layoutWidget.layout().count() - 2
-        self.layoutWidget.layout().insertWidget(
-            idx, self.ui_widgets.widget())
+        self.button.clicked.connect(self.activate)
 
-    def makeWidget(self):
-        self.asSubItem = True
-        self.hideWidget = False
+    def activate(self):
+        w = self.button.window()
+        if isinstance(w, MainEngineWindowBase):
+            editor = w.arrayEditorDockWidget
+            dock_area: ArrayEditorArea = editor.widget()
+            if self.param.qdf not in dock_area.qdf_map:
+                dock_area.addDock(self.param.qdf)
+                if not editor.isVisible():
+                    editor.show()
+            else:
+                wdg, dock = dock_area[self.param.qdf]
+                if dock.parent() is None:
+                    dock.label.show()
+                    dock_area.addDock(dock)
+                    if not editor.isVisible():
+                        editor.show()
+                else:
+                    dock.close()
+            if dock_area.count() == 0:
+                editor.close()
 
-        table = QDataFrameTableWidget(qdf=self.param.qdf)
-        # table.setMaximumHeight(200)
-        return table
-
-    def valueChanged(self, param, val, force=False):
-        # super().valueChanged(param, val, force)
-        self.widget.onDataChange()
-        self.updateDefaultBtn()
-
-    def widgetValueChanged(self, ):
-        val = self.widget.value()
-        if val is None:
+    def treeWidgetChanged(self):
+        super().treeWidgetChanged()
+        tree = self.treeWidget()
+        if tree is None:
             return
-        raise RuntimeError
+        tree.setItemWidget(self, 1, self.layoutWidget)
+
+    def titleChanged(self):
+        self.setSizeHint(1, self.button.sizeHint())
 
 
 # noinspection PyPep8Naming
-class ArrayParameter(Parameter):
+# class ArrayParameter(Parameter):
+class ArrayParameter(ActionParameter):
 
-    itemClass = ArrayParameterItem
+    itemClass = ActionWidgetParameterItem
 
     # sigDataChanged = QtCore.Signal(object)
 
@@ -104,7 +130,9 @@ class ArrayParameter(Parameter):
         )
         opts[ParamOpts.KW.VALUE] = self.qdf.value()
         opts[ParamOpts.KW.EXPANDED] = False
+
         super().__init__(**opts)
+
         self.qdf.sigChanged.connect(self.onDataChanged)
 
     def compare_value(self):

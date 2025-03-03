@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf8"?>
+<dict>
+  <devices type="dict" class="DeviceSettings">
+    <DictItem type="bool" key="b_use_cuda">True</DictItem>
+    <DictItem type="dict" class="OpenGLSettings" key="opengl">
+      <DictItem type="str" key="gloo_target">gl+</DictItem>
+    </DictItem>
+    <DictItem type="dict" class="CudaSettings" key="cuda">
+      <DictItem type="bool" key="b_require_pycuda">True</DictItem>
+    </DictItem>
+  </devices>
+</dict>

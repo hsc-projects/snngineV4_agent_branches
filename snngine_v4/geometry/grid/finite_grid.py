@@ -4,7 +4,7 @@ from typing import Iterable, Sized
 
 import numpy as np
 import pandas as pd
-import torch
+
 
 from snngine_v4.geometry.grid.finite_grid_elements import GridStep
 from snngine_v4.geometry.grid.grid_mask_maker import (
@@ -97,7 +97,7 @@ class FiniteGrid:
                       # : torch.Tensor
 
             # -> torch.Tensor\
-
+        import torch
         mask = mask_value_interval(ref_array=tensor, value_range=value_range)
 
         n_neighbours_ = n_neighbours(

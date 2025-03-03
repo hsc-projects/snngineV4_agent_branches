@@ -20,7 +20,7 @@ from snngine_v4.geometry.spatial_pars import (
     Segmentation3D,
 )
 from snngine_v4.nn.config_models.reservoir.reservoir_flags import (
-    LGNeuronCounts, LG2LGFlags, LG2LGProp, LGroupFlags,
+    LGNeuronCounts, LG2LGFlags, LG2LGProp, LGroupProps, LGroupFlags,
     NeuronFlags,
 )
 from snngine_v4.utils.data_utils.validation.array_annotation import (
@@ -60,6 +60,7 @@ class NetworkReservoirConfig(EngineElementConfig):
         N_FLAGS: ClassVar[str] = 'N_flags'
         L_GROUP_NEURON_COUNTS: ClassVar[str] = 'L_Group_neuronCounts'
         L_GROUP_FLAGS: ClassVar[str] = 'L_Group_flags'
+        L_GROUP_PROPERTIES: ClassVar[str] = 'L_Group_properties'
         L_GROUP2GROUP_FLAGS: ClassVar[str] = 'L_Group2Group_flags'
         L_GROUP2GROUP_PROPERTIES: ClassVar[str] = 'L_Group2Group_properties'
 
@@ -107,6 +108,8 @@ class NetworkReservoirConfig(EngineElementConfig):
     L_Group_neuronCounts: LGNeuronCounts
 
     L_Group_flags: LGroupFlags
+    L_Group_properties: LGroupProps
+
     L_Group2Group_flags: LG2LGFlags
     L_Group2Group_properties: LG2LGProp
 
@@ -193,6 +196,8 @@ class NetworkReservoirConfig(EngineElementConfig):
         n_groups = data[cls.Slots.N_LGROUPS]
         cls._reset_lg_array(data=data, class_=LGroupFlags, n_groups=n_groups,
                             slot=cls.Slots.L_GROUP_FLAGS)
+        cls._reset_lg_array(data=data, class_=LGroupProps, n_groups=n_groups,
+                            slot=cls.Slots.L_GROUP_PROPERTIES)
         cls._reset_lg_array(data=data, class_=LG2LGFlags, n_groups=n_groups,
                             slot=cls.Slots.L_GROUP2GROUP_FLAGS, )
         cls._reset_lg_array(data=data, class_=LG2LGProp, n_groups=n_groups,
@@ -271,13 +276,3 @@ class NetworkReservoirConfig(EngineElementConfig):
                 groups=type_groups, n_syn=n_syn)
 
         return data
-
-    # @property
-    # def pos_origin(self):
-    #     return self.grid.pos_origin
-
-    # @classmethod
-    # def _validate_model_after(cls, data: NetworkReservoirConfig):
-    #     data = super()._validate_model_after(data=data)
-    #     data.grid.pos_origin = data.pos_origin
-    #     return data

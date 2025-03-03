@@ -7,18 +7,18 @@ import pandas as pd
 
 from snngine_v4.nn.config_models.reservoir.n_type_groups import NTypeGroupList
 from snngine_v4.utils.data_utils.dataframe_config import (
-    DataFrameF32D3, DataFrameI32,
-    DataFrameI32D3, DataFrameIndex,
+    DataFrameF32, DataFrameF32D3, DataFrameI32,
+    DataFrameI32D3, DataFrameIndex, FrameVectorType,
 )
 
 
 class NeuronFlagsColumns(DataFrameIndex):
-    b_sensory_input: str = 'b_sensory_input'
-    N_type: str = 'N_type'
-    L_group: str = 'L_group'
-    N_model: str = 'N_model'
-    b_selected: str = 'b_selected'
-    b_selected_tmp: str = 'b_selected_tmp'
+    b_sensory_input: FrameVectorType = 'b_sensory_input'
+    N_type: FrameVectorType = 'N_type'
+    L_group: FrameVectorType = 'L_group'
+    N_model: FrameVectorType = 'N_model'
+    b_selected: FrameVectorType = 'b_selected'
+    b_selected_tmp: FrameVectorType = 'b_selected_tmp'
 
 
 class NeuronFlags(DataFrameI32):
@@ -28,8 +28,8 @@ class NeuronFlags(DataFrameI32):
     def cls_validate_data(
             cls, model: NeuronFlags, data: pd.DataFrame, **kwargs):
 
-        n_type_data = data.loc[model.index.N_type, :]
-        l_group_data = data.loc[model.index.L_group, :]
+        n_type_data = data.loc[model.index.N_type.name, :]
+        l_group_data = data.loc[model.index.L_group.name, :]
 
         if (n_type_data == 0).sum() > 0:
             raise AssertionError
@@ -51,17 +51,29 @@ class NeuronFlags(DataFrameI32):
 
 
 class LGroupFlagsColumns(DataFrameIndex):
-    sensory_input_type: str = 'sensory_input_type'
-    b_thalamic_input: str = 'b_thalamic_input'
-    b_sensory_group: str = 'b_sensory_group'
-    b_sensory_input: str = 'b_sensory_input'
-    b_output_group: str = 'b_output_group'
-    output_type: str = 'output_type'
-    b_monitor_group_firing_count: str = 'b_monitor_group_firing_count'
+    sensory_input_type: FrameVectorType = 'sensory_input_type'
+    b_thalamic_input: FrameVectorType = 'b_thalamic_input'
+    b_sensory_group: FrameVectorType = 'b_sensory_group'
+    b_sensory_input: FrameVectorType = 'b_sensory_input'
+    b_output_group: FrameVectorType = 'b_output_group'
+    output_type: FrameVectorType = 'output_type'
+    b_monitor_group_firing_count: FrameVectorType = \
+        'b_monitor_group_firing_count'
 
 
 class LGroupFlags(DataFrameI32):
     index: LGroupFlagsColumns
+
+
+class LGroupPropLabels(DataFrameIndex):
+    thalamic_inh_input_current: FrameVectorType = 'thalamic_inh_input_current'
+    thalamic_exc_input_current: FrameVectorType = 'thalamic_exc_input_current'
+    sensory_input_current0: FrameVectorType = 'sensory_input_current0'
+    sensory_input_current1: FrameVectorType = 'sensory_input_current1'
+
+
+class LGroupProps(DataFrameF32):
+    index: LGroupPropLabels
 
 
 class LGNeuronCounts(DataFrameI32):
@@ -73,11 +85,11 @@ class LGNeuronCounts(DataFrameI32):
         # cols = []
         for nt_group in ntypes:
             name = nt_group.ntype.name
-            names[nt_group.ntype] = name[: min(len(name), 3)]
-            index.append('#' + names[nt_group.ntype] + f" (T=)")
+            names[nt_group.ntype] = name[: min(len(name), 3)].lower()
+            index.append("#N " + names[nt_group.ntype] + " (LG)")
         for nt_group in ntypes:
             for delay in range(d):
-                index.append('#' + f'(d={delay})' + names[nt_group.ntype])
+                index.append("#N " + names[nt_group.ntype] + f"(d={delay})")
 
         model = cls()
         model.index = index
@@ -108,27 +120,24 @@ class LGNeuronCounts(DataFrameI32):
                 raise AssertionError
 
 
-class LG2FlagLabels(DataFrameIndex):
-    delay_distance: str = 'delay_distance'
-    stdp_config0: str = 'stdp_config0'
-    stdp_config1: str = 'stdp_config1'
-    syn_count_inh: str = 'syn_count_inh'
-    syn_count_exc: str = 'syn_count_exc'
-    rep: str = 'rep'
+class LG2LGFlagLabels(DataFrameIndex):
+    delay_distance: FrameVectorType = 'delay_distance'
+    stdp_config0: FrameVectorType = 'stdp_config0'
+    stdp_config1: FrameVectorType = 'stdp_config1'
+    syn_count_inh: FrameVectorType = 'syn_count_inh'
+    syn_count_exc: FrameVectorType = 'syn_count_exc'
+    rep: FrameVectorType = 'rep'
 
 
 class LG2LGFlags(DataFrameI32D3):
-    index: LG2FlagLabels
+    index: LG2LGFlagLabels
 
 
 class LG2LGPropLabels(DataFrameIndex):
-    distance: str = 'distance'
-    avg_weight_inh: str = 'avg_weight_inh'
-    avg_weight_exc: str = 'avg_weight_exc'
+    distance: FrameVectorType = 'distance'
+    avg_weight_inh: FrameVectorType = 'avg_weight_inh'
+    avg_weight_exc: FrameVectorType = 'avg_weight_exc'
 
 
 class LG2LGProp(DataFrameF32D3):
     index: LG2LGPropLabels
-
-
-

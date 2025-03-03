@@ -6,8 +6,6 @@ from snngine_v4.gui.common.qobject_dicts import QTreeWidgetDict
 from snngine_v4.snngine_config import EngineConfig
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
     EngineParameterTree
-from snngine_v4.utils.field_utils import model_keys
-from snngine_v4.utils.settings.settings_keywords import BaseModelSlots
 
 
 class SettingsWindow(QtWidgets.QWidget):
@@ -39,7 +37,7 @@ class SettingsWindow(QtWidgets.QWidget):
         self.options_layout.setContentsMargins(0, 0, 0, 0)
         self.top_layout.addLayout(self.options_layout)
 
-        for k in model_keys(engine_config, exclude=BaseModelSlots.CLASS__NAME):
+        for k in self.engine_config.model_keys():
             settings = getattr(engine_config, k)
             self.add_settings(settings, name=k)
 

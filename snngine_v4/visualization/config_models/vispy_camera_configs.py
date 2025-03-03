@@ -3,11 +3,11 @@ from typing import ClassVar
 from pydantic import Field
 
 from snngine_v4.geometry.spatial_pars import EnginePos3D, SpatialParUIOpts
+from snngine_v4.utils.settings.config_model import ConfigModel
 from snngine_v4.utils.settings.ui_parameter_options import (
     FrozenParamOpts,
     ParamOpts,
 )
-from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
 class CameraCenter(EnginePos3D):
@@ -17,7 +17,7 @@ class CameraCenter(EnginePos3D):
     )
 
 
-class TurnTableCameraParameters(XMLSettingsModel):
+class TurnTableCameraParameters(ConfigModel):
 
     parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         renamable=False,

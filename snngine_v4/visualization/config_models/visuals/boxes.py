@@ -6,9 +6,9 @@ from pydantic import Field
 
 from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import (
-    Directions3DBoolPars, EnginePos3D,
+    Directions3DBoolPars,
 )
-from snngine_v4.utils.settings.xml_settings_base import (
+from snngine_v4.utils.settings.xml_converter.xml_settings_source import (
     default_xml_model_config_dict, XMLSettingsConfigDict,
 )
 from snngine_v4.visualization.config_models.visuals.lines import \

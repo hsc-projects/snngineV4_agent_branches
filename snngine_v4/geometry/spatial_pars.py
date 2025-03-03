@@ -9,11 +9,11 @@ from snngine_v4.utils.data_utils.validation.array_annotation \
     import ArrayInterfaces
 from snngine_v4.utils.data_utils.validation.dtype_annotation import Float32
 from snngine_v4.utils.core_utils import get_intenum_member
+from snngine_v4.utils.settings.config_model import ConfigModel
 from snngine_v4.utils.settings.ui_parameter_options import (
     FrozenParamOpts,
     GroupPrefixesType,
 )
-from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
 @unique
@@ -59,7 +59,7 @@ class SpatialParUIOpts(FrozenParamOpts):
     c_group_prefixes: GroupPrefixesType = Ax3D
 
 
-class XYZPars(XMLSettingsModel):
+class XYZPars(ConfigModel):
 
     parameter_ui_opts: ClassVar[SpatialParUIOpts] = SpatialParUIOpts()
 
@@ -117,7 +117,7 @@ class EnginePos3D(XYZPars):
     Z: float = Field(default=0., ge=-10, le=10)
 
 
-class Object3DConfig(XMLSettingsModel):
+class Object3DConfig(ConfigModel):
     pos_origin: EnginePos3D = Field(
         default_factory=lambda: EnginePos3D.from_tuple((0, 0, 0)))
 
@@ -126,7 +126,7 @@ class Directions3DParUIOpts(SpatialParUIOpts):
     c_group_prefixes: GroupPrefixesType = AxDir3D
 
 
-class Directions3DBoolPars(XMLSettingsModel):
+class Directions3DBoolPars(ConfigModel):
 
     parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         expanded=False,

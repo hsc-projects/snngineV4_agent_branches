@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import UserDict, UserList
 from dataclasses import is_dataclass
 from enum import Enum
 from typing import Literal, Union
@@ -129,3 +130,42 @@ class Singleton(type):
             cls._instances[cls] = super(Singleton, cls).__call__(
                 *args, **kwargs)
         return cls._instances[cls]
+
+
+def filter_dict(
+        dct: dict, include_type, result_dict: UserDict | dict = None,
+        b_pop: bool = True) -> dict:
+
+    if result_dict is None:
+        result_dict = {}
+
+    valid_keys = []
+    for k, v in dct.items():
+        if isinstance(v, include_type):
+            valid_keys.append(k)
+
+    for k in valid_keys:
+        if b_pop is True:
+            result_dict[k] = dct.pop(k)
+        else:
+            result_dict[k] = dct[k]
+    return result_dict
+
+
+def filter_list(
+        list_: list, type_,
+        b_pop: bool = True,
+        result_list: list | UserList | None = None):
+    if result_list is None:
+        result_list = []
+    if b_pop is True:
+        offset = 0
+        for i in range(len(list_)):
+            if isinstance(list_[i - offset], type_):
+                result_list.append(list_.pop(i - offset))
+                offset += 1
+    else:
+        for i in range(len(list_)):
+            if isinstance(list_[i], type_):
+                result_list.append(list_[i])
+    return result_list

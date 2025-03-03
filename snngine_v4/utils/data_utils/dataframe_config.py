@@ -1,39 +1,42 @@
 from __future__ import annotations
 
-from pydantic import Field
-from typing import ClassVar
+from pydantic import BeforeValidator, Field
+from typing import Annotated, ClassVar
 
 import numpy as np
 
 from snngine_v4.utils.data_utils.validation.array_annotation import (
     ArrayInterfaces, i32_2D, i64_2D, f32_2D, Bool2D, i32_3D, f32_3D
 )
-from snngine_v4.utils.field_utils import model_keys
-from snngine_v4.utils.settings.settings_keywords import BaseModelSlots
-from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
+from snngine_v4.utils.settings.config_model import ConfigModel
 
 
-class DataFrameIndex(XMLSettingsModel):
+class FrameVector(ConfigModel):
+    name: str
+    default_scalar: int | float = 0
+    # dtype: str = 'NONE'
+
+    @staticmethod
+    def validate_field(v):
+        if isinstance(v, str):
+            v = FrameVector(name=v)
+        return v
+
+
+FrameVectorType = Annotated[FrameVector,
+                            BeforeValidator(FrameVector.validate_field)]
+
+
+class DataFrameIndex(ConfigModel):
 
     def __len__(self):
-        return len(model_keys(self, exclude=BaseModelSlots.CLASS__NAME))
+        return len(self.model_keys())
 
     def to_list(self):
-        return [getattr(self, k) for k in model_keys(
-            self, exclude=BaseModelSlots.CLASS__NAME)]
-
-    @classmethod
-    def _validate_model_after(
-            cls, data: DataFrameIndex) -> DataFrameIndex:
-        data = super()._validate_model_after(data=data)
-        cols = data.to_list()
-        for col in cols:
-            if not isinstance(col, str):
-                raise TypeError(f"Column {col} is not a string")
-        return data
+        return [getattr(self, k).name for k in self.model_keys()]
 
 
-class TypedDataFrameBase(XMLSettingsModel):
+class TypedDataFrameBase(ConfigModel):
 
     class Slots:
         COLUMNS: ClassVar[str] = "columns"
@@ -74,14 +77,17 @@ class TypedDataFrameBase(XMLSettingsModel):
     def validate_data(self, data, **kwargs):
         return self.cls_validate_data(model=self, data=data, **kwargs)
 
-    @classmethod
-    def _validate_model_after(cls, data: TypedDataFrameBase):
-        super()._validate_model_after(data=data)
+    # @classmethod
+    # def _validate_model_after(cls, data: TypedDataFrameBase):
+    #     super()._validate_model_after(data=data)
+    def model_post_init(self, __context):
+        super().model_post_init(__context)
+        data = self
         if data.data.shape[1] == 0:
             if data.data.shape[0] != 1:
                 raise NotImplementedError
-            data.data = cls.cls_zeroes(model=data)
-        return data
+            data.data = self.cls_zeroes(model=data)
+        # return data
 
     def zeroes(self, n_indices=None, n_cols=None):
         return self.cls_zeroes(model=self, n_indices=n_indices, n_cols=n_cols)

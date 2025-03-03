@@ -14,6 +14,9 @@ from snngine_v4.gui.parameter_tree.parameters.none_type_parameter import \
     NoneTypeParameter
 from snngine_v4.gui.parameter_tree.parameters.spin_box_slider_parameter import \
     SpinBoxSliderParameter
+from snngine_v4.gui.parameter_tree.parameters.tensor_parameter import \
+    TensorDictParameter
+from snngine_v4.utils.data_utils.dataframe_config import TypedDataFrameBase
 from snngine_v4.visualization.config_models.visuals.parameters import (
     ColorTypeUnion, RGBAColorTypeUnion
 )
@@ -26,6 +29,8 @@ registerParameterType(UnionType.__name__, MultiTypeParameter, override=True)
 registerParameterType(int.__name__, SpinBoxSliderParameter, override=True)
 registerParameterType(float.__name__, SpinBoxSliderParameter, override=True)
 registerParameterType('NDArray', ArrayParameter, override=True)
+registerParameterType(TypedDataFrameBase.__name__,
+                      TensorDictParameter, override=True)
 
 registerParameterType(ColorTypeUnion.__name__,
                       ColorTypeParameter, override=True)

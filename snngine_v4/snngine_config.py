@@ -7,9 +7,10 @@ from pydantic import Field
 from snngine_v4.nn.config_models.nn_builder_config import \
     NetworkConstructionConfig
 from snngine_v4.nn.config_models.nn_element_config import EngineElementConfig
-from snngine_v4.nn.config_models.reservoir.nn_reservoir_config import NetworkReservoirConfig
+from snngine_v4.nn.config_models.reservoir.nn_reservoir_config \
+    import NetworkReservoirConfig
 from snngine_v4.utils.settings.settings_keywords import BaseSettingsSlots
-from snngine_v4.utils.settings.xml_settings_base import (
+from snngine_v4.utils.settings.xml_converter.xml_settings_source import (
     default_xml_model_config_dict,
     XMLSettingsConfigDict,
 )

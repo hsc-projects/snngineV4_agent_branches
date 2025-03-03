@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from enum import auto, IntEnum
-from typing import Callable, Iterable, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
+
 from pyqtgraph import TableWidget
 from pyqtgraph.widgets.TableWidget import TableWidgetItem
 from qtpy import QtWidgets, QtCore
@@ -19,9 +20,10 @@ from snngine_v4.gui.parameter_tree.parameters.widgets.table.q_dataframe import \
 from snngine_v4.gui.windows.main_window_base import MainEngineWindowBase
 
 if TYPE_CHECKING:
-    from snngine_v4.gui.parameter_tree.parameters.widgets.table.array_editor import (
-        ArrayEditorArea,
-    )
+    from snngine_v4.gui.parameter_tree.parameters.widgets.table\
+        .array_editor import (
+            ArrayEditorArea,
+        )
 
 
 class IndexSpinBox(CustomSpinBox):
@@ -390,3 +392,10 @@ class QDataFrameTableWidget(TableWidget):
 
     def value(self):
         return self.qdf.value()
+
+
+# class QDataFrameTableTreeWidget(QPushButton):
+#     def __init__(self, qdf: QDataFrame, text='Editor'):
+#
+#         self.qdf = qdf
+#         super().__init__(text)

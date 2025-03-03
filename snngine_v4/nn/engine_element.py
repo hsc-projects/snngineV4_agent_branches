@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
 from snngine_v4.geometry.grid_config import FiniteGridConfig
+from snngine_v4.nn.config_models.nn_element_config import EngineElementConfig
 # noinspection PyUnresolvedReferences
 from snngine_v4.nn.cuda_backend import snn_utils
 from snngine_v4.utils.core_utils import type_assertion
@@ -12,14 +13,11 @@ from snngine_v4.utils.cuda_utils.cuda_functions import CudaKeywords
 from snngine_v4.utils.cuda_utils.tensor_dataframe import TensorDataFrame
 from snngine_v4.utils.cuda_utils.tensor_dict import TensorDict
 from snngine_v4.utils.data_utils.dataframe_config import (
-    DataFrameI32,
     TypedDataFrameBase, TypedDataFrameBase3D,
 )
-from snngine_v4.utils.field_utils import model_keys
 from snngine_v4.utils.object_builder.object_builder import \
     ObjectInitializationType
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
-from snngine_v4.utils.settings.settings_keywords import BaseModelSlots
 
 
 class EngineElement(BuilderDict):
@@ -41,11 +39,12 @@ class EngineElement(BuilderDict):
 
     def __init__(self, device, model,
                  n_curand_states=0,
-                 config_model=None,
+                 config_model: EngineElementConfig = None,
                  **kwargs):
 
         self.device = device
-        self.config_model = model if config_model is None else config_model
+        self.config_model: EngineElementConfig = (
+            model if config_model is None else config_model)
         self.tensor_dict = TensorDict()
 
         super().__init__(model_container=model,
@@ -56,14 +55,6 @@ class EngineElement(BuilderDict):
             self.curand_states = self._curand_states(n=n_curand_states)
 
         self.set_tensor_attr()
-
-    def set_tensor_attr(self):
-        keys = model_keys(
-            self.config_model, exclude=BaseModelSlots.CLASS__NAME)
-        for k in keys:
-            v = getattr(self.config_model, k)
-            if isinstance(v, TypedDataFrameBase) and (v in self):
-                setattr(self, k, self[v])
 
     def __setattr__(self, key, value):
         if ((key != self.TENSOR_DICT_KW) and (not hasattr(self, key))
@@ -87,6 +78,17 @@ class EngineElement(BuilderDict):
         cu = snn_utils.CuRandStates(n).ptr()
         # self.print_allocated_memory('curand_states')
         return cu
+
+    def set_tensor_attr(self):
+        tdf_model_dict = self.config_model.tdf_dict()
+        for k, model in tdf_model_dict.items():
+            if model in self:
+                setattr(self, k, self[model])
+            else:
+                pass
+
+    def sync_to_cpu(self):
+        self.tensor_dict.sync_to_cpu()
 
     def zeros_i32(self, shape) -> torch.Tensor:
         return torch.zeros(shape, dtype=torch.int32, device=self.device)

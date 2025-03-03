@@ -14,10 +14,11 @@ from snngine_v4.utils.core_utils import ConvertingEnum
 from snngine_v4.utils.data_utils.validation.dtype_annotation import (
     Float32, UInt8,
 )
-from snngine_v4.utils.data_utils.validation.array_annotation import ArrayInterfaces
+from snngine_v4.utils.data_utils.validation.array_annotation \
+    import ArrayInterfaces
+from snngine_v4.utils.settings.config_model import ConfigModel
 from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
-from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
-from snngine_v4.utils.settings.xml_settings_base import (
+from snngine_v4.utils.settings.xml_converter.xml_settings_source import (
     default_xml_model_config_dict, XMLSettingsConfigDict,
 )
 
@@ -101,7 +102,7 @@ class VispyKeyWords:
     _BORDER: ClassVar[str] = '_border'
 
 
-class RGBAColor(XMLSettingsModel):
+class RGBAColor(ConfigModel):
 
     parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         renamable=False,
@@ -171,7 +172,7 @@ class OpenGlStateType(IntEnum):
     UPDATE = 1
 
 
-class OpenGLState(XMLSettingsModel):
+class OpenGLState(ConfigModel):
 
     class Slots:
         ATTRIBUTE_KEY: ClassVar[str] = 'attribute_key'

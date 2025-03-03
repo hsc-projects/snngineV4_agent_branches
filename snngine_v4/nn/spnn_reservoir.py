@@ -3,10 +3,7 @@ import torch
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
 from snngine_v4.nn.config_models.reservoir.nn_reservoir_config import \
     NetworkReservoirConfig
-from snngine_v4.nn.config_models.reservoir.reservoir_flags import (
-    LGNeuronCounts, LG2FlagLabels,
-    LG2LGPropLabels,
-)
+
 
 # noinspection PyUnresolvedReferences
 from snngine_v4.nn.cuda_backend import snn_utils, snn_construction_gpu
@@ -29,28 +26,14 @@ class NetworkReservoir(EngineElement):
 
     def __init__(self, model: NetworkReservoirConfig, device, **kwargs):
 
-        super().__init__(device=device,
-                         model=[model.N_flags,
-                                model.L_Group_neuronCounts,
-                                model.L_Group_flags,
-                                model.L_Group2Group_flags,
-                                model.L_Group2Group_properties,
-                                ],
+        super().__init__(device=device, model=model.tdf_values(),
                          config_model=model, n_curand_states=model.N, **kwargs)
 
         G = self.config_model.G
         D = self.config_model.D
-        n_ntypes = self.config_model.n_type_groups
 
         self.grid: FiniteGrid = self.add_build(self.config_model.grid)
 
-        # self.G_neuron_counts_model: LGNeuronCounts = LGNeuronCounts.from_shape(
-        #     self.config_model.type_groups, D, G
-        # )
-
-        # self.G_neuron_counts = self.zeros_i32((n_ntypes + n_ntypes * D, G))
-        # self.G_neuron_counts = self.add_build(self.G_neuron_counts_model,
-        #                                       device=self.device)
         self.G_neuron_typed_ccount = self.zeros_i32((2 * G + 1))
         self.LG_group_delay_counts = self.zeros_i32((G, D + 1))
 
@@ -104,11 +87,11 @@ class NetworkReservoir(EngineElement):
         sensory_input_type_row = model.L_Group_flags.index.sensory_input_type
         b_monitor_group_firing_count_row = (
             model.L_Group_flags.index.b_monitor_group_firing_count)
+
         self.L_Group_flags[b_thalamic_input_row] = 0
         self.L_Group_flags[b_thalamic_input_row][: G // 2] = 1
         self.L_Group_flags[sensory_input_type_row] = -1
         self.L_Group_flags[b_monitor_group_firing_count_row] = 1
-        self.L_Group_flags.sync_to_df()
 
         G_pos = torch.tensor(self.grid.pos, device=self.device)
 
@@ -139,5 +122,7 @@ class NetworkReservoir(EngineElement):
             self.LG_group_delay_counts[:, d + 1] = (
                 self.LG_group_delay_counts[:, d]
                 + G_delay_distance.eq(d).sum(dim=1))
+
+        self.tensor_dict.sync_to_cpu()
 
         return

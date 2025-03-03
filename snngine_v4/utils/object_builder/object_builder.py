@@ -150,7 +150,8 @@ class ModelObjectBuilder:
                     b_ignore_default_object_class=
                     b_ignore_default_object_class,
                     b_raise_if_missing_model=b_raise_if_missing_model,
-                    b_raise_if_missing_object_class=b_raise_if_missing_model,
+                    b_raise_if_missing_object_class=
+                    b_raise_if_missing_object_class,
                     **common_kwargs
                     # **new_kwargs
                 )

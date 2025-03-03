@@ -485,6 +485,7 @@ def interval_from_metadata(metadata: list, default='inf'):
 
 def model_keys(model: BaseModel | Type[BaseModel],
                b_include_extra=True, b_include_computed=True,
+               type_filter=None,
                exclude=None):
     keys = list(model.model_fields.keys())
     if not isinstance(model, type):
@@ -502,4 +503,18 @@ def model_keys(model: BaseModel | Type[BaseModel],
             exclude = [exclude]
         for item in exclude:
             keys.remove(item)
+    if type_filter is not None:
+        if isinstance(model, type):
+            raise NotImplementedError
+        pop_index = 0
+        for i in range(len(keys)):
+            if not isinstance(getattr(model, keys[pop_index]), type_filter):
+                keys.pop(pop_index)
+            else:
+                pop_index += 1
     return keys
+
+
+def model_dict(model: BaseModel, type_filter=None, **kwargs):
+    keys = model_keys(type_filter=type_filter, **kwargs)
+    return model.model_dump(model='python', include=keys)

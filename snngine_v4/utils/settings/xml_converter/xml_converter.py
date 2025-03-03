@@ -16,8 +16,9 @@ from pydantic import BaseModel
 
 from pydantic_settings.sources import PathType
 
-from snngine_v4.utils.data_utils.validation.np_interface import ExtendedNumpyJsonDict
-from snngine_v4.utils.settings.xml_converter_options import (
+from snngine_v4.utils.data_utils.validation.np_interface \
+    import ExtendedNumpyJsonDict
+from snngine_v4.utils.settings.xml_converter.xml_converter_options import (
     XMLConverterOptions,
     XMLStringOptions,
 )
