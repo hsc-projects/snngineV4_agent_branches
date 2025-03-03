@@ -3,7 +3,6 @@ from typing import ClassVar
 from pydantic import BaseModel
 from vispy.scene import BaseCamera, ViewBox
 
-from snngine_v4.config.scenes import SceneSettings
 from snngine_v4.utils.containers.mappings import (
     Model2ObjectMap,
 )
@@ -22,37 +21,28 @@ from snngine_v4.visualization.scenes.main_network_scene import EngineSceneCanvas
 from snngine_v4.visualization.visual_builder import VispyVisualBuilder
 
 
-# class Object2SceneMap(SurjectiveMap):
-#     ContainerConfigClass: ClassVar = (Visual, EngineSceneCanvas)
-
-
 class SceneManager(BuilderDict):
 
-    # VISUAL_BUILDER_KW: ClassVar = 'visual_builder'
-    BUILDER_DEFAULT_MODEL_CLASS: ClassVar = VispyCanvasConfig
-    BUILDER_DEFAULT_OBJECT_CLASS: ClassVar = EngineSceneCanvas
+    # BUILDER_DEFAULT_MODEL_CLASS: ClassVar = VispyCanvasConfig
+    # BUILDER_DEFAULT_OBJECT_CLASS: ClassVar = EngineSceneCanvas
     BUILDER_OBJECT_CLASS_MAP: ClassVar = {
         VispyCanvasConfig: EngineSceneCanvas
     }
 
-    def __init__(self, scenes, **kwargs):
+    def __init__(self, model_container, **kwargs):
         self.data: dict[BaseModel, EngineSceneCanvas] | None = None
-        # self.visual_builder = VispyVisualBuilder()
-        # self.obj2scene_map: dict[BaseModel, Object2SceneMap] =
-        super().__init__(**kwargs)
-        if isinstance(scenes, (list, SceneSettings)):
-            self.update(scenes)
+        super().__init__(model_container=model_container, **kwargs)
 
-    def build_visuals(self, visuals, scene):
+    def build_visuals(self, visuals, scene, **kwargs):
         if isinstance(scene, BaseModel):
             scene = self[scene]
-        return self.cls_build_visuals(visuals, scene=scene)
+        return self.cls_build_visuals(visuals, scene=scene, **kwargs)
 
     @classmethod
-    def cls_build_visuals(cls, visuals, scene):
+    def cls_build_visuals(cls, visuals, scene, **kwargs):
         parent = scene.new_visual_node_parent()
         visual_dict = VispyVisualBuilder.cls_build_container(
-            visuals, parent=parent
+            visuals, parent=parent, **kwargs
         )
         scene.visual_node_dict.update(visual_dict.object_dict)
         return visual_dict
@@ -99,7 +89,7 @@ class SceneManager(BuilderDict):
         return camera
 
     @classmethod
-    def make_object(cls, object_class, model, **object_kwargs):
+    def make_object(cls, object_class, object_model, **object_kwargs):
 
         scene_opts = object_kwargs.pop(
             VispyCanvasConfig.Slots.OPTIONS, {})
@@ -116,7 +106,7 @@ class SceneManager(BuilderDict):
 
         scene: EngineSceneCanvas = super().make_object(
             object_class=object_class,
-            model=model,
+            object_model=object_model,
             **scene_opts,)
 
         for k, v in wdg_opts.items():
@@ -125,7 +115,7 @@ class SceneManager(BuilderDict):
             setattr(scene.central_widget, k, v)
 
         for k, view_config in views.items():
-            views_model = getattr(model, VispyCanvasConfig.Slots.VIEWS)
+            views_model = getattr(object_model, VispyCanvasConfig.Slots.VIEWS)
             view_model = getattr(views_model, k)
             camera_model = getattr(view_model, 'camera')
             view_config: VispyViewBoxConfig | dict
@@ -137,7 +127,7 @@ class SceneManager(BuilderDict):
 
         if visuals is not None:
             cls.cls_build_visuals(
-                getattr(model, VispyCanvasConfig.Slots.VISUALS), scene)
+                getattr(object_model, VispyCanvasConfig.Slots.VISUALS), scene)
         return scene
 
     # def __setitem__(self, key, value):

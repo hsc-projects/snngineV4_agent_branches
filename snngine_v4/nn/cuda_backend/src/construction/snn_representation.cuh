@@ -16,7 +16,7 @@ void fill_N_flags_group_id_and_G_neuron_count_per_type(
     int N,
     int G,
     const float* N_pos,
-    int N_pos_shape_x, int N_pos_shape_y, int N_pos_shape_z,
+    float N_pos_shape_x, float N_pos_shape_y, float N_pos_shape_z,
     int* N_flags,
     int* G_neuron_counts,
     int G_shape_x, int G_shape_y, int G_shape_z,

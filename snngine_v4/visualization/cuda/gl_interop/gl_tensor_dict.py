@@ -8,7 +8,7 @@ from snngine_v4.utils.containers.configurable_dict import (
 )
 from snngine_v4.utils.containers.mappings import Object2ObjectMap
 from snngine_v4.visualization.cuda.gl_interop.gl_tensor import GLBufferTensor
-from snngine_v4.visualization.cuda.tensor_dict import TensorDict
+from snngine_v4.utils.cuda_utils.tensor_dict import TensorDict
 
 
 class TensorToGLBufferTensorMap(Object2ObjectMap):

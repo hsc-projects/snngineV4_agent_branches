@@ -4,11 +4,10 @@ from pyqtgraph.dockarea import DockArea
 from qtpy import QtWidgets
 
 from snngine_v4.gui.common.main_dock_widget import MainDockWidget
-from snngine_v4.gui.parameter_tree.parameters.widgets. \
-    df_table_widget_dock import (
+from snngine_v4.gui.parameter_tree.parameters.widgets.table.df_table_widget_dock import (
         QDataFrameTableMap, TableDock
     )
-from snngine_v4.gui.parameter_tree.parameters.widgets.q_dataframe import \
+from snngine_v4.gui.parameter_tree.parameters.widgets.table.q_dataframe import \
     QDataFrame
 
 

@@ -4,7 +4,6 @@ from functools import cached_property
 from typing import Callable, Type
 
 from pydantic import BaseModel
-from pyqtgraph.parametertree import Parameter
 from pyqtgraph.parametertree.parameterTypes import GroupParameter
 
 from snngine_v4.gui.parameter_tree.connectors.model_parameter_links import \
@@ -17,6 +16,7 @@ from snngine_v4.utils.containers.node_map import (
     NodeTreeConfig, Object2NodeTreeMap,
 )
 from snngine_v4.utils.field_utils import model_keys
+from snngine_v4.utils.settings.settings_keywords import BaseModelSlots
 
 
 class ModelSignalsRegister(Model2ObjectMap):
@@ -72,7 +72,9 @@ class ModelSignalsRegister(Model2ObjectMap):
 
     def __setitem__(self, model, value):
         if isinstance(value, GroupParameter):
-            value = ModelParameterLinks(model=model, group_param=value)
+            value = ModelParameterLinks(
+                model=model, group_param=value,
+                ext_obj_attr_map=None)
             self.group_map[model] = value.sink
         super().__setitem__(model, value)
         self.actualize_node_tree_map(model, self[model])
@@ -98,17 +100,27 @@ class ExtendedModelSignalsRegister(ModelSignalsRegister):
 
     def add_linked_model_pars(self, model, group):
         """Add additional parameters for linked model"""
-        self.extensions_map[model] = group
+
+        value = ModelParameterLinks(
+            model=model, group_param=group,
+            ext_obj_attr_map=self[model][str])
+        self.extensions_map.group_map[model] = value.sink
+
+        self.extensions_map[model] = value
+
+        return
 
     def add_linked_model(self, model0: BaseModel, model1: BaseModel,
-                         node_tree=None):
+                         node_tree=None, group0=None):
         """
         New linked model has been created but not yet additional
         parameters
         """
         self.model2model_map[model0] = model1
+
         self[model1] = ModelParameterLinks(
-            model=model1, group_param=self.get_group(model0))
+            allowed_keys=model_keys(model1, exclude=BaseModelSlots.CLASS__NAME),
+            model=model1, group_param=group0 or self.get_group(model0))
 
         if node_tree is None:
             node_tree = ModelTree(root=model1)
@@ -122,7 +134,7 @@ class ExtendedModelSignalsRegister(ModelSignalsRegister):
             if isinstance(v0, BaseModel):
                 if hasattr(model1, k0):
                     self.add_linked_model(
-                        v0, getattr(model1, k0), node_tree=node_tree)
+                        v0, getattr(model1, k0), node_tree=node_tree,)
         return node_tree
 
     def clear(self, b_force: bool = False, b_clear_inv: bool = True):

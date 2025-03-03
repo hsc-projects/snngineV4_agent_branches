@@ -20,8 +20,8 @@ if TYPE_CHECKING:
     from snngine_v4.gui.parameter_tree.engine_parameter_tree import (
         QTree, EngineTreeDockWidget,
     )
-    from snngine_v4.gui.parameter_tree.parameters.widgets.array_editor import \
-        ArrayEditorDockWidget
+    from snngine_v4.gui.parameter_tree.parameters.widgets.table \
+        .array_editor import ArrayEditorDockWidget
 
 
 class WindowTypes(IntEnum):

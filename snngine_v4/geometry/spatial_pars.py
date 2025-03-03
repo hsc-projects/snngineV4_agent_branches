@@ -3,10 +3,11 @@ from __future__ import annotations
 from enum import IntEnum, unique
 from typing import ClassVar
 
-from pydantic import Field, NonNegativeInt, PositiveFloat
+from pydantic import Field, model_validator, NonNegativeInt, PositiveFloat
 
-from snngine_v4.utils.data.validation.array_annotation import ArrayInterfaces
-from snngine_v4.utils.data.validation.dtype_annotation import Float32
+from snngine_v4.utils.data_utils.validation.array_annotation \
+    import ArrayInterfaces
+from snngine_v4.utils.data_utils.validation.dtype_annotation import Float32
 from snngine_v4.utils.core_utils import get_intenum_member
 from snngine_v4.utils.settings.ui_parameter_options import (
     FrozenParamOpts,
@@ -82,6 +83,15 @@ class XYZPars(XMLSettingsModel):
             key = Ax3D(key).name
         setattr(self, key, value)
 
+    @classmethod
+    def from_tuple(cls, value):
+        if len(value) == 3:
+            return cls(X=value[0], Y=value[1], Z=value[2])
+        raise TypeError(f"{value} is not a tuple of length 3")
+
+    def prod(self):
+        return self.X * self.Y * self.Z
+
 
 class FloatShape3D(XYZPars):
 
@@ -99,9 +109,17 @@ class Segmentation3D(XYZPars):
 
 class EnginePos3D(XYZPars):
 
+    class Slots:
+        POS_ORIGIN: ClassVar[str] = 'pos_origin'
+
     X: Float32 = Field(default=0., ge=-10, le=10)
     Y: float = Field(default=0., ge=-10, le=10)
     Z: float = Field(default=0., ge=-10, le=10)
+
+
+class Object3DConfig(XMLSettingsModel):
+    pos_origin: EnginePos3D = Field(
+        default_factory=lambda: EnginePos3D.from_tuple((0, 0, 0)))
 
 
 class Directions3DParUIOpts(SpatialParUIOpts):

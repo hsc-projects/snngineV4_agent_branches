@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from pydantic_core import PydanticUndefined
 from pyqtgraph.parametertree.Parameter import PARAM_TYPES
 
-from snngine_v4.utils.data.validation.array_annotation import (
+from snngine_v4.utils.data_utils.validation.array_annotation import (
     b_is_array_annotation)
 
 from snngine_v4.utils.field_utils import (
@@ -22,7 +22,7 @@ from snngine_v4.utils.field_utils import (
     get_field_json_schema_extra,
     get_field_multiple_of,
 )
-from snngine_v4.utils.interval_utils import limits_from_interval
+from snngine_v4.utils.data_utils.interval_utils import limits_from_interval
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.geometry.spatial_pars import Ax3D, PositionVBO
@@ -141,7 +141,7 @@ class OptionsBuilder:
             cls, ann, m: ParamOpts | None = None, **options) -> ParamOpts:
 
         if m is not None:
-            m = copy(m)
+            m = copy(m)  # keep models intact
             m.update(options)
             options = m
         else:
@@ -245,6 +245,8 @@ class OptionsBuilder:
         if opts is None:
             opts = {}
         elif isinstance(opts, BaseModel):
+            if opts.name == 'center':
+                pass
             opts = opts.model_dump(mode='python')
 
         opts = ParamOpts(**opts)

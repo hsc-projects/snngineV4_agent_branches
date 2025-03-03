@@ -1,4 +1,5 @@
 from collections import UserList
+from dataclasses import is_dataclass
 from typing import ClassVar, Type
 
 from pydantic import BaseModel
@@ -110,21 +111,32 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
             raise PermissionError("Popping not allowed.")
         return super().pop(i)
 
+    def _remove_by_id(self, item):
+
+        if self._container_conf.b_remove_by_id_allowed is False:
+            raise PermissionError("Remove by ID not allowed.")
+        item_id = id(item) if not isinstance(item, int) else item
+        idx = self.data_ids.index(item_id)
+        item_ = self[idx]
+        if id(item_) != item_id:
+            raise ValueError("Item not found.")
+        super().pop(idx)
+
     def remove(self, item):
         if self._container_conf.b_remove_allowed is False:
             raise PermissionError("Remove not allowed.")
-        try:
-            super().remove(item)
-        except ValueError:
-            if (isinstance(item, int)
-                and self._container_conf.b_remove_by_id_allowed
-                and (item in self.data_ids)
-            ):
-                idx = self.data_ids.index(item)
-                item_ = self[idx]
-                if id(item_) != item:
-                    raise ValueError("Item not found.")
-                super().remove(item_)
+        if not isinstance(item, int):
+            try:
+                if self._container_conf.b_remove_by_id_allowed:
+                    self._remove_by_id(self.data_ids.index(id(item)))
+                else:
+                    if isinstance(item, BaseModel) or is_dataclass(item):
+                        raise PermissionError("Expected Remove by Id")
+                    super().remove(item)
+            except ValueError:
+                self._remove_by_id(item)
+        else:
+            self._remove_by_id(item)
 
     def replace(self, old, new):
         if self._container_conf.b_replace_allowed is False:

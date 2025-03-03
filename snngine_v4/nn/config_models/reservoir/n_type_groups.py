@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from enum import auto, IntEnum, unique
-from typing import Annotated, List
+from typing import Annotated, Iterator, List
 
 import numpy as np
 from annotated_types import Ge, Gt
@@ -12,7 +12,7 @@ from pydantic import (
 )
 
 from snngine_v4.utils.core_utils import get_intenum_member
-from snngine_v4.utils.data.validation.dtype_annotation import UInt64, UInt8
+from snngine_v4.utils.data_utils.validation.dtype_annotation import UInt64, UInt8
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
@@ -182,8 +182,14 @@ class NTypeGroupList(XMLSettingsModel):
     def __getitem__(self, item):
         return self.groups[item]
 
+    def __len__(self):
+        return len(self.groups)
+
     def __setitem__(self, idx, value):
         self.groups[idx] = value
+
+    def __iter__(self) -> Iterator[NeuronTypeGroup]:
+        return iter(self.groups)
 
 
 @unique

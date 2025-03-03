@@ -50,7 +50,7 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
     def clear(self, b_force: bool = False) -> None:
         if ((self._container_conf.b_clear_allowed is False)
                 and (b_force is False)):
-            raise AttributeError("Clearing not allowed.")
+            raise PermissionError("Clearing not allowed.")
         super().clear()
 
     def __contains__(self, item):
@@ -191,6 +191,9 @@ class CallableKeyDict(ConfigurableDict):
 
     class ContainerConfigClass(DictContainerConfig):
         allowed_key_types: Any = Callable
+    
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
 
 
 class SingletonDict(metaclass=Singleton):

@@ -20,7 +20,7 @@ from snngine_v4.gui.parameter_tree.parameters.parameter_item_mixin import (
     WidgetParameterItemMixin
 )
 
-from snngine_v4.utils.interval_utils import (
+from snngine_v4.utils.data_utils.interval_utils import (
     coerce_value_into_interval,
 )
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts

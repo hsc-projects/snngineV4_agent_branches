@@ -8,11 +8,12 @@ set(OpenGL_GL_PREFERENCE GLVND)
 set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
 enable_language(CUDA)
 find_package(CUDA REQUIRED)
-# find_library(${CUDA_cusparse_LIBRARY} PATHS "/usr/local/cuda/lib64" NO_DEFAULT_PATH)
-
 if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
   set(CMAKE_CUDA_ARCHITECTURES 61)
 endif()
+# find_library(${CUDA_cusparse_LIBRARY} PATHS "/usr/local/cuda/lib64" NO_DEFAULT_PATH)
+
+
 
 
 #find_package(PythonInterp 3.11 REQUIRED)

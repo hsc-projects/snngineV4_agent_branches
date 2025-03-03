@@ -15,7 +15,7 @@ class EngineSceneCanvas(SceneCanvas):
             Model2ObjectMap.from_type(BaseCamera))
         self.view_dict: dict[BaseModel, ViewBox] | Model2ObjectMap = (
             Model2ObjectMap.from_type(ViewBox))
-        self.visual_node_dict: dict[BaseModel, ViewBox] | Model2ObjectMap = (
+        self.visual_node_dict: dict[BaseModel, VisualNode] | Model2ObjectMap = (
             Model2ObjectMap.from_type(VisualNode))
 
         self.freeze()

@@ -17,10 +17,13 @@ from snngine_v4.geometry.grid_config import TechnicalValues
 class FiniteGrid:
 
     def __init__(self,
+                 pos_origin: Iterable | dict,
                  shape: Iterable | Sized | dict,
                  seg: Iterable | Sized | dict,
-                 technical: TechnicalValues):
+                 technical: dict | TechnicalValues):
 
+        if isinstance(pos_origin, dict):
+            pos_origin = list(pos_origin.values())
         if isinstance(shape, dict):
             shape = list(shape.values())
         if isinstance(seg, dict):
@@ -32,6 +35,8 @@ class FiniteGrid:
             raise ValueError('shape must be a 3-element iterable.')
         if len(seg) != 3:
             raise ValueError('segmentations must be a 3-element iterable.')
+
+        self.pos_origin = np.array(pos_origin)
 
         # The shape of the grid
         if not hasattr(self, 'shape'):

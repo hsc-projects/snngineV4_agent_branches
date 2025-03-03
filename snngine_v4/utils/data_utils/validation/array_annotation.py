@@ -21,7 +21,7 @@ from snngine_v4.utils.containers.mappings import (
     Object2ObjectMap,
 )
 from snngine_v4.utils.core_utils import Singleton
-from snngine_v4.utils.data.validation.np_interface import (
+from snngine_v4.utils.data_utils.validation.np_interface import (
     ExtendedNumpyJsonDict,
     TypedNumpyInterface,
 )
@@ -107,6 +107,14 @@ class ArrayInterfaces(metaclass=Singleton):
             self.dtype_interface_map[v] = v.array_type
         return dt
 
+    def array_3d_type(self, x, y, z, dtype):
+        shape = Shape[f'{x}, {y}, {z}']
+        dt = NDArray[shape, dtype]
+        if dt not in self.dtype_interface_map.values():
+            v = TypedNumpyInterface(dtype=dtype, shape=shape,)
+            self.dtype_interface_map[v] = v.array_type
+        return dt
+
 
 def b_includes_array_annotation(ann: AnnotationType):
     try:
@@ -146,3 +154,14 @@ def fill_array_field_default(
     if isinstance(dct[key], dict):
         dct[key] = ExtendedNumpyJsonDict.handle_input(dct[key])
     return dct[key]
+
+
+type Bool2D = ArrayInterfaces().array_2d_type('* x', '* y', np.bool)
+type i32_2D = ArrayInterfaces().array_2d_type('* x', '* y', np.int32)
+type i32_3D = ArrayInterfaces().array_3d_type(
+    '* x', '* y', '* z', np.int32)
+type u32_2D = ArrayInterfaces().array_2d_type('* x', '* y', np.uint32)
+type i64_2D = ArrayInterfaces().array_2d_type('* x', '* y', np.int64)
+type f32_2D = ArrayInterfaces().array_2d_type('* x', '* y', np.float32)
+type f32_3D = ArrayInterfaces().array_3d_type(
+    '* x', '* y', '* z', np.float32)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, Type
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, field_validator, Field, model_validator
 
 from snngine_v4.utils.field_utils import (
     b_annotation_includes_type, extract_basemodel_from_iterable_annotation,
@@ -23,7 +23,7 @@ from snngine_v4.utils.settings.xml_converter_options import XMLConverterOptions
 class XMLSettingsModel(XMLSettingsModelBase):
 
     # NOTE: BaseModelSlots.CLASS_NAME
-    class__name: str = ''
+    class__name: str = Field(default='', repr=False)
     # NOTE: BaseModelSlots.EXTRA_CLASSES
     EXTRA_CLASSES: ClassVar[list[Type[BaseModel]] | None] = None
 
@@ -41,12 +41,6 @@ class XMLSettingsModel(XMLSettingsModelBase):
         elif v != cls.__name__:
             raise AssertionError
         return v
-
-    # @computed_field()
-    # @property
-    # def model__class__name(self) -> str:
-    #     self.class__name = self.__class__.__name__
-    #     return self.__class__.__name__
 
     @classmethod
     def model_interpret_basemodel_iterable(

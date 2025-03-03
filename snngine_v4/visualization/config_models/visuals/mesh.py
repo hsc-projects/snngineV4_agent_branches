@@ -1,7 +1,8 @@
-from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.visualization.config_models.visuals.parameters import \
     RGBAColorType
+from snngine_v4.visualization.config_models.visuals.visual_config import \
+    VisualConfig
 
 
-class MeshVisualConfig(XMLSettingsModel):
+class MeshVisualConfig(VisualConfig):
     color: RGBAColorType

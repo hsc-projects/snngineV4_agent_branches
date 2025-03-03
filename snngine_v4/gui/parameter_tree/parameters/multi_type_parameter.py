@@ -110,6 +110,8 @@ class MultiTypeParameter(EngineGroupParameter):
 
         built_pars = []
 
+        b_default_set = False
+
         for t in self.data_types:
             from snngine_v4.gui.parameter_tree.parameter_builder \
                 .parameter_builder import ParameterBuilder
@@ -148,6 +150,7 @@ class MultiTypeParameter(EngineGroupParameter):
                 #                     and (value_ == value)))
                 if b_is_default:
                     self.type_parameter.setDefault(p.name())
+                    b_default_set = True
 
                 p.hide()
         if len(self.data_types) > 0:
@@ -156,9 +159,12 @@ class MultiTypeParameter(EngineGroupParameter):
                     c.connect_sigValueChanged()
                 c.sigValueChanged.connect(self.valueChanged)
             # self.type_parameter.sigValueChanged.connect(self.valueChanged)
+        if b_default_set is True:
+            self.type_parameter.setToDefault()
+            self.onTypeChange(self.type_parameter, self.type_parameter.value())
+        else:
+            pass
 
-        self.type_parameter.setToDefault()
-        self.onTypeChange(self.type_parameter, self.type_parameter.value())
         return built_pars
 
     @property

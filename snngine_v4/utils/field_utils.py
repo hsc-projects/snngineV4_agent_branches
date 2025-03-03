@@ -15,11 +15,10 @@ from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 from pydantic.types import AnyType
 from pydantic_core import PydanticUndefined
-from sympy.codegen.fnodes import ubound
 from typing_extensions import TypeAliasType
 
 from .core_utils import type_assertion
-from .interval_utils import make_interval
+from snngine_v4.utils.data_utils.interval_utils import make_interval
 
 
 type AnnotationType = (FieldInfo | GenericAlias | UnionType

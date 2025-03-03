@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 from pyqtgraph import SpinBox
 from qtpy import QtCore, QtWidgets
-from torchvision.transforms.v2.functional import invert
 
 from snngine_v4.gui.parameter_tree.parameters.widgets.clickable_label import (
     ClickableLabel,
@@ -10,7 +9,7 @@ from snngine_v4.gui.parameter_tree.parameters.widgets.clickable_label import (
 from snngine_v4.gui.parameter_tree.parameters.widgets.custom_spin_box import \
     CustomSpinBox
 from snngine_v4.utils.core_utils import IntervalClosedType
-from snngine_v4.utils.interval_utils import (
+from snngine_v4.utils.data_utils.interval_utils import (
     linspace_from_interval,
     restricted_linspace_interval,
 )

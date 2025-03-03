@@ -3,8 +3,8 @@ from functools import cached_property
 import numpy as np
 import torch
 
-from snngine_v4.utils.data.validation.array_annotation import ArrayInterfaces
-from snngine_v4.utils.data.validation.np_interface import TypedNumpyInterface
+from snngine_v4.utils.data_utils.validation.array_annotation import ArrayInterfaces
+from snngine_v4.utils.data_utils.validation.np_interface import TypedNumpyInterface
 from snngine_v4.visualization.cuda.gl_interop.gl_buffer import GLBuffer
 
 

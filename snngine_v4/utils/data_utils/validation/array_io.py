@@ -5,8 +5,9 @@ from pathlib import Path
 import numpy as np
 from pydantic import BaseModel
 
-from snngine_v4.utils.data.deepdish_pack import deepdish
-from snngine_v4.utils.data.validation.np_interface import ExtendedNumpyJsonDict
+from snngine_v4.utils.data_utils.deepdish_pack import deepdish
+from snngine_v4.utils.data_utils.validation.np_interface \
+    import ExtendedNumpyJsonDict
 from snngine_v4.utils.field_utils import model_keys
 from snngine_v4.utils.settings.settings_keywords import BaseModelSlots
 

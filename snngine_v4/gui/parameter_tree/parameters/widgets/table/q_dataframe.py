@@ -10,12 +10,13 @@ from pydantic_core import PydanticUndefined
 from pyqtgraph.widgets.TableWidget import TableWidgetItem
 from qtpy import QtCore, QtSql, QtWidgets
 
-from snngine_v4.utils.data.validation.np_interface import TypedNumpyInterface
+from snngine_v4.utils.data_utils.validation.np_interface \
+    import TypedNumpyInterface
 
 
 class DataChangeType(IntEnum):
 
-    UNKOWN = 0
+    UNKNOWN = 0
     ROW_ADDED = auto()
     COLUMN_ADDED = auto()
     CELL_UPDATED = auto()
@@ -28,6 +29,7 @@ class QDataFrame(QtSql.QSqlTableModel):
     sigChanged = QtCore.Signal(object, int, object)
 
     sigColumnNamesChanged = QtCore.Signal(object)
+    sigIndexNamesChanged = QtCore.Signal(object)
 
     BLOCK_SIGNAL_ROLE: ClassVar[int] = -1
 
@@ -35,6 +37,7 @@ class QDataFrame(QtSql.QSqlTableModel):
                  validator, value, default_value=PydanticUndefined,
                  readonly=False,
                  column_names=None,
+                 index_names=None,
                  parent=None):
 
         super().__init__(parent)
@@ -44,6 +47,7 @@ class QDataFrame(QtSql.QSqlTableModel):
         self.readonly = readonly
         self.validator = validator
         self._column_names = column_names
+        self._index_names = index_names
 
         if default_value == PydanticUndefined:
             default_value = value
@@ -55,33 +59,59 @@ class QDataFrame(QtSql.QSqlTableModel):
         # if value is not None:
         self.setValue(value)
 
-    def addRow(self, vals=PydanticUndefined):
-        if vals == PydanticUndefined:
-            vals = self.default_value
-        new_df = pd.DataFrame(
-            dtype=self.validator.dtype,
-            columns=self.df.columns,
-            index=pd.RangeIndex(len(self.df) + 1))
-        new_df.loc[: len(self.df.index)] = self.df
-        new_df.loc[len(self.df.index), :] = vals
+    def addRow(self, value=PydanticUndefined):
+        if value == PydanticUndefined:
+            value = 0
+
+        if isinstance(self.df.index[-1], str):
+            new_last_idx = f"new_{len(self.df)}"
+            new_index = list(self.df.index) + [new_last_idx]
+            if self._index_names is not None:
+                self._index_names = new_index
+        elif isinstance(self.df.index[-1], int):
+            new_last_idx = len(self.df)
+            if not isinstance(self.df.index, pd.RangeIndex):
+                raise NotImplementedError
+            new_index = pd.RangeIndex(len(self.df) + 1)
+
+        else:
+            raise NotImplementedError
+
+        if new_last_idx in self.df.index:
+            raise NotImplementedError
+
+        new_df = pd.DataFrame(data=0,
+                              dtype=self.validator.dtype,
+                              columns=self.df.columns,
+                              index=new_index)
+
+        new_df.iloc[: len(self.df.index), :] = self.df
+        new_df.iloc[len(self.df.index), :] = value
+
         self.setData(value=new_df, role=DataChangeType.ROW_ADDED)
 
-    def addColumn(self, vals=PydanticUndefined, dtype=None):
-        if vals == PydanticUndefined:
-            vals = self.default_value
+        if self._index_names is not None:
+            self.sigIndexNamesChanged.emit(self._index_names)
 
+    def addColumn(self, value=PydanticUndefined, dtype=None):
         if (dtype is None) and isinstance(self.validator, NumpyInterface):
             dtype = self.validator.dtype
-            vals = dtype(vals)
+        else:
+            dtype = self.df.values[:, -1].dtype
+
+        new_values = np.zeros(len(self.df), dtype=dtype)
+        if value != PydanticUndefined:
+            new_values[:] = value
+
         new_col = len(self.df.columns)
         if new_col in self.df.columns:
             init_new_col = new_col
             i = 2
             while new_col in self.df.columns:
                 new_col = f"f{init_new_col} ({i})"
-        new_df = deepcopy(self.df)
-        new_df[new_col] = vals
-        self.setData(value=new_df, role=DataChangeType.COLUMN_ADDED)
+        # new_df = deepcopy(self.df)
+        self.df[new_col] = new_values
+        self.setData(value=self.df, role=DataChangeType.COLUMN_ADDED)
 
     def appendData(self, data: pd.DataFrame, b_block_signal: bool = False):
         if len(data.shape) == 1:
@@ -121,6 +151,15 @@ class QDataFrame(QtSql.QSqlTableModel):
         self.sigColumnNamesChanged.emit(self._column_names)
 
     @property
+    def index_names(self):
+        return self._index_names
+
+    @index_names.setter
+    def index_names(self, value):
+        self._index_names = value
+        self.sigIndexNamesChanged.emit(self._index_names)
+
+    @property
     def df(self):
         return self._df
 
@@ -132,6 +171,8 @@ class QDataFrame(QtSql.QSqlTableModel):
         self._df = deepcopy(value)
         if self.column_names is not None:
             self._df.columns = self.column_names
+        if self.index_names is not None:
+            self._df.index = self.index_names
 
     def insertRecord(self, row, record):
         new_df = pd.DataFrame(index=pd.RangeIndex(len(self.df) + 1),

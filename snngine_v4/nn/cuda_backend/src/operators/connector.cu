@@ -236,6 +236,7 @@ __device__ int random_uniform_int_with_exclusion(
                    n, s, 0.f, maxf0, minf, maxf, autapse_idx, new_sink);
         }
     }
+    return new_sink;
 }
 
 

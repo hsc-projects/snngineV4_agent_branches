@@ -33,7 +33,7 @@ class NodeTree(Object2ObjectMap):
 
     container_conf: NodeTreeConfig
     _container_conf: NodeTreeConfig
-    # __getitem__: Callable[[Any], TreeNode]
+    __getitem__: Callable[[Any], TreeNode]
 
     def __init__(self, root=None, free_nodes_config=None,
                  container_conf: NodeTreeConfig | None = None, **kwargs):
@@ -64,6 +64,10 @@ class NodeTree(Object2ObjectMap):
                 raise AssertionError
             # print('append', key.__class__.__name__, id(key))
             self.free_elements.append(key)
+        elif value.parent_node is None:
+            self.free_elements.append(key)
+        # else:
+        self.b_is_free(key)
 
     # noinspection PyPep8Naming
     @property
@@ -119,7 +123,7 @@ class NodeTree(Object2ObjectMap):
 
     def b_is_free(self, element):
         res = self.parent(element) is None
-        if res and element not in self.free_elements:
+        if (res is True) and (element not in self.free_elements):
             raise RuntimeError
         return res
 
@@ -228,8 +232,7 @@ class Object2NodeTreeMap(Object2ObjectMap):
         allowed_types: Type = NodeTree
         b_duplicates_allowed: bool = True
 
-    # ContainerConfigClass: ClassVar = NodeTreeMapConfig
-    __getitem__: Callable[[Any], NodeTree]
+    __getitem__: Callable[..., NodeTree]
 
 
 class ModelTree(NodeTree):
@@ -254,15 +257,12 @@ class ModelTree(NodeTree):
                 if ((b_exists := (item in self))
                         and self.b_is_free(item)):
                     self.set_parent(item, lst)
-                    # raise RuntimeError
                 elif b_exists and (self.parent(item) is not lst):
                     raise RuntimeError
-                    # self.set_parent(item, model)
                 elif b_exists and (b_ignore_existing
                                    or (self.parent(item) is lst)):
                     pass
                 else:
-                    # print(id(item))
                     self.add_element(item, parent=lst)
 
     def read_model(self, model, b_ignore_existing=False):
@@ -275,10 +275,13 @@ class ModelTree(NodeTree):
                                     and (self.parent(v) is model))):
                     pass
                 elif b_exists:
-                    raise RuntimeError
+                    if id(getattr(self.parent(model), k)) == id(v):
+                        pass
+                    else:
+                        raise RuntimeError
+                    raise RuntimeError('Duplicated Node')
                 else:
                     self.add_element(v, parent=model)
             elif isinstance(v, list):
                 self.read_list(v, b_ignore_existing=b_ignore_existing,
                                parent=model)
-

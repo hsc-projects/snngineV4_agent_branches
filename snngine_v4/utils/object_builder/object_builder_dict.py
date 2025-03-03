@@ -8,15 +8,30 @@ from pydantic import BaseModel
 from snngine_v4.utils.containers.mappings import (
     Model2ObjectMap, Int2ObjectMapConfig,
 )
-from snngine_v4.utils.object_builder.object_builder import ModelObjectBuilder
+from snngine_v4.utils.core_utils import type_assertion
+from snngine_v4.utils.object_builder.object_builder import (
+    ContainerBuildResult,
+    ModelObjectBuilder,
+)
 
 
 class BuilderDict(Model2ObjectMap, ModelObjectBuilder):
 
-    def add_from_model(self: dict[str, object] | BuilderDict,
-                       model, **kwargs):
-        build_result = self.cls_build(model=model, **kwargs)
-        self[model] = build_result.built
+    def __init__(self, model_container=None, build_kwargs=None, **kwargs):
+        super().__init__(**kwargs)
+        if model_container is not None:
+            if build_kwargs is not None:
+                build_res = self.cls_build_container(
+                    model_container=model_container, **build_kwargs)
+                self.update(build_res)
+            else:
+                self.update(model_container)
+
+    def add_build(self: dict[BaseModel, object] | BuilderDict,
+                  model, **kwargs):
+        build_result = self.cls_build_obj(model=model, **kwargs).built
+        self[model] = build_result
+        return build_result
 
     @classmethod
     def cls_make_container_conf(
@@ -52,7 +67,10 @@ class BuilderDict(Model2ObjectMap, ModelObjectBuilder):
                                 b_assert_key_exists=b_assert_key_exists)
 
     def update(self, m=None, **kwargs) -> None:
-        if isinstance(m, BaseModel):
-            build = self.cls_build_container(model_container=m)
-            m = build.object_dict
+        type_assertion(m, (BaseModel, list, NoneType, Model2ObjectMap,
+                           ContainerBuildResult))
+        if isinstance(m, (BaseModel, list)):
+            m = self.cls_build_container(model_container=m).object_dict
+        if isinstance(m, ContainerBuildResult):
+            m = m.object_dict
         super().update(m, **kwargs)

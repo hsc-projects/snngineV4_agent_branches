@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from enum import IntEnum, unique
 from functools import cached_property
-from typing import Any, Callable, Type
+from typing import Any, Callable, ClassVar, Type
 
 from pydantic import BaseModel, computed_field, Field
 from qtpy import QtCore
@@ -12,6 +12,8 @@ from snngine_v4.utils.containers.configurable_dict import (
     CallableKeyDict, ConfigurableDict,
     DictContainerConfig,
 )
+from snngine_v4.utils.containers.configurable_list import ConfigurableList
+from snngine_v4.utils.containers.mappings import Object2ObjectMap
 from snngine_v4.utils.containers.super_maps import TypeSortedMap
 
 
@@ -99,9 +101,9 @@ class ObjectSignal(BaseModel,
         if self.is_connected[func] is value:
             if b_raise is True:
                 if value:
-                    raise RuntimeError('already connected')
+                    raise RuntimeError(f"already connected {id(func)}")
                 else:
-                    raise RuntimeError('already disconnected')
+                    raise RuntimeError(f"already disconnected {id(func)}")
         else:
             self._set_connect(func=func, value=value)
             self.is_connected[func] = value
@@ -118,6 +120,7 @@ class Object2ObjectLink(ConfigurableDict):
     def __init__(self, obj0, obj1,
                  key0, key1=None,
                  default_func0=None, default_func1=None,
+                 signal0=None, signal1=None,
                  b_connect: bool = True,
                  data=None, container_conf=None, **kwargs):
         super().__init__(data=data, container_conf=container_conf)
@@ -135,9 +138,9 @@ class Object2ObjectLink(ConfigurableDict):
                     *args_, link_type=LinkStateType.SINK2SOURCE, **kwargs_)
 
         self.setup(LinkStateType.SOURCE2SINK, obj=obj0, key=key0,
-                   default_func=default_func0, **kwargs)
+                   default_func=default_func0, signal=signal0, **kwargs)
         self.setup(LinkStateType.SINK2SOURCE, obj=obj1, key=key1,
-                   default_func=default_func1, **kwargs)
+                   default_func=default_func1, signal=signal1, **kwargs)
         if b_connect is True:
             self[LinkStateType.SOURCE2SINK].set_connect(value=True)
             self[LinkStateType.SINK2SOURCE].set_connect(value=True)
@@ -147,8 +150,10 @@ class Object2ObjectLink(ConfigurableDict):
             v.clear(b_force=self.container_conf.b_clear_allowed or b_force)
         super().clear(b_force=b_force)
 
-    def setup(self, link_type: LinkStateType, obj, key, **kwargs):
-        self[link_type] = ObjectSignal.from_key(key=key, obj=obj, **kwargs)
+    def setup(self, link_type: LinkStateType, obj, key, signal=None, **kwargs):
+        if signal is None:
+            signal = ObjectSignal.from_key(key=key, obj=obj, **kwargs)
+        self[link_type] = signal
 
     @property
     def source(self):
@@ -178,13 +183,18 @@ class Object2ObjectLink(ConfigurableDict):
 class Object2ObjectLinks(TypeSortedMap):
 
     sub_maps: tuple = ((str, Object2ObjectLink),
-                       (Object2ObjectLink, str),
-                       )
+                       (Object2ObjectLink, str),)
 
-    def __init__(self, source=None, sink=None, **kwargs):
+    REGISTERED_IDS: ClassVar[ConfigurableList] = ConfigurableList()
+
+    def __init__(self, source=None, sink=None, ext_obj_attr_map=None,
+                 allowed_keys=None,
+                 **kwargs):
         super().__init__(**kwargs)
         self.source = source
         self.sink = sink
+        self.ext_obj_attr_map: Object2ObjectMap | None = ext_obj_attr_map
+        self.allowed_keys = allowed_keys
 
     def clear(self, b_force: bool = False):
 
@@ -197,31 +207,64 @@ class Object2ObjectLinks(TypeSortedMap):
             self, link_type: LinkStateType) -> dict[str, Object2ObjectLink]:
         match link_type:
             case LinkStateType.SOURCE2SINK:
-                return self[str]
+                if self.ext_obj_attr_map is None:
+                    return self[str]
+                else:
+                    return self.ext_obj_attr_map
             case LinkStateType.SINK2SOURCE:
                 return self[ObjectSignal].inv
 
+    # @staticmethod
+    # def set_object_attribute(self_, key, value, ):
+    #     try:
+    #         object.__setattr__(self_, key, value)
+    #         # setattr(self_, key, value)
+    #         if self_.__setattr__ != set_attr:
+    #             # self_.__setattr__ = set_attr
+    #             raise AssertionError
+    #         try:
+    #             link_map[key][LinkStateType.SOURCE2SINK].emit(value)
+    #         except KeyError:
+    #             pass
+    #     except debug_catch as error:
+    #         raise error
+
     def prepare_object(self, obj, link_type: LinkStateType,
+                       b_allow_new: bool = False,
                        debug_catch=BaseException):
 
         link_map = self.get_sub_map_by_type(link_type)
 
         def set_attr(self_, key, value):
+
+            if (b_allow_new is False) and (not hasattr(self_, key)):
+                raise KeyError(key)
+
             try:
-                object.__setattr__(self_, key, value)
-                # setattr(self_, key, value)
+                # skip validation for BaseModels
+                # object.__setattr__(self_, key, value)
+                setattr(self_, key, value)
                 if self_.__setattr__ != set_attr:
                     # self_.__setattr__ = set_attr
                     raise AssertionError
                 try:
                     link_map[key][LinkStateType.SOURCE2SINK].emit(value)
                 except KeyError:
-                    raise
+                    pass
             except debug_catch as error:
                 raise error
         # TODO:
+        if type(obj.__setattr__).__name__ != 'method':
+            if self.ext_obj_attr_map is None:
+                raise AssertionError
+        # self.__class__.REGISTERED_IDS.append(id(obj))
+
         obj.__setattr__ = set_attr
         return
+
+    # def add_attribute(self, key0, key1=None):
+    #     self[key0] = Object2ObjectLink(
+    #         key0=key0, key1=key1, obj0=self.source, obj1=self.sink)
 
     def __setitem__(self, key, link: Object2ObjectLink):
         if key != link.source_key:

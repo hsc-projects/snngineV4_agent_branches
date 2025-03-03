@@ -25,16 +25,21 @@ class ObjectParameterLink(Object2ObjectLink):
     source: BaseModel
     sink: Parameter
 
-    def __init__(self, key, obj=None, parameter=None):
-        super().__init__(obj0=obj, obj1=parameter, key0=key)
+    def __init__(self, key, obj=None, parameter=None,
+                 signal0=None, signal1=None,):
+        super().__init__(obj0=obj, obj1=parameter, key0=key,
+                         signal0=signal0, signal1=signal1,)
 
-    def setup(self, link_type: LinkStateType, obj, key, **kwargs):
+    def setup(self, link_type: LinkStateType, obj, key, signal=None, **kwargs):
         if link_type == LinkStateType.SOURCE2SINK:
-            super().setup(link_type=link_type, key=key, obj=obj, **kwargs)
+            super().setup(link_type=link_type, key=key, obj=obj,
+                          signal=signal, **kwargs)
         else:
-            self[link_type] = ObjectSignal(
-                key=key,
-                signal=self.get_parameter_signal(obj), obj=obj, **kwargs)
+            if signal is None:
+                signal = ObjectSignal(
+                    key=key,
+                    signal=self.get_parameter_signal(obj), obj=obj, **kwargs)
+            self[link_type] = signal
 
     def _default_call(self, *args, link_type: LinkStateType, **kwargs):
         match link_type:
@@ -54,6 +59,7 @@ class ObjectParameterLink(Object2ObjectLink):
                     pass
                 try:
                     # noinspection PyArgumentList
+                    # setattr(self.source, self.source_key, value)
                     self.source.__setattr__(self.source, self.source_key, value)
                 # except TypeError as err:
                 #     if '__setattr__' in self.source.model_extra:
@@ -108,11 +114,15 @@ class ModelParameterLinks(Object2ObjectLinks):
                           | dict[str, ObjectParameterLink]
                           | ObjectParameterLink | Parameter]
 
-    def __init__(self, model, group_param=None, **kwargs):
+    def __init__(self, model, group_param=None, ext_obj_attr_map=None,
+                 allowed_keys=None,
+                 **kwargs):
         self.data: dict[int | BaseModel, Parameter] | None = None
         self.source: BaseModel | None = None
         self.sink: GroupParameter | None = None
-        super().__init__(source=model, sink=group_param, **kwargs)
+        super().__init__(source=model, sink=group_param,
+                         allowed_keys=allowed_keys,
+                         ext_obj_attr_map=ext_obj_attr_map, **kwargs)
 
         self.prepare_object(
             obj=self.source, link_type=LinkStateType.SOURCE2SINK,
@@ -132,13 +142,33 @@ class ModelParameterLinks(Object2ObjectLinks):
                     self.add_parameter(param=p)
         else:
             key = param.opts.get(ParamOpts.KW.C_MODEL_FIELD_NAME, None)
-            link = ObjectParameterLink(
-                key=key, parameter=param, obj=self.source)
-            self[link] = link.sink
+            if hasattr(self.source, key):
+                if ((self.ext_obj_attr_map is not None)
+                        and (key in self.ext_obj_attr_map)):
+                    signal0 = self.ext_obj_attr_map[key]
+                else:
+                    signal0 = None
+                link = ObjectParameterLink(
+                    key=key, parameter=param,
+                    signal0=signal0,
+                    obj=self.source)
+                self[link] = link.sink
+            elif ((self.allowed_keys is not None)
+                  and (key not in self.allowed_keys)):
+                pass
+            else:
+                raise KeyError(f"{key}")
+
+    # def add_attribute(self, key0, key1=None):
+    #     self[key0] = Object2ObjectLink(
+    #         key0=key0, key1=key1, obj0=self.source, obj1=self.sink)
 
     def parameters(self) -> Iterable[Parameter]:
         return self[ObjectParameterLink].values()
 
     def __setitem__(self, link, parameter):
         TypeSortedMap.__setitem__(self, link, parameter)
-        TypeSortedMap.__setitem__(self, link.source_key, link)
+        if self.ext_obj_attr_map:
+            self.ext_obj_attr_map[link.source_key] = link
+        else:
+            TypeSortedMap.__setitem__(self, link.source_key, link)

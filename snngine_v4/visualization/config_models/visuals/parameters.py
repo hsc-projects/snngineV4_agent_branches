@@ -11,10 +11,10 @@ from pydantic_extra_types.color import Color
 from snngine_v4.geometry.spatial_pars import Ax3D
 
 from snngine_v4.utils.core_utils import ConvertingEnum
-from snngine_v4.utils.data.validation.dtype_annotation import (
+from snngine_v4.utils.data_utils.validation.dtype_annotation import (
     Float32, UInt8,
 )
-from snngine_v4.utils.data.validation.array_annotation import ArrayInterfaces
+from snngine_v4.utils.data_utils.validation.array_annotation import ArrayInterfaces
 from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.utils.settings.xml_settings_base import (

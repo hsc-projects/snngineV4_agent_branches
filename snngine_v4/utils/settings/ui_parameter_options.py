@@ -4,7 +4,6 @@ from enum import Enum
 from typing import Annotated, Any, ClassVar, Type
 
 from pydantic import BeforeValidator, Field, BaseModel
-from pydantic_settings import BaseSettings
 
 
 def c_group_prefixes_validator(
@@ -22,7 +21,7 @@ GroupPrefixesType = Annotated[
     list[str], BeforeValidator(c_group_prefixes_validator)]
 
 
-class ParamOpts(BaseSettings, extra='allow'):
+class ParamOpts(BaseModel, validate_default=True, extra='allow'):
 
     """
     from pyqtgraph.parametertree.Parameter:
@@ -115,6 +114,7 @@ class ParamOpts(BaseSettings, extra='allow'):
         C_COLLAPSED_CHILDREN: ClassVar[str] = 'c_collapsed_children'
 
         C_COLUMN_NAME_S: ClassVar[str] = 'c_column_name_s'
+        C_INDEX_NAME_S: ClassVar[str] = 'c_index_name_s'
         C_GROUP_PREFIXES: ClassVar[str] = 'c_group_prefixes'
         C_MODEL_FIELD_NAME: ClassVar[str] = 'c_model_field_name'
         C_MODEL_FIELD_INFO: ClassVar[str] = 'c_model_field_info'
@@ -225,6 +225,10 @@ class ParamOpts(BaseSettings, extra='allow'):
         return len(self.keys())
 
     def model_dump(self, **kwargs):
+        try:
+            super().model_dump(include=self.keys(), **kwargs)
+        except UserWarning:
+            pass
         return super().model_dump(include=self.keys(), **kwargs)
 
     def __setitem__(self, key, value):

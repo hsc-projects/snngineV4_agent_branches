@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum
+from copy import copy, deepcopy
 from types import GenericAlias, UnionType
 from typing import (
     get_args, get_origin,
@@ -12,6 +12,7 @@ from typing import (
 from pydantic import BaseModel
 
 from pyqtgraph.parametertree import Parameter
+from pyqtgraph.parametertree.Parameter import PARAM_TYPES
 from pyqtgraph.parametertree.parameterTypes import (
     GroupParameter,
 )
@@ -27,7 +28,7 @@ from snngine_v4.gui.parameter_tree.parameters.reference_parameter import \
     ReferenceParameter
 from snngine_v4.utils.field_utils import (
     b_is_annotated, b_is_optional,
-    extract_annotations_from_annotated_annotation, model_keys,
+    model_keys,
 )
 from snngine_v4.utils.settings.settings_keywords import (
     BaseModelSlots, BaseSettingsSlots,
@@ -94,7 +95,7 @@ class ParameterBuilder:
         return res
 
     @classmethod
-    def make_par(cls, options: ParamOpts, signal_register):
+    def make_par(cls, options: ParamOpts, signal_register, parent_model=None):
 
         parameter_ = None
 
@@ -106,9 +107,17 @@ class ParameterBuilder:
             if isinstance(options.value, dict):
                 options.value = options.c_data_types(**options.value)
 
-            parameter_ = cls.make_pars_from_model(
-                model=options.value, name=options.name,
-                signal_register=signal_register, title=options.title)
+            if options.value.__class__.__name__ not in PARAM_TYPES:
+                parameter_ = cls.make_pars_from_model(
+                    model=options.value, name=options.name,
+                    parent_model=parent_model,
+                    signal_register=signal_register, title=options.title)
+            else:
+                parameter_ = Parameter.create(
+                    model=options.value, name=options.name,
+                    parent_model=parent_model,
+                    type=options.value.__class__.__name__,
+                    signal_register=signal_register, title=options.title)
 
         if parameter_ is None:
             if (isinstance(options.c_data_types, GenericAlias)
@@ -129,31 +138,36 @@ class ParameterBuilder:
 
     @classmethod
     def make_par_from_field(cls, parent_model: BaseModel, key, value,
-                            signal_register,
+                            signal_register, m=None,
                             **options):
+
+        if m is not None:
+            m = deepcopy(m)
+            m.update(options)
+            options = m
+        else:
+            pass
+
         c_data_types = OptionsBuilder.get_parameter_type(
             parent_model, key)
         if key in parent_model.model_fields:
             fi = parent_model.model_fields[key]
             options = OptionsBuilder.from_field(
-                fi=fi, c_data_types=c_data_types,
-                c_model_field_name=key,
+                fi=fi, c_data_types=c_data_types, c_model_field_name=key,
                 value=value, **options)
         else:
             options = OptionsBuilder.from_annotation(
-                ann=c_data_types,
-                c_data_types=c_data_types,
-                c_model_field_name=key,
-                value=value, **options)
+                ann=c_data_types, c_data_types=c_data_types,
+                c_model_field_name=key, value=value, **options)
 
         return cls.make_par(options=options,
-                            signal_register=signal_register)
+                            signal_register=signal_register,
+                            parent_model=parent_model)
 
     @classmethod
     def make_par_from_annotation(
             cls, ann: BaseModel, signal_register, **options):
-        options = OptionsBuilder.from_annotation(
-            ann=ann, **options)
+        options = OptionsBuilder.from_annotation(ann=ann, **options)
         parameter_ = cls.make_par(
             options=options, signal_register=signal_register)
         return parameter_
@@ -233,7 +247,7 @@ class ParameterBuilder:
     @classmethod
     def make_pars_from_model(
             cls, model, signal_register: ExtendedModelSignalsRegister,
-            exclude_keys=None, **options):
+            exclude_keys=None, parent_model=None, **options):
 
         if signal_register is not None:
             if signal_register.node_tree.root is None:
@@ -253,9 +267,11 @@ class ParameterBuilder:
         keys = model_keys(model, exclude=set(exclude_keys),
                           b_include_computed=False)
         for k in keys:
+
+            param_model = getattr(model, k)
             par = cls.make_par_from_field(
                 parent_model=model, key=k,
-                value=getattr(model, k),
+                value=param_model,
                 signal_register=signal_register,
                 **heritable_options)
 
@@ -264,6 +280,7 @@ class ParameterBuilder:
                 n_numeric_children += 1
             children.append(par)
             group.addChild(par)
+
         if ((signal_register is not None)
                 and (BaseSettingsSlots.b_is_frozen(model) is False)):
             if model in signal_register.model2model_map.inv:
@@ -273,7 +290,7 @@ class ParameterBuilder:
                 signal_register[model] = group
 
         for c in group.children():
-            if c.opts[ParamOpts.KW.C_B_COLLECT_EXTRA_CLASSES] is True:
+            if c.opts.get(ParamOpts.KW.C_B_COLLECT_EXTRA_CLASSES) is True:
                 cls.collect_extra_classes(
                     parent_par=group, collector_par=c,
                     signal_register=signal_register)

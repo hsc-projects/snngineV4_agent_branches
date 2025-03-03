@@ -33,9 +33,9 @@ class EngineParameterTree(ParameterTree):
 
         self._settings_model = model
         self.signal_register = signal_register or ExtendedModelSignalsRegister()
+        self.parameters = None
         if model is not None:
-            self.parameters = self.add_parameters_from_model(
-                self._settings_model)
+            self.set_parameters_from_model(model=self._settings_model)
 
         self._dock_widget = None
 
@@ -75,6 +75,7 @@ class EngineParameterTree(ParameterTree):
 
     def clear(self):
         super().clear()
+        self.parameters = None
         self._settings_model = None
         self.signal_register.clear()
 
@@ -107,6 +108,9 @@ class EngineParameterTree(ParameterTree):
         if self._dock_widget is not None:
             raise AttributeError("dock_widget already set")
         self._dock_widget = value
+
+    def set_parameters_from_model(self, model, **kwargs):
+        self.parameters = self.add_parameters_from_model(model=model, **kwargs)
 
     @property
     def settings_model(self):

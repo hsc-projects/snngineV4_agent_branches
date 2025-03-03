@@ -1,24 +1,25 @@
 from __future__ import annotations
 
-from enum import auto, IntEnum, unique
-from typing import Callable, TYPE_CHECKING
+from enum import auto, IntEnum
+from typing import Callable, Iterable, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 from pyqtgraph import TableWidget
+from pyqtgraph.widgets.TableWidget import TableWidgetItem
 from qtpy import QtWidgets, QtCore
 
 from snngine_v4.gui.common.qobject_dicts import QObjectDictSignals, QWidgetDict
 from snngine_v4.gui.parameter_tree.parameters.widgets.custom_spin_box import \
     CustomSpinBox
 
-from snngine_v4.gui.parameter_tree.parameters.widgets.q_dataframe import \
+from snngine_v4.gui.parameter_tree.parameters.widgets.table.q_dataframe import \
     QDataFrame
 
 from snngine_v4.gui.windows.main_window_base import MainEngineWindowBase
 
 if TYPE_CHECKING:
-    from snngine_v4.gui.parameter_tree.parameters.widgets.array_editor import (
+    from snngine_v4.gui.parameter_tree.parameters.widgets.table.array_editor import (
         ArrayEditorArea,
     )
 
@@ -52,6 +53,10 @@ class QDataFrameUIWidgets(QWidgetDict):
         MIN_ROW = auto()
         MAX_ROW = auto()
 
+        COL_LABEL = auto()
+        MIN_COL = auto()
+        MAX_COL = auto()
+
     __getitem__: Callable[[], QtWidgets.QPushButton | IndexSpinBox]
 
     def __init__(self, qdf: QDataFrame,
@@ -65,6 +70,7 @@ class QDataFrameUIWidgets(QWidgetDict):
         emitter = UIEmitter(parent=None)
         super().__init__(emitter=emitter)
         self.sigRowRangeChanged = self.emitter.sigRowRangeChanged
+        self.sigColRangeChanged = self.emitter.sigColRangeChanged
 
         self._widget = QtWidgets.QWidget()
         self._widget.setLayout(QtWidgets.QGridLayout())
@@ -86,6 +92,10 @@ class QDataFrameUIWidgets(QWidgetDict):
         self[self.WidgetID.MIN_ROW] = IndexSpinBox(value=0)
         self[self.WidgetID.MAX_ROW] = IndexSpinBox(value=100)
 
+        self[self.WidgetID.COL_LABEL] = QtWidgets.QLabel('Columns')
+        self[self.WidgetID.MIN_COL] = IndexSpinBox(value=0)
+        self[self.WidgetID.MAX_COL] = IndexSpinBox(value=8)
+
         self._connected = False
         if b_connect is True:
             self.connect_widgets()
@@ -100,7 +110,7 @@ class QDataFrameUIWidgets(QWidgetDict):
     def addRowClicked(self):
         self.qdf.addRow()
         self.updateTableWidgets()
-    
+
     def connect_widgets(self):
         if self._connected is True:
             raise RuntimeError
@@ -116,22 +126,34 @@ class QDataFrameUIWidgets(QWidgetDict):
             self.rowRangeUpdated)
         self.rowRangeUpdated(self[self.WidgetID.MIN_ROW])
         self.rowRangeUpdated(self[self.WidgetID.MAX_ROW])
+
+        self[self.WidgetID.MIN_COL].sigValueChanged.connect(
+            self.colRangeUpdated)
+        self[self.WidgetID.MAX_COL].sigValueChanged.connect(
+            self.colRangeUpdated)
+        self.colRangeUpdated(self[self.WidgetID.MIN_COL])
+        self.colRangeUpdated(self[self.WidgetID.MAX_COL])
+
         self.qdf.sigChanged.connect(self.updateTableWidgets)
 
-    def rowRangeUpdated(self, wdg: CustomSpinBox = None):
+    def range_update(self, k_min, k_max, wdg, signal):
         if wdg is not None:
-            if wdg == self[self.WidgetID.MIN_ROW]:
-                self[self.WidgetID.MAX_ROW].setMinimum(
-                    self[self.WidgetID.MIN_ROW].value() + 1,)
-            elif wdg == self[self.WidgetID.MAX_ROW]:
-                self[self.WidgetID.MIN_ROW].setMaximum(
-                    self[self.WidgetID.MAX_ROW].value() - 1,)
+            if wdg == self[k_min]:
+                self[k_max].setMinimum(self[k_min].value(), )
+            elif wdg == self[k_max]:
+                self[k_min].setMaximum(self[k_max].value(), )
             else:
                 raise RuntimeError
+        min_value, max_value = self[k_min].value(), self[k_max].value()
+        signal.emit(min_value, max_value)
 
-        min_row = self[self.WidgetID.MIN_ROW].value()
-        max_row = self[self.WidgetID.MAX_ROW].value()
-        self.sigRowRangeChanged.emit(min_row, max_row)
+    def rowRangeUpdated(self, wdg: CustomSpinBox = None):
+        self.range_update(self.WidgetID.MIN_ROW, self.WidgetID.MAX_ROW, wdg,
+                          self.sigRowRangeChanged)
+
+    def colRangeUpdated(self, wdg: CustomSpinBox = None):
+        self.range_update(self.WidgetID.MIN_COL, self.WidgetID.MAX_COL, wdg,
+                          self.sigColRangeChanged)
 
     def disconnect_widgets(self):
         if self._connected is False:
@@ -172,7 +194,7 @@ class QDataFrameUIWidgets(QWidgetDict):
             if dock_area.count() == 0:
                 editor.close()
 
-    def updateTableWidgets(self):
+    def updateTableWidgets(self, *args, **kwargs):
         shape = self.qdf.as_array().shape
 
         add_row_enabled = (
@@ -198,26 +220,57 @@ class QDataFrameUIWidgets(QWidgetDict):
         return self._widget
         
 
+class CustomTableWidgetItem(TableWidgetItem):
+
+    def textChanged(self):
+
+        if self._blockValueChange:
+            return
+
+        if isinstance(self.value, (bool, np.bool)):
+            if self.text() in ['False', 'false', '0']:
+                self._blockValueChange = True
+                try:
+                    self._text = ''
+                    self.setText(self._text)
+                finally:
+                    self._blockValueChange = False
+
+        super().textChanged()
+        if isinstance(self.value, (bool, np.bool)):
+            self._updateText()
+
+
 # noinspection PyPep8Naming
 class QDataFrameTableWidget(TableWidget):
     sigChanged = None
+
+    # self.itemClass = TableWidgetItem
 
     def __init__(
             self, qdf: QDataFrame, sortable=False, *args, **kwargs):
 
         self.qdf: QDataFrame = qdf
         super().__init__(*args, sortable=sortable, **kwargs)
+        self.itemClass = CustomTableWidgetItem
 
         self.editable = not self.qdf.readonly
 
         self.row_range: pd.Interval = pd.Interval(
             0, 100, closed='both')
 
+        self.col_range: pd.Interval = pd.Interval(
+            0, 6, closed='both')
+
         self.selected_item = None
 
         self.qdf.sigChanged.connect(self.onDataChange)
-        self.qdf.sigColumnNamesChanged.connect(self.setLabels)
+        self.qdf.sigColumnNamesChanged.connect(self.setHorizontalHeaderLabels)
         self.qdf.sigColumnNamesChanged.emit(self.qdf.column_names)
+        self.qdf.sigIndexNamesChanged.connect(self.setVerticalHeaderLabels)
+        if ((self.qdf.index_names is not None)
+                and isinstance(self.qdf.index_names[0], str)):
+            self.qdf.sigIndexNamesChanged.emit(self.qdf.index_names)
         self.itemChanged.connect(self.onItemChange)
 
         self.itemSelectionChanged.connect(self.onItemSelectionChanged)
@@ -227,7 +280,8 @@ class QDataFrameTableWidget(TableWidget):
     def appendData(self, data):
         data = self.applyRange(data)
         super().appendData(data)
-        self.setLabels(self.qdf.column_names)
+        self.setHorizontalHeaderLabels(self.qdf.column_names)
+        self.setVerticalHeaderLabels(self.qdf.index_names)
 
     def applyRange(self, data: np.ndarray):
 
@@ -240,8 +294,19 @@ class QDataFrameTableWidget(TableWidget):
                 min_row = self.row_range.left
                 max_row = self.row_range.right
                 if max_row >= n_rows:
-                    max_row = n_rows
-                return data[min_row:max_row]
+                    max_row = n_rows - 1
+                data = data[min_row:max_row + 1]
+
+                n_cols = data.shape[1]
+                if n_cols <= self.col_range.left:
+                    self.clear()
+                    return
+                else:
+                    min_col = self.col_range.left
+                    max_col = self.col_range.right
+                    if max_col >= n_cols:
+                        max_col = n_cols - 1
+                    data = data[:, min_col:max_col + 1]
         return data
 
     def clear(self):
@@ -257,6 +322,8 @@ class QDataFrameTableWidget(TableWidget):
         if b_connect is True:
             widgets.sigRowRangeChanged.connect(self.setRowRange)
             widgets.rowRangeUpdated()
+            widgets.sigColRangeChanged.connect(self.setColRange)
+            widgets.colRangeUpdated()
 
         return widgets
 
@@ -286,16 +353,33 @@ class QDataFrameTableWidget(TableWidget):
         if item == self.selected_item:
             self.qdf.update_from_item(item)
 
-    def setLabels(self, names):
-        if names:
-            self.setHorizontalHeaderLabels(names)
-            self.horizontalHeadersSet = True
+    def setHorizontalHeaderLabels(self, labels: list | None):
+        if labels and (len(labels) > self.col_range.left):
+            labels = labels[min(self.col_range.left, len(labels) - 1)
+                            : min(self.col_range.right + 1, len(labels))]
+            super().setHorizontalHeaderLabels(labels)
+            # self.horizontalHeadersSet = True
+        else:
+            labels = pd.RangeIndex(
+                self.col_range.left,
+                self.col_range.right + 1).values.astype(str)
+            super().setHorizontalHeaderLabels(labels)
 
-        vert = pd.RangeIndex(
-            self.row_range.left,
-            self.row_range.right).values.astype(str)
+    def setVerticalHeaderLabels(self, labels: list | None):
+        if labels and (len(labels) > self.row_range.left):
+            labels = labels[min(self.row_range.left, len(labels) - 1)
+                            : min(self.row_range.right + 1, len(labels))]
+            super().setVerticalHeaderLabels(labels)
+            # self.verticalHeadersSet = True
+        else:
+            labels = pd.RangeIndex(
+                self.row_range.left,
+                self.row_range.right + 1).values.astype(str)
+            super().setVerticalHeaderLabels(labels)
 
-        self.setVerticalHeaderLabels(vert)
+    def setColRange(self, min_col: int, max_col: int):
+        self.col_range = pd.Interval(min_col, max_col, closed='both')
+        self.onDataChange()
 
     def setRowRange(self, min_row: int, max_row: int):
         self.row_range = pd.Interval(min_row, max_row, closed='both')
@@ -306,5 +390,3 @@ class QDataFrameTableWidget(TableWidget):
 
     def value(self):
         return self.qdf.value()
-
-

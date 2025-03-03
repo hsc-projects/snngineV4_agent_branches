@@ -95,7 +95,7 @@ void fill_N_flags_group_id_and_G_neuron_count_per_type_python(
         N,
         G,
         N_pos,
-        N_pos_shape[0].cast<int>(), N_pos_shape[1].cast<int>(), N_pos_shape[2].cast<int>(),
+        N_pos_shape[0].cast<float>(), N_pos_shape[1].cast<float>(), N_pos_shape[2].cast<float>(),
         N_flags,
         G_neuron_counts,
         G_shape[0].cast<int>(), G_shape[1].cast<int>(), G_shape[2].cast<int>(),

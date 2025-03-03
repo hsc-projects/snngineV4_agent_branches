@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf8"?>
-<dict>
-  <open_gl type="dict" class="OpenGLSettings">
-    <DictItem type="str" key="gloo_target">gl+</DictItem>
-  </open_gl>
-</dict>

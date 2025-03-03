@@ -5,10 +5,10 @@ from typing import Callable, ClassVar
 from pyqtgraph.dockarea import Dock
 from qtpy import QtWidgets
 
-from snngine_v4.gui.parameter_tree.parameters.widgets.df_table_widget import (
+from snngine_v4.gui.parameter_tree.parameters.widgets.table.df_table_widget import (
     QDataFrameTableWidget, QDataFrameUIWidgets,
 )
-from snngine_v4.gui.parameter_tree.parameters.widgets.q_dataframe import \
+from snngine_v4.gui.parameter_tree.parameters.widgets.table.q_dataframe import \
     QDataFrame
 from snngine_v4.utils.containers.mappings import Object2ObjectMap
 

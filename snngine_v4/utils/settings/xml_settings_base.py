@@ -13,8 +13,8 @@ from pydantic_settings.sources import (
 )
 
 from snngine_v4.utils.core_utils import get_intenum_member
-from snngine_v4.utils.data.validation.array_io import ArrayDictRW
-from snngine_v4.utils.data.deepdish_pack import deepdish
+from snngine_v4.utils.data_utils.validation.array_io import ArrayDictRW
+from snngine_v4.utils.data_utils.deepdish_pack import deepdish
 from snngine_v4.utils.field_utils import (
     b_annotation_includes_type,
     b_is_intenum_annotation,
@@ -34,6 +34,7 @@ class ModelDumpTypes(IntEnum):
 
 class XMLSettingsConfigDict(SettingsConfigDict, total=False):
     xml_file: PathType | None
+    env_file: None = None
 
 
 def default_xml_model_config_dict(
@@ -44,6 +45,7 @@ def default_xml_model_config_dict(
     return XMLSettingsConfigDict(
         # protected_namespaces=('model_', ParamOpts.UI_OPTIONS_KEYWORD),
         strict=True,
+        env_file=None,
         use_enum_values=use_enum_values,
         validate_default=True,
         validate_assignment=True,

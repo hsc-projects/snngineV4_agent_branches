@@ -1,6 +1,7 @@
 from pyqtgraph.parametertree import Parameter
 from vispy.visuals import BoxVisual, MarkersVisual
 
+from snngine_v4.geometry.spatial_pars import EnginePos3D
 from snngine_v4.gui.parameter_tree.connectors.model_signals_register import \
     ExtendedModelSignalsRegister
 from snngine_v4.gui.parameter_tree.connectors.vispy_links import \
@@ -14,8 +15,9 @@ from snngine_v4.utils.containers.mappings import (
 )
 from snngine_v4.utils.field_utils import model_keys
 from snngine_v4.visualization.config_models.visuals import MarkersVisualConfig
-from snngine_v4.visualization.config_models.visuals.boxes import \
-    BoxVisualInitConfig
+from snngine_v4.visualization.config_models.visuals.boxes import (
+    BoxVisualInitConfig, OuterGridVisualInitConfig,
+)
 from snngine_v4.visualization.config_models.visuals.parameters import \
     VispyKeyWords
 from snngine_v4.visualization.visual_builder import (
@@ -45,15 +47,13 @@ class VispyConnector(ParameterConnector):
     def connect_object(cls, model, obj,
                        signal_register: ExtendedModelSignalsRegister,
                        model_signals=None):
-        vispy_links = VispyLinks(
-            model, obj, signal_register=signal_register,
-            model_signals=model_signals
-        )
-        return vispy_links
+        return VispyLinks(
+            model=model, vispy_obj=obj, signal_register=signal_register,
+            model_signals=model_signals)
 
     @classmethod
     def cls_connect_tree(cls, tree: EngineParameterTree, scene_manager,
-                         container=None):
+                         container=None, **kwargs):
         sr: ExtendedModelSignalsRegister = tree.signal_register
 
         extra_models = list(sr.model2model_map.values())
@@ -79,7 +79,12 @@ class VispyConnector(ParameterConnector):
                     exclude_keys += [VispyKeyWords.COLOR,
                                      VispyKeyWords.VERTEX_COLORS,
                                      VispyKeyWords.FACE_COLORS,
-                                     VispyKeyWords.EDGE_COLOR]
+                                     VispyKeyWords.EDGE_COLOR,
+                                     EnginePos3D.Slots.POS_ORIGIN]
+                elif isinstance(model, MarkersVisualConfig):
+                    exclude_keys += [VispyKeyWords.POS,
+                                     EnginePos3D.Slots.POS_ORIGIN
+                                     ]
 
                 new_pars = tree.add_parameters_from_model(
                     model=model,
@@ -87,11 +92,15 @@ class VispyConnector(ParameterConnector):
                     name='Visual', signal_register=sr,
                     exclude_keys=exclude_keys
                 )
+
                 new_names = {}
                 visual_conf = sr.get_model(new_pars)
                 vispy_links: VispyLinks = container[visual_conf]
                 if isinstance(model, BoxVisualInitConfig):
-                    new_pars.setName(name=BoxVisual.__name__)
+                    if isinstance(model, OuterGridVisualInitConfig):
+                        new_pars.setName(name='Visual')
+                    else:
+                        new_pars.setName(name=BoxVisual.__name__)
                     sv: Parameter = new_pars.param(
                         VispyVisualBuilder.SUBVISUALS_KW)
 
@@ -102,6 +111,8 @@ class VispyConnector(ParameterConnector):
                             new_names[VispyKeyWords.MESH] = param
                         elif subvisual == vispy_links.sink.border:
                             new_names[VispyKeyWords.BORDER] = param
+                        # elif subvisual == vispy_links.sink.border:
+                        #     new_names[VispyKeyWords.BORDER] = param
                         new_links = VispyLinks(subvisual_model, subvisual,
                                                signal_register=sr)
                 elif isinstance(model, MarkersVisualConfig):

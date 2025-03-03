@@ -7,7 +7,7 @@ from pydantic import Field
 from snngine_v4.nn.config_models.nn_builder_config import \
     NetworkConstructionConfig
 from snngine_v4.nn.config_models.nn_element_config import EngineElementConfig
-from snngine_v4.nn.config_models.nn_reservoir_config import NetworkReservoir
+from snngine_v4.nn.config_models.reservoir.nn_reservoir_config import NetworkReservoirConfig
 from snngine_v4.utils.settings.settings_keywords import BaseSettingsSlots
 from snngine_v4.utils.settings.xml_settings_base import (
     default_xml_model_config_dict,
@@ -16,7 +16,7 @@ from snngine_v4.utils.settings.xml_settings_base import (
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 from snngine_v4.config.app import EngineAppSettings
-from snngine_v4.config.opengl import OpenGLSettings
+from snngine_v4.config.devices import DeviceSettings
 from snngine_v4.config.scenes import SceneSettings
 from snngine_v4.config.construction import (
     EngineConstructionConfig,
@@ -37,15 +37,17 @@ class EngineConfig(XMLSettingsModel):
                      f"{BaseSettingsSlots.XML_FILE_ENDING}"))
 
     app: EngineAppSettings
-    open_gl: OpenGLSettings
-    scenes: SceneSettings
 
+    devices: DeviceSettings
+
+    scenes: SceneSettings
     construction: EngineConstructionConfig = Field(
         default_factory=lambda:  EngineConstructionConfig(
             network=NetworkConstructionConfig(
+                device=1,
                 elements=[EngineElementConfig(),
-                          NetworkReservoir(),
-                          EngineElementConfig(),])))
+                          NetworkReservoirConfig(),
+                          EngineElementConfig(), ])))
 
     current: EngineConstructionConfig
 

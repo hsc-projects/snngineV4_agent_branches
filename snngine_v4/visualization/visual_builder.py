@@ -6,14 +6,16 @@ import numpy as np
 from pydantic import BaseModel
 from vispy.scene import Box, Markers, VisualNode, XYZAxis
 from vispy.util.event import EmitterGroup
-from vispy.visuals import CompoundVisual, MeshVisual, Visual
+from vispy.visuals import CompoundVisual, LineVisual, MeshVisual, Visual
+from vispy.visuals.transforms import NullTransform, STTransform
 
 from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import (
-    AxDir3D, Directions3DBoolPars, FloatShape3D,
+    AxDir3D, Directions3DBoolPars, EnginePos3D, FloatShape3D,
     Segmentation3D,
 )
-from snngine_v4.nn.config_models.nn_reservoir_config import NetworkReservoir
+from snngine_v4.nn.config_models.reservoir.nn_reservoir_config \
+    import NetworkReservoirConfig
 from snngine_v4.utils.containers.configurable_dict import (
     ConfigurableDict,
     DictContainerConfig,
@@ -43,6 +45,9 @@ from snngine_v4.visualization.config_models.visuals.boxes import (
 from snngine_v4.visualization.scenes.setattribute_event import (
     MeshDataChangedEvent, SetAttributeEvent,
 )
+from snngine_v4.visualization.visuals.grid_lines import (
+    FiniteGridLines, FiniteGridLinesVisual, MultiBoxLinesVisual,
+)
 
 
 class EmitterMap(ConfigurableDict):
@@ -59,6 +64,10 @@ class EmitterMap(ConfigurableDict):
 
     def __call__(self, key, value):
         try:
+            if key == 'visible':
+                pass
+            elif key == '_visible':
+                return
             self[key](key=key, value=value)
             return
         except KeyError:
@@ -71,7 +80,16 @@ class EmitterMap(ConfigurableDict):
 
 class VisualMixin:
 
+    SET_DATA_LineVisual_KWS = [VispyKeyWords.COLOR,
+                               VispyKeyWords.POS,
+                               VispyKeyWords.CONNECT,
+                               'width']
+
     SET_DATA_KWS = {
+        LineVisual: SET_DATA_LineVisual_KWS,
+        XYZAxis: SET_DATA_LineVisual_KWS,
+        MultiBoxLinesVisual: SET_DATA_LineVisual_KWS,
+        FiniteGridLines: [],
         Box: [VispyKeyWords.COLOR],
         Markers: [VispyKeyWords.POS,
                   VispyKeyWords.EDGE_COLOR,
@@ -79,15 +97,11 @@ class VisualMixin:
                   VispyKeyWords.SIZE,
                   VispyKeyWords.EDGE_WIDTH,
                   ],
-        XYZAxis: [VispyKeyWords.COLOR,
-                  VispyKeyWords.POS,
-                  VispyKeyWords.CONNECT,
-                  'width'],
         MeshVisual: ['vertices', 'faces',
                      VispyKeyWords.VERTEX_COLORS,
                      VispyKeyWords.FACE_COLORS,
                      'vertex_values',
-                     'meshdata']
+                     'meshdata'],
     }
 
     attr_changed_keys: ClassVar[Set[str]] = set()
@@ -104,6 +118,9 @@ class VisualMixin:
         self.events.mesh_data_changed(instance=self, data=self._meshdata)
 
     def __post_init__(self: VisualMixin | Visual):
+
+        b_verbose = False
+
         self.events.add(
             auto_connect=False,
             attr_changed=SetAttributeEvent)
@@ -120,23 +137,22 @@ class VisualMixin:
         if isinstance(self, CompoundVisual):
             for i, v in enumerate(self._subvisuals):
                 v: Visual
-                if isinstance(v, MeshVisual):
-                    v.events.add(
-                        auto_connect=False,
-                        attr_changed=SetAttributeEvent,
-                        mesh_data_changed=MeshDataChangedEvent)
-                    print('build MeshVisual', id(v))
-                    connect_mesh_data_changed(v)
-                # mesh_data: MeshData = v.mesh_data
-                # new_v: MeshVisual = VisualMixins()
-                # .mix(class_item=v.__class__)(
-                #     vertices=mesh_data.get_vertices(indexed=mesh_data.),
-                #     faces=None, vertex_colors=None,
-                #     face_colors=None, color=(0.5, 0.5, 1, 1),
-                #     vertex_values=None,
-                #     meshdata=None, shading=None, mode='triangles'
-                # )
-                # self.remove_subvisual(v)
+                if isinstance(v, (MeshVisual, LineVisual)):
+                    if isinstance(v, MeshVisual):
+                        v.events.add(
+                            auto_connect=False,
+                            attr_changed=SetAttributeEvent,
+                            mesh_data_changed=MeshDataChangedEvent)
+                        connect_mesh_data_changed(v)
+                    elif isinstance(v, LineVisual):
+                        v.events.add(
+                            auto_connect=False,
+                            attr_changed=SetAttributeEvent,
+                            mesh_data_changed=MeshDataChangedEvent)
+                    if b_verbose:
+                        print('added events:', v.__class__.__name__, id(v))
+                else:
+                    pass
 
 
 class VisualMixins(ClassMixer):
@@ -153,7 +169,7 @@ class VisualMixins(ClassMixer):
                 #     if x not in set_data_kw]
                 attr_changed_keys = model_keys(
                     XYZAxisVisualConfig, exclude=BaseModelSlots.CLASS__NAME)
-            elif class_item == Box:
+            elif class_item in (Box, FiniteGridLines):
                 attr_changed_keys = {'_mesh': ['shading']}
             elif class_item == MeshVisual:
                 attr_changed_keys = ['color']
@@ -164,8 +180,15 @@ class VisualMixins(ClassMixer):
                                exclude=BaseModelSlots.CLASS__NAME))
             else:
                 raise NotImplementedError()
+            if 'visible' not in attr_changed_keys:
+                if not isinstance(attr_changed_keys, dict):
+                    attr_changed_keys += ['visible']
+                else:
+                    attr_changed_keys['visible'] = []
 
             def init(self: VisualMixin | Visual, *args, **kwargs_):
+                visible = kwargs_.pop('visible', True)
+                pos_origin = kwargs_.pop(EnginePos3D.Slots.POS_ORIGIN, True)
                 self.__pre_init__(*args, **kwargs_)
                 class_item.__init__(self, *args, **kwargs_)
                 self.__post_init__()
@@ -181,7 +204,9 @@ class VisualMixins(ClassMixer):
 
             new = super().mix(class_item, name, **kwargs)
 
-            VisualMixin.SET_DATA_KWS[new] = VisualMixin.SET_DATA_KWS[class_item]
+            if class_item in VisualMixin.SET_DATA_KWS:
+                VisualMixin.SET_DATA_KWS[new] = (
+                    VisualMixin.SET_DATA_KWS[class_item])
 
             return new
         else:
@@ -197,17 +222,16 @@ class VispyVisualBuilder(BuilderDict):
     COLOR_KW: ClassVar[str] = 'color'
     SUBVISUALS_KW: ClassVar[str] = 'subvisuals'
 
-    BUILDER_DEFAULT_MODEL_CLASS: ClassVar = None
-    BUILDER_DEFAULT_OBJECT_CLASS: ClassVar = None
     BUILDER_OBJECT_CLASS_MIXER: ClassVar = VisualMixins
 
     BUILDER_OBJECT_CLASS_MAP: ClassVar = {
         BoxVisualInitConfig: Box,
-        FiniteGridConfig: Box,
+        FiniteGridConfig: FiniteGridLines,
         OuterGridVisualInitConfig: Box,
         XYZAxisVisualConfig: XYZAxis,
         MarkersVisualConfig: Markers,
-        NetworkReservoir: Markers,
+        NetworkReservoirConfig: Markers,
+        # LGroupFlags: FiniteGridLines,
     }
 
     @classmethod
@@ -271,27 +295,36 @@ class VispyVisualBuilder(BuilderDict):
                                 exclude={BaseModelSlots.CLASS__NAME})
         if isinstance(model, FiniteGridConfig):
             model = OuterGridVisualInitConfig(**dump)
-        elif isinstance(model, NetworkReservoir):
+        elif isinstance(model, NetworkReservoirConfig):
             model = MarkersVisualConfig(pos=dump['pos'])
         return super().get_model(model=model)
 
     @classmethod
-    def make_object_kwargs(cls, model: BaseModel, **kwargs):
-        object_kwargs = super().make_object_kwargs(model=model)
+    def make_object_kwargs(cls, object_class, model: BaseModel, **kwargs):
+        object_kwargs = super().make_object_kwargs(object_class, model)
         object_kwargs = cls._convert_to_vispy(object_kwargs, model=model)
         object_kwargs.update(**kwargs)
         return object_kwargs
 
     @classmethod
-    def make_object(cls, object_class, model, **object_kwargs):
+    def make_object(cls, object_class, object_model, **object_kwargs):
 
-        opengl_kwargs = cls._pop_opengl_kwargs(dct=object_kwargs, model=model)
+        opengl_kwargs = cls._pop_opengl_kwargs(
+            dct=object_kwargs, model=object_model)
 
-        visual: Visual = super().make_object(
-            object_class=object_class, model=model, **object_kwargs,)
+        visual: VisualNode = super().make_object(
+            object_class=object_class, object_model=object_model,
+            **object_kwargs,)
 
         if len(opengl_kwargs) > 0:
             cls.apply_open_gl_kwargs(visual, opengl_kwargs)
+
+        if isinstance(visual.transform, NullTransform):
+            visual.transform = STTransform(
+                translate=(0, 0, 0), scale=(1, 1, 1))
+            if isinstance(visual, FiniteGridLinesVisual):
+                visual.transform.move(visual.grid.shape / 2)
+                visual.transform.changed()
 
         return visual
 

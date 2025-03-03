@@ -14,7 +14,6 @@ from snngine_v4.utils.containers.configurable_dict import (
 from snngine_v4.utils.containers.configurable_list import (
     ConfigurableList, ConfigurableListConfig,
 )
-from snngine_v4.utils.core_utils import Singleton
 from snngine_v4.utils.field_utils import Undefined
 
 
@@ -73,7 +72,7 @@ class Object2ObjectMap(ConfigurableDict):
                 inv_conf=container_conf)
         elif inv_conf is None:
             inv_conf = inv.container_conf
-            # raise ValueError("inverted_conf has not effect")
+            # raise ValueError("inverted_conf has no effect")
         self.inv = inv
 
         ref_types = inv_conf.allowed_types
@@ -190,7 +189,7 @@ class Object2ObjectMap(ConfigurableDict):
         try:
             return self.data[item]
         except KeyError:
-            raise KeyError(item)
+            raise
 
     def __invert__(self):
         return self.inv

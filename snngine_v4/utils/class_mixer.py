@@ -13,7 +13,7 @@ class ClassMixer(SingletonMap):
 
     def __getitem__(self, class_item):
         try:
-            super().__getitem__(class_item)
+            return super().__getitem__(class_item)
         except KeyError:
             new = self.mix(class_item)
             self.container[class_item] = new
