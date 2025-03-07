@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import UserDict, UserList
 from dataclasses import is_dataclass
 from enum import Enum
+
 from typing import Literal, Union
 
 
@@ -120,6 +121,16 @@ class ConvertingEnum(Enum):
             elif k in mapping:
                 dct[k] = dct.pop(mapping[k])
         return dct
+
+    @classmethod
+    def convert_model(cls, model, mapping=None):
+        if mapping is None:
+            mapping = cls.mapping()
+        res = {}
+        for i, k in enumerate(cls._member_names_):
+            if k in mapping:
+                res[k] = model[mapping[k]]
+        return res
 
 
 class Singleton(type):

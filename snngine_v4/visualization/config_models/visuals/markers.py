@@ -4,7 +4,6 @@ import numpy as np
 from pydantic import Field, NonNegativeFloat
 
 from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
-from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 
 
 from snngine_v4.geometry.spatial_pars import PositionVBO

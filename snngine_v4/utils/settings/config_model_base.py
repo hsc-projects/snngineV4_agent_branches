@@ -153,16 +153,21 @@ class ConfigModelMixin:
 
     @classmethod
     def model_interpret_basemodel_iterable(
-            cls, values, ann=None, allowed_types=None):
+            cls, values, ann=None, allowed_types=None) -> bool:
         if allowed_types is None:
             allowed_types = extract_basemodel_from_iterable_annotation(
                 ann, b_raise=True)
         class_dict = {c.__name__: c for c in allowed_types}
+        res = []
         for i, x in enumerate(values):
             if isinstance(x, dict):
                 new = cls.model_interpret_dict(
                     dct=x, b_raise=True, class_dict=class_dict)
                 values[i] = new
+                res.append(True)
+            else:
+                res.append(False)
+        return bool(all(res))
 
     @classmethod
     def model_interpret_dict(
@@ -220,7 +225,8 @@ class ConfigModelMixin:
 
     @classmethod
     def validate_model_iterable_item(
-            cls: Type[BaseModel], data, key, field_info=None) -> Any:
+            cls: Type[BaseModel] | ConfigModelMixin,
+            data, key, field_info=None) -> bool:
         if field_info is None:
             field_info = cls.model_fields[key]
         ann = field_info.annotation
@@ -230,8 +236,9 @@ class ConfigModelMixin:
             allowed_types = extract_basemodel_from_iterable_annotation(
                 ann=ann, b_raise=False)
             if len(allowed_types) > 0:
-                cls.model_interpret_basemodel_iterable(
+                return cls.model_interpret_basemodel_iterable(
                     values=data[key], allowed_types=allowed_types)
+        return False
 
     @classmethod
     def validate_model_item(

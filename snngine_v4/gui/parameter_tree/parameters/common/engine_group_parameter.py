@@ -5,18 +5,23 @@ from typing import Callable
 from pyqtgraph.parametertree import Parameter, ParameterItem
 from pyqtgraph.parametertree.parameterTypes import (
     GroupParameter,
-    GroupParameterItem, NumericParameterItem, WidgetParameterItem,
+    GroupParameterItem, NumericParameterItem,
 )
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.icons import getEngineGraphIcon
 from snngine_v4.gui.parameter_tree.parameter_builder.options_builder import \
     OptionsBuilder
+from snngine_v4.gui.parameter_tree.parameters.common.action_mixins import (
+    ActionItemMixin, ActionParameterMixin,
+)
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 
 # noinspection PyPep8Naming
-class EngineGroupParameterItem(GroupParameterItem):
+class EngineGroupParameterItem(GroupParameterItem, ActionItemMixin):
+
+    param: EngineGroupParameter
 
     def __init__(self, param, depth):
 
@@ -34,13 +39,14 @@ class EngineGroupParameterItem(GroupParameterItem):
         self.layoutWidget = QtWidgets.QWidget()
         self.layoutWidget.setLayout(layout)
 
-        if param.opts.get(ParamOpts.KW.C_B_GROUP_DEFAULT_BUTTON, False):
+        if param.opts.get(ParamOpts.KW.C_B_GROUP_DEFAULT_BUTTON, False) is True:
             pass
             self.defaultBtn = self.makeDefaultButton()
-            layout.addWidget(self.defaultBtn)
-            param.sigChildAdded.connect(self.updateDefaultBtn)
-            param.sigChildRemoved.connect(self.updateDefaultBtn)
             self.updateDefaultBtn()
+        else:
+            self.defaultBtn = None
+
+        self.add_actions()
 
     def add_engine_slider_parameter_widgets(self, item):
         if ParamOpts.KW.C_NUMERIC_GROUP not in self.param.opts:
@@ -53,18 +59,18 @@ class EngineGroupParameterItem(GroupParameterItem):
 
         if idx == 0:
             w = self.layoutWidget.layout().takeAt(0)
+            if not isinstance(w, QtWidgets.QSpacerItem):
+                raise TypeError
             self.layoutWidget.layout().removeItem(w)
 
         self.layoutWidget.layout().insertWidget(idx * 2, item.widget)
         self.layoutWidget.layout().insertWidget(idx * 2, item.displayLabel)
 
-        item.param.sigValueChanged.connect(self.updateDefaultBtn)
-
         if isinstance(item, SpinBoxSliderParameterItem):
             item.layoutWidget.layout().insertWidget(
                 0, item.slider_layout_widget)
         self._widgets.append(item.widget)
-
+    
     def addChild(self, child):
         super().addChild(child)
         from snngine_v4.gui.parameter_tree.parameters \
@@ -86,12 +92,26 @@ class EngineGroupParameterItem(GroupParameterItem):
             if child.param.opts.get(ParamOpts.KW.EXPANDED, True) != e:
                 child.param.setOpts(expanded=e)
 
+        if self.defaultBtn:
+
+            from snngine_v4.gui.parameter_tree.parameters import IndexParameter
+            if isinstance(self.param, IndexParameter):
+                pass
+
+            child.param.sigValueChanged.connect(self.updateDefaultBtn)
+
+    def apply_clicked(self):
+        self.param.sigApply.emit(self.param)
+
     def defaultClicked(self):
         print(self.layoutWidget.width())
         for i in range(self.childCount()):
             c = self.child(i)
             if isinstance(c, ParameterItem):
                 c.defaultClicked()
+                c.param._modifiedSinceReset = False
+            else:
+                pass
         self.updateDefaultBtn()
 
     def makeDefaultButton(self):
@@ -101,15 +121,30 @@ class EngineGroupParameterItem(GroupParameterItem):
         defaultBtn.setFixedHeight(20)
         defaultBtn.setIcon(getEngineGraphIcon('kamiyamane/default'))
         defaultBtn.clicked.connect(self.defaultClicked)
+        self.layoutWidget.layout().addWidget(defaultBtn)
+        self.param.sigChildAdded.connect(self.updateDefaultBtn)
+        self.param.sigChildRemoved.connect(self.updateDefaultBtn)
+        self.widget_dict['default'] = defaultBtn
         return defaultBtn
 
     def treeWidgetChanged(self):
         super().treeWidgetChanged()
         tree = self.treeWidget()
-        if tree and (ParamOpts.KW.C_NUMERIC_GROUP in self.param.opts):
-            self.setFirstColumnSpanned(False)
-            tree.setItemWidget(self, 1, self.layoutWidget)
+        if tree:
+            if ParamOpts.KW.C_NUMERIC_GROUP in self.param.opts:
+                self.setFirstColumnSpanned(False)
+                tree.setItemWidget(self, 1, self.layoutWidget)
+            elif self.widget_dict.get('apply', None) is not None:
+                self.setFirstColumnSpanned(False)
+                tree.setItemWidget(self, 1, self.layoutWidget)
 
+    # def setFocus(self):
+    #     super().setFocus()
+
+    def selected(self, sel):
+        super().selected(sel)
+        self.param.sigSelected.emit(self, sel)
+    
     def set_sizes(self):
         if self._size_set is False:
             n_widget = len(self._widgets)
@@ -138,22 +173,42 @@ class EngineGroupParameterItem(GroupParameterItem):
                     self.child(i).setExpanded(e)
 
     def updateDefaultBtn(self):
-        enabled = False
+
+        from snngine_v4.gui.parameter_tree.parameters import IndexParameter
+        if isinstance(self.param, IndexParameter):
+            pass
+
         for i in range(self.childCount()):
             c = self.child(i)
-            if isinstance(c, WidgetParameterItem):
-                enabled = c.defaultBtn.isEnabled()
-                if enabled:
-                    break
-        self.defaultBtn.setEnabled(enabled)
+            if c.param.valueModifiedSinceResetToDefault() is True:
+                self.defaultBtn.setEnabled(True)
+                return
+        self.defaultBtn.setEnabled(False)
 
 
 # noinspection PyPep8Naming
-class EngineGroupParameter(GroupParameter):
+class EngineGroupParameter(GroupParameter, ActionParameterMixin):
 
     itemClass = EngineGroupParameterItem
 
     children: Callable[[], list[Parameter]]
+
+    sigApply = QtCore.Signal(object)
+    sigSelected = QtCore.Signal(object, bool)
+
+    def __init__(self, **opts):
+        super().__init__(**opts)
+        if opts.get(ParamOpts.KW.C_B_GROUP_APPLY_BUTTON, False) is True:
+            self.add_apply_action()
+
+    def add_apply_action(self, func=None):
+        if 'apply' not in self.action_map:
+            self.add_action('apply', self.emit_apply, ' Apply ')
+        if func:
+            self.sigApply.connect(func)
+
+    def emit_apply(self):
+        self.sigApply.emit(self)
 
     def connect_sigValueChanged(self, recursive: int = 0):
         for child in self.children():
@@ -183,14 +238,19 @@ class EngineGroupParameter(GroupParameter):
                     c.setOpts(expanded=e)
 
     def setToDefault(self):
-        for param in self.children():
-            param: Parameter
-            param.setToDefault()
+        with self.treeChangeBlocker():
+            for param in self.children():
+                param: Parameter
+                param.setToDefault()
+            self._modifiedSinceReset = False
 
     def value(self):
         return {
             x.name(): x.value() for x in self.children()
         }
 
-    def valueChanged(self, child, value):
-        return self.sigValueChanged.emit(self, self.value())
+    def valueChanged(self, child: Parameter, value):
+        if child.valueModifiedSinceResetToDefault() is True:
+            self._modifiedSinceReset = True
+        value_ = self.value()
+        self.sigValueChanged.emit(self, value_)

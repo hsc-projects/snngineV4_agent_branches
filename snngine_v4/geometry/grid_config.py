@@ -22,8 +22,8 @@ class TechnicalValues(ConfigModel):
 
 class FiniteGridConfig(Object3DConfig):
 
-    pos_origin: EnginePos3D = Field(
-        default_factory=lambda: EnginePos3D.from_tuple((0, 0, 0)))
+    # pos_origin: EnginePos3D = Field(
+    #     default_factory=lambda: EnginePos3D.from_tuple((0, 0, 0)))
 
     parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         expanded=True,
@@ -34,3 +34,8 @@ class FiniteGridConfig(Object3DConfig):
     technical: TechnicalValues
     shape: FloatShape3D
     seg: Segmentation3D
+
+
+if __name__ == '__main__':
+    from pprint import pprint
+    pprint(FiniteGridConfig().model_dump())

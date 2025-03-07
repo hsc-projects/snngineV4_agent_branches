@@ -17,6 +17,12 @@ from snngine_v4.utils.settings.xml_converter.xml_settings_source import (
 
 class XMLSettingsModel(BaseSettings, ConfigModelMixin):
 
+    parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
+        expanded=True,
+        c_auto_collapse=True,
+        c_collapsed_children=True,
+    )
+
     model_config: ClassVar[XMLSettingsConfigDict] = (
         default_xml_model_config_dict(xml_file=None))
 
@@ -47,9 +53,10 @@ class XMLSettingsModel(BaseSettings, ConfigModelMixin):
 
     @classmethod
     def validate_model_item(cls, data, key, field_info=None) -> Any:
-        super().validate_model_iterable_item(
-            data, key, field_info=field_info)
-        super().validate_model_item(data=data, key=key, field_info=field_info)
+        if not super().validate_model_iterable_item(
+                data, key, field_info=field_info):
+            super().validate_model_item(
+                data=data, key=key, field_info=field_info)
 
 
 class XMLSettingsContainerModel(XMLSettingsModel):

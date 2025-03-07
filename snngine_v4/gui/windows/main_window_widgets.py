@@ -1,6 +1,6 @@
 from qtpy import QtCore, QtWidgets
 
-from snngine_v4.gui.common.main_dock_widget import MainDockWidget
+from snngine_v4.gui.common.docks import MainDockWidget
 
 
 class ButtonsDockWidget(MainDockWidget):

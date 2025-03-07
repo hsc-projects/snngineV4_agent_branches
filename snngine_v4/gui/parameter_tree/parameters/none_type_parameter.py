@@ -21,4 +21,12 @@ class NoneTypeParameter(SimpleParameter):
 
     # noinspection PyPep8Naming
     def setValue(self, value, blockSignal=None):
-        return super().setValue(None, blockSignal=None)
+        # type_assertion(value, NoneType)
+        return super().setValue(None, blockSignal=blockSignal)
+
+
+class UndefinedTypeParameter(NoneTypeParameter):
+    # noinspection PyPep8Naming
+    def setValue(self, value, blockSignal=None):
+        # type_assertion(value, NoneType)
+        return super().setValue('OTHER', blockSignal=blockSignal)

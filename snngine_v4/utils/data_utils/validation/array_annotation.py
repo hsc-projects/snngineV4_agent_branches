@@ -17,7 +17,7 @@ from pydantic.fields import FieldInfo
 from typing_extensions import TypeAliasType
 
 from snngine_v4.utils.containers.mappings import (
-    Int2ObjectMapConfig,
+    ObjectMapConfig,
     Object2ObjectMap,
 )
 from snngine_v4.utils.core_utils import Singleton
@@ -33,19 +33,19 @@ from snngine_v4.utils.field_utils import (
 
 class ArrayDtype2ObjectMap(Object2ObjectMap):
 
-    class ContainerConfigClass(Int2ObjectMapConfig, frozen=True,
+    class ContainerConfigClass(ObjectMapConfig, frozen=True,
                                arbitrary_types_allowed=True):
         allowed_types: Type[NDArrayMeta]
         b_get_inv_allowed: bool = True
 
 
 class ArrayDtype2InterfaceMap(ArrayDtype2ObjectMap):
-    class InvertedConfigClass(Int2ObjectMapConfig, frozen=True):
+    class InvertedConfigClass(ObjectMapConfig, frozen=True):
         allowed_types: Type[NumpyInterface]
 
 
 class ArrayDtype2PairMap(ArrayDtype2ObjectMap):
-    class InvertedConfigClass(Int2ObjectMapConfig, frozen=True):
+    class InvertedConfigClass(ObjectMapConfig, frozen=True):
         allowed_types: Type[TypedNumpyInterface]
 
 
@@ -94,24 +94,23 @@ class ArrayInterfaces(metaclass=Singleton):
         return self[self.vbo_array_type(y)]
 
     def vbo_array_type(self, y):
-        return self.array_2d_type(x='* x', y=y, dtype=np.float32)
+        return self.make_type('* x', y, dtype=np.float32)
 
     def ibo_array_type(self, y):
-        return self.array_2d_type(x='* x', y=y, dtype=np.int32)
+        return self.make_type('* x', y, dtype=np.int32)
 
-    def array_2d_type(self, x, y, dtype):
-        shape = Shape[f'{x}, {y}']
+    def make_type(self, *args, dtype):
+        if len(args) == 1:
+            shape = Shape[f'{args[0]}']
+        elif len(args) == 2:
+            shape = Shape[f'{args[0]}, {args[1]}']
+        elif len(args) == 3:
+            shape = Shape[f'{args[0]}, {args[1]}, {args[2]}']
+        else:
+            raise NotImplementedError
         dt = NDArray[shape, dtype]
         if dt not in self.dtype_interface_map.values():
-            v = TypedNumpyInterface(dtype=dtype, shape=shape,)
-            self.dtype_interface_map[v] = v.array_type
-        return dt
-
-    def array_3d_type(self, x, y, z, dtype):
-        shape = Shape[f'{x}, {y}, {z}']
-        dt = NDArray[shape, dtype]
-        if dt not in self.dtype_interface_map.values():
-            v = TypedNumpyInterface(dtype=dtype, shape=shape,)
+            v = TypedNumpyInterface(dtype=dtype, shape=shape, )
             self.dtype_interface_map[v] = v.array_type
         return dt
 
@@ -145,6 +144,8 @@ def b_is_array_annotation(ann: AnnotationType):
         return False
     if isinstance(res, np.ndarray):
         return True
+    if isinstance(res, str):
+        return False
     raise TypeError(f"{res} is not a numpy array")
 
 
@@ -156,12 +157,14 @@ def fill_array_field_default(
     return dct[key]
 
 
-type Bool2D = ArrayInterfaces().array_2d_type('* x', '* y', np.bool)
-type i32_2D = ArrayInterfaces().array_2d_type('* x', '* y', np.int32)
-type i32_3D = ArrayInterfaces().array_3d_type(
-    '* x', '* y', '* z', np.int32)
-type u32_2D = ArrayInterfaces().array_2d_type('* x', '* y', np.uint32)
-type i64_2D = ArrayInterfaces().array_2d_type('* x', '* y', np.int64)
-type f32_2D = ArrayInterfaces().array_2d_type('* x', '* y', np.float32)
-type f32_3D = ArrayInterfaces().array_3d_type(
-    '* x', '* y', '* z', np.float32)
+type Bool2D = ArrayInterfaces().make_type('* x', '* y', dtype=np.bool)
+type i32_2D = ArrayInterfaces().make_type('* x', '* y', dtype=np.int32)
+type i32_3D = ArrayInterfaces().make_type(
+    '* x', '* y', '* z', dtype=np.int32)
+type u32_2D = ArrayInterfaces().make_type('* x', '* y', dtype=np.uint32)
+type i64_1D = ArrayInterfaces().make_type('* x', dtype=np.int64)
+type i64_2D = ArrayInterfaces().make_type('* x', '* y', dtype=np.int64)
+type f32_1D = ArrayInterfaces().make_type('* x', dtype=np.float32)
+type f32_2D = ArrayInterfaces().make_type('* x', '* y', dtype=np.float32)
+type f32_3D = ArrayInterfaces().make_type(
+    '* x', '* y', '* z', dtype=np.float32)

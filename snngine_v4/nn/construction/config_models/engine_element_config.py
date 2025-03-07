@@ -1,0 +1,56 @@
+from typing import ClassVar
+
+from snngine_v4.geometry.spatial_pars import (
+    Object3DConfig
+)
+from snngine_v4.utils.data_utils.dataframe_config import (
+    SeriesBase, TypedDataFrameBase,
+)
+from snngine_v4.utils.settings.config_model import ConfigModel
+
+
+class EngineElementConfig(ConfigModel):
+
+    class Slots:
+        INITIALIZER: ClassVar[str] = 'initializer'
+
+    def elt_dict(self, **kwargs):
+        return self.filtered_model_dict(
+            type_filter=EngineElementConfig, **kwargs)
+
+    @staticmethod
+    def reset_array(model, class_=None, slot=None, n_indices=None, n_cols=None):
+
+        if isinstance(n_indices, tuple) and n_cols is None:
+            if len(n_indices) != 2:
+                raise ValueError('n_indices as shape must have length 2')
+            n_indices = n_indices[0]
+            n_cols = n_indices[1]
+
+        if slot is not None:
+            value = getattr(model, slot)
+        else:
+            value = model
+        if isinstance(value, dict):
+            obj = class_(**value)
+            value[TypedDataFrameBase.Slots.DATA] = obj.zeroes(
+                n_indices=n_indices, n_cols=n_cols, )
+        else:
+            value.data = value.zeroes(n_cols=n_cols, n_indices=n_indices)
+
+    def tdf_dict(self, **kwargs):
+        return self.filtered_model_dict(
+            type_filter=SeriesBase, **kwargs)
+
+    def tdf_values(self, **kwargs):
+        return self.filtered_model_values(
+            type_filter=SeriesBase, **kwargs)
+
+
+class EngineElementConfig3D(EngineElementConfig, Object3DConfig):
+    pass
+
+
+if __name__ == '__main__':
+    from pprint import pprint
+    pprint(EngineElementConfig3D().model_dump())

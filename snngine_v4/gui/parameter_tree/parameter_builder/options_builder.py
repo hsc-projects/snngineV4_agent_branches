@@ -11,14 +11,13 @@ from pydantic import BaseModel
 from pydantic_core import PydanticUndefined
 from pyqtgraph.parametertree.Parameter import PARAM_TYPES
 
-from snngine_v4.utils.data_utils.dataframe_config import TypedDataFrameBase
 from snngine_v4.utils.data_utils.validation.array_annotation import (
     b_is_array_annotation)
 
 from snngine_v4.utils.field_utils import (
     AnnotationType, b_field_has_default,
     b_is_annotated, b_is_int_annotation, b_is_literal_annotation, b_is_optional,
-    b_is_union, interval_from_annotated, interval_from_field,
+    b_is_union, get_field_frozen, interval_from_annotated, interval_from_field,
     extract_literal_values, extract_type_from_annotation,
     get_field_json_schema_extra,
     get_field_multiple_of,
@@ -136,6 +135,8 @@ class OptionsBuilder:
             options.c_value_interval = interval_from_field(fi)
             options.step = get_field_multiple_of(fi)
 
+        options.readonly = get_field_frozen(fi)
+
         return cls.from_annotation(ann=fi.annotation, m=options)
 
     @classmethod
@@ -218,9 +219,21 @@ class OptionsBuilder:
                             options.step = .01
                             options.decimals = 6
 
-            if (options.c_nullable_value and
-                    options.default is None):
-                options.default = np.nan
+            if options.c_nullable_value:
+                if options.value is None:
+                    options.value = np.nan
+                if options.default is None:
+                    options.default = options.value
+            else:
+                if options.value is None:
+                    if 0 in options.c_value_interval:
+                        options.value = 0
+                    else:
+                        options.value = options.c_value_interval.left
+                    if options.default is None:
+                        options.default = options.value
+                if options.value is None:
+                    pass
 
             bounds = limits_from_interval(
                 options.c_value_interval, step_size=options.step)
@@ -238,6 +251,11 @@ class OptionsBuilder:
             options.c_b_group_default_button = True
         if options.expanded is None:
             options.expanded = True
+
+        # if options.c_data_types == ListParameterModel:
+        #     options.limits = options.value.limits
+        #     # options.value = options.value.value
+
         return options
 
     @classmethod

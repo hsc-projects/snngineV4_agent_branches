@@ -5,7 +5,7 @@ from enum import IntEnum, unique
 from functools import cached_property
 from typing import Any, Callable, ClassVar, Type
 
-from pydantic import BaseModel, computed_field, Field
+from pydantic import BaseModel, computed_field, Field, ValidationError
 from qtpy import QtCore
 
 from snngine_v4.utils.containers.configurable_dict import (
@@ -13,7 +13,10 @@ from snngine_v4.utils.containers.configurable_dict import (
     DictContainerConfig,
 )
 from snngine_v4.utils.containers.configurable_list import ConfigurableList
-from snngine_v4.utils.containers.mappings import Object2ObjectMap
+from snngine_v4.utils.containers.mappings import (
+    ObjectMapConfig, Many2OneObjectMap,
+    Many2OneObjectSingleTonMap, Object2ObjectMap,
+)
 from snngine_v4.utils.containers.super_maps import TypeSortedMap
 
 
@@ -112,7 +115,7 @@ class ObjectSignal(BaseModel,
 class Object2ObjectLink(ConfigurableDict):
     ContainerConfigClass = (DictContainerConfig, ObjectSignal, LinkStateType)
 
-    self: dict[LinkStateType, ObjectSignal]
+    self: dict[LinkStateType, ObjectSignal] | Object2ObjectLink
 
     __getitem__: Callable[[], ObjectSignal]
     values: Callable[[], list[ObjectSignal]]
@@ -180,6 +183,28 @@ class Object2ObjectLink(ConfigurableDict):
         self[LinkStateType(not link_type)].set_connect(value=True)
 
 
+class ReplacedSetAttrMap(Many2OneObjectSingleTonMap):
+    class ContainerConfigClass(Many2OneObjectMap.ContainerConfigClass):
+        b_pop_allowed: bool = True
+        allowed_types: Any = Callable
+
+    # class InvertedConfigClass(Int2ObjectMapConfig):
+    #     allowed_types: Any = Callable
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __setitem__(self, obj, func):
+        super().__setitem__(obj, func)
+
+    def reconnect(self, obj, b_pop=True):
+        func = self[obj]
+        name = func.__name__
+        object.__setattr__(obj, name, func)
+        if b_pop is True:
+            self.container.pop(obj)
+
+
 class Object2ObjectLinks(TypeSortedMap):
 
     sub_maps: tuple = ((str, Object2ObjectLink),
@@ -189,15 +214,23 @@ class Object2ObjectLinks(TypeSortedMap):
 
     def __init__(self, source=None, sink=None, ext_obj_attr_map=None,
                  allowed_keys=None,
+                 replaced_method_map=None,
                  **kwargs):
         super().__init__(**kwargs)
+        
         self.source = source
         self.sink = sink
         self.ext_obj_attr_map: Object2ObjectMap | None = ext_obj_attr_map
+        if replaced_method_map is None:
+            # replaced_method_map = Many2OneObjectMap().from_types(type1=Callable)
+            replaced_method_map = ReplacedSetAttrMap()
+        self.replaced_method_map = replaced_method_map
+        
         self.allowed_keys = allowed_keys
 
     def clear(self, b_force: bool = False):
-
+        if self.source in self.replaced_method_map:
+            self.replaced_method_map.reconnect(self.source)
         for link in self[str].values():
             link: Object2ObjectLink
             link.clear(b_force=b_force)
@@ -234,12 +267,11 @@ class Object2ObjectLinks(TypeSortedMap):
                        debug_catch=BaseException):
 
         link_map = self.get_sub_map_by_type(link_type)
-
+        
         def set_attr(self_, key, value):
 
             if (b_allow_new is False) and (not hasattr(self_, key)):
                 raise KeyError(key)
-
             try:
                 # skip validation for BaseModels
                 # object.__setattr__(self_, key, value)
@@ -251,8 +283,27 @@ class Object2ObjectLinks(TypeSortedMap):
                     link_map[key][LinkStateType.SOURCE2SINK].emit(value)
                 except KeyError:
                     pass
+            except ValidationError:
+                from snngine_v4.utils.list_parameter_model import \
+                    ListParameterModel
+                if isinstance(getattr(self_, key), ListParameterModel):
+                    if isinstance(value, str):
+                        setattr(getattr(self_, key), 'value', value)
+                    else:
+                        raise
+                        setattr(getattr(self_, key), 'limits', value)
+                    link_map[key][LinkStateType.SOURCE2SINK].emit(value)
+                else:
+                    raise
             except debug_catch as error:
                 raise error
+
+        if obj in self.replaced_method_map:
+            if self.ext_obj_attr_map is None:
+                raise AssertionError
+        else:
+            self.replaced_method_map[obj] = obj.__setattr__
+
         # TODO:
         if type(obj.__setattr__).__name__ != 'method':
             if self.ext_obj_attr_map is None:

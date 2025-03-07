@@ -3,92 +3,160 @@ import torch
 
 from snngine_v4.utils.cuda_utils.cuda_functions import assert_device_equivalency
 from snngine_v4.utils.data_utils.dataframe_config import (
-    DataFrameIndex,
-    FrameVector, TypedDataFrameBase,
+    SeriesBase, TypedDataFrameBase,
+)
+from snngine_v4.utils.data_utils.index_config import (
+    Column, IndexConfig,
+    RowOrColumn,
 )
 
 
-class TensorDataFrame:
+class DeviceSyncError(BaseException):
+    pass
 
-    df: pd.DataFrame
 
-    def __init__(self, device, *args, tensor=None, **kwargs):
+class InconsistencyError(BaseException):
+    pass
 
-        if len(args) == 1 and isinstance(args[0], pd.DataFrame):
-            self.df = args[0]
+
+class TensorSeries:
+
+    data_cpu: pd.Series
+
+    def __init__(self, device, *args, gpu_values=None, model=None,  **kwargs):
+        if model is not None:
+            pass
+        elif (len(args) == 1) and isinstance(args[0], SeriesBase):
+            model = args[0]
+            args = []
+        self.data_cpu = self.make_cpu_data(*args, model=model, **kwargs)
+        self.gpu_values = self.make_gpu_data(gpu_values, device, )
+
+    def data_ptr(self):
+        return self.gpu_values.data_ptr()
+
+    @property
+    def device(self):
+        return self.gpu_values.device
+
+    def make_cpu_data(self, *args, model: SeriesBase = None, **kwargs):
+        if len(args) == 1 and isinstance(args[0], pd.Series):
+            return args[0]
         else:
-            if len(args) == 1 and isinstance(args[0], TypedDataFrameBase):
-                model = args[0]
-                args = []
-                kwargs.update(dict(data=model.data,
-                                   columns=model.columns,
-                                   index=model.index,
-                                   dtype=model.data.dtype))
-            elif (len(args) < 4) and 'dtype' not in kwargs:
-                pass
-            if 'columns' in kwargs:
-                if isinstance(kwargs['columns'], DataFrameIndex):
-                    kwargs['columns'] = kwargs['columns'].to_list()
-
+            if model is not None:
+                kwargs.update(
+                    dict(data=model.data,
+                         index=model.index,
+                         dtype=model.data.dtype))
             if 'index' in kwargs:
-                if isinstance(kwargs['index'], DataFrameIndex):
+                if isinstance(kwargs['index'], IndexConfig):
                     kwargs['index'] = kwargs['index'].to_list()
+            res = pd.Series(*args, **kwargs)
+            if model is not None:
+                model.apply_property()
+            return res
 
-            self.df = pd.DataFrame(*args, **kwargs)
+    def make_gpu_data(self, tensor, device):
         if tensor is None:
-            tensor = torch.tensor(self.df.values, device=torch.device(device))
+            tensor = torch.tensor(
+                self.data_cpu.values,
+                device=torch.device(device))
         else:
-            if tensor.shape[0] != self.df.shape[0]:
-                raise ValueError
-            elif tensor.shape[1] != self.df.shape[1]:
-                raise ValueError
+            self.validate_sync(gpu_values=tensor)
             assert_device_equivalency(tensor.device, device)
-        self.tensor = tensor
+        return tensor
+
+    def get_idx_loc(self, item):
+        if isinstance(item, RowOrColumn):
+            item = item.name
+        return self.data_cpu.index.get_loc(item)
 
     def __getitem__(self, item):
         if isinstance(item, (int, slice, tuple)):
             # return self.__class__(self.tensor[item])
-            return self.tensor[item]
-        elif isinstance(item, (str, FrameVector)):
-            return self.tensor[self.get_idx_loc(item)]
-        return [self.tensor[i] for i in item]
+            return self.gpu_values[item]
+        elif isinstance(item, (str, RowOrColumn)):
+            return self.gpu_values[self.get_idx_loc(item)]
+        return [self.gpu_values[i] for i in item]
+
+    def __len__(self):
+        return self.data_cpu.shape[0]
+
+    @property
+    def loc(self):
+        return self.data_cpu.loc
 
     def __setitem__(self, item, value):
         if isinstance(item, int):
-            self.tensor[item] = value
+            self.gpu_values[item] = value
         elif isinstance(item, slice):
-            self.tensor[item] = value
+            self.gpu_values[item] = value
             # raise ValueError('Cannot interpret slice with multiindexing')
-        elif isinstance(item, (str, FrameVector)):
-            self.tensor[self.get_idx_loc(item), :] = value
+        elif isinstance(item, (str, RowOrColumn)):
+            self.gpu_values[self.get_idx_loc(item), :] = value
         else:
             for i in item:
                 if isinstance(i, slice):
                     raise ValueError(
                         'Cannot interpret slice with multi-indexing')
-                self.tensor[i] = value
-
-    def data_ptr(self):
-        return self.tensor.data_ptr()
+                self.gpu_values[i] = value
 
     @property
-    def device(self):
-        return self.tensor.device
-
-    # @classmethod
-    # def from_dataframe_config(cls, model: TypedDataFrameBase, device):
-    #     return cls(device=device, data=model.data, columns=model.columns,
-    #                index=model.index,
-    #                dtype=model.data.dtype)
-
-    def get_idx_loc(self, item):
-        if isinstance(item, FrameVector):
-            item = item.name
-        return self.df.index.get_loc(item)
-
-    @property
-    def loc(self):
-        return self.df.loc
+    def shape(self):
+        return self.data_cpu.shape
 
     def sync_to_df(self):
-        self.df[:] = self.tensor.cpu().numpy()
+        self.data_cpu[:] = self.gpu_values.cpu().numpy()
+
+    def validate_sync(self, gpu_values=None):
+        if gpu_values is None:
+            gpu_values = self.gpu_values
+        if gpu_values.shape[0] != self.data_cpu.shape[0]:
+            raise DeviceSyncError
+        if len(gpu_values.shape) != len(self.data_cpu.shape):
+            raise DeviceSyncError
+        return gpu_values
+
+
+class TensorDataFrame(TensorSeries):
+
+    data_cpu: pd.DataFrame
+
+    def get_col_loc(self, item):
+        if isinstance(item, RowOrColumn):
+            item = item.name
+        return self.data_cpu.columns.get_loc(item)
+
+    def make_cpu_data(self, *args,  model=None, **kwargs):
+        if len(args) == 1 and isinstance(args[0], pd.DataFrame):
+            return args[0]
+        else:
+            if model is not None:
+                kwargs.update(dict(data=model.data,
+                                   columns=model.columns,
+                                   index=model.index,
+                                   dtype=model.data.dtype))
+            elif (len(args) < 4) and ('dtype' not in kwargs):
+                pass
+            if 'columns' in kwargs:
+                if isinstance(kwargs['columns'], IndexConfig):
+                    kwargs['columns'] = kwargs['columns'].to_list()
+
+            if 'index' in kwargs:
+                if isinstance(kwargs['index'], IndexConfig):
+                    kwargs['index'] = kwargs['index'].to_list()
+            return pd.DataFrame(*args, **kwargs)
+
+    def __setitem__(self, item, value):
+        if isinstance(item, Column):
+            self.gpu_values[:, self.get_col_loc(item)] = value
+        elif isinstance(item, tuple):
+            pass
+            # self.gpu_values[:, self.get_col_loc(item)] = value
+        else:
+            super().__setitem__(item, value)
+
+    def validate_sync(self, gpu_values=None):
+        gpu_values = super().validate_sync(gpu_values)
+        if gpu_values.shape[1] != self.data_cpu.shape[1]:
+            raise DeviceSyncError

@@ -9,20 +9,25 @@ from pydantic import computed_field, Field, NonNegativeInt
 
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
 from snngine_v4.geometry.grid_config import FiniteGridConfig
-from snngine_v4.nn.config_models.reservoir.n_type_groups import (
+from snngine_v4.nn.construction.config_models.reservoir.n_type_groups import (
     NeuronType, NeuronTypeGroup,
     NTypeGroupConnInit, NTypeGroupConnList,
     NTypeGroupList,
 )
-from snngine_v4.nn.config_models.nn_element_config import EngineElementConfig
+from snngine_v4.nn.construction.config_models.engine_element_config import (
+    EngineElementConfig3D,
+)
 from snngine_v4.geometry.spatial_pars import (
     PositionVBO,
     Segmentation3D,
 )
-from snngine_v4.nn.config_models.reservoir.reservoir_flags import (
+from snngine_v4.nn.construction.config_models.reservoir.lgroup_states import (
     LGNeuronCounts, LG2LGFlags, LG2LGProp, LGroupProps, LGroupFlags,
-    NeuronFlags,
 )
+from snngine_v4.nn.construction.config_models.neurons.neuron_state import (
+    NeuronStateModel,
+)
+from snngine_v4.utils.data_utils.dataframe_config import TypedDataFrameBase
 from snngine_v4.utils.data_utils.validation.array_annotation import (
     ArrayInterfaces, fill_array_field_default,
 )
@@ -37,7 +42,7 @@ class PosGenerationMode(IntEnum):
     RND_UNIFORM = 1
 
 
-class NetworkReservoirConfig(EngineElementConfig):
+class NetworkReservoirConfig(EngineElementConfig3D):
 
     class Slots:
         N_NEURONS: ClassVar[str] = 'N'
@@ -58,6 +63,7 @@ class NetworkReservoirConfig(EngineElementConfig):
         POS: ClassVar[str] = 'pos'
 
         N_FLAGS: ClassVar[str] = 'N_flags'
+        NEURON_STATES: ClassVar[str] = 'neuron_states'
         L_GROUP_NEURON_COUNTS: ClassVar[str] = 'L_Group_neuronCounts'
         L_GROUP_FLAGS: ClassVar[str] = 'L_Group_flags'
         L_GROUP_PROPERTIES: ClassVar[str] = 'L_Group_properties'
@@ -103,7 +109,9 @@ class NetworkReservoirConfig(EngineElementConfig):
             dtype=np.float32),
         repr=False)
 
-    N_flags: NeuronFlags
+    neuron_states: NeuronStateModel
+    # N_flags: NeuronFlags
+    # N_props: NeuronProperties
 
     L_Group_neuronCounts: LGNeuronCounts
 
@@ -149,12 +157,15 @@ class NetworkReservoirConfig(EngineElementConfig):
 
     @staticmethod
     def _reset_lg_array(data, class_, slot, n_groups):
-        value = data[slot]
+        value: TypedDataFrameBase = data[slot]
         if isinstance(value, dict):
-            obj = class_(**value)
-            value['data'] = obj.zeroes(n_cols=n_groups)
+            obj: TypedDataFrameBase = class_(**value)
+            value[TypedDataFrameBase.Slots.DATA] = obj.zeroes(n_cols=n_groups)
+            obj.apply_index_init_values(
+                data=value[TypedDataFrameBase.Slots.DATA])
         else:
             value.data = value.zeroes(n_cols=n_groups)
+            value.apply_index_init_values()
 
     @classmethod
     def reset_arrays(cls, data):
@@ -178,7 +189,7 @@ class NetworkReservoirConfig(EngineElementConfig):
         #     data[cls.Slots.N_DELAYS], shape)
         grid.seg = cls.generate_segmentation(n_delays, shape)
         seg: Segmentation3D = grid.seg
-        data[cls.Slots.N_LGROUPS] = seg.prod()
+        data[cls.Slots.N_LGROUPS] = int(seg.prod())
 
         pos_gen_mode = fill_field_default(data, cls, cls.Slots.POS_GEN_MODE)
 
@@ -186,12 +197,8 @@ class NetworkReservoirConfig(EngineElementConfig):
             mode=pos_gen_mode, shape=shape, n_neurons=n_neurons,
             grid_segmentation=seg.as_tuple(), type_groups=type_groups.groups)
 
-        neuron_flags: NeuronFlags = data[cls.Slots.N_FLAGS]
-        if isinstance(neuron_flags, dict):
-            neuron_flags_ = NeuronFlags(**neuron_flags)
-            neuron_flags['data'] = neuron_flags_.zeroes(n_cols=n_neurons)
-        else:
-            neuron_flags.data = neuron_flags.zeroes(n_cols=n_neurons)
+        data[cls.Slots.NEURON_STATES] = NeuronStateModel.reset_model(
+            data[cls.Slots.NEURON_STATES], n_neurons)
 
         n_groups = data[cls.Slots.N_LGROUPS]
         cls._reset_lg_array(data=data, class_=LGroupFlags, n_groups=n_groups,
@@ -276,3 +283,8 @@ class NetworkReservoirConfig(EngineElementConfig):
                 groups=type_groups, n_syn=n_syn)
 
         return data
+
+
+if __name__ == '__main__':
+    from pprint import pprint
+    pprint(NetworkReservoirConfig())

@@ -1,3 +1,4 @@
+from enum import IntEnum
 from typing import Type
 
 import numpy as np
@@ -5,13 +6,13 @@ import torch
 from qtpy import QtCore
 
 from snngine_v4.gui.parameter_tree.parameters import ArrayParameter
-from snngine_v4.gui.parameter_tree.parameters.array_parameter import \
+from snngine_v4.gui.parameter_tree.parameters.array.array_parameter import \
     ArrayDictParameter
 from snngine_v4.gui.parameter_tree.parameters.widgets.table.q_dataframe import \
     DataChangeType
 from snngine_v4.utils.containers.configurable_dict import ConfigurableDict
 from snngine_v4.utils.data_utils.dataframe_config import (
-    TypedDataFrameBase,
+    SeriesBase,
     TypedDataFrameBase3D,
 )
 from snngine_v4.utils.data_utils.validation.array_annotation import \
@@ -23,7 +24,8 @@ from snngine_v4.utils.cuda_utils.tensor_dict import TensorDict
 
 class TensorParameter(ArrayParameter):
 
-    sigTensorChanged = QtCore.Signal(object)
+    sigTensorSet = QtCore.Signal(object, object)
+    sigTensorChanged = QtCore.Signal(object, int, object)
 
     def __init__(self, tensor=None, **opts):
         self._tensor = None
@@ -39,49 +41,49 @@ class TensorParameter(ArrayParameter):
 
     @tensor.setter
     def tensor(self, value):
+        old_value = self._tensor
         self._tensor = value
         dtype = ArrayInterfaces()[self.opts[ParamOpts.KW.C_DATA_TYPES]].dtype
         shape = self._tensor.shape
-        if len(shape) == 2:
-            new_type = ArrayInterfaces().array_2d_type(
-                x=shape[0], y=shape[1], dtype=dtype)
-        elif len(shape) == 3:
-            new_type = ArrayInterfaces().array_3d_type(
-                x=shape[0], y=shape[1], z=shape[2], dtype=dtype)
+        if len(shape) in [1, 2, 3]:
+            new_type = ArrayInterfaces().make_type(
+                *shape, dtype=dtype)
         else:
             raise NotImplementedError
         self.qdf.validator = ArrayInterfaces()[new_type]
-        self.qdf.sigChanged.emit(self, self.qdf.BLOCK_SIGNAL_ROLE, None)
+        self.sigTensorSet.emit(self, value)
+        # self.qdf.sigChanged.emit(self, self.qdf.BLOCK_SIGNAL_ROLE, None)
 
     def onDataChanged(self, qdf, change_type: DataChangeType, changes):
 
         if self._b_initialized is False:
             raise RuntimeError
-        if change_type == DataChangeType.CELL_UPDATED:
-            if self.tensor is not None:
-                t_value = torch.from_numpy(np.array(
-                    changes[2], dtype=changes[2].dtype))
-                self.tensor[changes[0], changes[1]] = t_value
-                self.sigTensorChanged.emit(self)
-            else:
-                pass
-            super().onDataChanged(qdf, change_type, changes)
 
-        elif change_type == DataChangeType.COLUMN_ADDED:
-            raise NotImplementedError
-            if isinstance(self.parent(), TensorDictParameter):
-                pass
-            super().onDataChanged(qdf, change_type, changes)
+        match change_type:
+            case DataChangeType.CELL_UPDATED:
+                if self.tensor is not None:
+                    t_value = torch.from_numpy(np.array(
+                        changes[2], dtype=changes[2].dtype))
+                    self.tensor[changes[0], changes[1]] = t_value
+                    self.sigTensorChanged.emit(self)
+                else:
+                    pass
 
-        elif change_type == DataChangeType.ROW_ADDED:
-            raise NotImplementedError
-            if isinstance(self.parent(), TensorDictParameter):
-                pass
-            super().onDataChanged(qdf, change_type, changes)
-        elif change_type == self.qdf.BLOCK_SIGNAL_ROLE:
-            super().onDataChanged(qdf, change_type, changes)
-        else:
-            raise NotImplementedError(f"{change_type}")
+            case DataChangeType.COLUMN_VALUE_UPDATED:
+                if self.tensor is not None:
+                    self.tensor[:, changes[0]] = changes[1]
+
+            case DataChangeType.INDEX_VALUE_UPDATED:
+                if self.tensor is not None:
+                    self.tensor[changes[0], :] = changes[1]
+
+            case (DataChangeType.COLUMN_ADDED
+                  | DataChangeType.ROW_ADDED
+                  | DataChangeType.SET_VALUE
+                  | DataChangeType.UNDEFINED):
+                if self.tensor is not None:
+                    raise NotImplementedError
+        super().onDataChanged(qdf, change_type, changes)
 
 
 class TensorDictParameter(ArrayDictParameter):
@@ -97,7 +99,7 @@ class TensorDictParameter(ArrayDictParameter):
                          signal_register=signal_register, **opts)
 
     def build(self, value, signal_register, **opts):
-        if isinstance(value, TypedDataFrameBase):
+        if isinstance(value, SeriesBase):
             res: dict[str, TensorParameter] = (
                 super().build(value, signal_register, **opts))
             # for i, (k, p) in enumerate(res.items()):

@@ -6,19 +6,23 @@ from snngine_v4.utils.containers.configurable_list import (
     ConfigurableList,
 )
 from snngine_v4.utils.containers.mappings import (
-    Int2ObjectMapConfig,
-    Object2ObjectMap, UniqueObjectListConfig,
+    ObjectMapConfig,
+    Object2ObjectMap, Many2OneObjectMap, UniqueObjectListConfig,
 )
 from snngine_v4.utils.containers.typed_node import TreeDir, TreeNode
 from snngine_v4.utils.field_utils import model_keys, Undefined
 
 
-class NodeTreeConfig(Int2ObjectMapConfig):
+class TreeNodeConfig(ObjectMapConfig):
     b_get_inv_allowed: bool = True
     allowed_types: Type = TreeNode
     b_freeze_parent: bool = False
     b_free_nodes_allowed: bool = False
     b_root_frozen: bool = True
+
+
+class NodeTreeElementConfig(ObjectMapConfig):
+    b_skip_forbidden_types: bool = False
 
 
 class FreeElementListConfig(UniqueObjectListConfig):
@@ -27,16 +31,22 @@ class FreeElementListConfig(UniqueObjectListConfig):
 
 class NodeTree(Object2ObjectMap):
 
-    ContainerConfigClass: ClassVar = NodeTreeConfig
+    ContainerConfigClass: ClassVar = TreeNodeConfig
+    InvertedConfigClass: ClassVar = NodeTreeElementConfig
     FreeElementListConfigClass: ClassVar[Type[FreeElementListConfig]] = (
         FreeElementListConfig)
 
-    container_conf: NodeTreeConfig
-    _container_conf: NodeTreeConfig
+    container_conf: TreeNodeConfig
+    _container_conf: TreeNodeConfig
     __getitem__: Callable[[Any], TreeNode]
 
+    @property
+    def node_element_config(self) -> NodeTreeElementConfig:
+        # noinspection PydanticTypeChecker,PyTypeChecker
+        return self.inv.container_conf
+
     def __init__(self, root=None, free_nodes_config=None,
-                 container_conf: NodeTreeConfig | None = None, **kwargs):
+                 container_conf: TreeNodeConfig | None = None, **kwargs):
         super().__init__(container_conf=container_conf, **kwargs)
 
         self.free_elements = ConfigurableList(
@@ -54,9 +64,11 @@ class NodeTree(Object2ObjectMap):
 
     def __setitem__(self, key, value):
         if isinstance(key, int):
-            raise AssertionError
+            raise TypeError
+
         if value is None:
             value = TreeNode(parent_node=None)
+
         super().__setitem__(key, value)
         if self.b_has_root and (value.parent_node is None):
             # and (key is not self._root):
@@ -83,6 +95,12 @@ class NodeTree(Object2ObjectMap):
     def b_has_root(self):
         return self._root is not None
 
+    def b_skippable_element(self, element):
+        if (self.node_element_config.b_skip_forbidden_types and
+                (self.inv.b_valid_item(element) is False)):
+            return True
+        return False
+
     def b_valid_item(self, item):
         return super().b_valid_item(item) and self.b_valid_parent(item)
 
@@ -98,6 +116,10 @@ class NodeTree(Object2ObjectMap):
         return True
 
     def add_element(self, element, parent=None):
+
+        if self.b_skippable_element(element):
+            return None
+
         if parent is None:
             parent = self.root
         parent_node = self[parent]
@@ -225,50 +247,74 @@ class NodeTree(Object2ObjectMap):
         return self
 
 
-class Object2NodeTreeMap(Object2ObjectMap):
+class Object2NodeTreeMap(Many2OneObjectMap):
 
-    class ContainerConfigClass(Int2ObjectMapConfig):
+    class ContainerConfigClass(Many2OneObjectMap.ContainerConfigClass):
         b_get_inv_allowed: bool = True
         allowed_types: Type = NodeTree
-        b_duplicates_allowed: bool = True
+        # b_duplicates_allowed: bool = True
+        b_duplicate_check_by_id: bool = True
+
+    class InvertedConfigClass(Many2OneObjectMap.InvertedConfigClass):
+        allowed_types: Type = BaseModel
 
     __getitem__: Callable[..., NodeTree]
 
 
-class ModelTree(NodeTree):
-    __getitem__: Callable[[BaseModel], TreeNode]
+class ModelNodeTreeElementConfig(NodeTreeElementConfig):
+    b_read_list_values: bool = True
 
+
+class ModelTree(NodeTree):
+
+    InvertedConfigClass: ClassVar[Type[ObjectMapConfig]] = (
+        ModelNodeTreeElementConfig, (BaseModel, list))
+
+    node_element_config: ModelNodeTreeElementConfig
+    __getitem__: Callable[[BaseModel], TreeNode]
+    
     def __setitem__(self, model: BaseModel, value, ):
+        # if isinstance(model, BaseModel):
         super().__setitem__(model, value)
+
         if isinstance(model, BaseModel):
             self.read_model(model, b_ignore_existing=False)
-        else:
+        elif isinstance(model, list):
             self.read_list(model, b_ignore_existing=False)
+        # else:
+        #     raise TypeError(f"model type {type(model)} is not supported")
 
     def read_list(self, lst, b_ignore_existing=False, parent=None):
+        if (b_skip_list := self.b_skippable_element(lst)) is False:
+            element_parent = lst
+        else:
+            element_parent = parent
+
         for item in lst:
-            if isinstance(item, BaseModel):
-                if lst not in self:
-                    if parent is None:
+            if (isinstance(item, BaseModel)
+                    and (not self.b_skippable_element(item))):
+                if not b_skip_list:
+                    if lst not in self:
+                        if parent is None:
+                            raise RuntimeError
+                        self.add_element(lst, parent=parent)
+                    elif self.b_is_free(lst):
                         raise RuntimeError
-                    self.add_element(lst, parent=parent)
-                elif self.b_is_free(lst):
-                    raise RuntimeError
-                if ((b_exists := (item in self))
-                        and self.b_is_free(item)):
-                    self.set_parent(item, lst)
-                elif b_exists and (self.parent(item) is not lst):
-                    raise RuntimeError
-                elif b_exists and (b_ignore_existing
-                                   or (self.parent(item) is lst)):
-                    pass
+                if item in self:
+                    if self.b_is_free(item):
+                        self.set_parent(item, element_parent)
+                    elif b_wrong_parent := (
+                            self.parent(item) is not element_parent):
+                        raise RuntimeError
+                    elif b_ignore_existing or (not b_wrong_parent):
+                        pass
                 else:
-                    self.add_element(item, parent=lst)
+                    self.add_element(item, parent=element_parent)
 
     def read_model(self, model, b_ignore_existing=False):
         for k in model_keys(model, b_include_computed=False):
             v = getattr(model, k)
-            if isinstance(v, BaseModel):
+            if isinstance(v, BaseModel) and (not self.b_skippable_element(v)):
                 if (b_exists := (v in self)) and self.b_is_free(v):
                     self.set_parent(v, model)
                 elif (b_exists and (b_ignore_existing
@@ -282,6 +328,9 @@ class ModelTree(NodeTree):
                     raise RuntimeError('Duplicated Node')
                 else:
                     self.add_element(v, parent=model)
-            elif isinstance(v, list):
+                # else:
+                #     pass
+            elif (isinstance(v, list) and
+                  self.node_element_config.b_read_list_values):
                 self.read_list(v, b_ignore_existing=b_ignore_existing,
                                parent=model)

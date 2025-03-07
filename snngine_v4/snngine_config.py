@@ -4,10 +4,11 @@ from typing import ClassVar
 
 from pydantic import Field
 
-from snngine_v4.nn.config_models.nn_builder_config import \
+from snngine_v4.nn.construction.config_models.nn_builder_config import \
     NetworkConstructionConfig
-from snngine_v4.nn.config_models.nn_element_config import EngineElementConfig
-from snngine_v4.nn.config_models.reservoir.nn_reservoir_config \
+from snngine_v4.nn.construction.config_models.engine_element_config \
+    import EngineElementConfig
+from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
     import NetworkReservoirConfig
 from snngine_v4.utils.settings.settings_keywords import BaseSettingsSlots
 from snngine_v4.utils.settings.xml_converter.xml_settings_source import (
@@ -77,3 +78,8 @@ class EngineConfig(XMLSettingsModel):
     #             conv.to_xml_file(
     #                 data={k: sub_model.model_dump(mode='json')},
     #                 fn=fn.replace(sub_setting_pattern, k))
+
+
+if __name__ == '__main__':
+    from pprint import pprint
+    pprint(EngineConfig().model_dump())

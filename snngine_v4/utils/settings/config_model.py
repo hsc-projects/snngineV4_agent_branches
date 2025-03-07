@@ -22,9 +22,13 @@ class ConfigModel(BaseModel, ConfigModelMixin):
 
     @classmethod
     def validate_model_item(cls, data, key, field_info=None) -> Any:
-        super().validate_model_iterable_item(
+        b_iterable = super().validate_model_iterable_item(
             data, key, field_info=field_info)
-        super().validate_model_item(data=data, key=key, field_info=field_info)
+        if not b_iterable:
+            super().validate_model_item(
+                data=data, key=key, field_info=field_info)
+        else:
+            pass
 
 
 class ConfigContainerModel(ConfigModel):

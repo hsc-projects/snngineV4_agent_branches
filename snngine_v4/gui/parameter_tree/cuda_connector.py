@@ -11,13 +11,14 @@ from snngine_v4.gui.parameter_tree.connectors.parameter_connector import \
     ParameterConnector
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
     EngineParameterTree
-from snngine_v4.gui.parameter_tree.parameters.tensor_parameter import (
+from snngine_v4.gui.parameter_tree.parameters.array.tensor_parameter import (
     TensorDictParameter, TensorParameter,
 )
-from snngine_v4.nn.engine_element import EngineElement
-from snngine_v4.nn.nn_builder import NetworkManager
+from snngine_v4.nn.construction.engine_element import EngineElement
+from snngine_v4.nn.construction.nn_builder import NetworkBuilder
+from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.utils.containers.mappings import (
-    Int2ObjectMapConfig, Object2ObjectMap, SurjectiveMap,
+    ObjectMapConfig, Object2ObjectMap, Many2OneObjectMap,
 )
 from snngine_v4.visualization.cuda.gl_interop.gl_tensor import (
     GLVBOTensor,
@@ -52,15 +53,19 @@ class CudaConnector(ParameterConnector):
 
     @classmethod
     def cls_connect_tree(cls, tree: EngineParameterTree,
-                         network_manager: NetworkManager,
+                         network_manager: NetworkBuilder,
                          container=None,
                          **kwargs):
         sr = tree.signal_register
         network_model = network_manager.container_model.network
-        network = network_manager[network_model]
+        network: SpatialNetwork = network_manager[network_model]
         mapping = cls.make_container()
-        for m in network_model.elements:
-            mapping[network[m]] = sr.get_group(m)
+
+        def expand_mapping(elt: EngineElement):
+            for m in elt.children_models:
+                mapping[elt[m]] = sr.get_group(m)
+                expand_mapping(elt[m])
+        expand_mapping(network)
         return super().cls_connect_tree(tree, mapping, container, **kwargs)
 
     @classmethod
@@ -70,7 +75,7 @@ class CudaConnector(ParameterConnector):
 
 class CudaVispyConnector(ParameterConnector):
 
-    class ContainerConfigClass(Int2ObjectMapConfig, frozen=True):
+    class ContainerConfigClass(ObjectMapConfig, frozen=True):
         allowed_types: Type[GLTensorDict] = GLTensorDict
 
     @classmethod
@@ -125,7 +130,7 @@ class CudaVispyConnector(ParameterConnector):
 
         sr = tree.signal_register
 
-        t_dict2scene_map = SurjectiveMap()
+        t_dict2scene_map = Many2OneObjectMap()
 
         for scene in scene_manager.values():
             scene_container = cls.cls_connect_map(

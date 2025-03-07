@@ -5,12 +5,14 @@ from typing import Callable, ClassVar
 from pyqtgraph.dockarea import Dock
 from qtpy import QtWidgets
 
+from snngine_v4.gui.common.docks import CustomPgDock
 from snngine_v4.gui.parameter_tree.parameters.widgets.table.df_table_widget import (
     QDataFrameTableWidget, QDataFrameUIWidgets,
 )
 from snngine_v4.gui.parameter_tree.parameters.widgets.table.q_dataframe import \
     QDataFrame
 from snngine_v4.utils.containers.mappings import Object2ObjectMap
+from snngine_v4.utils.core_utils import type_assertion
 
 
 class QDataFrameDockMap(Object2ObjectMap):
@@ -42,13 +44,12 @@ class InteractiveTableWidget(QtWidgets.QWidget):
 
     layout: Callable[[], QtWidgets.QGridLayout]
 
-    def __init__(
-            self,
-            ui_widgets: QtWidgets.QWidget | QDataFrameUIWidgets,
-            table_widget: QDataFrameTableWidget,
-            *args, **kwargs):
+    def __init__(self, ui_widgets: QtWidgets.QWidget | QDataFrameUIWidgets,
+                 table_widget: QDataFrameTableWidget, *args, **kwargs):
+
         super().__init__(*args, **kwargs)
-        self.table = table_widget
+
+        self.table: QDataFrameTableWidget = table_widget
         self.ui: QDataFrameUIWidgets = ui_widgets
 
         ui_widget = ui_widgets.widget()
@@ -57,8 +58,7 @@ class InteractiveTableWidget(QtWidgets.QWidget):
         self.layout().addWidget(ui_widget, 0, 0)
         self.layout().addWidget(table_widget, 1, 0)
         ui_widget.setMaximumHeight(
-            24 * (self.ui.layout_row
-                  + 1 * int(self.ui.layout_col > 0)))
+            26 * (self.ui.layout_row + 1 * int(self.ui.layout_col > 0)))
         ui_widget.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Expanding,
             QtWidgets.QSizePolicy.Policy.Minimum,
@@ -76,25 +76,23 @@ class InteractiveTableWidget(QtWidgets.QWidget):
         widget = QDataFrameTableWidget(qdf)
         return cls(
             ui_widgets=widget.make_ui_widgets(
-                b_include_editor=b_include_editor),
+                b_include_editor=b_include_editor,
+            ),
             table_widget=widget,
         )
 
 
-class TableDock(Dock):
+class TableDock(CustomPgDock):
 
-    def addWidget(self, widget, **kwargs):
-        if len(self.widgets) == 0:
-            super().addWidget(widget, **kwargs)
-        else:
-            raise PermissionError
+    WIDGET_CLASS: InteractiveTableWidget
+    widget: Callable[..., InteractiveTableWidget]
 
     @classmethod
     def from_qdf(cls, qdf: QDataFrame, closable=True, **kwargs):
         widget = InteractiveTableWidget.from_qdf(
             qdf=qdf, b_include_editor=False)
-        return cls(name=qdf.name, widget=widget,
+        shape = 'x'.join([str(x) for x in qdf.df.shape])
+        dock_name = qdf.name + f" ({shape})"
+        return cls(name=dock_name, widget=widget,
                    closable=closable, **kwargs)
 
-    def widget(self) -> InteractiveTableWidget:
-        return self.widgets[0]

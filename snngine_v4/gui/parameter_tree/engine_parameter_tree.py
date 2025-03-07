@@ -6,12 +6,13 @@ from pydantic import BaseModel
 from pyqtgraph.parametertree import Parameter, ParameterTree
 from qtpy import QtCore, QtWidgets
 
-from snngine_v4.gui.common.main_dock_widget import MainDockWidget
+from snngine_v4.gui.common.docks import MainDockWidget
 from snngine_v4.gui.parameter_tree.parameter_builder.parameter_builder import (
     ParameterBuilder
 )
 from snngine_v4.gui.parameter_tree.connectors.model_signals_register \
     import ExtendedModelSignalsRegister
+from snngine_v4.utils.core_utils import type_assertion
 from snngine_v4.utils.field_utils import Undefined
 
 
@@ -23,7 +24,8 @@ class EngineParameterTree(ParameterTree):
                  name: str = None,
                  model: BaseModel = None,
                  parent=None, showHeader=True,
-                 signal_register: ExtendedModelSignalsRegister = None):
+                 signal_register: ExtendedModelSignalsRegister = None,
+                 **kwargs):
 
         if name is None:
             name = self.__class__.__name__
@@ -35,7 +37,8 @@ class EngineParameterTree(ParameterTree):
         self.signal_register = signal_register or ExtendedModelSignalsRegister()
         self.parameters = None
         if model is not None:
-            self.set_parameters_from_model(model=self._settings_model)
+            self.set_parameters_from_model(
+                model=self._settings_model, **kwargs)
 
         self._dock_widget = None
 
@@ -67,6 +70,7 @@ class EngineParameterTree(ParameterTree):
             signal_register = self.signal_register
         elif signal_register is Undefined:
             signal_register = None
+
         pars = ParameterBuilder.make_pars_from_model(
             model=model, signal_register=signal_register,
             exclude_keys=exclude_keys, **options)
@@ -75,15 +79,16 @@ class EngineParameterTree(ParameterTree):
 
     def clear(self):
         super().clear()
+        if self._settings_model is not None:
+            self.remove(self._settings_model)
+            self._settings_model = None
         self.parameters = None
-        self._settings_model = None
-        self.signal_register.clear()
 
     def copy(self, **kwargs):
         return self.__class__.from_pars(
             signal_register=self.signal_register,
             pars=self.parameters,
-            model=self.model, **kwargs)
+            model=self._settings_model, **kwargs)
 
     @classmethod
     def from_pars(cls, pars: Parameter | EngineParameterTree,
@@ -99,15 +104,13 @@ class EngineParameterTree(ParameterTree):
         tree.settings_model = model
         return tree
 
-    @property
-    def dock_widget(self):
-        return self._dock_widget
-
-    @dock_widget.setter
-    def dock_widget(self, value):
-        if self._dock_widget is not None:
-            raise AttributeError("dock_widget already set")
-        self._dock_widget = value
+    def remove(self, model):
+        group = self.signal_register.disconnect_model(model)
+        group_parent: Parameter = group.parent()
+        if group_parent is not None:
+            group_parent.removeChild(group)
+            del group
+        return model
 
     def set_parameters_from_model(self, model, **kwargs):
         self.parameters = self.add_parameters_from_model(model=model, **kwargs)
@@ -120,6 +123,7 @@ class EngineParameterTree(ParameterTree):
     def settings_model(self, value):
         if self._settings_model is not None:
             raise AttributeError("settings_model already set")
+        type_assertion(value, BaseModel)
         self._settings_model = value
 
     def sizeHint(self):
@@ -134,8 +138,7 @@ class EngineTreeDockWidget(MainDockWidget):
     widget: Callable[[], EngineParameterTree]
 
     def __init__(self, pars: Parameter | EngineParameterTree,
-                 name=None, parent=None,
-                 features=None, **kwargs):
+                 name=None, parent=None, features=None, **kwargs):
 
         count = self.__class__.count
         self.__class__.count += 1
@@ -148,8 +151,8 @@ class EngineTreeDockWidget(MainDockWidget):
             name = pars.objectName()
             if name == '':
                 name = self.__class__.__name__ + str(count)
+
         super().__init__(name, parent=parent, features=features, **kwargs)
-        pars.dock_widget = self
         self.setWidget(pars)
 
 

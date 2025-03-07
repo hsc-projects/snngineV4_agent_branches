@@ -3,8 +3,9 @@ from typing import Callable, ClassVar
 from pyqtgraph.dockarea import DockArea
 from qtpy import QtWidgets
 
-from snngine_v4.gui.common.main_dock_widget import MainDockWidget
-from snngine_v4.gui.parameter_tree.parameters.widgets.table.df_table_widget_dock import (
+from snngine_v4.gui.common.docks import MainDockWidget
+from snngine_v4.gui.parameter_tree.parameters.widgets.table \
+    .df_table_widget_dock import (
         QDataFrameTableMap, TableDock
     )
 from snngine_v4.gui.parameter_tree.parameters.widgets.table.q_dataframe import \
@@ -19,10 +20,11 @@ class ArrayEditorArea(DockArea):
         self.qdf_map = QDataFrameTableMap()
 
     def addDock(self, dock=None, position='bottom',
-                relativeTo=None, **kwargs):
+                relativeTo=None, **kwargs) -> TableDock:
 
         if isinstance(dock, QDataFrame):
             dock, kwargs = TableDock.from_qdf(qdf=dock, **kwargs), {}
+            dock.sigClosed.connect(self.close_if_empty)
             self.qdf_map.add_dock(dock)
         if isinstance(dock, TableDock):
             dock.widget().ui.disconnect_widgets()
@@ -36,6 +38,13 @@ class ArrayEditorArea(DockArea):
 
     def __getitem__(self, key):
         return self.qdf_map[key], self.qdf_map.dock_map[key]
+
+    def close_if_empty(self):
+        if self.count() == 0:
+            if isinstance(self.parent(), ArrayEditorDockWidget):
+                self.parent().close()
+            else:
+                self.close()
 
 
 # noinspection PyPep8Naming
@@ -55,17 +64,3 @@ class ArrayEditorDockWidget(MainDockWidget):
         # noinspection PyTypeChecker
         self.setWidget(ArrayEditorArea())
         return
-
-    def close(self):
-        self.widget().hide()
-        super().close()
-
-    def show(self):
-        super().show()
-        self.widget().show()
-
-    def toggleVisibility(self):
-        if self.isVisible():
-            self.close()
-        else:
-            self.show()

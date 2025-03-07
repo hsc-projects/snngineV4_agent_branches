@@ -63,6 +63,6 @@ class XYZAxisVisualConfig(LineVisualConfig):
 
 
 class MultiBoxLinesVisualConfig(LineVisualConfig):
-    connect: ArrayInterfaces().array_2d_type(
-        '* x', 2, np.uint32) = Field(repr=False)
+    connect: ArrayInterfaces().make_type(
+        '* x', 2, dtype=np.uint32) = Field(repr=False)
     subvisuals: None = None

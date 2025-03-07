@@ -109,6 +109,9 @@ class ParamOpts(BaseModel, validate_default=True, extra='allow'):
         ADD_TEXT: ClassVar[str] = 'addText'
 
         # Custom
+        MODEL: ClassVar[str] = 'model'
+        PARENT_MODEL: ClassVar[str] = 'parent_model'
+        SIGNAL_REGISTER: ClassVar[str] = 'signal_register'
         C_AUTO_COLLAPSE: ClassVar[str] = 'c_auto_collapse'
         C_AUTO_EXPAND: ClassVar[str] = 'c_auto_expand'
         C_COLLAPSED_CHILDREN: ClassVar[str] = 'c_collapsed_children'
@@ -127,6 +130,10 @@ class ParamOpts(BaseModel, validate_default=True, extra='allow'):
         C_DATA_TYPES: ClassVar[str] = 'c_data_types'
         # C_REQUIRES_REBUILD: ClassVar[str] = 'c_requires_rebuild'
         C_B_GROUP_DEFAULT_BUTTON: ClassVar[str] = 'c_b_group_default_button'
+        C_B_GROUP_APPLY_BUTTON: ClassVar[str] = 'c_b_group_apply_button'
+        C_GROUP_APPLY_BUTTON_NAME: ClassVar[str] = \
+            'c_b_group_apply_button_name'
+
         C_ANNOTATION: ClassVar[str] = 'c_annotation'
         C_ARRAY_INTERFACE: ClassVar[str] = 'c_array_interface'
         C_ARRAY_DEFAULT_VALUE: ClassVar[str] = 'c_array_default_value'

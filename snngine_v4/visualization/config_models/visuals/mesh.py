@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from snngine_v4.visualization.config_models.visuals.parameters import \
     RGBAColorType
 from snngine_v4.visualization.config_models.visuals.visual_config import \
@@ -5,4 +7,4 @@ from snngine_v4.visualization.config_models.visuals.visual_config import \
 
 
 class MeshVisualConfig(VisualConfig):
-    color: RGBAColorType
+    color: RGBAColorType = Field(repr=True)

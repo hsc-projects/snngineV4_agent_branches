@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import ClassVar
 
+import numpy as np
 from vispy.scene import BaseCamera, TurntableCamera
 
 from snngine_v4.visualization.scenes.setattribute_event import (
@@ -43,7 +44,8 @@ class EventCameraMixin:
         self.events.add(
             auto_connect=False,
             attr_changed=SetAttributeEvent,
-            center_changed=Set3DAttributeEvent)
+            # center_changed=SetAttributeEvent
+        )
 
     def __setattr__(self, key, value):
         super().__setattr__(key, value)
@@ -51,14 +53,16 @@ class EventCameraMixin:
         if key == '_scale_factor':
             key = 'scale_factor'
 
-        if (hasattr(self, 'events') and
-                hasattr(getattr(self, 'events'), 'center_changed')
+        if (hasattr(self, 'events')
+                # and hasattr(getattr(self, 'events'), 'center_changed')
+                and hasattr(getattr(self, 'events'), 'attr_changed')
                 and key in self.EVENT_KEYS):
             value = getattr(self, key)
             if key == EventCameraMixin.Slots.CENTER:
-                self.events.center_changed(key=key, value=value)
-            else:
-                self.events.attr_changed(key=key, value=value)
+                value = np.array(value, dtype=np.float32)
+            #     self.events.center_changed(key=key, value=value)
+            # else:
+            self.events.attr_changed(key=key, value=value)
 
 
 class EventTurntableCamera(EventCameraMixin, TurntableCamera):

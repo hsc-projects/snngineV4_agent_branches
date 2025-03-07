@@ -1,7 +1,6 @@
 import qdarktheme
 from vispy.app import Application
 
-from snngine_v4.gui.windows.main_window_base import WindowTypes
 from snngine_v4.snngine_config import EngineConfig
 from snngine_v4.config.app import EngineAppSettings
 from snngine_v4.gui.windows.main_window import MainEngineWindow
@@ -39,7 +38,8 @@ class EngineApp(Application):
             self.main_network_scene.native)
 
         self.window.show()
-        self.window.windows[WindowTypes.SETTINGS].show()
+        # self.window.windows[WindowTypes.SETTINGS].show()
+        # self.window.extraParametersWindow.show()
         self.engine.conf.export()
 
         # self.engine.conf.construction.network.grid.shape.__setattr__(

@@ -10,23 +10,29 @@ from pydantic_core import PydanticUndefined
 from pyqtgraph.widgets.TableWidget import TableWidgetItem
 from qtpy import QtCore, QtSql, QtWidgets
 
+from snngine_v4.utils.core_utils import type_assertion
 from snngine_v4.utils.data_utils.validation.np_interface \
     import TypedNumpyInterface
 
 
 class DataChangeType(IntEnum):
 
-    UNKNOWN = 0
+    UNDEFINED = 0
     ROW_ADDED = auto()
     COLUMN_ADDED = auto()
     CELL_UPDATED = auto()
+    COLUMN_VALUE_UPDATED = auto()
+    INDEX_VALUE_UPDATED = auto()
     DATA_CHANGED = auto()
+    SET_DATA = auto()
+    SET_VALUE = auto()
 
 
 # noinspection PyPep8Naming
 class QDataFrame(QtSql.QSqlTableModel):
 
     sigChanged = QtCore.Signal(object, int, object)
+    sigSetData = QtCore.Signal(object, int, object)
 
     sigColumnNamesChanged = QtCore.Signal(object)
     sigIndexNamesChanged = QtCore.Signal(object)
@@ -55,7 +61,7 @@ class QDataFrame(QtSql.QSqlTableModel):
 
         self.dataChanged.connect(self.onDataChanged)
 
-        self._df = None
+        self._df: pd.DataFrame | pd.Series = None
         # if value is not None:
         self.setValue(value)
 
@@ -137,8 +143,9 @@ class QDataFrame(QtSql.QSqlTableModel):
 
     @staticmethod
     def as_df(array):
-        if len(array.shape) == 1:
-            array = array[np.newaxis]
+        if isinstance(array, tuple,) or len(array.shape) == 1:
+            return pd.Series(array)
+            # array = array[np.newaxis]
         return pd.DataFrame(array)
 
     @property
@@ -160,13 +167,12 @@ class QDataFrame(QtSql.QSqlTableModel):
         self.sigIndexNamesChanged.emit(self._index_names)
 
     @property
-    def df(self):
+    def df(self) -> pd.DataFrame | pd.Series:
         return self._df
 
     @df.setter
     def df(self, value: pd.DataFrame):
-        if not isinstance(value, pd.DataFrame):
-            raise TypeError(type(value))
+        type_assertion(value, (pd.DataFrame, pd.Series))
         self.validate(value)
         self._df = deepcopy(value)
         if self.column_names is not None:
@@ -175,34 +181,50 @@ class QDataFrame(QtSql.QSqlTableModel):
             self._df.index = self.index_names
 
     def insertRecord(self, row, record):
-        new_df = pd.DataFrame(index=pd.RangeIndex(len(self.df) + 1),
-                              columns=self.df.columns)
-        new_df[:row] = self.df[:row]
-        new_df[row] = record
-        if row != (len(self.df) + 1):
-            new_df[row + 1:] = new_df[row:]
-        self.df = new_df
-        self.sigChanged.emit(self, DataChangeType.ROW_ADDED, row)
+        if isinstance(self.df, pd.DataFrame):
+            new_df = pd.DataFrame(index=pd.RangeIndex(len(self.df) + 1),
+                                  columns=self.df.columns)
+            new_df[:row] = self.df[:row]
+            new_df[row] = record
+            if row != (len(self.df) + 1):
+                new_df[row + 1:] = new_df[row:]
+            self.df = new_df
+            self.sigChanged.emit(self, DataChangeType.ROW_ADDED, row)
+        else:
+            raise NotImplementedError
 
     def onDataChanged(self, topLeft=None, bottomRight=None, roles=None):
         self.sigChanged.emit(self, DataChangeType.DATA_CHANGED,
                              (topLeft, bottomRight, roles))
 
-    def setData(self, index=None, value=None, role=None):
-        if not isinstance(value, pd.DataFrame):
+    def setColumnValue(self, value, column):
+        col_idx = self._df.columns.get_loc(column)
+        self._df.iloc[:, col_idx] = value
+        self.sigChanged.emit(
+            self, DataChangeType.COLUMN_VALUE_UPDATED, (col_idx, value))
+
+    def setData(self, index=None, value=None, role=DataChangeType.SET_DATA):
+        if not isinstance(value, (pd.DataFrame, pd.Series)):
             value = self.as_df(value)
-        if (self.df is None) or (value.shape != self.df.shape):
+        if (self._df is None) or (value.shape != self.df.shape):
             self.df = value
         else:
             self.validate(value)
-            self.df[:] = value
+            self._df[:] = value
         if role != self.BLOCK_SIGNAL_ROLE:
             self.sigChanged.emit(self, role, None)
+
+    def setRowValue(self, value, row):
+        row_idx = self._df.index.get_loc(row)
+        self._df.iloc[row_idx, :] = value
+        self.sigChanged.emit(
+            self, DataChangeType.INDEX_VALUE_UPDATED, (row_idx, value))
 
     def setValue(self, value: np.ndarray, b_block_signal: bool = False):
         self.setData(value=value,
                      role=self.BLOCK_SIGNAL_ROLE
-                     if b_block_signal is True else None)
+                     if b_block_signal is True else
+                     DataChangeType.SET_VALUE)
         return self.value()
 
     def update_from_item(
@@ -210,9 +232,17 @@ class QDataFrame(QtSql.QSqlTableModel):
         if isinstance(item, QtWidgets.QTableWidgetItem):
             value = item.value
             rc = item.row(), item.column()
-            old_value = self.df.iloc[*rc]
+            if self.df.ndim == 2:
+                old_value = self.df.iloc[*rc]
+            else:
+                if rc[1] != 0:
+                    raise RuntimeError
+                old_value = self.df.iloc[rc[0]]
             if old_value != value:
-                self.df.iloc[*rc] = value
+                if self.df.ndim == 2:
+                    self.df.iloc[*rc] = value
+                else:
+                    self.df.iloc[rc[0]] = value
                 self.sigChanged.emit(self, DataChangeType.CELL_UPDATED,
                                      (rc[0], rc[1], value))
 

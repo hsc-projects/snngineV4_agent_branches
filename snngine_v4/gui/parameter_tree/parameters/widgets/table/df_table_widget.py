@@ -10,7 +10,7 @@ from pyqtgraph import TableWidget
 from pyqtgraph.widgets.TableWidget import TableWidgetItem
 from qtpy import QtWidgets, QtCore
 
-from snngine_v4.gui.common.qobject_dicts import QObjectDictSignals, QWidgetDict
+from snngine_v4.gui.common.qobject_dicts import QWidgetDict
 from snngine_v4.gui.parameter_tree.parameters.widgets.custom_spin_box import \
     CustomSpinBox
 
@@ -37,7 +37,7 @@ class IndexSpinBox(CustomSpinBox):
         super().__init__(parent, **kwargs)
 
 
-class UIEmitter(QObjectDictSignals):
+class UIEmitter(QtCore.QObject):
     sigRowRangeChanged = QtCore.Signal(int, int)
     sigColRangeChanged = QtCore.Signal(int, int)
 
@@ -63,7 +63,8 @@ class QDataFrameUIWidgets(QWidgetDict):
 
     def __init__(self, qdf: QDataFrame,
                  b_connect: bool = True,
-                 b_include_editor: bool = True
+                 b_include_editor: bool = True,
+                 n_layout_cols=3
                  ):
 
         self.qdf: QDataFrame = qdf
@@ -79,24 +80,24 @@ class QDataFrameUIWidgets(QWidgetDict):
         self._widget.layout().setContentsMargins(0, 0, 0, 0)
         self.layout_row = 0
         self.layout_col = 0
-        self.n_layout_cols = 3
+        self.n_layout_cols = n_layout_cols
 
-        self[self.WidgetID.ADD_ROW] = QtWidgets.QPushButton('Add Row')
-        self[self.WidgetID.ADD_COLUMN] = QtWidgets.QPushButton('Add Col')
         if b_include_editor:
+            self[self.WidgetID.ADD_ROW] = QtWidgets.QPushButton('Add Row')
+            self[self.WidgetID.ADD_COLUMN] = QtWidgets.QPushButton('Add Col')
             self[self.WidgetID.EDITOR] = QtWidgets.QPushButton('Editor')
+            self.make_row_widgets()
+            self.make_col_widgets()
         else:
-            self.layout_col += 1
-            if self.layout_col >= self.n_layout_cols:
-                self.layout_col = 0
-                self.layout_row += 1
-        self[self.WidgetID.ROW_LABEL] = QtWidgets.QLabel('Rows')
-        self[self.WidgetID.MIN_ROW] = IndexSpinBox(value=0)
-        self[self.WidgetID.MAX_ROW] = IndexSpinBox(value=100)
-
-        self[self.WidgetID.COL_LABEL] = QtWidgets.QLabel('Columns')
-        self[self.WidgetID.MIN_COL] = IndexSpinBox(value=0)
-        self[self.WidgetID.MAX_COL] = IndexSpinBox(value=8)
+            self.n_layout_cols += 1
+            # self.layout_col += 1
+            # if self.layout_col >= self.n_layout_cols:
+            #     self.layout_col = 0
+            #     self.layout_row += 1
+            self.make_row_widgets()
+            self[self.WidgetID.ADD_ROW] = QtWidgets.QPushButton('  +  ')
+            self.make_col_widgets()
+            self[self.WidgetID.ADD_COLUMN] = QtWidgets.QPushButton('  +  ')
 
         self._connected = False
         if b_connect is True:
@@ -104,6 +105,16 @@ class QDataFrameUIWidgets(QWidgetDict):
 
         if self.qdf.df is not None:
             self.updateTableWidgets()
+
+    def make_row_widgets(self):
+        self[self.WidgetID.ROW_LABEL] = QtWidgets.QLabel('Rows')
+        self[self.WidgetID.MIN_ROW] = IndexSpinBox(value=0)
+        self[self.WidgetID.MAX_ROW] = IndexSpinBox(value=100)
+
+    def make_col_widgets(self):
+        self[self.WidgetID.COL_LABEL] = QtWidgets.QLabel('Columns')
+        self[self.WidgetID.MIN_COL] = IndexSpinBox(value=0)
+        self[self.WidgetID.MAX_COL] = IndexSpinBox(value=8)
 
     def addColClicked(self):
         self.qdf.addColumn()
@@ -200,19 +211,22 @@ class QDataFrameUIWidgets(QWidgetDict):
         shape = self.qdf.as_array().shape
 
         add_row_enabled = (
-                (len(self.qdf.df.columns) > 0)
-                and (len(shape) > 1)
+                (len(shape) > 1)
+                and (len(self.qdf.df.columns) > 0)
                 and self.qdf.validator.validate_shape(
                     (shape[0] + 1, shape[1]))
         )
         self[self.WidgetID.ADD_ROW].setEnabled(add_row_enabled)
 
-        add_col_enabled = (len(self.qdf.df.columns) > 0)
-        if len(shape) == 1:
-            next_shape = shape[0] + 1,
+        if isinstance(self.qdf.df, pd.DataFrame):
+            add_col_enabled = (len(self.qdf.df.columns) > 0)
+            if len(shape) == 1:
+                next_shape = shape[0] + 1,
+            else:
+                next_shape = shape[0], shape[1] + 1
+            add_col_enabled &= self.qdf.validator.validate_shape(next_shape)
         else:
-            next_shape = shape[0], shape[1] + 1
-        add_col_enabled &= self.qdf.validator.validate_shape(next_shape)
+            add_col_enabled = False
 
         self[self.WidgetID.ADD_COLUMN].setEnabled(add_col_enabled)
 
@@ -287,7 +301,11 @@ class QDataFrameTableWidget(TableWidget):
 
     def applyRange(self, data: np.ndarray):
 
-        if isinstance(data, np.ndarray) and data.ndim >= 2:
+        if isinstance(data, np.ndarray):
+
+            if data.ndim not in [1, 2]:
+                raise NotImplementedError
+
             n_rows = data.shape[0]
             if n_rows <= self.row_range.left:
                 self.clear()
@@ -299,16 +317,22 @@ class QDataFrameTableWidget(TableWidget):
                     max_row = n_rows - 1
                 data = data[min_row:max_row + 1]
 
-                n_cols = data.shape[1]
-                if n_cols <= self.col_range.left:
-                    self.clear()
-                    return
-                else:
-                    min_col = self.col_range.left
-                    max_col = self.col_range.right
-                    if max_col >= n_cols:
-                        max_col = n_cols - 1
-                    data = data[:, min_col:max_col + 1]
+                if data.ndim >= 2:
+
+                    n_cols = data.shape[1]
+                    if n_cols <= self.col_range.left:
+                        self.clear()
+                        return
+                    else:
+                        min_col = self.col_range.left
+                        max_col = self.col_range.right
+                        if max_col >= n_cols:
+                            max_col = n_cols - 1
+                        data = data[:, min_col:max_col + 1]
+
+        else:
+            raise NotImplementedError
+
         return data
 
     def clear(self):
@@ -317,9 +341,9 @@ class QDataFrameTableWidget(TableWidget):
 
     def make_ui_widgets(self,
                         b_include_editor: bool = True,
-                        b_connect: bool = True):
+                        b_connect: bool = True, **kwargs):
         widgets = QDataFrameUIWidgets(
-            self.qdf, b_include_editor=b_include_editor)
+            self.qdf, b_include_editor=b_include_editor, **kwargs)
 
         if b_connect is True:
             widgets.sigRowRangeChanged.connect(self.setRowRange)

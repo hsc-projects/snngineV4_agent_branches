@@ -9,8 +9,8 @@ from pyqtgraph.parametertree.parameterTypes import (
 )
 from qtpy import QtWidgets
 
-from snngine_v4.gui.parameter_tree.parameters.parameter_item_mixin import \
-    WidgetParameterItemMixin
+from snngine_v4.gui.parameter_tree.parameters.common \
+    .parameter_item_mixin import WidgetParameterItemMixin
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 if TYPE_CHECKING:

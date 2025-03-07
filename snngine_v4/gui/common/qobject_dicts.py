@@ -1,12 +1,14 @@
+from functools import cached_property
 from typing import ClassVar, Type
 
-from qtpy import QtCore
+from qtpy import QtCore, QtWidgets
 from qtpy.QtWidgets import QDockWidget, QTreeWidget, QWidget
 
 from snngine_v4.utils.containers.configurable_dict import (
     ConfigurableDict,
     DictContainerConfig,
 )
+from snngine_v4.utils.containers.mappings import Many2OneObjectMap
 
 
 class QObjectDictSignals(QtCore.QObject):
@@ -16,39 +18,39 @@ class QObjectDictSignals(QtCore.QObject):
     sigRemoved = QtCore.Signal(object, object, object)
     sigReplaced = QtCore.Signal(object, object, object)
 
-    def qobject__setitem__(self, key, value):
-        b_key_exists = key in self
-        old_value = None
-        if b_key_exists:
-            old_value = self[key]
-        # setitem(self, key, value)
-        mro = self.__class__.mro()
-        mro[mro.index(QObjectDict) + 1].__setitem__(self, key, value)
-        self.sigAdded.emit(self, key, value)
-        if b_key_exists:
-            self.sigReplaced.emit(self, key, old_value)
-
-    def qobject__pop(self, key):
-        value = super().pop(key)
-        self.sigRemoved.emit(self, key, value)
-        return value
+    # def qobject__setitem__(self, key, value):
+    #     b_key_exists = key in self
+    #     old_value = None
+    #     if b_key_exists:
+    #         old_value = self[key]
+    #     # setitem(self, key, value)
+    #     mro = self.__class__.mro()
+    #     mro[mro.index(QObjectDict) + 1].__setitem__(self, key, value)
+    #     self.sigAdded.emit(self, key, value)
+    #     if b_key_exists:
+    #         self.sigReplaced.emit(self, key, old_value)
+    #
+    # def qobject__pop(self, key):
+    #     value = super().pop(key)
+    #     self.sigRemoved.emit(self, key, value)
+    #     return value
 
 
 class QObjectDict(ConfigurableDict):
 
     def __init__(self, *arg, emitter=None, **kwargs):
-        self.emitter = emitter or QObjectDictSignals(parent=None)
-        self.sigAdded = self.emitter.sigAdded
-        self.sigChanged = self.emitter.sigRemoved
-        self.sigRemoved = self.emitter.sigRemoved
-        self.sigReplaced = self.emitter.sigReplaced
+        self.emitter = emitter
         super().__init__(*arg, **kwargs)
 
-    __setitem__ = QObjectDictSignals.qobject__setitem__
-    pop = QObjectDictSignals.qobject__pop
+    @cached_property
+    def action_map(self) -> Many2OneObjectMap:
+        return Many2OneObjectMap().from_types(
+            type0=QtWidgets.QAction,
+            type1=QtWidgets.QWidget,
+        )
 
-    def onSigChanged(self, key, value):
-        raise NotImplementedError
+    def get_actions(self, key):
+        return self.action_map[self[key]]
 
 
 class QWidgetDictConfig(DictContainerConfig, frozen=True):

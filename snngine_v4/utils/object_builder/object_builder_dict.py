@@ -6,7 +6,7 @@ from typing import Type
 from pydantic import BaseModel
 
 from snngine_v4.utils.containers.mappings import (
-    Model2ObjectMap, Int2ObjectMapConfig,
+    Model2ObjectMap, ObjectMapConfig,
 )
 from snngine_v4.utils.core_utils import type_assertion
 from snngine_v4.utils.object_builder.object_builder import (
@@ -17,7 +17,10 @@ from snngine_v4.utils.object_builder.object_builder import (
 
 class BuilderDict(Model2ObjectMap, ModelObjectBuilder):
 
-    def __init__(self, model_container=None, build_kwargs=None, **kwargs):
+    def __init__(self, model_container=None, build_kwargs=None,
+                 node_tree=None,
+                 **kwargs):
+        self.node_tree = node_tree
         super().__init__(**kwargs)
         if model_container is not None:
             if build_kwargs is not None:
@@ -36,7 +39,7 @@ class BuilderDict(Model2ObjectMap, ModelObjectBuilder):
     @classmethod
     def cls_make_container_conf(
             cls, container_conf=None,
-            default_cls: Type[Int2ObjectMapConfig] = None, **kwargs):
+            default_cls: Type[ObjectMapConfig] = None, **kwargs):
 
         if default_cls is None:
             default_cls = cls.ContainerConfigClass
@@ -51,7 +54,7 @@ class BuilderDict(Model2ObjectMap, ModelObjectBuilder):
             if cls.BUILDER_DEFAULT_OBJECT_CLASS is not None:
                 allowed_types.append(cls.BUILDER_DEFAULT_OBJECT_CLASS)
             allowed_types = tuple(allowed_types)
-            container_conf = Int2ObjectMapConfig(
+            container_conf = ObjectMapConfig(
                 allowed_types=allowed_types, **kwargs
             )
         return container_conf or default_cls()

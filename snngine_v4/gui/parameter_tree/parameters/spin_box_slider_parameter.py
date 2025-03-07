@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -10,15 +13,17 @@ from pyqtgraph.parametertree.parameterTypes import (
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.icons import getEngineGraphIcon
+
 from snngine_v4.gui.parameter_tree.parameters.widgets.custom_spin_box import \
     CustomSpinBox
 from snngine_v4.gui.parameter_tree.parameters.widgets.spin_box_slider import (
     CustomSlider, SpinBoxSlider,
 )
 
-from snngine_v4.gui.parameter_tree.parameters.parameter_item_mixin import (
-    WidgetParameterItemMixin
-)
+from snngine_v4.gui.parameter_tree.parameters.common \
+    .parameter_item_mixin import (
+        WidgetParameterItemMixin,
+    )
 
 from snngine_v4.utils.data_utils.interval_utils import (
     coerce_value_into_interval,
@@ -26,9 +31,16 @@ from snngine_v4.utils.data_utils.interval_utils import (
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 
+if TYPE_CHECKING:
+    from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
+        EngineParameterTree
+
+
 # noinspection PyPep8Naming
 class SpinBoxSliderParameterItem(NumericParameterItem,
                                  WidgetParameterItemMixin):
+
+    param: SpinBoxSliderParameter
 
     def __init__(self, param, depth):
 
@@ -38,11 +50,17 @@ class SpinBoxSliderParameterItem(NumericParameterItem,
         self._nullable = param.opts.get(ParamOpts.KW.C_NULLABLE_VALUE, True)
 
         param.opts.setdefault(ParamOpts.KW.DELAY, .1)
-
-        # if param.opts[ParamOpts.KW.C_MODEL_FIELD_NAME] == 'width':
-        #     pass
-
+        if (val := param.opts.get('value', None)) is None:
+            if self._nullable is False:
+                if (dflt := param.opts.get('default', None)) is not None:
+                    param.opts['value'] = dflt
+                else:
+                    pass
+            else:
+                pass
         super().__init__(param, depth)
+        self.b_select_other = self.param.b_merge_to_parent
+        self.select_other_target = None
 
         self.slider = SpinBoxSlider(spinbox=self.widget, **self.param.opts)
         self.slider_layout_widget = self.slider.layout_widget()
@@ -79,6 +97,28 @@ class SpinBoxSliderParameterItem(NumericParameterItem,
 
         self.displayNoneValue(b_set_to_none, b_update_checkbox=False)
         self.valueWidgetClicked()
+
+    def displayNoneValue(self, value: bool, b_update_checkbox):
+        if isinstance(value, int):
+            value = bool(value)
+
+        if b_update_checkbox:
+            self.setNoneCheckbox.clicked.disconnect(self.checkBoxClicked)
+            self.setNoneCheckbox.setChecked(not value)
+            self.setNoneCheckbox.clicked.connect(self.checkBoxClicked)
+
+        self.widget.setDisabled(value)
+        self.slider.setDisabled(value)
+        if value is True:
+            if self.widget.isVisible():
+                self.widget.setVisible(False)
+            if not self.displayLabel.isVisible():
+                self.displayLabel.setVisible(True)
+        elif value is False:
+            if not self.widget.isVisible():
+                self.widget.setVisible(True)
+            if self.displayLabel.isVisible():
+                self.displayLabel.setVisible(False)
 
     def hideEditor(self):
         if self.setNoneCheckbox.isChecked():
@@ -122,28 +162,6 @@ class SpinBoxSliderParameterItem(NumericParameterItem,
         if hasattr(self, 'slider') and (ParamOpts.KW.SPAN in opts):
             self.slider.set_span(opts[ParamOpts.KW.SPAN])
 
-    def displayNoneValue(self, value: bool, b_update_checkbox):
-        if isinstance(value, int):
-            value = bool(value)
-
-        if b_update_checkbox:
-            self.setNoneCheckbox.clicked.disconnect(self.checkBoxClicked)
-            self.setNoneCheckbox.setChecked(not value)
-            self.setNoneCheckbox.clicked.connect(self.checkBoxClicked)
-
-        self.widget.setDisabled(value)
-        self.slider.setDisabled(value)
-        if value is True:
-            if self.widget.isVisible():
-                self.widget.setVisible(False)
-            if not self.displayLabel.isVisible():
-                self.displayLabel.setVisible(True)
-        elif value is False:
-            if not self.widget.isVisible():
-                self.widget.setVisible(True)
-            if self.displayLabel.isVisible():
-                self.displayLabel.setVisible(False)
-
     def showEditor(self):
         if self.setNoneCheckbox.isChecked():
             self.widget.show()
@@ -157,15 +175,20 @@ class SpinBoxSliderParameterItem(NumericParameterItem,
 
     def treeWidgetChanged(self):
         super().treeWidgetChanged()
-        self._set_sizes()
-        if self.is_from_numeric_group() is False:
-            lay_wdg = self.layoutWidget
-            slider_idx = lay_wdg.layout().count() - 1
-            lay_wdg.layout().insertWidget(slider_idx,
-                                          self.slider_layout_widget)
-            lay_wdg.setMinimumWidth(
-                lay_wdg.minimumWidth()
-                + self.slider_layout_widget.minimumWidth())
+        if self.treeWidget():
+            self._set_sizes()
+            if self.is_from_numeric_group() is False:
+                lay_wdg = self.layoutWidget
+                slider_idx = lay_wdg.layout().count() - 1
+                lay_wdg.layout().insertWidget(slider_idx,
+                                              self.slider_layout_widget)
+                lay_wdg.setMinimumWidth(
+                    lay_wdg.minimumWidth()
+                    + self.slider_layout_widget.minimumWidth())
+
+                if self.param.b_merge_to_parent is True:
+                    self.merge_to_parent()
+                    self.select_other_target = self.parent()
 
     def updateCheckBoxUI(self, val):
         b_checked = self.setNoneCheckbox.isChecked()
@@ -179,13 +202,30 @@ class SpinBoxSliderParameterItem(NumericParameterItem,
             self.updateCheckBoxUI(val=val)
         super().valueChanged(param, val, force)
 
+    def valueWidgetClicked(self):
+        if self.b_select_other is False:
+            super().valueWidgetClicked()
+        else:
+            tree: EngineParameterTree = self.treeWidget()
+            if tree:
+                # self.parent().setSelected(False)
+                self.setSelected(False)
+                self.showEditor()
+                if self.select_other_target:
+                    tree.setCurrentItem(self.select_other_target)
+                else:
+                    raise AttributeError
+                # self.select_other_target.selected(True)
+
 
 # noinspection PyPep8Naming
 class SpinBoxSliderParameter(Parameter):
 
+    # sigMergeLayouts = QtCore.Signal(object, object, int)
+
     itemClass = SpinBoxSliderParameterItem
 
-    def __init__(self, **options):
+    def __init__(self, b_merge_to_parent=False, **options):
 
         if options.get(ParamOpts.KW.SPAN, None) is None:
 
@@ -200,6 +240,8 @@ class SpinBoxSliderParameter(Parameter):
             options[ParamOpts.KW.SPAN] = span
         
         super().__init__(**options)
+        self.b_merge_to_parent = b_merge_to_parent
+
 
     def hasDefault(self):
         if self.opts.get(ParamOpts.KW.C_NULLABLE_VALUE, False):

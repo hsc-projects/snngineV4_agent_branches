@@ -11,7 +11,7 @@ from typing import (
 import numpy as np
 import pandas as pd
 from annotated_types import Ge, Gt, Le, Lt
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator
 from pydantic.fields import FieldInfo
 from pydantic.types import AnyType
 from pydantic_core import PydanticUndefined
@@ -19,7 +19,6 @@ from typing_extensions import TypeAliasType
 
 from .core_utils import type_assertion
 from snngine_v4.utils.data_utils.interval_utils import make_interval
-
 
 type AnnotationType = (FieldInfo | GenericAlias | UnionType
                        | Type | TypeAliasType)
@@ -31,6 +30,7 @@ type FieldInfoType = FieldInfo
 
 class FieldInfoSlots:
     MULTIPLE_OF: ClassVar[str] = 'multiple_of'
+    FROZEN: ClassVar[str] = 'frozen'
     DEFAULT: ClassVar[str] = 'default'
     DEFAULT_FACTORY: ClassVar[str] = 'DEFAULT_FACTORY'
     JSON_SCHEMA_EXTRA: ClassVar[str] = 'json_schema_extra'
@@ -185,9 +185,9 @@ def b_field_has_default(field_info: FieldInfo) -> bool:
         raise NotImplementedError
 
 
-def extract_field_default(field_info: FieldInfo) -> bool:
+def extract_field_default(field_info: FieldInfoInputType) -> bool:
     if isinstance(field_info, tuple):
-        field_info = field_info[0].model_fields[field_info[1]]
+        field_info = as_field_info(field_info)
     if isinstance(field_info, FieldInfo):
         if b_field_has_default(field_info):
             if field_info.default is not PydanticUndefined:
@@ -419,6 +419,14 @@ def get_field_info_value(field: FieldInfo, key: str, default=None):
         raise NotImplementedError(key)
 
 
+def get_field_frozen(field: FieldInfo, default=False):
+    # noinspection PyProtectedMember
+    b_frozen = field._attributes_set.get(FieldInfoSlots.FROZEN, default)
+    if b_frozen is None:
+        return False
+    return b_frozen
+
+
 def get_field_json_schema_extra(field: FieldInfo, default=dict) -> dict | Any:
     if (hasattr(field, FieldInfoSlots.JSON_SCHEMA_EXTRA)
             and (field.json_schema_extra is not None)):
@@ -430,10 +438,7 @@ def get_field_json_schema_extra(field: FieldInfo, default=dict) -> dict | Any:
 
 def get_field_multiple_of(field: FieldInfo, default=None):
     # noinspection PyProtectedMember
-    if FieldInfoSlots.MULTIPLE_OF in field._attributes_set:
-        # noinspection PyProtectedMember
-        return field._attributes_set[FieldInfoSlots.MULTIPLE_OF]
-    return default
+    return field._attributes_set.get(FieldInfoSlots.MULTIPLE_OF, default)
 
 
 def interval_from_annotated(ann: AnnotationType, default='inf', b_strict=True):
@@ -518,3 +523,26 @@ def model_keys(model: BaseModel | Type[BaseModel],
 def model_dict(model: BaseModel, type_filter=None, **kwargs):
     keys = model_keys(type_filter=type_filter, **kwargs)
     return model.model_dump(model='python', include=keys)
+
+
+def validate_na_string(value):
+    if value is None:
+        return ''
+    return value
+
+
+type NoneAcceptingString = Annotated[
+    str, BeforeValidator(validate_na_string)]
+
+
+def validate_list_parameter_type(value):
+    return value
+
+
+type ListParameterType_ = list[str] | str
+
+
+type ListParameterType = Annotated[
+    ListParameterType_, BeforeValidator(validate_list_parameter_type)]
+
+

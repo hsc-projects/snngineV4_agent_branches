@@ -7,6 +7,7 @@ from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.common.qobject_dicts import QDockWidgetDict, QWidgetDict
 
+
 from snngine_v4.gui.windows.main_window_widgets import (
     ButtonsDockWidget,
     RightToolbar,
@@ -22,18 +23,21 @@ if TYPE_CHECKING:
     )
     from snngine_v4.gui.parameter_tree.parameters.widgets.table \
         .array_editor import ArrayEditorDockWidget
+    from snngine_v4.gui.windows.extra_parameters import ParameterArea
 
 
 class WindowTypes(IntEnum):
     MAIN = 0
     SETTINGS = 1
+    EXTRA_PARAMETERS = 2
 
 
 # noinspection PyPep8Naming
 class MainEngineWindowBase(QtWidgets.QMainWindow):
 
-    BUTTONS_DOCK_NAME: ClassVar[str] = 'Buttons'
+    ACTIONS_DOCK_NAME: ClassVar[str] = 'Actions'
     ARRAYS_DOCK_NAME: ClassVar[str] = 'Array Editor'
+    CONTROLS_DOCK_NAME: ClassVar[str] = 'Controls'
 
     SETTINGS_DOCK_CLASS: ClassVar[Type[EngineTreeDockWidget]] = None
 
@@ -50,13 +54,14 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
         self.centralWidget().setLayout(QtWidgets.QVBoxLayout())
         self.centralWidget().layout().setContentsMargins(0, 0, 0, 0)
 
-        self.windows = windows
+        self.windows: QWidgetDict = windows
 
         self.right_toolbar = RightToolbar()
         self.addToolBar(
             QtCore.Qt.ToolBarArea.RightToolBarArea, self.right_toolbar)
 
-        self.docks: QDockWidgetDict = self.setup_dock_widgets()
+        self.docks: QDockWidgetDict = QDockWidgetDict()
+        self.setup_dock_widgets()
 
         self.scene_tree: QTree = self.get_tree(EngineConfig.Slots.SCENES)
         self.constr_tree: QTree = self.get_tree(EngineConfig.Slots.CONSTR)
@@ -69,11 +74,15 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
     def arrayEditorDockWidget(self) -> ArrayEditorDockWidget:
         return self.docks[self.ARRAYS_DOCK_NAME]
 
+    @property
+    def extraParametersWindow(self) -> ParameterArea:
+        return self.windows[WindowTypes.EXTRA_PARAMETERS]
+
     def build(self):
         raise NotImplementedError
 
     def connect_to_engine(self):
-        buttons_dock = self.docks[self.BUTTONS_DOCK_NAME]
+        buttons_dock = self.docks[self.ACTIONS_DOCK_NAME]
         buttons_dock.build_button.clicked.connect(self.build)
 
         file_menu = self.menuBar().addMenu('&File')
@@ -87,6 +96,14 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
         settings_action.triggered.connect(
             self.windows[WindowTypes.SETTINGS].show)
 
+        extra_pars_wdg = self.windows[WindowTypes.EXTRA_PARAMETERS]
+        extra_pars_action = QtWidgets.QAction('&Show Additional Parameters')
+        file_menu.addAction(extra_pars_action)
+        extra_pars_action.triggered.connect(extra_pars_wdg.show)
+        self.windows.action_map[extra_pars_action] = extra_pars_wdg
+        for action in self.windows.action_map.inv[extra_pars_wdg]:
+            action.setEnabled(False)
+
     def get_tree(self, slot) -> QTree:
         return self.docks[slot.capitalize()].widget()
 
@@ -95,9 +112,18 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
             pars=self.setting_trees[key].copy(),
             name=key.capitalize())
 
+    def addLeftDockWidget(
+            self, widget_or_key: str | QtWidgets.QWidget):
+        if isinstance(widget_or_key, str):
+            widget = self.make_settings_dock_widget(key=widget_or_key)
+        else:
+            widget = widget_or_key
+        self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, widget)
+        self.docks.add_widget(widget)
+        return widget
+
     def setup_dock_widgets(self):
 
-        docks = QDockWidgetDict()
         options = self.dockOptions()
         options |= QtWidgets.QMainWindow.DockOption.VerticalTabs
         options |= QtWidgets.QMainWindow.DockOption.AllowNestedDocks
@@ -108,32 +134,19 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
         self.setCorner(QtCore.Qt.Corner.BottomLeftCorner,
                        QtCore.Qt.DockWidgetArea.LeftDockWidgetArea)
 
-        construction = self.make_settings_dock_widget(
-            key=EngineConfig.Slots.CONSTR)
-        scenes = self.make_settings_dock_widget(
-            key=EngineConfig.Slots.SCENES)
-        network = self.make_settings_dock_widget(
-            key=EngineConfig.Slots.NETWORK)
+        scenes = self.addLeftDockWidget(
+            widget_or_key=EngineConfig.Slots.SCENES)
+        construction = self.addLeftDockWidget(
+            widget_or_key=EngineConfig.Slots.CONSTR)
+        network = self.addLeftDockWidget(
+            widget_or_key=EngineConfig.Slots.NETWORK)
 
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
-                           scenes)
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
-                           construction)
-        self.addDockWidget(QtCore.Qt.DockWidgetArea.LeftDockWidgetArea,
-                           network)
         self.tabifyDockWidget(scenes, construction)
         self.tabifyDockWidget(construction, network)
 
-        # construction.raise_()
-
-        buttons = ButtonsDockWidget(name=self.BUTTONS_DOCK_NAME)
-        self.addDockWidget(
-            QtCore.Qt.DockWidgetArea.LeftDockWidgetArea, buttons)
-
-        # noinspection PyTypeChecker
-        docks.add_widgets(construction, scenes, network, buttons)
-
-        return docks
+        buttons = ButtonsDockWidget(name=self.ACTIONS_DOCK_NAME)
+        # noinspection PyTypeChecker,PydanticTypeChecker
+        self.addLeftDockWidget(buttons)
 
     @property
     def setting_trees(self) -> dict[str, QTree]:

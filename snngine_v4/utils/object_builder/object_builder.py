@@ -8,7 +8,7 @@ from typing import ClassVar, Type
 from pydantic import BaseModel
 
 from snngine_v4.utils.containers.mappings import (
-    Model2ObjectMap, Int2ObjectMapConfig,
+    Model2ObjectMap, ObjectMapConfig,
 )
 from snngine_v4.utils.class_mixer import ClassMixer
 from snngine_v4.utils.field_utils import model_keys
@@ -22,7 +22,7 @@ class BuildResult:
     kwargs: dict = field(default_factory=dict)
 
 
-class ContainerBuildResultConfig(Int2ObjectMapConfig, frozen=True):
+class ContainerBuildResultConfig(ObjectMapConfig, frozen=True):
     allowed_types: tuple[Type[BuildResult], Type[NoneType]] = (
         BuildResult, NoneType)
 
@@ -63,7 +63,6 @@ class ModelObjectBuilder:
     BUILDER_OBJECT_SUPERCLASS_MAP: ClassVar[dict[Type[BaseModel], Type]] = {}
     BUILDER_OBJECT_CLASS_MIXER: ClassVar[Type[ClassMixer] | None] = None
 
-    B_INIT_OBJECTS_WITH_MODEL: bool = False
     DEFAULT_OBJECT_INIT_TYPE: ObjectInitializationType = (
         ObjectInitializationType.KWARGS)
 

@@ -1,9 +1,8 @@
 import os
 
-from snngine_v4.geometry.spatial_pars import EnginePos3D
-from snngine_v4.nn.config_models.reservoir.nn_reservoir_config \
+from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
     import NetworkReservoirConfig
-from snngine_v4.nn.nn_builder import NetworkManager
+from snngine_v4.nn.construction.nn_builder import NetworkBuilder
 from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.nn.spnn_reservoir import NetworkReservoir
 from snngine_v4.snngine_config import EngineConfig
@@ -28,7 +27,7 @@ class SNNgine:
         self.scene_manager: dict[str, EngineSceneCanvas] | SceneManager = (
             SceneManager(self.conf.scenes))
 
-        self.network_manager = NetworkManager(
+        self.network_manager = NetworkBuilder(
             container_model=self.conf.current)
 
     def init_core(self):

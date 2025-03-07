@@ -3,11 +3,12 @@ from typing import ClassVar, Type
 
 from pydantic import BaseModel
 
+
 from snngine_v4.config.construction import EngineConstructionConfig
-from snngine_v4.nn.config_models.nn_builder_config import \
+from snngine_v4.nn.construction.config_models.nn_builder_config import \
     NetworkConstructionConfig
 from snngine_v4.nn.spnn import SpatialNetwork
-from snngine_v4.utils.containers.mappings import Int2ObjectMapConfig
+from snngine_v4.utils.containers.mappings import ObjectMapConfig
 from snngine_v4.utils.field_utils import model_keys
 from snngine_v4.utils.object_builder.object_builder import \
     ObjectInitializationType
@@ -16,9 +17,9 @@ from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 from snngine_v4.utils.settings.settings_keywords import BaseModelSlots
 
 
-class NetworkManager(BuilderDict):
+class NetworkBuilder(BuilderDict):
 
-    class ContainerConfigClass(Int2ObjectMapConfig):
+    class ContainerConfigClass(ObjectMapConfig):
         b_clear_allowed: bool = True
 
     BUILDER_OBJECT_CLASS_MAP: ClassVar = {
@@ -50,11 +51,13 @@ class NetworkManager(BuilderDict):
     def build(self, m=None, **kwargs):
         super().build(**kwargs)
         if isinstance(m, BaseModel):
-            self.container_model = self.container_model_class(
-                **deepcopy(m).model_dump())
+            m2 = deepcopy(m)
+            m3 = m2.model_dump()
+            self.container_model = self.container_model_class(**m3)
             super().update(self.container_model)
-            for k in model_keys(self.container_model,
-                                exclude=BaseModelSlots.CLASS__NAME):
+            keys = model_keys(self.container_model,
+                              exclude=BaseModelSlots.CLASS__NAME)
+            for k in keys:
                 v = getattr(self.container_model, k)
                 if v not in self:
                     if isinstance(v, (list, tuple)):
@@ -64,27 +67,4 @@ class NetworkManager(BuilderDict):
                         raise AssertionError
         elif m is not None:
             self.update(m)
-
-    # def update(self, m=None, **kwargs) -> None:
-    #     if isinstance(m, BaseModel):
-    #         # self.container_model = self.container_model_class(
-    #         #     **deepcopy(m).model_dump())
-    #         # model = self.container_model
-    #         #
-    #         # build = self.cls_build_container(model_container=model)
-    #         # m_ = build.object_dict
-    #         # # print(m_)
-    #         super().update(m_, **kwargs)
-    #         for k in model_keys(model, exclude=BaseModelSlots.CLASS__NAME):
-    #             v = getattr(model, k)
-    #             if v not in self:
-    #                 if isinstance(v, (list, tuple)):
-    #                     if not all([(x in self) for x in v]):
-    #                         raise AssertionError
-    #                 else:
-    #                     raise AssertionError
-    #
-    #     else:
-    #         super().update(m, **kwargs)
-
         return

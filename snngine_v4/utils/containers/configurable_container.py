@@ -9,7 +9,9 @@ from pydantic.types import AnyType
 
 from snngine_v4.utils.core_utils import filter_dict, filter_list
 from snngine_v4.utils.field_utils import (
-    extract_type_from_type_annotation, b_field_has_default, Undefined,
+    extract_field_default, extract_type_from_type_annotation,
+    b_field_has_default, fill_field_default,
+    Undefined,
 )
 from snngine_v4.utils.settings.config_model import ConfigModel
 
@@ -43,6 +45,7 @@ class ContainerConfig(ConfigModel, frozen=True):
 
     class Slots:
         ALLOWED_TYPES: ClassVar[str] = 'allowed_types'
+        B_POP_ALLOWED: ClassVar[str] = 'b_pop_allowed'
 
     @classmethod
     def b_int_allowed(cls, type_, forbidden_types=None):
@@ -91,6 +94,9 @@ class ContainerConfig(ConfigModel, frozen=True):
         if (k not in data) and (not b_field_has_default(field)):
             v = extract_type_from_type_annotation(field.annotation)
             data[k] = v
+        for k, v in data.items():
+            if data[k] == Undefined:
+                data[k] = extract_field_default((cls, k))
         return super()._validate_model_before(data)
 
     # @classmethod

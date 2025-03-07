@@ -11,7 +11,7 @@ from snngine_v4.gui.parameter_tree.connectors.parameter_connector import \
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
     EngineParameterTree
 from snngine_v4.utils.containers.mappings import (
-    Int2ObjectMapConfig, Model2ObjectMap,
+    ObjectMapConfig, Model2ObjectMap,
 )
 from snngine_v4.utils.field_utils import model_keys
 from snngine_v4.visualization.config_models.visuals import MarkersVisualConfig
@@ -27,7 +27,7 @@ from snngine_v4.visualization.visual_builder import (
 
 class VispyConnector(ParameterConnector):
 
-    class ContainerConfigClass(Int2ObjectMapConfig, frozen=True):
+    class ContainerConfigClass(ObjectMapConfig, frozen=True):
         b_pop_allowed: bool = True
 
     @classmethod

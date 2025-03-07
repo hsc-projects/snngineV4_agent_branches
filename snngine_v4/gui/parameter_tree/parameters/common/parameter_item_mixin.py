@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 
 from pyqtgraph.parametertree import ParameterItem
 from pyqtgraph.parametertree.parameterTypes import WidgetParameterItem
@@ -9,7 +9,7 @@ from qtpy import QtCore, QtWidgets
 from snngine_v4.gui.parameter_tree.parameters.widgets.clickable_label import (
     ClickableLabel,
 )
-from snngine_v4.gui.parameter_tree.parameters.engine_group_parameter import \
+from snngine_v4.gui.parameter_tree.parameters.common.engine_group_parameter import \
     EngineGroupParameterItem
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
@@ -31,6 +31,9 @@ class WidgetParameterItemMixin:
         ParamOpts.KW.C_NONE_MEANS_UNKNOWN: {'nan': 'Unknown'},
     }
 
+    parent: Callable[[...], EngineGroupParameterItem]
+    layoutWidget: QtWidgets.QWidget
+
     def __init__(self):
         self._size_policy = QtWidgets.QSizePolicy.Policy.MinimumExpanding
 
@@ -45,11 +48,37 @@ class WidgetParameterItemMixin:
         # noinspection PyUnresolvedReferences
         return super().parent()
 
-    def _remove_spacer_item(self: WidgetParameterItemType, idx=2):
-        w = self.layoutWidget.layout().takeAt(idx)
+    @classmethod
+    def cls_merge_layouts(cls, source, target: EngineGroupParameterItem):
+        source.setHidden(True)
+        target.layoutWidget.layout().insertWidget(
+            0, source.layoutWidget)
+        # noinspection PyTypeChecker,PydanticTypeChecker
+        cls.cls_remove_spacer_item(
+            item=target, b_tentative=False, idx=1)
+        target.param.sigSelected.connect(source.onParentSelect)
+
+    def merge_to_parent(self):
+        self.cls_merge_layouts(self, self.parent())
+
+    def onParentSelect(self: WidgetParameterItemType, parent, value):
+        if parent == self.parent():
+            if self.param.b_merge_to_parent is True:
+                self.selected(value)
+
+    @classmethod
+    def cls_remove_spacer_item(cls, item: WidgetParameterItemType, idx=2,
+                               b_tentative: bool = False):
+        if b_tentative is True:
+            pass
+        w = item.layoutWidget.layout().takeAt(idx)
         if not isinstance(w, QtWidgets.QSpacerItem):
             raise ValueError(f"{w}")
-        self.layoutWidget.layout().removeItem(w)
+        item.layoutWidget.layout().removeItem(w)
+
+    def _remove_spacer_item(self: WidgetParameterItemType, idx=2,
+                            b_tentative: bool = False):
+        self.cls_remove_spacer_item(self, idx, b_tentative=b_tentative)
 
     def _replace_display_label(self: WidgetParameterItemType):
         txt = self.displayLabel.text()

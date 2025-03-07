@@ -14,7 +14,7 @@ from snngine_v4.geometry.spatial_pars import (
     AxDir3D, Directions3DBoolPars, EnginePos3D, FloatShape3D,
     Segmentation3D,
 )
-from snngine_v4.nn.config_models.reservoir.nn_reservoir_config \
+from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
     import NetworkReservoirConfig
 from snngine_v4.utils.containers.configurable_dict import (
     ConfigurableDict,
@@ -268,9 +268,11 @@ class VispyVisualBuilder(BuilderDict):
             for k, dump_value_ in dct.items():
                 model_ = getattr(model, k)
                 if isinstance(model_, FloatShape3D):
-                    up_keys[k] = WDHKw.convert_dict(dump_value_)
+                    # up_keys[k] = WDHKw.convert_dict(dump_value_)
+                    up_keys[k] = WDHKw.convert_model(model_)
                 elif isinstance(model_, Segmentation3D):
-                    up_keys[k] = WDHSegKw.convert_dict(dump_value_)
+                    # up_keys[k] = WDHSegKw.convert_dict(dump_value_)
+                    up_keys[k] = WDHSegKw.convert_model(model_)
                 elif isinstance(model_, RGBAColor):
                     dct[k] = RGBAColor.to_vispy(dump_value_)
                 elif isinstance(model_, Directions3DBoolPars):

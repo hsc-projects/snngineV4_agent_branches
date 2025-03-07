@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from copy import copy, deepcopy
-from types import GenericAlias, UnionType
+from copy import deepcopy
+from types import GenericAlias, NoneType, UnionType
 from typing import (
     get_args, get_origin,
     Type,
@@ -19,19 +19,22 @@ from pyqtgraph.parametertree.parameterTypes import (
 
 from snngine_v4.gui.parameter_tree.parameter_builder.options_builder import \
     OptionsBuilder
-from snngine_v4.gui.parameter_tree.parameters import TensorDictParameter
 
-from snngine_v4.gui.parameter_tree.parameters.engine_group_parameter import \
-    EngineGroupParameter
+from snngine_v4.gui.parameter_tree.parameters.common \
+    .engine_group_parameter import EngineGroupParameter
 from snngine_v4.gui.parameter_tree.parameters.multi_type_parameter import \
     MultiTypeParameter
 from snngine_v4.gui.parameter_tree.parameters.reference_parameter import \
     ReferenceParameter
-from snngine_v4.utils.data_utils.dataframe_config import TypedDataFrameBase
+from snngine_v4.utils.data_utils.dataframe_config import (
+    SeriesBase, TypedDataFrameBase3D,
+)
+from snngine_v4.utils.data_utils.index_config import IndexConfig
 from snngine_v4.utils.field_utils import (
     b_is_annotated, b_is_optional,
     model_keys,
 )
+from snngine_v4.utils.list_parameter_model import ListParameterModel
 from snngine_v4.utils.settings.settings_keywords import (
     BaseModelSlots, BaseSettingsSlots,
 )
@@ -97,7 +100,9 @@ class ParameterBuilder:
         return res
 
     @classmethod
-    def make_par(cls, options: ParamOpts, signal_register, parent_model=None):
+    def make_par(cls, options: ParamOpts, signal_register,
+                 exclude_keys=None,
+                 parent_model=None):
 
         parameter_ = None
 
@@ -108,24 +113,46 @@ class ParameterBuilder:
                 and issubclass(options.c_data_types, BaseModel)):
             if isinstance(options.value, dict):
                 options.value = options.c_data_types(**options.value)
-            b_not_tdf = not isinstance(options.value, TypedDataFrameBase)
+
+            b_not_index = not isinstance(options.value, IndexConfig)
+            b_not_tdf = not isinstance(options.value, SeriesBase)
+
             if ((options.value.__class__.__name__ not in PARAM_TYPES)
-                    and b_not_tdf):
+                    and b_not_tdf and b_not_index):
 
                 parameter_ = cls.make_pars_from_model(
                     model=options.value, name=options.name,
                     parent_model=parent_model,
+                    exclude_keys=exclude_keys,
                     signal_register=signal_register, title=options.title)
             else:
-                if b_not_tdf:
+                if b_not_tdf and b_not_index:
                     type_ = options.value.__class__.__name__
                 else:
-                    type_ = TypedDataFrameBase.__name__
+                    if isinstance(options.value, TypedDataFrameBase3D):
+                        type_ = TypedDataFrameBase3D.__name__
+                    elif isinstance(options.value, SeriesBase):
+                        type_ = SeriesBase.__name__
+                    # elif isinstance(options.value, RowOrColumn):
+                    elif isinstance(options.value, IndexConfig):
+                        type_ = IndexConfig.__name__
+                    else:
+                        raise TypeError(type(options.value))
+
+                heritable_opts = ParamOpts.heritable_options(**options)
+                if options.c_data_types == ListParameterModel:
+                    heritable_opts[ParamOpts.KW.LIMITS] = options.value.limits
+                    heritable_opts[ParamOpts.KW.VALUE] = options.value.value
                 parameter_ = Parameter.create(
-                    model=options.value, name=options.name,
-                    parent_model=parent_model,
+                    name=options.name,
+                    parent_model=parent_model, model=options.value,
                     type=type_,
-                    signal_register=signal_register, title=options.title)
+                    signal_register=signal_register,
+                    title=options.title,
+                    exclude_keys=exclude_keys,
+                    **heritable_opts)
+                if isinstance(options.value, BaseModel):
+                    signal_register.parameter_map[options.value] = parameter_
 
         if parameter_ is None:
             if (isinstance(options.c_data_types, GenericAlias)
@@ -138,6 +165,8 @@ class ParameterBuilder:
             if parameter_ is None:
                 if options.name == 'color':
                     pass
+                if options.c_data_types == ListParameterModel:
+                    pass
                 parameter_ = Parameter.create(**options)
 
         if isinstance(parameter_, MultiTypeParameter):
@@ -146,7 +175,7 @@ class ParameterBuilder:
 
     @classmethod
     def make_par_from_field(cls, parent_model: BaseModel, key, value,
-                            signal_register, m=None,
+                            signal_register, m=None, exclude_keys=None,
                             **options):
 
         if m is not None:
@@ -170,6 +199,7 @@ class ParameterBuilder:
 
         return cls.make_par(options=options,
                             signal_register=signal_register,
+                            exclude_keys=exclude_keys,
                             parent_model=parent_model)
 
     @classmethod
@@ -199,11 +229,14 @@ class ParameterBuilder:
         if iterable_type == tuple:
             args_ = get_args(parameter_type)
             for i, t in enumerate(args_):
+                value = model_value[i] if model_value is not None else None
                 g_opts = OptionsBuilder.from_annotation(
                     ann=t,
                     name=str(i), c_data_types=t, type=None,
-                    value=model_value[i] if model_value is not None else None,
+                    value=value,
                     **heritable_options)
+                if g_opts.value is None:
+                    pass
                 g_par = Parameter.create(**g_opts)
                 group.addChild(g_par)
         elif iterable_type == list:
@@ -238,12 +271,13 @@ class ParameterBuilder:
                             pass
                             break
                         elif isinstance(v, t_0):
+                            value = (model_value[i] if model_value is not None
+                                     else None)
                             g_opts = OptionsBuilder.from_annotation(
-                                name=str(i), c_data_types=t_0,
-                                type=None,
-                                value=model_value[
-                                    i] if model_value is not None else None,
-                                ann=t, **heritable_options)
+                                name=str(i), c_data_types=t_0, type=None,
+                                value=value, ann=t, **heritable_options)
+                            if (t_0 != NoneType) and (g_opts.value is None):
+                                pass
                             g_par = Parameter.create(**g_opts)
                             break
 
@@ -252,25 +286,42 @@ class ParameterBuilder:
             raise NotImplementedError(f"{iterable_type}")
         return group
 
+    @staticmethod
+    def interpret_exclude_keys(exclude_keys):
+        if isinstance(exclude_keys, str):
+            exclude_keys = [exclude_keys]
+        if isinstance(exclude_keys, dict):
+            exclude_keys_dct = exclude_keys
+            default_exclude_key = exclude_keys_dct.pop(None, None)
+            exclude_keys = list(exclude_keys.keys())
+        else:
+            if exclude_keys is None:
+                exclude_keys = []
+            exclude_keys_dct = {}
+            default_exclude_key = None
+        exclude_keys += [BaseModelSlots.CLASS__NAME]
+
+        return exclude_keys, exclude_keys_dct, default_exclude_key
+
     @classmethod
     def make_pars_from_model(
             cls, model, signal_register: ExtendedModelSignalsRegister,
-            exclude_keys=None, parent_model=None, **options):
+            exclude_keys=None, parent_model=None,
+            group=None,
+            **options):
 
         if signal_register is not None:
             if signal_register.node_tree.root is None:
                 signal_register.node_tree.root = model
-
-        if exclude_keys is None:
-            exclude_keys = []
-        exclude_keys += [BaseModelSlots.CLASS__NAME]
-        # if isinstance(model, TypedDataFrameBase):
-        #     group = Parameter.create(type=TypedDataFrameBase.__name__,
-        #                              **options)
-        #     return group
-        # else:
-        group = EngineGroupParameter.from_model(model=model, **options)
+        if group is None:
+            group = EngineGroupParameter.from_model(
+                model=model, parent_model=parent_model,
+                **options)
         heritable_options = ParamOpts.heritable_options(**group.opts)
+
+        exclude_keys, excl_k_dct, dft_excl_k = cls.interpret_exclude_keys(
+            exclude_keys
+        )
 
         children = []
         n_children = 0
@@ -286,6 +337,7 @@ class ParameterBuilder:
                 parent_model=model, key=k,
                 value=param_model,
                 signal_register=signal_register,
+                exclude_keys=excl_k_dct.get(k, dft_excl_k),
                 **heritable_options)
 
             n_children += 1

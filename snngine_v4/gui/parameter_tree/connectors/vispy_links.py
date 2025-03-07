@@ -22,8 +22,8 @@ from snngine_v4.gui.parameter_tree.connectors.model_signals_register import \
 from snngine_v4.gui.parameter_tree.connectors.object2object_links import (
     LinkStateType, Object2ObjectLinks,
 )
-from snngine_v4.nn.config_models.reservoir.nn_reservoir_config import \
-    NetworkReservoirConfig
+from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
+    import NetworkReservoirConfig
 from snngine_v4.utils.containers.mappings import Model2ObjectMap
 from snngine_v4.utils.field_utils import Undefined
 # from snngine_v4.utils.settings.ui_parameter_options import update_param_opts
@@ -93,24 +93,26 @@ class VispyLinks(Object2ObjectLinks):
 
         self.model_signals: ModelParameterLinks = (
             model_signals) if model_signals else signal_register[self.source]
-        self.center_signals = None
-        if isinstance(self.source, TurnTableCameraParameters):
-            self.center_signals: ModelParameterLinks = signal_register[
-                self.source.center]
+        # self.center_signals = None
+        # if isinstance(self.source, TurnTableCameraParameters):
+        #     self.center_signals: ModelParameterLinks = signal_register[
+        #         self.source.center]
 
         if isinstance(self.sink, (EventCameraMixin, TurntableCamera)):
             assert isinstance(self.source, TurnTableCameraParameters)
             self.sink.events.attr_changed.connect(self.update_model)
-            self.sink.events.center_changed.connect(self.update_model)
+            # self.sink.events.center_changed.connect(self.update_model)
             self.add_links(self.update_camera_object)
             for link in self.model_links:
                 ev = SetAttributeEvent(
                     key=link.source_key,
                     value=getattr(self.sink, link.source_key))
+                if link.source_key == EventCameraMixin.Slots.CENTER:
+                    ev.value = np.array(ev.value, dtype=np.float32)
                 self.update_model(ev)
-            center_links: list[ObjectParameterLink] = (
-                self.center_signals[ObjectParameterLink].refs)
-            self.add_links(self.update_camera_object, center_links)
+            # center_links: list[ObjectParameterLink] = (
+            #     self.center_signals[ObjectParameterLink].refs)
+            # self.add_links(self.update_camera_object, center_links)
         else:
             if (isinstance(vispy_obj, VisualNode)
                     and type(vispy_obj) not in VisualMixin.SET_DATA_KWS):
@@ -172,7 +174,7 @@ class VispyLinks(Object2ObjectLinks):
                                          )
                 self.add_links(self.update_object)
 
-            self.transform_signals: ModelParameterLinks | None = None
+            # self.transform_signals: ModelParameterLinks | None = None
             self.connect_transform(signal_register, model_signals)
 
             return
@@ -216,37 +218,44 @@ class VispyLinks(Object2ObjectLinks):
         #     self.add_links(func=self.update_object, links=model_links)
 
     def connect_transform(self, signal_register, model_signals):
-        if hasattr(self.source, EnginePos3D.Slots.POS_ORIGIN):
+        slot = EnginePos3D.Slots.POS_ORIGIN
+        if hasattr(self.source, slot):
             if isinstance(self.sink.transform, STTransform):
-                pos_origin_model = self.source.pos_origin
-                if ((model_signals is None)
-                        or (model_signals is self.model_signals)):
-                    transform_signals = signal_register[pos_origin_model]
+                # pos_origin_model = self.source.pos_origin
+                if (((model_signals is None)
+                     or (model_signals is self.model_signals))
+                        and slot in self.model_signals[str]):
+                    link = self.model_signals[str][slot]
+                    # transform_signals = signal_register[pos_origin_model]
                 elif (model_signals is
                       signal_register.extensions_map[self.source]):
                     return
                     # signals = signal_register.extensions_map[pos_origin_model]
                 else:
                     raise AssertionError
-                self.transform_signals: ModelParameterLinks = transform_signals
-                print(
-                    '\nconnect_transform',
-                    self.source.__class__.__name__,
-                    f"<{id(self.source)}>\n",
-                    # src.__class__.__name__,
-                    # f"<{id(src)}>\n",
-                    self.sink.__class__.__name__,
-                    f"<{id(self.sink)}>\n"
-                    # f"signals <{id(signals)}>\n"
-                    f"signals <{id(self.transform_signals)}>\n"
-                )
+                # self.transform_signals: ModelParameterLinks = transform_signals
+                # print(
+                #     '\nconnect_transform',
+                #     self.source.__class__.__name__,
+                #     f"<{id(self.source)}>\n",
+                #     # src.__class__.__name__,
+                #     # f"<{id(src)}>\n",
+                #     self.sink.__class__.__name__,
+                #     f"<{id(self.sink)}>\n"
+                #     # f"signals <{id(signals)}>\n"
+                #     f"signals <{id(self.transform_signals)}>\n"
+                # )
 
-                links = self.transform_signals[ObjectParameterLink].refs
-                for link in links:
-                    link[LinkStateType.SOURCE2SINK].connect(
-                        self.update_object_transform)
-                    if link.source_key not in self[str]:
-                        self[link.source_key] = link
+                # links = self.transform_signals[ObjectParameterLink].refs
+                # for link in links:
+                #     link[LinkStateType.SOURCE2SINK].connect(
+                #         self.update_object_transform)
+                #     if link.source_key not in self[str]:
+                #         self[link.source_key] = link
+                link[LinkStateType.SOURCE2SINK].connect(
+                    self.update_object_transform)
+                if link.source_key not in self[str]:
+                    self[link.source_key] = link
 
                 self.sink.transform.changed.connect(self.update_model)
                 self.sink.transform.changed()
@@ -277,10 +286,18 @@ class VispyLinks(Object2ObjectLinks):
         elif event.type == 'transform_changed':
             tr: STTransform = event.source
             # pos_origin_model = model_signals.source
-            for ax in Ax3D:
-                link = model_signals[str][ax.name]
-                cls.cls_update_model_attribute(
-                    link, ax.name, float(tr.translate[ax.value]), block)
+            # slot = SeriesBase.Slots.DATA
+            slot = EnginePos3D.Slots.POS_ORIGIN
+            link = model_signals[str][slot]
+            cls.cls_update_model_attribute(
+                link, slot, tr.translate[:3], block)
+            # for ax in Ax3D:
+            #     try:
+            #         link = model_signals[str][ax.name]
+            #         cls.cls_update_model_attribute(
+            #             link, ax.name, float(tr.translate[ax.value]), block)
+            #     except KeyError:
+            #         pass
         # elif event.type == 'update':
         #     source: BaseVisual = event.source
         #     if isinstance(source, TurntableCamera):
@@ -351,7 +368,7 @@ class VispyLinks(Object2ObjectLinks):
         return kwargs
 
     def prepare_object(self, obj, link_type: LinkStateType,
-                       debug_catch=BaseException):
+                       debug_catch=BaseException, **kwargs):
         raise NotImplementedError
 
     def update_camera_object(
@@ -360,9 +377,9 @@ class VispyLinks(Object2ObjectLinks):
         if model_ == self.source.center:
             key = 'center'
             value = model_
-            event_block = self.sink.events.center_changed
-        else:
-            event_block = self.sink.events.attr_changed
+        #     event_block = self.sink.events.center_changed
+        # else:
+        event_block = self.sink.events.attr_changed
         try:
             self.update_object(model_, key, value, event_block, block)
         except TypeError:
@@ -375,12 +392,13 @@ class VispyLinks(Object2ObjectLinks):
         if isinstance(self.sink, EventCameraMixin):
             if block is Undefined:
                 block = self.update_camera_object
-            if event.key == EventCameraMixin.Slots.CENTER:
-                signals_ = self.center_signals
-            else:
-                signals_ = self.model_signals
+            # if event.key == EventCameraMixin.Slots.CENTER:
+            #     event.value = np.array(event.value, )
+            # else:
+            #     signals_ = self.model_signals
+            signals_ = self.model_signals
         elif event.type == 'transform_changed':
-            signals_ = self.transform_signals
+            signals_ = self.model_signals
             if block is Undefined:
                 block = self.update_object_transform
         else:
@@ -453,8 +471,9 @@ class VispyLinks(Object2ObjectLinks):
         else:
             event_block.disconnect(block)
 
-        arr = self.sink.transform.translate
-        arr[Ax3D[key].value] = value
+        arr = self.sink.transform.translate[:3]
+        # arr[Ax3D[key].value] = value
+        arr[:] = value
         self.sink.transform.translate = arr
 
         if block is Undefined:

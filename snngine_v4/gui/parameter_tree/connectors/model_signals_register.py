@@ -4,26 +4,29 @@ from functools import cached_property
 from typing import Callable, Type
 
 from pydantic import BaseModel
+from pyqtgraph.parametertree import Parameter
 from pyqtgraph.parametertree.parameterTypes import GroupParameter
 
 from snngine_v4.gui.parameter_tree.connectors.model_parameter_links import \
     ModelParameterLinks
 from snngine_v4.utils.containers.mappings import (
-    Int2ObjectMapConfig, Model2ObjectMap,
+    ObjectMapConfig, Model2ObjectMap,
 )
 from snngine_v4.utils.containers.node_map import (
     ModelTree, NodeTree,
-    NodeTreeConfig, Object2NodeTreeMap,
+    TreeNodeConfig, Object2NodeTreeMap,
 )
+
 from snngine_v4.utils.field_utils import model_keys
 from snngine_v4.utils.settings.settings_keywords import BaseModelSlots
 
 
 class ModelSignalsRegister(Model2ObjectMap):
 
-    class ContainerConfigClass(Int2ObjectMapConfig, frozen=True):
+    class ContainerConfigClass(ObjectMapConfig, frozen=True):
         allowed_types: Type[ModelParameterLinks]
         b_clear_allowed: bool = True
+        b_pop_allowed: bool = True
 
     values: Callable[[], list[ModelParameterLinks]]
     __getitem__: Callable[[BaseModel], ModelParameterLinks]
@@ -31,7 +34,14 @@ class ModelSignalsRegister(Model2ObjectMap):
     def __init__(self, **kwargs):
         self.data: dict[BaseModel, ModelParameterLinks] | None = None
         self.group_map: dict[BaseModel, GroupParameter] | Model2ObjectMap = (
-            Model2ObjectMap.from_type(GroupParameter))
+            Model2ObjectMap.from_type(GroupParameter,
+                                      b_pop_allowed=True))
+        self.node_tree = ModelTree(
+            container_conf=TreeNodeConfig(b_free_nodes_allowed=True))
+        self.parameter_map: (dict[BaseModel, GroupParameter]
+                             | Model2ObjectMap) = (
+            Model2ObjectMap.from_type(Parameter,
+                                      b_pop_allowed=True))
         super().__init__(**kwargs)
 
     def actualize_node_tree_map(
@@ -65,11 +75,6 @@ class ModelSignalsRegister(Model2ObjectMap):
             raise RuntimeError
         return res
 
-    @cached_property
-    def node_tree(self) -> NodeTree:
-        return ModelTree(
-            container_conf=NodeTreeConfig(b_free_nodes_allowed=True))
-
     def __setitem__(self, model, value):
         if isinstance(value, GroupParameter):
             value = ModelParameterLinks(
@@ -85,13 +90,15 @@ class ExtendedModelSignalsRegister(ModelSignalsRegister):
     def __init__(self, node_tree_map=None, **kwargs):
         self.model2model_map = Model2ObjectMap.from_type(BaseModel)
         self.extensions_map = ModelSignalsRegister()
-        self.model2nodetree_map: Object2NodeTreeMap | None = (
+        self.model2nodetree_map: (Object2NodeTreeMap
+                                  | dict[..., NodeTree]
+                                  | None) = (
                 node_tree_map or Object2NodeTreeMap())
         super().__init__(**kwargs)
 
     def actualize_node_tree_map(
             self, key_model, value_links: ModelParameterLinks = None):
-        if key_model not in self.model2model_map.values():
+        if key_model not in self.model2model_map.inv:
             super().actualize_node_tree_map(key_model, value_links)
             if key_model not in self.model2nodetree_map:
                 self.model2nodetree_map[key_model] = self.node_tree
@@ -118,10 +125,11 @@ class ExtendedModelSignalsRegister(ModelSignalsRegister):
         """
         self.model2model_map[model0] = model1
 
-        self[model1] = ModelParameterLinks(
+        model1_link = ModelParameterLinks(
             allowed_keys=model_keys(
                 model1, exclude=BaseModelSlots.CLASS__NAME),
             model=model1, group_param=group0 or self.get_group(model0))
+        self[model1] = model1_link
 
         if node_tree is None:
             node_tree = ModelTree(root=model1)
@@ -129,22 +137,48 @@ class ExtendedModelSignalsRegister(ModelSignalsRegister):
             raise AssertionError
         self.model2nodetree_map[model1] = node_tree
 
-        keys0 = model_keys(model0, b_include_computed=False)
+        exclude = model1_link.linked_keys + [BaseModelSlots.CLASS__NAME]
+
+        keys0 = model_keys(model0, b_include_computed=False,
+                           exclude=exclude)
         for k0 in keys0:
-            v0 = getattr(model0, k0)
-            if isinstance(v0, BaseModel):
+            if isinstance(v0 := getattr(model0, k0), BaseModel):
                 if hasattr(model1, k0):
                     self.add_linked_model(
                         v0, getattr(model1, k0), node_tree=node_tree,)
         return node_tree
 
     def clear(self, b_force: bool = False, b_clear_inv: bool = True):
+        model_list = list(self.keys())
+        for model in model_list:
+            self.disconnect_model(model)
         for v in self.values():
             v.clear(b_force=self.container_conf.b_clear_allowed or b_force)
         super().clear(b_force=b_force, b_clear_inv=b_clear_inv)
         self.model2model_map.clear(b_force=True)
         self.model2nodetree_map.clear(b_force=True)
         self.extensions_map.clear(b_force=True)
+
+    def disconnect_model(self, model):
+
+        group = self.group_map[model]
+        if model in self.node_tree:
+            model_children = self.node_tree.children(model)
+            for m in model_children:
+                g = self.group_map[m]
+                if g not in group.children():
+                    raise NotImplementedError
+                self.disconnect_model(m)
+
+        if model in self.model2model_map:
+            raise NotImplementedError
+        if model in self.extensions_map:
+            raise NotImplementedError
+        links: ModelParameterLinks = self[model]
+        links.clear(b_force=True)
+        self.pop(model)
+        self.group_map.pop(model)
+        return group
 
     def get_group(self, model):
         try:

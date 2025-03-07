@@ -70,11 +70,16 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
                        allowed_types=type_,
                        **kwargs))
 
-    def __getattribute__(self, item):
-        if (item == 'pop') and hasattr(self, '_container_conf'):
-            if self._container_conf.b_pop_allowed is False:
-                raise PermissionError("Popping not allowed.")
-        return super().__getattribute__(item)
+    # def __getattribute__(self, item):
+    #     if (item == 'pop') and hasattr(self, '_container_conf'):
+    #         if self._container_conf.b_pop_allowed is False:
+    #             raise PermissionError("Popping not allowed.")
+    #     return super().__getattribute__(item)
+
+    def pop(self, *args, **kwargs):
+        if self._container_conf.b_pop_allowed is False:
+            raise PermissionError("Popping not allowed.")
+        return super().pop(*args, **kwargs)
 
     def set_default(
             self, item,
@@ -188,18 +193,13 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
 
 
 class CallableKeyDict(ConfigurableDict):
-
     class ContainerConfigClass(DictContainerConfig):
         allowed_key_types: Any = Callable
-    
-    def __setitem__(self, key, value):
-        super().__setitem__(key, value)
 
 
 class SingletonDict(metaclass=Singleton):
 
-    ContainerConfigClass: ClassVar[Type[DictContainerConfig]] = (
-        DictContainerConfig)
+    ContainerConfigClass = None
     ContainerClass: ClassVar[Type[ConfigurableDict]] = ConfigurableDict
 
     def __init__(self, container=None, container_options=None):
@@ -217,10 +217,21 @@ class SingletonDict(metaclass=Singleton):
             return container
         if container_class is None:
             container_class = cls.ContainerClass
+
+        default_conf_cls = cls.ContainerConfigClass
+        if default_conf_cls is None:
+            default_conf_cls = cls.ContainerClass.ContainerConfigClass
+
         container_conf = container_class.cls_make_container_conf(
                 container_conf=container_conf,
-                default_cls=cls.ContainerConfigClass, **kwargs)
+                default_cls=default_conf_cls, **kwargs)
         return container_class(container_conf=container_conf)
+
+    def keys(self):
+        return self.container.keys()
+
+    def __contains__(self, item):
+        return self.container.__contains__(item)
 
     def __getitem__(self, item):
         return self.container[item]

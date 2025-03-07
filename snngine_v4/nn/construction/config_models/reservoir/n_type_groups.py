@@ -5,7 +5,7 @@ from enum import auto, IntEnum, unique
 from typing import Annotated, Iterator, List
 
 import numpy as np
-from annotated_types import Ge, Gt
+from annotated_types import Ge
 from pydantic import (
     BeforeValidator, computed_field, Field,
     NonNegativeInt,

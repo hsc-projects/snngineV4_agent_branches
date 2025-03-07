@@ -11,42 +11,41 @@ from snngine_v4.geometry.grid.grid_mask_maker import (
     mask_value_interval,
     MaskMaker, n_neighbours,
 )
-from snngine_v4.geometry.grid_config import TechnicalValues
+from snngine_v4.geometry.grid_config import FiniteGridConfig, TechnicalValues
 
 
 class FiniteGrid:
 
-    def __init__(self,
-                 pos_origin: Iterable | dict,
-                 shape: Iterable | Sized | dict,
-                 seg: Iterable | Sized | dict,
-                 technical: dict | TechnicalValues):
+    def __init__(self, model: FiniteGridConfig):
 
-        if isinstance(pos_origin, dict):
-            pos_origin = list(pos_origin.values())
-        if isinstance(shape, dict):
-            shape = list(shape.values())
-        if isinstance(seg, dict):
-            seg = list(seg.values())
-        if isinstance(technical, dict):
-            technical = TechnicalValues(**technical)
+        self.pos_origin = model.pos_origin.data
+        self.shape = model.shape.data
+        self.segmentation = model.seg.data
+        # if isinstance(pos_origin, dict):
+        #     pos_origin = list(pos_origin.values())
+        # if isinstance(shape, dict):
+        #     shape = list(shape.values())
+        # if isinstance(seg, dict):
+        #     seg = list(seg.values())
+        # if isinstance(technical, dict):
+        #     technical = TechnicalValues(**technical)
 
-        if len(shape) != 3:
-            raise ValueError('shape must be a 3-element iterable.')
-        if len(seg) != 3:
-            raise ValueError('segmentations must be a 3-element iterable.')
-
-        self.pos_origin = np.array(pos_origin)
-
-        # The shape of the grid
-        if not hasattr(self, 'shape'):
-            self.shape = np.array(shape)
-        # The segmentation of the grid
-        if not hasattr(self, 'segmentation'):
-            self.segmentation = np.array(seg)
+        # if len(shape) != 3:
+        #     raise ValueError('shape must be a 3-element iterable.')
+        # if len(seg) != 3:
+        #     raise ValueError('segmentations must be a 3-element iterable.')
+        #
+        # self.pos_origin = np.array(pos_origin)
+        #
+        # # The shape of the grid
+        # if not hasattr(self, 'shape'):
+        #     self.shape = np.array(shape)
+        # # The segmentation of the grid
+        # if not hasattr(self, 'segmentation'):
+        #     self.segmentation = np.array(seg)
 
         # A technical maximum z value, used for grid visuals
-        self._technical_max_z_value = technical.max_z
+        self._technical_max_z_value = model.technical.max_z
 
         # The lattice of the grid
         self._lattice = (float(self.shape[0] / self.segmentation[0]),

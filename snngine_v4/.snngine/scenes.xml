@@ -75,17 +75,15 @@
           <DictItem type="int" key="margin">0</DictItem>
           <DictItem type="dict" class="TurnTableCameraParameters" key="camera">
             <DictItem type="dict" class="CameraCenter" key="center">
-              <DictItem type="float" key="X">0.0</DictItem>
-              <DictItem type="float" key="Y">0.0</DictItem>
-              <DictItem type="float" key="Z">0.0</DictItem>
+              <DictItem type="bool" key="b_nullable">False</DictItem>
             </DictItem>
             <DictItem type="float" key="fov">45.0</DictItem>
             <DictItem type="float" key="elevation">30.0</DictItem>
             <DictItem type="float" key="azimuth">30.0</DictItem>
             <DictItem type="float" key="roll">0.0</DictItem>
-            <DictItem type="float" key="distance">0.0</DictItem>
+            <DictItem type="NoneType" key="distance">None</DictItem>
             <DictItem type="float" key="translate_speed">1.0</DictItem>
-            <DictItem type="float" key="scale_factor">0.01</DictItem>
+            <DictItem type="NoneType" key="scale_factor">None</DictItem>
           </DictItem>
         </DictItem>
       </DictItem>
@@ -93,9 +91,7 @@
         <DictItem type="dict" class="XYZAxisVisualConfig" key="axis">
           <DictItem type="bool" key="visible">True</DictItem>
           <DictItem type="dict" class="EnginePos3D" key="pos_origin">
-            <DictItem type="float" key="X">0.0</DictItem>
-            <DictItem type="float" key="Y">0.0</DictItem>
-            <DictItem type="float" key="Z">0.0</DictItem>
+            <DictItem type="bool" key="b_nullable">False</DictItem>
           </DictItem>
           <DictItem type="int" key="width">1</DictItem>
           <DictItem type="str" key="connect">segments</DictItem>

@@ -1,54 +1,150 @@
 from __future__ import annotations
 
-from pydantic import BeforeValidator, Field
-from typing import Annotated, ClassVar
+import pandas as pd
+from pydantic import Field
+from typing import Any, ClassVar
 
 import numpy as np
 
+from snngine_v4.utils.data_utils.index_config import IndexConfig, RowOrColumn
 from snngine_v4.utils.data_utils.validation.array_annotation import (
-    ArrayInterfaces, i32_2D, i64_2D, f32_2D, Bool2D, i32_3D, f32_3D
+    ArrayInterfaces, Bool2D,
+    i32_2D, i32_3D,
+    i64_1D, i64_2D,
+    f32_1D, f32_2D, f32_3D
 )
 from snngine_v4.utils.settings.config_model import ConfigModel
 
 
-class FrameVector(ConfigModel):
-    name: str
-    default_scalar: int | float = 0
-    # dtype: str = 'NONE'
-
-    @staticmethod
-    def validate_field(v):
-        if isinstance(v, str):
-            v = FrameVector(name=v)
-        return v
-
-
-FrameVectorType = Annotated[FrameVector,
-                            BeforeValidator(FrameVector.validate_field)]
-
-
-class DataFrameIndex(ConfigModel):
-
-    def __len__(self):
-        return len(self.model_keys())
-
-    def to_list(self):
-        return [getattr(self, k).name for k in self.model_keys()]
-
-
-class TypedDataFrameBase(ConfigModel):
+class SeriesBase(ConfigModel):
 
     class Slots:
-        COLUMNS: ClassVar[str] = "columns"
+        INDEX: ClassVar[str] = "index"
         DATA: ClassVar[str] = "data"
-
         INIT_LENGTH: ClassVar[str] = "init_length"
         D_TYPE: ClassVar[str] = "dtype"
 
-    index: list[str] | None = None
-    columns: list[str] | None = None
+    index: IndexConfig = Field(repr=False)
+
     init_length: ClassVar[int] = 1
+    data: i64_1D = Field(repr=False)
+    b_nullable: bool = Field(default=False, repr=False, frozen=True)
+
+    @classmethod
+    def _apply_index_value(cls, data, i, value, dim):
+        if isinstance(data, (pd.Series, pd.DataFrame)):
+            data = data.values
+        if dim <= 0:
+            data[i] = value
+        elif dim == 1:
+            data[:, i] = value
+        elif dim == 2:
+            data[:, :, i] = value
+        elif isinstance(i, tuple):
+            raise NotImplementedError
+        else:
+            raise ValueError("dim must be <= 2")
+
+    def apply_property(
+            self, data=None, idx_attr=RowOrColumn.Slots.SCALAR_VALUE,
+            dim=0, b_skip_na=True, index=None):
+        if index is None:
+            index = self.index
+        if isinstance(index, IndexConfig):
+            if data is None:
+                data = self.data
+            for i, k in enumerate(index.model_keys()):
+                value = getattr(getattr(index, k), idx_attr)
+                if (not b_skip_na) or pd.notna(value):
+                    self._apply_index_value(data, i, value, dim=dim)
+
+    def apply_index_init_values(self, data=None, b_skip_na=True, **kwargs):
+        self.apply_property(
+            data=data, b_skip_na=b_skip_na,
+            idx_attr=RowOrColumn.Slots.INIT_SCALAR_VALUE, **kwargs)
+
+    def as_tuple(self):
+        return tuple(self.data)
+
+    @classmethod
+    def cls_n_indices(cls, model: SeriesBase):
+        if model.index is not None:
+            n_indices = len(model.index)
+        else:
+            n_indices = model.init_length
+        return n_indices
+
+    @classmethod
+    def cls_zeroes(cls, model: SeriesBase, n_indices=None, **kwargs):
+        if n_indices is None:
+            n_indices = cls.cls_n_indices(model)
+        return np.zeros(n_indices, dtype=model.data.dtype, **kwargs)
+
+    @classmethod
+    def cls_validate_data(cls, model, data, **kwargs):
+        raise NotImplementedError
+
+    @classmethod
+    def from_tuple(cls, value, **kwargs):
+        new = cls(**kwargs)
+        new.data = np.array(value, dtype=new.data.dtype)
+        return new
+
+    def __len__(self):
+        return len(self.index)
+
+    def _model_post_init(self, __context):
+        if self.data.shape[0] == 0:
+            self.data = self.zeroes()
+
+    def model_post_init(self, __context):
+        super().model_post_init(__context)
+        self._model_post_init(__context)
+
+    def prod(self):
+        return self.data.cumprod()[-1]
+
+    def validate_data(self, data, **kwargs):
+        return self.cls_validate_data(model=self, data=data, **kwargs)
+
+    def zeroes(self, n_indices=None, **kwargs):
+        return self.cls_zeroes(model=self, n_indices=n_indices, **kwargs)
+
+    @classmethod
+    def _validate_model_before(
+            cls, data: Any) -> Any:
+        if isinstance(data, (np.ndarray, )):
+            data = {cls.Slots.DATA: data}
+        elif isinstance(data, pd.Series):
+            data = {cls.Slots.DATA: data.values,
+                    cls.Slots.INDEX: list(data.index)}
+        return super()._validate_model_before(data=data)
+
+
+class SeriesF32(SeriesBase):
+    data: f32_1D = Field(
+        default_factory=lambda: np.array([], dtype=np.float32),
+        repr=False)
+
+
+class TypedDataFrameBase(SeriesBase):
+    class Slots(SeriesBase.Slots):
+        COLUMNS: ClassVar[str] = "columns"
+
+    index: list[str] | None = Field(default=None, repr=False)
+    columns: list[str] | None = Field(default=None, repr=False)
     data: i64_2D = Field(repr=False)
+
+
+    @classmethod
+    def _apply_column_value(cls, data, i, value):
+        data.iloc[:, i] = value
+
+    def apply_column_property(
+            self, data=None, idx_attr=RowOrColumn.Slots.SCALAR_VALUE,
+            index=None, dim=1, **kwargs):
+        self.apply_property(data=data, idx_attr=idx_attr, dim=dim,
+                            index=index, **kwargs)
 
     @classmethod
     def cls_shape(cls, model: TypedDataFrameBase, n_indices=None, n_cols=None):
@@ -58,39 +154,28 @@ class TypedDataFrameBase(ConfigModel):
             else:
                 n_cols = model.init_length
         if n_indices is None:
-            if model.index is not None:
-                n_indices = len(model.index)
-            else:
-                n_indices = model.init_length
+            n_indices = cls.cls_n_indices(model=model)
         return n_indices, n_cols
 
     @classmethod
     def cls_zeroes(cls, model: TypedDataFrameBase,
-                   n_indices=None, n_cols=None):
+                   n_indices=None, n_cols=None, **kwargs):
         shape = cls.cls_shape(model=model, n_indices=n_indices, n_cols=n_cols)
-        return np.zeros(shape, dtype=model.data.dtype)
+        return np.zeros(shape, dtype=model.data.dtype, **kwargs)
 
     @classmethod
-    def cls_validate_data(cls, model, data, **kwargs):
+    def from_tuple(cls, value):
         raise NotImplementedError
 
-    def validate_data(self, data, **kwargs):
-        return self.cls_validate_data(model=self, data=data, **kwargs)
-
-    # @classmethod
-    # def _validate_model_after(cls, data: TypedDataFrameBase):
-    #     super()._validate_model_after(data=data)
-    def model_post_init(self, __context):
-        super().model_post_init(__context)
-        data = self
-        if data.data.shape[1] == 0:
-            if data.data.shape[0] != 1:
+    def _model_post_init(self, __context):
+        if self.data.shape[1] == 0:
+            if self.data.shape[0] != 1:
                 raise NotImplementedError
-            data.data = self.cls_zeroes(model=data)
-        # return data
+            self.data = self.zeroes()
 
-    def zeroes(self, n_indices=None, n_cols=None):
-        return self.cls_zeroes(model=self, n_indices=n_indices, n_cols=n_cols)
+    def zeroes(self, n_indices=None, n_cols=None, **kwargs):
+        return self.cls_zeroes(
+            model=self, n_indices=n_indices, n_cols=n_cols, **kwargs)
 
 
 class DataFrameI32(TypedDataFrameBase):
@@ -112,11 +197,11 @@ class DataFrameBool(TypedDataFrameBase):
 
 
 class TypedDataFrameBase3D(TypedDataFrameBase):
-    index: DataFrameIndex
+    index: IndexConfig
 
     @classmethod
-    def cls_shape(cls, model: TypedDataFrameBase3D,
-                  n_indices=None, n_cols=None):
+    def cls_shape(
+            cls, model: TypedDataFrameBase3D, n_indices=None, n_cols=None):
         shape_2d = super().cls_shape(
             model=model, n_indices=n_indices, n_cols=n_cols)
         return shape_2d[0], shape_2d[1], shape_2d[1]
@@ -133,7 +218,7 @@ class TypedDataFrameBase3D(TypedDataFrameBase):
         return res
 
     def item_validation_interface(self):
-        return ArrayInterfaces().array_2d_type(
+        return ArrayInterfaces().make_type(
             '* x', '* y', dtype=self.data.dtype)
 
 

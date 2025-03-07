@@ -3,11 +3,14 @@ from __future__ import annotations
 from enum import IntEnum, unique
 from typing import ClassVar
 
-from pydantic import Field, model_validator, NonNegativeInt, PositiveFloat
+import numpy as np
+from pydantic import Field
 
+from snngine_v4.utils.data_utils.dataframe_config import (
+    SeriesBase,
+)
 from snngine_v4.utils.data_utils.validation.array_annotation \
     import ArrayInterfaces
-from snngine_v4.utils.data_utils.validation.dtype_annotation import Float32
 from snngine_v4.utils.core_utils import get_intenum_member
 from snngine_v4.utils.settings.config_model import ConfigModel
 from snngine_v4.utils.settings.ui_parameter_options import (
@@ -59,67 +62,93 @@ class SpatialParUIOpts(FrozenParamOpts):
     c_group_prefixes: GroupPrefixesType = Ax3D
 
 
-class XYZPars(ConfigModel):
+type ShapeI32 = ArrayInterfaces().make_type(3, dtype=np.int32)
+type PosF32 = ArrayInterfaces().make_type(3, dtype=np.float32)
 
-    parameter_ui_opts: ClassVar[SpatialParUIOpts] = SpatialParUIOpts()
 
-    X: float
-    Y: float
-    Z: float
+class XYZPars(SeriesBase):
 
-    def as_tuple(self):
-        return self.X, self.Y, self.Z
+    # parameter_ui_opts: ClassVar[SpatialParUIOpts] = SpatialParUIOpts()
 
-    def __len__(self):
-        return 3
+    index: list[str] = Field(default=['X', 'Y', 'Z'], repr=False, exclude=True)
+    data: PosF32 = Field(
+        default_factory=lambda: np.array([0, 0, 0], dtype=np.float32),
+        repr=False)
 
     def __getitem__(self, item):
-        if isinstance(item, int):
-            item = Ax3D(item).name
-        return getattr(self, item)
+        if isinstance(item, str):
+            item = Ax3D[item].value
+        return self.data[item]
 
     def __setitem__(self, key, value):
-        if isinstance(key, int):
-            key = Ax3D(key).name
-        setattr(self, key, value)
+        if isinstance(key, str):
+            key = Ax3D[key].value
+        self.data[key] = value
 
-    @classmethod
-    def from_tuple(cls, value):
-        if len(value) == 3:
-            return cls(X=value[0], Y=value[1], Z=value[2])
-        raise TypeError(f"{value} is not a tuple of length 3")
-
-    def prod(self):
-        return self.X * self.Y * self.Z
+# class XYZPars(ConfigModel):
+#
+#     parameter_ui_opts: ClassVar[SpatialParUIOpts] = SpatialParUIOpts()
+#
+#     X: float
+#     Y: float
+#     Z: float
+#
+#     def as_tuple(self):
+#         return self.X, self.Y, self.Z
+#
+#     def __len__(self):
+#         return 3
+#
+#     def __getitem__(self, item):
+#         if isinstance(item, int):
+#             item = Ax3D(item).name
+#         return getattr(self, item)
+#
+#     def __setitem__(self, key, value):
+#         if isinstance(key, int):
+#             key = Ax3D(key).name
+#         setattr(self, key, value)
+#
+#     @classmethod
+#     def from_tuple(cls, value):
+#         if len(value) == 3:
+#             return cls(X=value[0], Y=value[1], Z=value[2])
+#         raise TypeError(f"{value} is not a tuple of length 3")
+#
+#     def prod(self):
+#         return self.X * self.Y * self.Z
 
 
 class FloatShape3D(XYZPars):
-
-    X: PositiveFloat = Field(default=1, gt=0)
-    Y: PositiveFloat = Field(default=1, gt=0)
-    Z: PositiveFloat = Field(default=1, gt=0)
+    data: ShapeI32 = Field(
+        default_factory=lambda: np.array([1, 1, 1], dtype=np.int32),
+        repr=False)
+    # X: PositiveFloat = Field(default=1, gt=0)
+    # Y: PositiveFloat = Field(default=1, gt=0)
+    # Z: PositiveFloat = Field(default=1, gt=0)
 
 
 class Segmentation3D(XYZPars):
-
-    X: NonNegativeInt = 10
-    Y: NonNegativeInt = 10
-    Z: NonNegativeInt = 10
+    data: ShapeI32 = Field(
+        default_factory=lambda: np.array([10, 10, 10], dtype=np.int32),
+        repr=False)
+    # X: NonNegativeInt = 10
+    # Y: NonNegativeInt = 10
+    # Z: NonNegativeInt = 10
 
 
 class EnginePos3D(XYZPars):
 
-    class Slots:
+    class Slots(XYZPars.Slots):
         POS_ORIGIN: ClassVar[str] = 'pos_origin'
 
-    X: Float32 = Field(default=0., ge=-10, le=10)
-    Y: float = Field(default=0., ge=-10, le=10)
-    Z: float = Field(default=0., ge=-10, le=10)
+    # X: Float32 = Field(default=0., ge=-10, le=10)
+    # Y: float = Field(default=0., ge=-10, le=10)
+    # Z: float = Field(default=0., ge=-10, le=10)
 
 
 class Object3DConfig(ConfigModel):
-    pos_origin: EnginePos3D = Field(
-        default_factory=lambda: EnginePos3D.from_tuple((0, 0, 0)))
+    pos_origin: EnginePos3D
 
 
 class Directions3DParUIOpts(SpatialParUIOpts):
@@ -142,3 +171,8 @@ class Directions3DBoolPars(ConfigModel):
 
 
 type PositionVBO = ArrayInterfaces().vbo_array_type(3)
+
+
+if __name__ == '__main__':
+    from pprint import pprint
+    pprint(Object3DConfig())
