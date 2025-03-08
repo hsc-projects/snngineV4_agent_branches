@@ -218,7 +218,7 @@ class NTypeGroupConn(ConfigModel):
 
     # max_batch_size_mb: NonNegativeInt = 300
     n_synapses: UInt64 | None = None
-    col: UInt64 | None = None
+    syn_idx: UInt64 | None = None
     nbytes: UInt8 = 4
 
     # conn_shape: tuple[int, int]
@@ -230,6 +230,15 @@ class NTypeGroupConn(ConfigModel):
     @property
     def conn_shape(self) -> tuple[int, int]:
         return len(self.src), self.n_synapses
+
+    # noinspection PyPep8Naming
+    @property
+    def location(self):
+        return self.neuron_idx, self.syn_idx
+
+    @property
+    def neuron_idx(self):
+        return self.src.start_idx
 
 
 class NTypeGroupConnList(ConfigModel):
@@ -267,14 +276,16 @@ class NTypeGroupConnList(ConfigModel):
                         else:
                             src_counts[conn.src] += 1
                         snk_syn_counts_idx = src_counts[conn.src]
+                        n_synapses = snk_syn_counts[conn.src][
+                            snk_syn_counts_idx]
+                        syn_idx = snk_syn_counts_cumulative[conn.src][
+                                      snk_syn_counts_idx] - n_synapses
                         conn = NTypeGroupConn(
                             src=deepcopy(groups[conn.src]),
                             snk=deepcopy(groups[conn.snk]),
                             w0=conn.w0,
-                            n_synapses=snk_syn_counts[conn.src][
-                                snk_syn_counts_idx],
-                            col=snk_syn_counts_cumulative[conn.src][
-                                snk_syn_counts_idx],
+                            n_synapses=n_synapses,
+                            syn_idx=syn_idx,
                         )
                         self.conns[i] = conn
 
@@ -285,3 +296,4 @@ class NTypeGroupConnList(ConfigModel):
                 self.generate_uniform_connections(groups, n_syn)
             case _:
                 raise NotImplementedError
+        return self

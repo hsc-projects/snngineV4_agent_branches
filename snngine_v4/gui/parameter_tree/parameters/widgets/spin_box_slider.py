@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import numpy as np
 import pandas as pd
 from pyqtgraph import SpinBox
@@ -133,13 +135,14 @@ class SpinBoxSlider(CustomSlider):
             QtWidgets.QSizePolicy.Policy.MinimumExpanding,
         )
 
-        self.valueChanged.connect(self.setValueFromSlider)
         self.spinbox.sigValueChanging.connect(self.setValueFromSpinBox)
         self.spinbox.sigValueChanged.connect(self.updateDisplayWidget)
         self.sliderReleased.connect(self.onSliderRelease)
 
         slider_value = self.spanToSliderValue(opts[ParamOpts.KW.VALUE])
         self.setValue(slider_value)
+
+        self.valueChanged.connect(self.setValueFromSlider)
 
         self._layout_widget = None
 
@@ -209,7 +212,10 @@ class SpinBoxSlider(CustomSlider):
 
     def setValueFromSlider(self, idx):
         self.spinbox.sigValueChanging.disconnect(self.setValueFromSpinBox)
-        self.spinbox.setValue(self.span[idx])
+        value = self.span[idx]
+        if self.opts[ParamOpts.KW.STEP] == Decimal('0.01'):
+            value = round(Decimal(self.span[idx]), 2)
+        self.spinbox.setValue(value)
         self.spinbox.sigValueChanging.connect(self.setValueFromSpinBox)
 
     def setValueFromSpinBox(self, box, value):

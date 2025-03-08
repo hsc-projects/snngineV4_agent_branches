@@ -29,8 +29,8 @@ from snngine_v4.gui.parameter_tree.parameters.widgets.table \
 from snngine_v4.gui.windows.main_window_base import MainEngineWindowBase
 from snngine_v4.utils.core_utils import type_assertion
 from snngine_v4.utils.data_utils.dataframe_config import (
-    SeriesBase,
-    TypedDataFrameBase,
+    SeriesModel,
+    TypedDataFrameModel,
     TypedDataFrameBase3D,
 )
 from snngine_v4.utils.data_utils.index_config import IndexConfig
@@ -49,7 +49,7 @@ class ArrayParameterItem(ParameterItem, ActionItemMixin):
     """ParameterItem displaying a clickable button."""
     def __init__(self, param, depth):
         self.param: ArrayParameter = param
-        self.model: SeriesBase = param.opts.get(ParamOpts.KW.MODEL, None)
+        self.model: SeriesModel = param.opts.get(ParamOpts.KW.MODEL, None)
         # self.parent_model: SeriesBase = param.opts.get(
         #     ParamOpts.KW.PARENT_MODEL, None)
 
@@ -90,16 +90,16 @@ class ArrayParameter(ActionParameter, ActionParameterMixin):
 
     def __init__(self, **opts):
 
-        self.model: SeriesBase | TypedDataFrameBase | None = (
+        self.model: SeriesModel | TypedDataFrameModel | None = (
             opts.get(ParamOpts.KW.MODEL, None))
         # signal_register = opts.get(ParamOpts.KW.SIGNAL_REGISTER, None)
 
         if self.model is not None:
-            type_assertion(self.model, SeriesBase)
+            type_assertion(self.model, SeriesModel)
             signal_register = opts[ParamOpts.KW.SIGNAL_REGISTER]
             c_data_types = OptionsBuilder.get_parameter_type(
-                self.model, SeriesBase.Slots.DATA)
-            fi = self.model.model_fields[SeriesBase.Slots.DATA]
+                self.model, SeriesModel.Slots.DATA)
+            fi = self.model.model_fields[SeriesModel.Slots.DATA]
             name = opts[ParamOpts.KW.NAME]
             opts = OptionsBuilder.from_field(
                 fi=fi, c_data_types=c_data_types,
@@ -142,7 +142,7 @@ class ArrayParameter(ActionParameter, ActionParameterMixin):
             name='show_array', title='  show  ',
             func=self.show_array_editor)
 
-        if isinstance(self.model, TypedDataFrameBase):
+        if isinstance(self.model, TypedDataFrameModel):
             self.add_action(
                 name='edit_index', title='  edit index  ',
                 func=self.show_index_editor)
@@ -173,7 +173,7 @@ class ArrayParameter(ActionParameter, ActionParameterMixin):
         column_names = opts.get(ParamOpts.KW.C_COLUMN_NAME_S, None)
         if column_names is not None:
             raise AssertionError
-        if isinstance(model, TypedDataFrameBase):
+        if isinstance(model, TypedDataFrameModel):
             column_names = model.columns
             if isinstance(column_names, IndexConfig):
                 column_names = column_names.to_list()
@@ -237,7 +237,7 @@ class ArrayParameter(ActionParameter, ActionParameterMixin):
             if dock is None:
                 editor.addDock(
                     name=name, dock=self.model,
-                    exclude_keys=[SeriesBase.Slots.DATA],
+                    exclude_keys=[SeriesModel.Slots.DATA],
                     signal_register=signal_register)
             elif not dock.isVisible():
                 editor.addDock(dock)
@@ -302,7 +302,7 @@ class ArrayDictParameter(EngineGroupParameter):
 
         res = {}
 
-        if isinstance(value, SeriesBase):
+        if isinstance(value, SeriesModel):
             model = value
 
             opts = ArrayParameter.make_col_opts(model, opts)
@@ -321,13 +321,13 @@ class ArrayDictParameter(EngineGroupParameter):
                     self.addChild(p)
                     p.sigValueChanged.connect(self.valueChanged)
                     res[k] = p
-            elif isinstance(value, SeriesBase):
+            elif isinstance(value, SeriesModel):
                 c_data_types = OptionsBuilder.get_parameter_type(
-                    model, SeriesBase.Slots.DATA)
+                    model, SeriesModel.Slots.DATA)
 
                 opts = ArrayParameter.make_idx_opts(model, opts)
 
-                name = SeriesBase.Slots.DATA
+                name = SeriesModel.Slots.DATA
                 opts_ = OptionsBuilder.from_annotation(
                     ann=c_data_types, name=name,
                     value=value.data, **opts)

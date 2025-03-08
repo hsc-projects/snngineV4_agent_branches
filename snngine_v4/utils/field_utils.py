@@ -393,8 +393,8 @@ def fill_field_default(
         dct, model: Type[BaseModel] | BaseModel, key,
         pre_field_default=Undefined, post_field_default=Undefined,
         field_model=None):
-    field_info = as_field_info((model, key))
     if key not in dct:
+        field_info = as_field_info((model, key))
         if pre_field_default is not Undefined:
             dct[key] = pre_field_default
         elif ((post_field_default is Undefined)
@@ -405,6 +405,19 @@ def fill_field_default(
     if field_model and isinstance(dct[key], dict):
         dct[key] = field_model(**dct[key])
     return dct[key]
+
+
+def get_attr_or_key(data, key, default=Undefined):
+    if default is Undefined:
+        if isinstance(data, dict):
+            return data[key]
+        else:
+            return getattr(data, key)
+    else:
+        if isinstance(data, dict):
+            return data.get(key, default)
+        else:
+            return getattr(data, key, default)
 
 
 def get_field_info_value(field: FieldInfo, key: str, default=None):
@@ -520,9 +533,11 @@ def model_keys(model: BaseModel | Type[BaseModel],
     return keys
 
 
-def model_dict(model: BaseModel, type_filter=None, **kwargs):
-    keys = model_keys(type_filter=type_filter, **kwargs)
-    return model.model_dump(model='python', include=keys)
+def set_attr_or_item(data, key, value):
+    if isinstance(data, dict):
+        data[key] = value
+    else:
+        return setattr(data, key, value)
 
 
 def validate_na_string(value):

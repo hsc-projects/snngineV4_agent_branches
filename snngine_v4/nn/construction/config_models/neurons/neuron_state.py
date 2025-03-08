@@ -22,12 +22,12 @@ class NeuronInitializerParameters(ConfigModel):
 class NeuronStateModel(EngineElementConfig):
 
     class Slots(EngineElementConfig.Slots):
-        FLAGS: ClassVar[str] = 'flags'
-        PROPS: ClassVar[str] = 'props'
+        FLAGS: ClassVar[str] = 'N_flags'
+        PROPS: ClassVar[str] = 'N_props'
 
     initializer: NeuronInitializerParameters
-    flags: NeuronFlags
-    props: NeuronProperties
+    N_flags: NeuronFlags
+    N_props: NeuronProperties
 
     @classmethod
     def reset_model(cls, neuron_model: dict | NeuronStateModel, n_neurons):

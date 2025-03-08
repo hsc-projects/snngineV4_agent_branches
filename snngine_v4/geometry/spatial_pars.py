@@ -7,7 +7,7 @@ import numpy as np
 from pydantic import Field
 
 from snngine_v4.utils.data_utils.dataframe_config import (
-    SeriesBase,
+    SeriesModel,
 )
 from snngine_v4.utils.data_utils.validation.array_annotation \
     import ArrayInterfaces
@@ -66,7 +66,7 @@ type ShapeI32 = ArrayInterfaces().make_type(3, dtype=np.int32)
 type PosF32 = ArrayInterfaces().make_type(3, dtype=np.float32)
 
 
-class XYZPars(SeriesBase):
+class XYZPars(SeriesModel):
 
     # parameter_ui_opts: ClassVar[SpatialParUIOpts] = SpatialParUIOpts()
 

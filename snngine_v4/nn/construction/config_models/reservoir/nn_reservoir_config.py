@@ -9,6 +9,9 @@ from pydantic import computed_field, Field, NonNegativeInt
 
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
 from snngine_v4.geometry.grid_config import FiniteGridConfig
+from snngine_v4.nn.construction.config_models.neurons.synapse_model import (
+    SynapseModel,
+)
 from snngine_v4.nn.construction.config_models.reservoir.n_type_groups import (
     NeuronType, NeuronTypeGroup,
     NTypeGroupConnInit, NTypeGroupConnList,
@@ -27,11 +30,16 @@ from snngine_v4.nn.construction.config_models.reservoir.lgroup_states import (
 from snngine_v4.nn.construction.config_models.neurons.neuron_state import (
     NeuronStateModel,
 )
-from snngine_v4.utils.data_utils.dataframe_config import TypedDataFrameBase
-from snngine_v4.utils.data_utils.validation.array_annotation import (
-    ArrayInterfaces, fill_array_field_default,
+from snngine_v4.utils.data_utils.dataframe_config import (
+    TypedDataFrameModel,
 )
-from snngine_v4.utils.field_utils import fill_field_default
+from snngine_v4.utils.data_utils.validation.array_annotation import (
+    ArrayInterfaces
+)
+from snngine_v4.utils.field_utils import (
+    fill_field_default, get_attr_or_key,
+    set_attr_or_item,
+)
 
 from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 
@@ -64,11 +72,14 @@ class NetworkReservoirConfig(EngineElementConfig3D):
 
         N_FLAGS: ClassVar[str] = 'N_flags'
         NEURON_STATES: ClassVar[str] = 'neuron_states'
+
         L_GROUP_NEURON_COUNTS: ClassVar[str] = 'L_Group_neuronCounts'
         L_GROUP_FLAGS: ClassVar[str] = 'L_Group_flags'
         L_GROUP_PROPERTIES: ClassVar[str] = 'L_Group_properties'
         L_GROUP2GROUP_FLAGS: ClassVar[str] = 'L_Group2Group_flags'
         L_GROUP2GROUP_PROPERTIES: ClassVar[str] = 'L_Group2Group_properties'
+
+        SYNAPSES: ClassVar[str] = 'synapses'
 
     class GeneratedSlots:
         G_NEURON_COUNTS: ClassVar[str] = 'G_neuron_counts'
@@ -80,7 +91,7 @@ class NetworkReservoirConfig(EngineElementConfig3D):
         c_collapsed_children=True)
 
     N: NonNegativeInt = 200
-    S: NonNegativeInt = 1
+    S: NonNegativeInt | None = None
     D: NonNegativeInt = Field(default=0, le=20)
     G: NonNegativeInt = 0
 
@@ -110,6 +121,7 @@ class NetworkReservoirConfig(EngineElementConfig3D):
         repr=False)
 
     neuron_states: NeuronStateModel
+    synapses: SynapseModel
     # N_flags: NeuronFlags
     # N_props: NeuronProperties
 
@@ -125,6 +137,23 @@ class NetworkReservoirConfig(EngineElementConfig3D):
     def _calc_delay_count(n_neurons, max_=20, min_=2, ):
         n_delays = np.log10(n_neurons) * (1 + np.sqrt(np.log10(n_neurons)))
         return min(int(max(n_delays, min_)), max_)
+
+    @classmethod
+    def limit_synapse_count(cls, n_synapses, n_neurons,
+                             min0=2, max0=1000, max1_divider=4, ):
+        n_synapses0 = int(min(max0, max(n_synapses, min0)))
+        return min(n_synapses0, n_neurons // max1_divider)
+
+    @classmethod
+    def calc_synapse_base_count(cls, n_neurons):
+        return np.sqrt(n_neurons) + 50
+
+    @classmethod
+    def calc_synapse_count(cls, n_neurons, min0=2, max0=1000, max1_divider=4):
+        n_synapses = cls.calc_synapse_base_count(n_neurons=n_neurons)
+        return cls.limit_synapse_count(
+            n_synapses=n_synapses, n_neurons=n_neurons, min0=min0, max0=max0,
+            max1_divider=max1_divider)
 
     @classmethod
     def generate_pos(cls, mode: PosGenerationMode,
@@ -144,72 +173,6 @@ class NetworkReservoirConfig(EngineElementConfig3D):
             type_groups=type_groups)
         return pos, grid_coordinates
 
-    @computed_field(repr=False)
-    @property
-    def inner_grid_coordinates(self) -> ArrayInterfaces().ibo_array_type(3):
-        return FiniteGrid.cls_grid_coordinates(
-            self.pos, outer_shape=self.grid.shape.as_tuple(),
-            grid_segmentation=self.grid.seg.as_tuple())
-
-    @property
-    def n_type_groups(self):
-        return len(self.type_groups.groups)
-
-    @staticmethod
-    def _reset_lg_array(data, class_, slot, n_groups):
-        value: TypedDataFrameBase = data[slot]
-        if isinstance(value, dict):
-            obj: TypedDataFrameBase = class_(**value)
-            value[TypedDataFrameBase.Slots.DATA] = obj.zeroes(n_cols=n_groups)
-            obj.apply_index_init_values(
-                data=value[TypedDataFrameBase.Slots.DATA])
-        else:
-            value.data = value.zeroes(n_cols=n_groups)
-            value.apply_index_init_values()
-
-    @classmethod
-    def reset_arrays(cls, data):
-
-        n_neurons = data[cls.Slots.N_NEURONS]
-        type_groups: NTypeGroupList = data[cls.Slots.TYPE_GROUPS]
-
-        if isinstance(data, dict):
-            grid = data[cls.Slots.GRID]
-        else:
-            grid = data.grid
-        # grid: FiniteGridConfig = fill_field_default(
-        #     data, cls, cls.Slots.GRID, field_model=FiniteGridConfig)
-        # shape = fill_field_default(
-        #     data, cls, cls.Slots.SHAPE, field_model=FloatShape3D).as_tuple()
-        shape = grid.shape.as_tuple()
-
-        data[cls.Slots.N_DELAYS] = cls._calc_delay_count(n_neurons=n_neurons)
-        n_delays = data[cls.Slots.N_DELAYS]
-        # data[cls.Slots.SEG] = cls.generate_segmentation(
-        #     data[cls.Slots.N_DELAYS], shape)
-        grid.seg = cls.generate_segmentation(n_delays, shape)
-        seg: Segmentation3D = grid.seg
-        data[cls.Slots.N_LGROUPS] = int(seg.prod())
-
-        pos_gen_mode = fill_field_default(data, cls, cls.Slots.POS_GEN_MODE)
-
-        data[cls.Slots.POS], grid_coordinates = cls.generate_pos(
-            mode=pos_gen_mode, shape=shape, n_neurons=n_neurons,
-            grid_segmentation=seg.as_tuple(), type_groups=type_groups.groups)
-
-        data[cls.Slots.NEURON_STATES] = NeuronStateModel.reset_model(
-            data[cls.Slots.NEURON_STATES], n_neurons)
-
-        n_groups = data[cls.Slots.N_LGROUPS]
-        cls._reset_lg_array(data=data, class_=LGroupFlags, n_groups=n_groups,
-                            slot=cls.Slots.L_GROUP_FLAGS)
-        cls._reset_lg_array(data=data, class_=LGroupProps, n_groups=n_groups,
-                            slot=cls.Slots.L_GROUP_PROPERTIES)
-        cls._reset_lg_array(data=data, class_=LG2LGFlags, n_groups=n_groups,
-                            slot=cls.Slots.L_GROUP2GROUP_FLAGS, )
-        cls._reset_lg_array(data=data, class_=LG2LGProp, n_groups=n_groups,
-                            slot=cls.Slots.L_GROUP2GROUP_PROPERTIES, )
-
     @classmethod
     def generate_segmentation(cls, n_delays, shape):
         segmentation_list = []
@@ -227,6 +190,107 @@ class NetworkReservoirConfig(EngineElementConfig3D):
                  for s in seg]):
             raise AssertionError
         return Segmentation3D.from_tuple(seg)
+
+    @computed_field(repr=False)
+    @property
+    def inner_grid_coordinates(self) -> ArrayInterfaces().ibo_array_type(3):
+        return FiniteGrid.cls_grid_coordinates(
+            self.pos, outer_shape=self.grid.shape.as_tuple(),
+            grid_segmentation=self.grid.seg.as_tuple())
+
+    def model_post_init(self, __context):
+
+        self.model_config['validate_assignment'] = False
+
+        n_neurons = self.N
+
+        if self.S is None:
+            self.S = self.calc_synapse_count(n_neurons=n_neurons, )
+        self.type_groups = self.type_groups.generate_groups(
+            n_neurons=n_neurons)
+
+        if b_reset := (self.pos.shape[0] != n_neurons):
+
+            self.reset_arrays(data=self)
+
+        if b_reset is True:
+            b_reset_synapses = True
+        else:
+            syn_shape = self.synapses.N_rep.data.shape
+            b_reset_synapses = syn_shape != (n_neurons, self.S)
+
+        if b_reset_synapses:
+            self.synapses = SynapseModel.reset_model(
+                self.synapses, n_neurons=n_neurons,
+                n_delays=self.D, S=self.S, n_groups=self.G,
+                ntypes=self.type_groups)
+
+        self.L_Group_neuronCounts = LGNeuronCounts.from_shape(
+            ntypes=self.type_groups, d=self.D, g=self.G)
+
+        self.type_conns = self.type_conns.generate_conns(
+            groups=self.type_groups, n_syn=self.S)
+
+        self.model_config['validate_assignment'] = True
+        self.model_validate(self)
+
+    @property
+    def n_type_groups(self):
+        return len(self.type_groups.groups)
+
+    @classmethod
+    def reset_arrays(cls, data):
+
+        n_neurons = get_attr_or_key(data, cls.Slots.N_NEURONS)
+        type_groups: NTypeGroupList = get_attr_or_key(
+            data, cls.Slots.TYPE_GROUPS)
+        # type_groups = fill_field_default(
+        #     data, cls, cls.Slots.TYPE_GROUPS,
+        #     field_model=NTypeGroupList).generate_groups(n_neurons)
+
+        grid = get_attr_or_key(data, cls.Slots.GRID)
+        shape = grid.shape.as_tuple()
+
+        set_attr_or_item(data, cls.Slots.N_DELAYS,
+                         cls._calc_delay_count(n_neurons=n_neurons))
+        n_delays = get_attr_or_key(data, cls.Slots.N_DELAYS)
+        grid.seg = cls.generate_segmentation(n_delays, shape)
+        seg: Segmentation3D = grid.seg
+
+        set_attr_or_item(data, cls.Slots.N_LGROUPS, int(seg.prod()))
+
+        pos_gen_mode = get_attr_or_key(data, cls.Slots.POS_GEN_MODE)
+
+        pos, grid_coordinates = cls.generate_pos(
+            mode=pos_gen_mode, shape=shape, n_neurons=n_neurons,
+            grid_segmentation=seg.as_tuple(), type_groups=type_groups.groups)
+        set_attr_or_item(data, cls.Slots.POS, pos)
+
+        n_states = NeuronStateModel.reset_model(
+            get_attr_or_key(data, cls.Slots.NEURON_STATES), n_neurons)
+        set_attr_or_item(data, cls.Slots.NEURON_STATES, n_states)
+
+        n_groups = get_attr_or_key(data, cls.Slots.N_LGROUPS)
+        cls._reset_lg_array(data=data, class_=LGroupFlags, n_groups=n_groups,
+                            slot=cls.Slots.L_GROUP_FLAGS)
+        cls._reset_lg_array(data=data, class_=LGroupProps, n_groups=n_groups,
+                            slot=cls.Slots.L_GROUP_PROPERTIES)
+        cls._reset_lg_array(data=data, class_=LG2LGFlags, n_groups=n_groups,
+                            slot=cls.Slots.L_GROUP2GROUP_FLAGS, )
+        cls._reset_lg_array(data=data, class_=LG2LGProp, n_groups=n_groups,
+                            slot=cls.Slots.L_GROUP2GROUP_PROPERTIES, )
+
+    @staticmethod
+    def _reset_lg_array(data, class_, slot, n_groups):
+        value: TypedDataFrameModel = get_attr_or_key(data, slot)
+        if isinstance(value, dict):
+            obj: TypedDataFrameModel = class_(**value)
+            value[TypedDataFrameModel.Slots.DATA] = obj.zeroes(n_cols=n_groups)
+            obj.apply_index_init_values(
+                data=value[TypedDataFrameModel.Slots.DATA])
+        else:
+            value.data = value.zeroes(n_cols=n_groups)
+            value.apply_index_init_values()
 
     @classmethod
     def sort_pos(cls, pos: np.ndarray | None, shape, grid_segmentation,
@@ -252,36 +316,14 @@ class NetworkReservoirConfig(EngineElementConfig3D):
 
     @classmethod
     def _validate_model_before(cls, data: Any) -> Any:
-
-        super()._validate_model_before(data)
+        data = super()._validate_model_before(data)
         if isinstance(data, dict):
-            n_neurons = fill_field_default(data, cls, cls.Slots.N_NEURONS)
-            pos = fill_array_field_default(data, cls, cls.Slots.POS)
-            type_groups = fill_field_default(
-                data, cls, cls.Slots.TYPE_GROUPS,
-                field_model=NTypeGroupList).generate_groups(n_neurons)
-
-            grid: FiniteGridConfig = fill_field_default(
-                data, cls, cls.Slots.GRID, field_model=FiniteGridConfig)
-            seg = grid.seg
-            # seg = fill_field_default(
-            #     data, cls, cls.Slots.SEG,
-            #     field_model=Segmentation3D).as_tuple()
-
-            if pos.shape[0] != n_neurons:
-                cls.reset_arrays(data=data)
-
-            n_delays = data[cls.Slots.N_DELAYS]
-            n_groups = data[cls.Slots.N_LGROUPS]
-            data[cls.Slots.L_GROUP_NEURON_COUNTS] = LGNeuronCounts.from_shape(
-                ntypes=type_groups, d=n_delays, g=n_groups)
-
-            n_syn = fill_field_default(data, cls, cls.Slots.N_SYNAPSES)
-            type_conns = fill_field_default(
-                data, cls, cls.Slots.TYPE_CONNS,
-                field_model=NTypeGroupConnList).generate_conns(
-                groups=type_groups, n_syn=n_syn)
-
+            fill_field_default(
+                    data, cls, cls.Slots.TYPE_GROUPS,
+                    field_model=NTypeGroupList)
+            fill_field_default(
+                    data, cls, cls.Slots.TYPE_CONNS,
+                    field_model=NTypeGroupConnList)
         return data
 
 

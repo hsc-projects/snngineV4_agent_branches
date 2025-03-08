@@ -96,9 +96,11 @@ class LG2LGFlags(DataFrameI32D3):
 
 
 class LG2LGPropLabels(IndexConfig):
+
     distance: Row
     avg_weight_inh: Row
     avg_weight_exc: Row
+    # conn_prob: Row
 
 
 class LG2LGProp(DataFrameF32D3):

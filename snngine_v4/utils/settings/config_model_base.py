@@ -131,7 +131,6 @@ class ConfigModelMixin:
     def filtered_model_values(self, type_filter=None, **kwargs):
         dct = self.filtered_model_dict(type_filter=type_filter, **kwargs)
         return list(dct.values())
-    # @staticmethod
 
     def _model_dump(self: BaseModel, mode: str | ModelDumpTypes = 'python',
                     include=None, round_trip=False,
@@ -251,8 +250,8 @@ class ConfigModelMixin:
         if field_info is None:
             field_info = cls.model_fields[key]
 
-        ann = field_info.annotation
         if key not in data:
+            ann = field_info.annotation
             if not b_field_has_default(field_info):
                 if b_is_optional(ann, b_strict=False):
                     data[key] = None
@@ -264,10 +263,12 @@ class ConfigModelMixin:
                         data[key] = extract_basemodel_from_annotation(
                             ann, b_strict=False)()
         elif isinstance(data[key], list):
-            if b_annotation_includes_type(ann, type_=tuple):
+            if b_annotation_includes_type(field_info, type_=tuple):
                 data[key] = tuple(data[key])
         elif (isinstance(data[key], (int, str))
-              and (b_is_intenum_annotation(ann, True))):
+              and (b_is_intenum_annotation(
+                    ann := field_info.annotation, True))
+              and (not isinstance(data[key], ann))):
             data[key] = get_intenum_member(data[key], ann)
 
     @model_validator(mode='before')

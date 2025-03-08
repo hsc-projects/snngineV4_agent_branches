@@ -31,7 +31,7 @@ from snngine_v4.gui.parameter_tree.parameters.array.tensor_parameter import (
     TensorParameter,
 )
 from snngine_v4.utils.data_utils.dataframe_config import (
-    SeriesBase,
+    SeriesModel,
     TypedDataFrameBase3D,
 )
 from snngine_v4.utils.data_utils.index_config import (
@@ -63,7 +63,7 @@ registerParameterType('NDArray', ArrayParameter, override=True)
 # noinspection DuplicatedCode
 registerParameterType(ListParameterModel.__name__,
                       CustomListParameter, override=True)
-registerParameterType(SeriesBase.__name__,
+registerParameterType(SeriesModel.__name__,
                       TensorParameter, override=True)
 registerParameterType(TypedDataFrameBase3D.__name__,
                       TensorDictParameter, override=True)

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import pydoc
+from functools import cached_property
 from types import NoneType
 from typing import ClassVar, Type
 
 from pydantic import BaseModel, Field
+
+from snngine_v4.utils.core_utils import Singleton
 
 
 class XMLStringOptions(BaseModel):
@@ -22,9 +25,31 @@ class XMLStringOptions(BaseModel):
     newl: str = "\n"
 
 
+class BaseTypeCache(metaclass=Singleton):
+
+    def __init__(self):
+        self.data = {
+            'int': int,
+            'float': float,
+            'str': str,
+            'bool': bool,
+            'NoneType': NoneType,
+        }
+
+    def __getitem__(self, key):
+        try:
+            return self.data[key]
+        except KeyError:
+            t_ = pydoc.locate(key)
+            if t_ is None:
+                t_ = NoneType
+            self.data[key] = t_
+            return self.data[key]
+
+
 class XMLConverterOptions(BaseModel):
 
-    base_types_str: str = "int,float,str,bool,NoneType"
+    base_types_str: ClassVar[str] = "int,float,str,bool,NoneType"
 
     type_attribute: str = "type"
     enum_attribute: str = "Enum"
@@ -39,17 +64,15 @@ class XMLConverterOptions(BaseModel):
     to_string_options: XMLStringOptions = Field(
         default=XMLStringOptions())
 
-    @property
+    @cached_property
     def base_types(self) -> tuple[Type, ...]:
+
+        base_types = BaseTypeCache()
         types = self.base_types_str.split(',')
         res = []
         for t in types:
-            t_str = t.strip(' ')
-            t_ = pydoc.locate(t_str)
-            if t_ is None:
-                t_ = NoneType
+            t_ = base_types[t.strip(' ')]
             res.append(t_)
-        # noinspection PyTypeChecker
         return tuple(res)
 
     def make_seq_element_name(self, elm_type):

@@ -438,9 +438,10 @@ __global__ void k_set_locally_indexed_connections(
 
             if (n_rep_cols > 0) {
 
-                if (min > max){ printf("\n Warning [min>max] (%d, %d in [%d, %d], d=%d) %d > %d, range=[%f, %f] targets %d/%d",
-                                       n, s, delay, delay_col0, delay_col1, min, max,
-                                       0.f, maxf0, n_targets[tdx], G_neuron_counts[src_G + (delay) * G]); }
+                if (min > max){ printf(
+                        "\n Warning [min>max] (%d, %d in [%d, %d], d=%d) %d > %d, range=[%f, %f] targets %d/%d",
+                        n, s, delay_col0, delay_col1, delay, min, max,
+                        0.f, maxf0, n_targets[tdx], G_neuron_counts[src_G + (delay) * G]); }
 
                 new_sink = random_uniform_int_with_exclusion(&local_state, minf, maxf, maxf0, (has_autapses) && (delay == 0), autapse_idx, n, s);
 

@@ -27,7 +27,7 @@ from snngine_v4.gui.parameter_tree.parameters.multi_type_parameter import \
 from snngine_v4.gui.parameter_tree.parameters.reference_parameter import \
     ReferenceParameter
 from snngine_v4.utils.data_utils.dataframe_config import (
-    SeriesBase, TypedDataFrameBase3D,
+    SeriesModel, TypedDataFrameBase3D,
 )
 from snngine_v4.utils.data_utils.index_config import IndexConfig
 from snngine_v4.utils.field_utils import (
@@ -115,7 +115,7 @@ class ParameterBuilder:
                 options.value = options.c_data_types(**options.value)
 
             b_not_index = not isinstance(options.value, IndexConfig)
-            b_not_tdf = not isinstance(options.value, SeriesBase)
+            b_not_tdf = not isinstance(options.value, SeriesModel)
 
             if ((options.value.__class__.__name__ not in PARAM_TYPES)
                     and b_not_tdf and b_not_index):
@@ -131,8 +131,8 @@ class ParameterBuilder:
                 else:
                     if isinstance(options.value, TypedDataFrameBase3D):
                         type_ = TypedDataFrameBase3D.__name__
-                    elif isinstance(options.value, SeriesBase):
-                        type_ = SeriesBase.__name__
+                    elif isinstance(options.value, SeriesModel):
+                        type_ = SeriesModel.__name__
                     # elif isinstance(options.value, RowOrColumn):
                     elif isinstance(options.value, IndexConfig):
                         type_ = IndexConfig.__name__

@@ -13,15 +13,18 @@ from snngine_v4.utils.data_utils.validation.array_annotation import (
     i64_1D, i64_2D,
     f32_1D, f32_2D, f32_3D
 )
+from snngine_v4.utils.field_utils import Undefined
 from snngine_v4.utils.settings.config_model import ConfigModel
 
 
-class SeriesBase(ConfigModel):
+class SeriesModel(ConfigModel):
 
     class Slots:
         INDEX: ClassVar[str] = "index"
         DATA: ClassVar[str] = "data"
         INIT_LENGTH: ClassVar[str] = "init_length"
+
+        SHAPE: ClassVar[str] = "shape"
         D_TYPE: ClassVar[str] = "dtype"
 
     index: IndexConfig = Field(repr=False)
@@ -67,7 +70,7 @@ class SeriesBase(ConfigModel):
         return tuple(self.data)
 
     @classmethod
-    def cls_n_indices(cls, model: SeriesBase):
+    def cls_n_indices(cls, model: SeriesModel):
         if model.index is not None:
             n_indices = len(model.index)
         else:
@@ -75,7 +78,7 @@ class SeriesBase(ConfigModel):
         return n_indices
 
     @classmethod
-    def cls_zeroes(cls, model: SeriesBase, n_indices=None, **kwargs):
+    def cls_zeroes(cls, model: SeriesModel, n_indices=None, **kwargs):
         if n_indices is None:
             n_indices = cls.cls_n_indices(model)
         return np.zeros(n_indices, dtype=model.data.dtype, **kwargs)
@@ -91,11 +94,16 @@ class SeriesBase(ConfigModel):
         return new
 
     def __len__(self):
+        if self.index is None:
+            return self.data.shape[0]
         return len(self.index)
 
     def _model_post_init(self, __context):
         if self.data.shape[0] == 0:
             self.data = self.zeroes()
+        if self.index is not None:
+            if len(self.index) != self.data.shape[0]:
+                raise ValueError()
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
@@ -121,14 +129,14 @@ class SeriesBase(ConfigModel):
         return super()._validate_model_before(data=data)
 
 
-class SeriesF32(SeriesBase):
+class SeriesF32(SeriesModel):
     data: f32_1D = Field(
         default_factory=lambda: np.array([], dtype=np.float32),
         repr=False)
 
 
-class TypedDataFrameBase(SeriesBase):
-    class Slots(SeriesBase.Slots):
+class TypedDataFrameModel(SeriesModel):
+    class Slots(SeriesModel.Slots):
         COLUMNS: ClassVar[str] = "columns"
 
     index: list[str] | None = Field(default=None, repr=False)
@@ -147,7 +155,7 @@ class TypedDataFrameBase(SeriesBase):
                             index=index, **kwargs)
 
     @classmethod
-    def cls_shape(cls, model: TypedDataFrameBase, n_indices=None, n_cols=None):
+    def cls_shape(cls, model: TypedDataFrameModel, n_indices=None, n_cols=None):
         if n_cols is None:
             if model.columns is not None:
                 n_cols = len(model.columns)
@@ -155,10 +163,12 @@ class TypedDataFrameBase(SeriesBase):
                 n_cols = model.init_length
         if n_indices is None:
             n_indices = cls.cls_n_indices(model=model)
+        if n_cols is Undefined:
+            return n_indices
         return n_indices, n_cols
 
     @classmethod
-    def cls_zeroes(cls, model: TypedDataFrameBase,
+    def cls_zeroes(cls, model: TypedDataFrameModel,
                    n_indices=None, n_cols=None, **kwargs):
         shape = cls.cls_shape(model=model, n_indices=n_indices, n_cols=n_cols)
         return np.zeros(shape, dtype=model.data.dtype, **kwargs)
@@ -178,25 +188,25 @@ class TypedDataFrameBase(SeriesBase):
             model=self, n_indices=n_indices, n_cols=n_cols, **kwargs)
 
 
-class DataFrameI32(TypedDataFrameBase):
+class DataFrameI32(TypedDataFrameModel):
     data: i32_2D = Field(
         default_factory=lambda: np.array([[]], dtype=np.int32),
         repr=False)
 
 
-class DataFrameF32(TypedDataFrameBase):
+class DataFrameF32(TypedDataFrameModel):
     data: f32_2D = Field(
         default_factory=lambda: np.array([[]], dtype=np.float32),
         repr=False)
 
 
-class DataFrameBool(TypedDataFrameBase):
+class DataFrameBool(TypedDataFrameModel):
     data: Bool2D = Field(
         default_factory=lambda: np.array([[]], dtype=np.bool),
         repr=False)
 
 
-class TypedDataFrameBase3D(TypedDataFrameBase):
+class TypedDataFrameBase3D(TypedDataFrameModel):
     index: IndexConfig
 
     @classmethod

@@ -9,7 +9,7 @@ from snngine_v4.gui.parameter_tree.parameters.common \
 from snngine_v4.utils.core_utils import type_assertion
 
 from snngine_v4.utils.data_utils.dataframe_config import (
-    SeriesBase,
+    SeriesModel,
 )
 from snngine_v4.utils.data_utils.index_config import (
     Column, IndexConfig, Row,
@@ -20,7 +20,7 @@ from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 class IndexParameter(EngineGroupParameter):
 
-    def __init__(self, model: IndexConfig, parent_model: SeriesBase,
+    def __init__(self, model: IndexConfig, parent_model: SeriesModel,
                  signal_register,
                  **opts):
 

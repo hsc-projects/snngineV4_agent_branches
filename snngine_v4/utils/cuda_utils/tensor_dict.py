@@ -61,6 +61,7 @@ class TensorDict(ConfigurableDict):
         if model is not None:
             self.main_tensor = self.update_from_dataframe_3d_config(
                 device, model)
+            self.array2tensor[model.data] = self.main_tensor
 
     def clear(self, b_force: bool = False) -> None:
         super().clear(b_force=b_force)
@@ -72,6 +73,10 @@ class TensorDict(ConfigurableDict):
         if isinstance(item, RowOrColumn):
             item = item.name
         return super().__getitem__(item)
+
+    @property
+    def main_array(self) -> np.ndarray:
+        return self.array2tensor.inv[self._main_tensor]
 
     @property
     def main_tensor(self):
@@ -90,6 +95,10 @@ class TensorDict(ConfigurableDict):
             # self.df2tensor[value.data_cpu] = value.gpu_values
             self.tdf_dict[key] = value
             value = value.gpu_values
+        elif isinstance(value, TensorDict):
+            dct = value
+            value = dct.main_tensor
+            array = dct.main_array
         else:
             array = value.cpu().numpy()
 

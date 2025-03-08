@@ -24,7 +24,7 @@
             <DictItem type="bool" key="b_nullable">False</DictItem>
           </DictItem>
           <DictItem type="int" key="N">200</DictItem>
-          <DictItem type="int" key="S">1</DictItem>
+          <DictItem type="int" key="S">50</DictItem>
           <DictItem type="int" key="D">5</DictItem>
           <DictItem type="int" key="G">8</DictItem>
           <DictItem type="int" key="pos_gen_mode">1</DictItem>
@@ -75,9 +75,9 @@
                   <DictItem type="int" key="start_idx">40</DictItem>
                   <DictItem type="int" key="end_idx">199</DictItem>
                 </DictItem>
-                <DictItem type="float" key="w0">-0.4399999999999995</DictItem>
-                <DictItem type="int" key="n_synapses">1</DictItem>
-                <DictItem type="int" key="col">1</DictItem>
+                <DictItem type="float" key="w0">-0.44</DictItem>
+                <DictItem type="int" key="n_synapses">50</DictItem>
+                <DictItem type="int" key="syn_idx">0</DictItem>
                 <DictItem type="int" key="nbytes">4</DictItem>
               </ListElementElement>
               <ListElementElement type="dict" class="NTypeGroupConn">
@@ -91,9 +91,9 @@
                   <DictItem type="int" key="start_idx">0</DictItem>
                   <DictItem type="int" key="end_idx">39</DictItem>
                 </DictItem>
-                <DictItem type="float" key="w0">0.4499999999999993</DictItem>
-                <DictItem type="int" key="n_synapses">0</DictItem>
-                <DictItem type="int" key="col">0</DictItem>
+                <DictItem type="float" key="w0">0.45</DictItem>
+                <DictItem type="int" key="n_synapses">10</DictItem>
+                <DictItem type="int" key="syn_idx">0</DictItem>
                 <DictItem type="int" key="nbytes">4</DictItem>
               </ListElementElement>
               <ListElementElement type="dict" class="NTypeGroupConn">
@@ -107,9 +107,9 @@
                   <DictItem type="int" key="start_idx">40</DictItem>
                   <DictItem type="int" key="end_idx">199</DictItem>
                 </DictItem>
-                <DictItem type="float" key="w0">0.47000000000000064</DictItem>
-                <DictItem type="int" key="n_synapses">1</DictItem>
-                <DictItem type="int" key="col">1</DictItem>
+                <DictItem type="float" key="w0">0.47</DictItem>
+                <DictItem type="int" key="n_synapses">40</DictItem>
+                <DictItem type="int" key="syn_idx">10</DictItem>
                 <DictItem type="int" key="nbytes">4</DictItem>
               </ListElementElement>
             </DictItem>
@@ -169,7 +169,7 @@
                 </DictItem>
               </DictItem>
             </DictItem>
-            <DictItem type="dict" class="NeuronFlags" key="flags">
+            <DictItem type="dict" class="NeuronFlags" key="N_flags">
               <DictItem type="dict" class="NeuronFlagsColumns" key="index">
                 <DictItem type="dict" class="Row" key="b_sensory_input">
                   <DictItem type="str" key="name">b_sensory_input</DictItem>
@@ -205,7 +205,7 @@
               <DictItem type="bool" key="b_nullable">False</DictItem>
               <DictItem type="NoneType" key="columns">None</DictItem>
             </DictItem>
-            <DictItem type="dict" class="NeuronProperties" key="props">
+            <DictItem type="dict" class="NeuronProperties" key="N_props">
               <DictItem type="dict" class="NPropLabels" key="index">
                 <DictItem type="dict" class="RowF32" key="pt">
                   <DictItem type="str" key="name">pt</DictItem>
@@ -260,6 +260,55 @@
               </DictItem>
               <DictItem type="bool" key="b_nullable">False</DictItem>
               <DictItem type="NoneType" key="columns">None</DictItem>
+            </DictItem>
+          </DictItem>
+          <DictItem type="dict" class="SynapseModel" key="synapses">
+            <DictItem type="dict" class="SynapseConnections" key="N_rep">
+              <DictItem type="NoneType" key="index">None</DictItem>
+              <DictItem type="bool" key="b_nullable">False</DictItem>
+              <DictItem type="NoneType" key="columns">None</DictItem>
+            </DictItem>
+            <DictItem type="dict" class="SynapseDelaysCounts" key="N_delays">
+              <DictItem type="NoneType" key="index">None</DictItem>
+              <DictItem type="bool" key="b_nullable">False</DictItem>
+              <DictItem type="NoneType" key="columns">None</DictItem>
+            </DictItem>
+            <DictItem type="dict" class="SynapseWeights" key="N_weights">
+              <DictItem type="NoneType" key="index">None</DictItem>
+              <DictItem type="bool" key="b_nullable">False</DictItem>
+              <DictItem type="NoneType" key="columns">None</DictItem>
+            </DictItem>
+            <DictItem type="dict" class="SynapseConnections" key="rep_pre_synaptic">
+              <DictItem type="NoneType" key="index">None</DictItem>
+              <DictItem type="bool" key="b_nullable">False</DictItem>
+              <DictItem type="NoneType" key="columns">None</DictItem>
+            </DictItem>
+            <DictItem type="dict" class="SynapseConnections" key="rep_pre_synaptic_idcs">
+              <DictItem type="NoneType" key="index">None</DictItem>
+              <DictItem type="bool" key="b_nullable">False</DictItem>
+              <DictItem type="NoneType" key="columns">None</DictItem>
+            </DictItem>
+            <DictItem type="dict" class="PreSynapticCounts" key="rep_pre_synaptic_counts">
+              <DictItem type="NoneType" key="index">None</DictItem>
+              <DictItem type="bool" key="b_nullable">False</DictItem>
+              <DictItem type="NoneType" key="columns">None</DictItem>
+            </DictItem>
+            <DictItem type="dict" class="LGConnProb" key="conn_probs">
+              <DictItem type="NoneType" key="index">None</DictItem>
+              <DictItem type="bool" key="b_nullable">False</DictItem>
+              <DictItem type="NoneType" key="columns">None</DictItem>
+            </DictItem>
+            <DictItem type="dict" class="SynapseCountTensors" key="counts">
+              <DictItem type="dict" class="LGroupExpCCSynPerSrcTypeAndDelay" key="G_exp_ccsyn_per_src_type_and_delay">
+                <DictItem type="NoneType" key="index">None</DictItem>
+                <DictItem type="bool" key="b_nullable">False</DictItem>
+                <DictItem type="NoneType" key="columns">None</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="LGroupExpExcCCSynPerSnkTypeAndDelay" key="G_exp_exc_ccsyn_per_snk_type_and_delay">
+                <DictItem type="NoneType" key="index">None</DictItem>
+                <DictItem type="bool" key="b_nullable">False</DictItem>
+                <DictItem type="NoneType" key="columns">None</DictItem>
+              </DictItem>
             </DictItem>
           </DictItem>
           <DictItem type="dict" class="LGNeuronCounts" key="L_Group_neuronCounts">

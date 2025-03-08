@@ -14,10 +14,11 @@ from snngine_v4.utils.containers.configurable_dict import (
 )
 from snngine_v4.utils.containers.configurable_list import ConfigurableList
 from snngine_v4.utils.containers.mappings import (
-    ObjectMapConfig, Many2OneObjectMap,
+    Many2OneObjectMap,
     Many2OneObjectSingleTonMap, Object2ObjectMap,
 )
 from snngine_v4.utils.containers.super_maps import TypeSortedMap
+from snngine_v4.utils.data_utils.dataframe_config import SeriesModel
 
 
 class SetAttributeEmitterBase(QtCore.QObject):
@@ -275,7 +276,10 @@ class Object2ObjectLinks(TypeSortedMap):
             try:
                 # skip validation for BaseModels
                 # object.__setattr__(self_, key, value)
-                setattr(self_, key, value)
+                if isinstance(getattr(self_, key), SeriesModel):
+                    setattr(getattr(self_, key), SeriesModel.Slots.DATA, value)
+                else:
+                    setattr(self_, key, value)
                 if self_.__setattr__ != set_attr:
                     # self_.__setattr__ = set_attr
                     raise AssertionError

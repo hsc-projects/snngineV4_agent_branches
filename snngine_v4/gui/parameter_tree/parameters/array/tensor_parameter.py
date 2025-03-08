@@ -12,7 +12,7 @@ from snngine_v4.gui.parameter_tree.parameters.widgets.table.q_dataframe import \
     DataChangeType
 from snngine_v4.utils.containers.configurable_dict import ConfigurableDict
 from snngine_v4.utils.data_utils.dataframe_config import (
-    SeriesBase,
+    SeriesModel,
     TypedDataFrameBase3D,
 )
 from snngine_v4.utils.data_utils.validation.array_annotation import \
@@ -99,7 +99,7 @@ class TensorDictParameter(ArrayDictParameter):
                          signal_register=signal_register, **opts)
 
     def build(self, value, signal_register, **opts):
-        if isinstance(value, SeriesBase):
+        if isinstance(value, SeriesModel):
             res: dict[str, TensorParameter] = (
                 super().build(value, signal_register, **opts))
             # for i, (k, p) in enumerate(res.items()):

@@ -11,31 +11,30 @@ from snngine_v4.utils.cuda_utils.tensor_dataframe import (
 
 class NeuronState(EngineElement):
 
-    flags: TensorDataFrame
-    props: TensorDataFrame
+    N_flags: TensorDataFrame
+    N_props: TensorDataFrame
 
     config_model: NeuronStateModel
 
     def __init__(self, model: NeuronStateModel, device, **kwargs):
 
-        super().__init__(device=device, model=model.tdf_values(),
-                         config_model=model, **kwargs)
+        super().__init__(device=device, config_model=model, **kwargs)
 
     def validate_consistency(self):
-        if self.n_neurons != self.props.shape[1]:
+        if self.n_neurons != self.N_props.shape[1]:
             raise InconsistencyError
 
     @property
     def n_neurons(self):
-        return self.flags.shape[1]
+        return self.N_flags.shape[1]
 
     def apply_preset(self):
         self.validate_consistency()
-        type_col = self.config_model.flags.index.N_type.name
-        mask_inh = self.flags[type_col] == NeuronType.INHIBITORY.value
-        mask_exc = self.flags[type_col] == NeuronType.EXCITATORY.value
+        type_col = self.config_model.N_flags.index.N_type.name
+        mask_inh = self.N_flags[type_col] == NeuronType.INHIBITORY.value
+        mask_exc = self.N_flags[type_col] == NeuronType.EXCITATORY.value
         self.config_model.initializer.presets.default_init(
-            df_props=self.props,
+            df_props=self.N_props,
             r=self.rand_f32(self.n_neurons),
             mask_inh=mask_inh, mask_exc=mask_exc,
         )

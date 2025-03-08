@@ -3,7 +3,7 @@ import torch
 
 from snngine_v4.utils.cuda_utils.cuda_functions import assert_device_equivalency
 from snngine_v4.utils.data_utils.dataframe_config import (
-    SeriesBase, TypedDataFrameBase,
+    SeriesModel, TypedDataFrameModel,
 )
 from snngine_v4.utils.data_utils.index_config import (
     Column, IndexConfig,
@@ -26,7 +26,7 @@ class TensorSeries:
     def __init__(self, device, *args, gpu_values=None, model=None,  **kwargs):
         if model is not None:
             pass
-        elif (len(args) == 1) and isinstance(args[0], SeriesBase):
+        elif (len(args) == 1) and isinstance(args[0], SeriesModel):
             model = args[0]
             args = []
         self.data_cpu = self.make_cpu_data(*args, model=model, **kwargs)
@@ -39,7 +39,7 @@ class TensorSeries:
     def device(self):
         return self.gpu_values.device
 
-    def make_cpu_data(self, *args, model: SeriesBase = None, **kwargs):
+    def make_cpu_data(self, *args, model: SeriesModel = None, **kwargs):
         if len(args) == 1 and isinstance(args[0], pd.Series):
             return args[0]
         else:
@@ -151,8 +151,8 @@ class TensorDataFrame(TensorSeries):
         if isinstance(item, Column):
             self.gpu_values[:, self.get_col_loc(item)] = value
         elif isinstance(item, tuple):
+            self.gpu_values[item] = value
             pass
-            # self.gpu_values[:, self.get_col_loc(item)] = value
         else:
             super().__setitem__(item, value)
 
