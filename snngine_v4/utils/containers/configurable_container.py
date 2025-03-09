@@ -99,14 +99,9 @@ class ContainerConfig(ConfigModel, frozen=True):
                 data[k] = extract_field_default((cls, k))
         return super()._validate_model_before(data)
 
-    # @classmethod
-    # def _validate_model_after(cls, data: ContainerConfig) -> Any:
-    #     super()._validate_model_after(data=data)
     def model_post_init(self, __context):
-        # super()._validate_model_after(data=data)
         super().model_post_init(__context)
         data = self
-        # if isinstance(data, BaseModel | ContainerConfig):
         if (b_int_allowed := self.b_int_allowed(
                 data.allowed_types, data.forbidden_types)
             and (data.b_duplicate_check_by_id
@@ -119,7 +114,6 @@ class ContainerConfig(ConfigModel, frozen=True):
                 f"\ndata.b_remove_by_id_allowed"
                 f"={data.b_remove_by_id_allowed}"
             )
-        # return data
 
 
 class ConfigurableContainerBase:

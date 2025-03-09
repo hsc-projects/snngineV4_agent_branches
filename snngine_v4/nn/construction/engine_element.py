@@ -125,18 +125,16 @@ class EngineElement(BuilderDict):
         self.set_tensor_attr()
 
     def __setattr__(self, key, value):
-        if ((key != self.TENSOR_DICT_KW) and (not hasattr(self, key))
-                and isinstance(value, (TensorSeries,
-                                       TensorDict))):
-            if ((value in self.inv)
-                    and (not hasattr(self.config_model, key))):
-                raise PermissionError(f"{key}")
-            if isinstance(value, TensorSeries):
+        if key != self.TENSOR_DICT_KW:
+            if isinstance(value, (TensorSeries, TensorDict, torch.Tensor)):
+                if isinstance(value, (TensorSeries, TensorDict)):
+                    if ((not hasattr(self, key))
+                            and (value in self.inv)
+                            and (not hasattr(self.config_model, key))):
+                        raise PermissionError(
+                            f"missing configuration for'{key}'")
                 self.tensor_dict[key] = value
-            elif isinstance(value, TensorDict):
-                self.tensor_dict[key] = value
-            else:
-                type_assertion(value, (TensorSeries, TensorDict))
+
         super().__setattr__(key, value)
 
     def __setitem__(self, key, value):
@@ -167,7 +165,6 @@ class EngineElement(BuilderDict):
     def children_elements(self):
         return [self.root_element[x] for x in self.children_models]
 
-    @property
     def parent_element(self):
         return self.root_element[self.node_tree.parent(self.config_model)]
 

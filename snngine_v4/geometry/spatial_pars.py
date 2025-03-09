@@ -20,6 +20,12 @@ from snngine_v4.utils.settings.ui_parameter_options import (
 
 
 @unique
+class Ax2D(IntEnum):
+    X = 0
+    Y = 1
+
+
+@unique
 class Ax3D(IntEnum):
     X = 0
     Y = 1
@@ -170,7 +176,8 @@ class Directions3DBoolPars(ConfigModel):
     ZM: bool
 
 
-type PositionVBO = ArrayInterfaces().vbo_array_type(3)
+type Pos2DVBO = ArrayInterfaces().vbo_array_type(2)
+type Pos3DVBO = ArrayInterfaces().vbo_array_type(3)
 
 
 if __name__ == '__main__':

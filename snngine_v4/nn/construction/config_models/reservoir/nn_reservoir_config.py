@@ -21,7 +21,7 @@ from snngine_v4.nn.construction.config_models.engine_element_config import (
     EngineElementConfig3D,
 )
 from snngine_v4.geometry.spatial_pars import (
-    PositionVBO,
+    Pos3DVBO,
     Segmentation3D,
 )
 from snngine_v4.nn.construction.config_models.reservoir.lgroup_states import (
@@ -37,11 +37,14 @@ from snngine_v4.utils.data_utils.validation.array_annotation import (
     ArrayInterfaces
 )
 from snngine_v4.utils.field_utils import (
-    fill_field_default, get_attr_or_key,
+    fill_field_default, get_attr_or_item,
     set_attr_or_item,
 )
 
-from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
+from snngine_v4.utils.settings.ui_parameter_options import (
+    FrozenParamOpts,
+    ParamOpts,
+)
 
 
 @unique
@@ -109,7 +112,7 @@ class NetworkReservoirConfig(EngineElementConfig3D):
                    NTypeGroupConnInit(src=1, snk=0, w0=.45),
                    NTypeGroupConnInit(src=1, snk=1, w0=.47), ]))
 
-    pos: PositionVBO = Field(
+    pos: Pos3DVBO = Field(
         default_factory=lambda: np.array([
             [1.5, 1.5, 1.5],
             [1.5, 1.5, 0],
@@ -137,12 +140,6 @@ class NetworkReservoirConfig(EngineElementConfig3D):
     def _calc_delay_count(n_neurons, max_=20, min_=2, ):
         n_delays = np.log10(n_neurons) * (1 + np.sqrt(np.log10(n_neurons)))
         return min(int(max(n_delays, min_)), max_)
-
-    @classmethod
-    def limit_synapse_count(cls, n_synapses, n_neurons,
-                             min0=2, max0=1000, max1_divider=4, ):
-        n_synapses0 = int(min(max0, max(n_synapses, min0)))
-        return min(n_synapses0, n_neurons // max1_divider)
 
     @classmethod
     def calc_synapse_base_count(cls, n_neurons):
@@ -198,9 +195,15 @@ class NetworkReservoirConfig(EngineElementConfig3D):
             self.pos, outer_shape=self.grid.shape.as_tuple(),
             grid_segmentation=self.grid.seg.as_tuple())
 
-    def model_post_init(self, __context):
+    @classmethod
+    def limit_synapse_count(cls, n_synapses, n_neurons,
+                            min0=2, max0=1000, max1_divider=4, ):
+        n_synapses0 = int(min(max0, max(n_synapses, min0)))
+        return min(n_synapses0, n_neurons // max1_divider)
 
+    def model_post_init(self, __context):
         self.model_config['validate_assignment'] = False
+        super().model_post_init(__context)
 
         n_neurons = self.N
 
@@ -241,25 +244,25 @@ class NetworkReservoirConfig(EngineElementConfig3D):
     @classmethod
     def reset_arrays(cls, data):
 
-        n_neurons = get_attr_or_key(data, cls.Slots.N_NEURONS)
-        type_groups: NTypeGroupList = get_attr_or_key(
+        n_neurons = get_attr_or_item(data, cls.Slots.N_NEURONS)
+        type_groups: NTypeGroupList = get_attr_or_item(
             data, cls.Slots.TYPE_GROUPS)
         # type_groups = fill_field_default(
         #     data, cls, cls.Slots.TYPE_GROUPS,
         #     field_model=NTypeGroupList).generate_groups(n_neurons)
 
-        grid = get_attr_or_key(data, cls.Slots.GRID)
+        grid = get_attr_or_item(data, cls.Slots.GRID)
         shape = grid.shape.as_tuple()
 
         set_attr_or_item(data, cls.Slots.N_DELAYS,
                          cls._calc_delay_count(n_neurons=n_neurons))
-        n_delays = get_attr_or_key(data, cls.Slots.N_DELAYS)
+        n_delays = get_attr_or_item(data, cls.Slots.N_DELAYS)
         grid.seg = cls.generate_segmentation(n_delays, shape)
         seg: Segmentation3D = grid.seg
 
         set_attr_or_item(data, cls.Slots.N_LGROUPS, int(seg.prod()))
 
-        pos_gen_mode = get_attr_or_key(data, cls.Slots.POS_GEN_MODE)
+        pos_gen_mode = get_attr_or_item(data, cls.Slots.POS_GEN_MODE)
 
         pos, grid_coordinates = cls.generate_pos(
             mode=pos_gen_mode, shape=shape, n_neurons=n_neurons,
@@ -267,10 +270,10 @@ class NetworkReservoirConfig(EngineElementConfig3D):
         set_attr_or_item(data, cls.Slots.POS, pos)
 
         n_states = NeuronStateModel.reset_model(
-            get_attr_or_key(data, cls.Slots.NEURON_STATES), n_neurons)
+            get_attr_or_item(data, cls.Slots.NEURON_STATES), n_neurons)
         set_attr_or_item(data, cls.Slots.NEURON_STATES, n_states)
 
-        n_groups = get_attr_or_key(data, cls.Slots.N_LGROUPS)
+        n_groups = get_attr_or_item(data, cls.Slots.N_LGROUPS)
         cls._reset_lg_array(data=data, class_=LGroupFlags, n_groups=n_groups,
                             slot=cls.Slots.L_GROUP_FLAGS)
         cls._reset_lg_array(data=data, class_=LGroupProps, n_groups=n_groups,
@@ -282,7 +285,7 @@ class NetworkReservoirConfig(EngineElementConfig3D):
 
     @staticmethod
     def _reset_lg_array(data, class_, slot, n_groups):
-        value: TypedDataFrameModel = get_attr_or_key(data, slot)
+        value: TypedDataFrameModel = get_attr_or_item(data, slot)
         if isinstance(value, dict):
             obj: TypedDataFrameModel = class_(**value)
             value[TypedDataFrameModel.Slots.DATA] = obj.zeroes(n_cols=n_groups)

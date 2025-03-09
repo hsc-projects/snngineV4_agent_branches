@@ -25,7 +25,7 @@ from snngine_v4.utils.field_utils import (
 from snngine_v4.utils.data_utils.interval_utils import limits_from_interval
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
-from snngine_v4.geometry.spatial_pars import Ax3D, PositionVBO
+from snngine_v4.geometry.spatial_pars import Ax2D, Ax3D, Pos2DVBO, Pos3DVBO
 from snngine_v4.visualization.config_models.visuals.parameters import (
     ColorVBO, RGBAEnum,
 )
@@ -152,7 +152,9 @@ class OptionsBuilder:
 
         options.c_annotation = ann
 
-        if ann == PositionVBO:
+        if ann == Pos2DVBO:
+            options.c_column_name_s = Ax2D._member_names_
+        elif ann == Pos3DVBO:
             options.c_column_name_s = Ax3D._member_names_
         elif ann == ColorVBO:
             options.c_column_name_s = RGBAEnum._member_names_

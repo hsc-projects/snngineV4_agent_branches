@@ -145,8 +145,6 @@ class ModelParameterLinks(Object2ObjectLinks):
         self.source: BaseModel | None = None
         self.sink: GroupParameter | None = None
 
-
-
         # from snngine_v4.visualization.config_models.vispy_camera_configs
         # import \
         #     TurnTableCameraParameters

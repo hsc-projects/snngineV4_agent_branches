@@ -4,9 +4,16 @@ from typing import Any, Callable, ClassVar, Set, Type
 
 import numpy as np
 from pydantic import BaseModel
-from vispy.scene import Box, Markers, VisualNode, XYZAxis
+from vispy.scene import (
+    Box, Line, Markers, VisualNode,
+    XYZAxis,
+)
+from vispy.scene.visuals import create_visual_node
 from vispy.util.event import EmitterGroup
-from vispy.visuals import CompoundVisual, LineVisual, MeshVisual, Visual
+from vispy.visuals import (
+    BaseVisual, CompoundVisual, LineVisual, MeshVisual,
+    Visual,
+)
 from vispy.visuals.transforms import NullTransform, STTransform
 
 from snngine_v4.geometry.grid_config import FiniteGridConfig
@@ -21,7 +28,8 @@ from snngine_v4.utils.containers.configurable_dict import (
     DictContainerConfig,
 )
 from snngine_v4.utils.class_mixer import ClassMixer
-from snngine_v4.utils.field_utils import Undefined
+from snngine_v4.utils.core_utils import filter_dict_keys
+from snngine_v4.utils.field_utils import get_attr_or_item, Undefined
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 from snngine_v4.utils.settings.settings_keywords import (
     BaseModelSlots,
@@ -37,16 +45,19 @@ from snngine_v4.visualization.config_models.visuals.parameters import (
     WDHSegKw,
 )
 from snngine_v4.visualization.config_models.visuals.lines import (
-    XYZAxisVisualConfig,
+    LineVisualConfig, XYZAxisVisualConfig,
 )
 from snngine_v4.visualization.config_models.visuals.boxes import (
     BoxVisualInitConfig, OuterGridVisualInitConfig,
+)
+from snngine_v4.visualization.config_models.plotting.multi_line_plot import (
+    MultiPlotConfig, SepLineData,
 )
 from snngine_v4.visualization.scenes.setattribute_event import (
     MeshDataChangedEvent, SetAttributeEvent,
 )
 from snngine_v4.visualization.visuals.grid_lines import (
-    FiniteGridLines, FiniteGridLinesVisual, MultiBoxLinesVisual,
+    FiniteGridLinesVisual, MultiBoxLinesVisual,
 )
 
 
@@ -87,9 +98,11 @@ class VisualMixin:
 
     SET_DATA_KWS = {
         LineVisual: SET_DATA_LineVisual_KWS,
+        Line: SET_DATA_LineVisual_KWS,
         XYZAxis: SET_DATA_LineVisual_KWS,
         MultiBoxLinesVisual: SET_DATA_LineVisual_KWS,
-        FiniteGridLines: [],
+        # FiniteGridLines: [],
+        FiniteGridLinesVisual: [],
         Box: [VispyKeyWords.COLOR],
         Markers: [VispyKeyWords.POS,
                   VispyKeyWords.EDGE_COLOR,
@@ -117,42 +130,42 @@ class VisualMixin:
         print('mesh_data_changed', id(self))
         self.events.mesh_data_changed(instance=self, data=self._meshdata)
 
-    def __post_init__(self: VisualMixin | Visual):
+    def __post_init__(self: VisualMixin | Visual | CompoundVisual,
+                      subvisuals=None):
 
         b_verbose = False
 
-        self.events.add(
-            auto_connect=False,
-            attr_changed=SetAttributeEvent)
+        self.events.add(auto_connect=False,
+                        attr_changed=SetAttributeEvent)
         self.emitter_map = EmitterMap(self.events, keys=self.attr_changed_keys)
 
         def connect_mesh_data_changed(v_):
             v_.mesh_data_changed = lambda: VisualMixin.mesh_data_changed(v_)
 
-        # if isinstance(self, MarkersVisual):
-        #     self.events.add(
-        #         auto_connect=False,
-        #         attr_changed=SetAttributeEvent)
+        if subvisuals is not None:
+            for s in subvisuals:
+                self.add_subvisual(s)
 
         if isinstance(self, CompoundVisual):
             for i, v in enumerate(self._subvisuals):
                 v: Visual
-                if isinstance(v, (MeshVisual, LineVisual)):
-                    if isinstance(v, MeshVisual):
-                        v.events.add(
-                            auto_connect=False,
-                            attr_changed=SetAttributeEvent,
-                            mesh_data_changed=MeshDataChangedEvent)
-                        connect_mesh_data_changed(v)
-                    elif isinstance(v, LineVisual):
-                        v.events.add(
-                            auto_connect=False,
-                            attr_changed=SetAttributeEvent,
-                            mesh_data_changed=MeshDataChangedEvent)
-                    if b_verbose:
-                        print('added events:', v.__class__.__name__, id(v))
-                else:
-                    pass
+                if not isinstance(v, VisualMixin):
+                    if isinstance(v, (MeshVisual, LineVisual)):
+                        if isinstance(v, MeshVisual):
+                            v.events.add(
+                                auto_connect=False,
+                                attr_changed=SetAttributeEvent,
+                                mesh_data_changed=MeshDataChangedEvent)
+                            connect_mesh_data_changed(v)
+                        elif isinstance(v, LineVisual):
+                            v.events.add(
+                                auto_connect=False,
+                                attr_changed=SetAttributeEvent,
+                                mesh_data_changed=MeshDataChangedEvent)
+                        if b_verbose:
+                            print('added events:', v.__class__.__name__, id(v))
+                    else:
+                        pass
 
 
 class VisualMixins(ClassMixer):
@@ -161,14 +174,11 @@ class VisualMixins(ClassMixer):
     @classmethod
     def mix(cls, class_item: Type, name=None, attr_changed_keys=Undefined):
 
-        if issubclass(class_item, (VisualNode, )):
-            if class_item == XYZAxis:
-                # set_data_kw = VisualMixin.SET_DATA_KWS[XYZAxis]
-                # attr_changed_keys = [
-                #     x for x in XYZAxisVisualConfig.model_fields.keys()
-                #     if x not in set_data_kw]
-                attr_changed_keys = XYZAxisVisualConfig.cls_model_keys()
-            elif class_item in (Box, FiniteGridLines):
+        if issubclass(class_item, (VisualNode, BaseVisual)):
+
+            if class_item in [XYZAxis, Line]:
+                attr_changed_keys = LineVisualConfig.cls_model_keys()
+            elif class_item in (Box, FiniteGridLinesVisual):
                 attr_changed_keys = {'_mesh': ['shading']}
             elif class_item == MeshVisual:
                 attr_changed_keys = ['color']
@@ -183,12 +193,39 @@ class VisualMixins(ClassMixer):
                 else:
                     attr_changed_keys['visible'] = []
 
+            if not issubclass(class_item, VisualNode):
+                set_data_kws = VisualMixin.SET_DATA_KWS[class_item]
+                class_item = create_visual_node(FiniteGridLinesVisual)
+                VisualMixin.SET_DATA_KWS[class_item] = set_data_kws
+
             def init(self: VisualMixin | Visual, *args, **kwargs_):
+                subvisuals = None
+                if class_item == Line:
+                    subvisuals = kwargs_.pop(
+                        VispyVisualBuilder.SUBVISUALS_KW, None)
+                    sep_lines = kwargs_.pop(
+                        MultiPlotConfig.SEP_LINES_KW, None)
+                    if sep_lines is not None:
+                        if subvisuals is None:
+                            subvisuals = []
+                        subvisuals += [sep_lines]
+
+                    line_keys = set(LineVisualConfig.cls_model_keys())
+                    plot_keys0 = set(SepLineData.cls_model_keys())
+                    plot_keys1 = set(MultiPlotConfig.cls_model_keys())
+                    exclude = plot_keys0 - line_keys
+                    exclude |= plot_keys1 - line_keys
+                    kwargs_ = filter_dict_keys(dct=kwargs_, exclude=exclude)
+
                 visible = kwargs_.pop('visible', True)
                 pos_origin = kwargs_.pop(EnginePos3D.Slots.POS_ORIGIN, True)
+
                 self.__pre_init__(*args, **kwargs_)
                 class_item.__init__(self, *args, **kwargs_)
-                self.__post_init__()
+                if subvisuals is not None:
+                    self.__post_init__(subvisuals)
+                else:
+                    self.__post_init__()
 
             def set_attr(self: VisualMixin | Visual, key, value):
                 class_item.__setattr__(self, key, value)
@@ -223,13 +260,18 @@ class VispyVisualBuilder(BuilderDict):
 
     BUILDER_OBJECT_CLASS_MAP: ClassVar = {
         BoxVisualInitConfig: Box,
-        FiniteGridConfig: FiniteGridLines,
+        FiniteGridConfig: FiniteGridLinesVisual,
         OuterGridVisualInitConfig: Box,
         XYZAxisVisualConfig: XYZAxis,
         MarkersVisualConfig: Markers,
         NetworkReservoirConfig: Markers,
-        # LGroupFlags: FiniteGridLines,
+        # PlotConfig: Line,
+        MultiPlotConfig: Line,
+        LineVisualConfig: Line,
+        SepLineData: Line,
     }
+
+    # BUILDER_OBJECT_SUPERCLASS_MAP: ClassVar = {}
 
     @classmethod
     def _convert_to_vispy(cls, dct, model: BaseModel):
@@ -242,7 +284,20 @@ class VispyVisualBuilder(BuilderDict):
         dct.pop(InternalOpts.Slots.TECHNICAL, None)
         subvisuals = dct.pop(cls.SUBVISUALS_KW, None)
         if subvisuals and len(subvisuals) > 0:
-            raise NotImplementedError
+            if not isinstance(model, MultiPlotConfig):
+                raise AssertionError
+            pass
+        elif subvisuals is not None:
+            pass
+
+        if isinstance(model, MultiPlotConfig):
+            if model.sep_lines is not None:
+                if cls.SUBVISUALS_KW not in dct:
+                    dct[cls.SUBVISUALS_KW] = []
+                dct.pop(MultiPlotConfig.SEP_LINES_KW)
+                sub_vis = VispyVisualBuilder.cls_build_obj(
+                    model.sep_lines).built
+                dct[cls.SUBVISUALS_KW] += [sub_vis]
 
         if isinstance(dct, dict):
 
@@ -266,19 +321,20 @@ class VispyVisualBuilder(BuilderDict):
 
             up_keys = {}
             for k, dump_value_ in dct.items():
-                model_ = getattr(model, k)
-                if isinstance(model_, FloatShape3D):
-                    # up_keys[k] = WDHKw.convert_dict(dump_value_)
-                    up_keys[k] = WDHKw.convert_model(model_)
-                elif isinstance(model_, Segmentation3D):
-                    # up_keys[k] = WDHSegKw.convert_dict(dump_value_)
-                    up_keys[k] = WDHSegKw.convert_model(model_)
-                elif isinstance(model_, RGBAColor):
-                    dct[k] = RGBAColor.to_vispy(dump_value_)
-                elif isinstance(model_, Directions3DBoolPars):
-                    vals = list(dump_value_.keys())
-                    vals = [AxDir3D.vispy_name_alias(x) for x in vals]
-                    dct[k] = tuple(vals)
+                if k != cls.SUBVISUALS_KW:
+                    model_ = getattr(model, k)
+                    if isinstance(model_, FloatShape3D):
+                        # up_keys[k] = WDHKw.convert_dict(dump_value_)
+                        up_keys[k] = WDHKw.convert_model(model_)
+                    elif isinstance(model_, Segmentation3D):
+                        # up_keys[k] = WDHSegKw.convert_dict(dump_value_)
+                        up_keys[k] = WDHSegKw.convert_model(model_)
+                    elif isinstance(model_, RGBAColor):
+                        dct[k] = RGBAColor.to_vispy(dump_value_)
+                    elif isinstance(model_, Directions3DBoolPars):
+                        vals = list(dump_value_.keys())
+                        vals = [AxDir3D.vispy_name_alias(x) for x in vals]
+                        dct[k] = tuple(vals)
 
             for k in up_keys:
                 dct.pop(k)
@@ -341,7 +397,7 @@ class VispyVisualBuilder(BuilderDict):
 
     @classmethod
     def apply_open_gl_kwargs(
-        cls, visual: Visual, opengl_kwargs,
+        cls, visual: BaseVisual | VisualNode, opengl_kwargs,
             state_type: OpenGlStateType | None = None
     ):
         if state_type is None:

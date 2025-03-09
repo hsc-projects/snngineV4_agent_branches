@@ -9,7 +9,7 @@ from snngine_v4.utils.data_utils.validation.array_annotation import (
     ArrayInterfaces,
 )
 from snngine_v4.geometry.spatial_pars import (
-    PositionVBO,
+    Pos3DVBO,
 )
 from snngine_v4.utils.settings.ui_parameter_options import p_field
 
@@ -23,7 +23,7 @@ type LineConnectType = Literal['strip', 'segments'] | None
 
 class LineVisualConfig(VisualConfig):
 
-    pos: PositionVBO = Field(default=None, repr=False)
+    pos: Pos3DVBO = Field(default=None, repr=False)
     color: ColorType = Field(repr=False)
     width: NonNegativeInt = p_field(default=1,  readonly=False, le=15)
     connect: LineConnectType = p_field(default='strip',  readonly=True,
@@ -33,7 +33,7 @@ class LineVisualConfig(VisualConfig):
 
 
 class XYZAxisVisualConfig(LineVisualConfig):
-    pos: PositionVBO = Field(
+    pos: Pos3DVBO = Field(
         default_factory=lambda: np.array([
             [0, 0, 0],
             [1, 0, 0],
@@ -43,9 +43,6 @@ class XYZAxisVisualConfig(LineVisualConfig):
             [0, 0, 1]],
             dtype=np.float32),
         repr=False,
-        # json_schema_extra={
-        #     ParamOpts.KW.C_COLUMN_NAME_S: ,
-        # },
     )
     connect: LineConnectType = p_field(
         default='segments',  readonly=False,

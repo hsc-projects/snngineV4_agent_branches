@@ -17,14 +17,13 @@ from snngine_v4.visualization.config_models.vispy_canvas_config import (
 from snngine_v4.visualization.config_models.visuals import VisualConfig
 from snngine_v4.visualization.scenes.event_camera import \
     EventTurntableCamera
-from snngine_v4.visualization.scenes.main_network_scene import EngineSceneCanvas
+from snngine_v4.visualization.scenes.main_network_scene import (
+    EngineSceneCanvas)
 from snngine_v4.visualization.visual_builder import VispyVisualBuilder
 
 
 class SceneManager(BuilderDict):
 
-    # BUILDER_DEFAULT_MODEL_CLASS: ClassVar = VispyCanvasConfig
-    # BUILDER_DEFAULT_OBJECT_CLASS: ClassVar = EngineSceneCanvas
     BUILDER_OBJECT_CLASS_MAP: ClassVar = {
         VispyCanvasConfig: EngineSceneCanvas
     }
@@ -105,8 +104,7 @@ class SceneManager(BuilderDict):
         #     cls.VISUAL_BUILDER_KW, None)
 
         scene: EngineSceneCanvas = super().make_object(
-            object_class=object_class,
-            object_model=object_model,
+            object_class=object_class, object_model=object_model,
             **scene_opts,)
 
         for k, v in wdg_opts.items():

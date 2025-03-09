@@ -161,7 +161,7 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
 
         if self._container_conf.b_replace_allowed is False:
             if key in self:
-                raise KeyError(f"Key {key} already exists.")
+                raise KeyError(f"Key '{key}' already exists in {self.keys()}")
         return key
 
     def validate_keys(self, keys):

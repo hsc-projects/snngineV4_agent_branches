@@ -5,8 +5,8 @@ from pydantic import BaseModel
 
 
 from snngine_v4.config.construction import EngineConstructionConfig
-from snngine_v4.nn.construction.config_models.nn_builder_config import \
-    NetworkConstructionConfig
+from snngine_v4.nn.construction.config_models.spnn_config import \
+    SpatialNetworkConfig
 from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.utils.containers.mappings import ObjectMapConfig
 from snngine_v4.utils.field_utils import model_keys
@@ -24,11 +24,11 @@ class NetworkBuilder(BuilderDict):
 
     BUILDER_OBJECT_CLASS_MAP: ClassVar = {
         # FiniteGridConfig: FiniteGrid,
-        NetworkConstructionConfig: SpatialNetwork
+        SpatialNetworkConfig: SpatialNetwork
     }
 
     OBJECT_INIT_SUPER_TYPES = {
-        NetworkConstructionConfig: ObjectInitializationType.MODEL_AND_KWARGS
+        SpatialNetworkConfig: ObjectInitializationType.MODEL_AND_KWARGS
     }
 
     def __init__(

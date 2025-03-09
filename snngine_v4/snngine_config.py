@@ -4,8 +4,8 @@ from typing import ClassVar
 
 from pydantic import Field
 
-from snngine_v4.nn.construction.config_models.nn_builder_config import \
-    NetworkConstructionConfig
+from snngine_v4.nn.construction.config_models.spnn_config import \
+    SpatialNetworkConfig
 from snngine_v4.nn.construction.config_models.engine_element_config \
     import EngineElementConfig
 from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
@@ -45,7 +45,7 @@ class EngineConfig(XMLSettingsModel):
     scenes: SceneSettings
     construction: EngineConstructionConfig = Field(
         default_factory=lambda:  EngineConstructionConfig(
-            network=NetworkConstructionConfig(
+            network=SpatialNetworkConfig(
                 device=1,
                 elements=[EngineElementConfig(),
                           NetworkReservoirConfig(),

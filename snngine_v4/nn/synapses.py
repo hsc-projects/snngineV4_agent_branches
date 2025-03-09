@@ -1,4 +1,7 @@
-from typing import ClassVar
+from __future__ import annotations
+
+from functools import cached_property
+from typing import Callable, TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -6,21 +9,29 @@ import torch
 from snngine_v4.nn.construction.config_models.neurons.synapse_model import (
     SynapseCountTensors, SynapseModel,
 )
-from snngine_v4.nn.construction.config_models.reservoir.n_type_groups import \
-    (
+from snngine_v4.nn.construction.config_models.reservoir.n_type_groups import (
     NeuronType, NTypeGroupConnList, NTypeGroupList,
 )
 from snngine_v4.nn.construction.engine_element import EngineElement
 
 # noinspection PyUnresolvedReferences
 from snngine_v4.nn.cuda_backend import snn_construction_gpu
+from snngine_v4.utils.cuda_utils.cuda_functions import \
+    (
+    print_allocated_memory_diff, save_current_allocated_memory,
+)
 
 from snngine_v4.utils.cuda_utils.tensor_dataframe import TensorDataFrame
+
+
+if TYPE_CHECKING:
+    from snngine_v4.nn.spnn_reservoir import NetworkReservoir
 
 
 class SynCounts(EngineElement):
 
     config_model: SynapseCountTensors
+    parent_element: Callable[..., Synapses]
 
     G_exp_ccsyn_per_src_type_and_delay: TensorDataFrame
     G_exp_exc_ccsyn_per_snk_type_and_delay: TensorDataFrame
@@ -250,6 +261,8 @@ class Synapses(EngineElement):
 
     config_model: SynapseModel
 
+    parent_element: Callable[..., NetworkReservoir]
+
     N_rep: TensorDataFrame
     N_delays: TensorDataFrame
 
@@ -261,26 +274,36 @@ class Synapses(EngineElement):
 
     conn_probs: TensorDataFrame
 
-    RepBackend: snn_construction_gpu.SnnRepresentation
     counts: SynCounts
+
+    parent_model: NetworkReservoir
 
     def __init__(self, model: SynapseModel, **kwargs):
         super().__init__(config_model=model, **kwargs)
         self.N_rep_buffer = self.zeros_i32((self.N_rep.shape[1],
                                             self.N_rep.shape[0]))
+        self.N_rep_groups = None
+        self.pseudo_tensor_i32 = self.zeros_i32((1, 1))
 
-    def fill_tensors(self, N, S, D, G,
-                     G_neuron_typed_ccount,
-                     G_rep,
-                     N_flags, N_flags_row_group,
-                     L_Group_neuronCounts,
-                     L_Group_delay_counts,
-                     conn_probs, ntypes: NTypeGroupList,
-                     ntype_conns: NTypeGroupConnList):
+    def fill_tensors(self):
+        
+        reservoir = self.parent_element()
+        
+        N = reservoir.config_model.N
+        G = reservoir.config_model.G
+        S = reservoir.config_model.S
+        D = reservoir.config_model.D
+
+        type_conns = reservoir.config_model.type_conns
+
+        save_current_allocated_memory()
 
         self.counts.fill_tensors(
-            S=S, D=D, G=G, L_Group_neuronCounts=L_Group_neuronCounts,
-            conn_probs=conn_probs, ntypes=ntypes, ntype_conns=ntype_conns)
+            S=S, D=D, G=G,
+            L_Group_neuronCounts=reservoir.L_Group_neuronCounts,
+            conn_probs=self.conn_probs,
+            ntypes=reservoir.config_model.type_groups,
+            ntype_conns=type_conns)
 
         torch.cuda.empty_cache()
         # self.print_allocated_memory('syn_counts')
@@ -307,7 +330,7 @@ class Synapses(EngineElement):
                 raise ValueError
             return t
 
-        for i, gc in enumerate(ntype_conns.conns):
+        for i, gc in enumerate(type_conns.conns):
             ct_row = (gc.snk.ntype - 1) * D + 2
 
             ccn_idx_src = G * (gc.src.ntype - 1)
@@ -318,12 +341,12 @@ class Synapses(EngineElement):
             cc_syn = cc_syn_(gc)
 
             self.RepBackend.fill_N_rep(
-                cc_src=G_neuron_typed_ccount[
+                cc_src=reservoir.G_neuron_typed_ccount[
                        ccn_idx_src: ccn_idx_src + G + 1].data_ptr(),
-                cc_snk=G_neuron_typed_ccount[
+                cc_snk=reservoir.G_neuron_typed_ccount[
                        ccn_idx_snk: ccn_idx_snk + G + 1].data_ptr(),
-                G_rep=G_rep.data_ptr(),
-                G_neuron_counts=L_Group_neuronCounts[
+                G_rep=reservoir.G_rep.data_ptr(),
+                G_neuron_counts=reservoir.L_Group_neuronCounts[
                                 ct_row: ct_row+D, :].data_ptr(),
                 G_autapse_indices=G_autapse_indices.data_ptr(),
                 G_relative_autapse_indices=G_relative_autapse_indices
@@ -353,10 +376,7 @@ class Synapses(EngineElement):
                                         sort_keys=self.N_rep_buffer.data_ptr(),
                                         N_rep=self.N_rep.data_ptr())
 
-        self.N_rep.sync_to_df()
-        df = self.N_rep.data_cpu.T
-
-        for i, gc in enumerate(ntype_conns.conns):
+        for i, gc in enumerate(type_conns.conns):
 
             ct_row = (gc.snk.ntype - 1) * D + 2
 
@@ -366,35 +386,30 @@ class Synapses(EngineElement):
 
             snn_construction_gpu.reindex_N_rep(
                 N=N, S=S, D=D, G=G,
-                N_flags=N_flags.data_ptr(),
-                cc_src=G_neuron_typed_ccount[
+                N_flags=reservoir.N_flags.data_ptr(),
+                cc_src=reservoir.G_neuron_typed_ccount[
                        ccn_idx_src: ccn_idx_src + G + 1].data_ptr(),
-                cc_snk=G_neuron_typed_ccount[
+                cc_snk=reservoir.G_neuron_typed_ccount[
                        ccn_idx_snk: ccn_idx_snk + G + 1].data_ptr(),
-                G_rep=G_rep.data_ptr(),
-                G_neuron_counts=L_Group_neuronCounts[
+                G_rep=reservoir.G_rep.data_ptr(),
+                G_neuron_counts=reservoir.L_Group_neuronCounts[
                                 ct_row: ct_row+D, :].data_ptr(),
-                G_group_delay_counts=L_Group_delay_counts.data_ptr(),
+                G_group_delay_counts=reservoir.L_Group_delay_counts.data_ptr(),
                 gc_location=gc.location,
                 gc_conn_shape=gc.conn_shape,
                 cc_syn=cc_syn.data_ptr(),
                 N_delays=self.N_delays.data_ptr(),
                 sort_keys=self.N_rep_buffer.data_ptr(),
                 N_rep=self.N_rep.data_ptr(),
-                N_flags_row_group=N_flags_row_group,
+                N_flags_row_group=reservoir.neuron_states.group_flag_index,
                 verbose=False)
 
         snn_construction_gpu.sort_N_rep(N=N, S=S,
                                         sort_keys=self.N_rep_buffer.data_ptr(),
                                         N_rep=self.N_rep.data_ptr())
 
-        self.N_rep_buffer[:] = -1
-        self.N_rep_buffer[:] = self.N_rep.gpu_values.T
-        self.N_rep_buffer = self.N_rep_buffer.reshape(self.N_rep.shape)
-        # self.N_rep_buffer[:] = self.N_rep.gpu_values.T
-
-        # self.N_rep = self.N_rep.gpu_values.reshape(self.N_rep.shape)
-        self.N_rep[:] = self.N_rep_buffer[:]
+        # transpose the actual values
+        self.N_rep[:] = self.N_rep.gpu_values.T.reshape(self.N_rep.shape)
         self.N_rep_buffer[:] = -1
         # self.print_allocated_memory(f'transposed')
 
@@ -405,3 +420,62 @@ class Synapses(EngineElement):
             df = df[df.columns[(df == -1).any(axis=0)]]
             raise AssertionError
         assert len(self.N_rep[self.N_rep == -1]) == 0
+
+        N_rep_groups_gpu_temp = self.N_rep.gpu_values.clone()
+
+        snn_construction_gpu.fill_N_rep_groups(
+            N=N, S=S, N_flags=reservoir.N_flags.data_ptr(),
+            N_rep=self.N_rep.data_ptr(),
+            N_rep_groups=N_rep_groups_gpu_temp.data_ptr(),
+            N_flags_row_group=reservoir.neuron_states.group_flag_index,
+        )
+
+        self.N_rep_groups = N_rep_groups_gpu_temp.cpu()
+
+        type_conns.apply_init_weights(self.N_weights.gpu_values)
+
+        # self.G_swap_tensor = self._G_swap_tensor()
+        # self.N_relative_G_indices = self._N_relative_G_indices()
+        return
+
+    @cached_property
+    def N_relative_G_indices(self):
+        reservoir = self.parent_element()
+        all_groups = reservoir.N_flags.group.type(torch.int64)
+        inh_start_indices = reservoir.G_neuron_typed_ccount[all_groups]
+        start_indices = reservoir.G_neuron_typed_ccount[
+            all_groups + reservoir.config_model.G]
+        inh_neurons = reservoir.N_flags.type == NeuronType.INHIBITORY.value
+        start_indices[inh_neurons] = inh_start_indices[inh_neurons]
+        start_indices[~inh_neurons] -= (reservoir.G_neuron_typed_ccount[
+                                            all_groups + 1][~inh_neurons]
+                                        - inh_start_indices[~inh_neurons])
+        # return (self.neuron_ids - start_indices).type(torch.int32)
+        return (reservoir.N_flags.id - start_indices).type(torch.int32)
+
+    @cached_property
+    def RepBackend(self) -> snn_construction_gpu.SnnRepresentation:
+        reservoir = self.parent_element()
+        return snn_construction_gpu.SnnRepresentation(
+            N=reservoir.config_model.N,
+            G=reservoir.config_model.G,
+            S=reservoir.config_model.S,
+            D=reservoir.config_model.D,
+            curand_states_p=reservoir.curand_states,
+            N_pos=reservoir.N_pos.data_ptr(),
+            G_group_delay_counts=reservoir
+            .L_Group_delay_counts.data_ptr(),
+            G_flags=reservoir.L_Group_flags.data_ptr(),
+            G_props=reservoir.L_Group_properties.data_ptr(),
+            N_rep=self.N_rep.data_ptr(),
+            N_rep_buffer=self.N_rep_buffer.data_ptr(),
+            N_rep_pre_synaptic=self.rep_pre_synaptic.data_ptr(),
+            N_rep_pre_synaptic_idcs=self.rep_pre_synaptic_idcs.data_ptr(),
+            N_rep_pre_synaptic_counts=self.rep_pre_synaptic_counts.data_ptr(),
+            N_delays=self.N_delays.data_ptr(),
+            N_flags=reservoir.neuron_states.N_flags.data_ptr(),
+            N_weights=self.N_weights.data_ptr(),
+            L_winner_take_all_map=self.pseudo_tensor_i32.data_ptr(),
+            max_n_winner_take_all_layers=1,
+            max_winner_take_all_layer_size=1
+        )

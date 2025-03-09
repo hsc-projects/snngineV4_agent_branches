@@ -407,7 +407,7 @@ def fill_field_default(
     return dct[key]
 
 
-def get_attr_or_key(data, key, default=Undefined):
+def get_attr_or_item(data, key, default=Undefined):
     if default is Undefined:
         if isinstance(data, dict):
             return data[key]

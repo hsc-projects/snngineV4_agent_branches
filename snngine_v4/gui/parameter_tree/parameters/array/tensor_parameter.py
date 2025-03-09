@@ -11,6 +11,7 @@ from snngine_v4.gui.parameter_tree.parameters.array.array_parameter import \
 from snngine_v4.gui.parameter_tree.parameters.widgets.table.q_dataframe import \
     DataChangeType
 from snngine_v4.utils.containers.configurable_dict import ConfigurableDict
+from snngine_v4.utils.containers.mappings import Object2ObjectMap
 from snngine_v4.utils.data_utils.dataframe_config import (
     SeriesModel,
     TypedDataFrameBase3D,
@@ -108,6 +109,10 @@ class TensorDictParameter(ArrayDictParameter):
             res = {}
             items = list(value.items())
             for k, v in items:
+
+                if isinstance(value, Object2ObjectMap):
+                    k = value.inv[v]
+
                 if len(v.shape) == 2:
                     if isinstance(value, GLTensorDict):
                         dt = value.str2gl[k].validation_interface

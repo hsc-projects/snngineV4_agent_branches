@@ -10,7 +10,7 @@ from snngine_v4.utils.data_utils.dataframe_config import (
     DataFrameF32,
     DataFrameI32,
 )
-from snngine_v4.utils.field_utils import get_attr_or_key, Undefined
+from snngine_v4.utils.field_utils import get_attr_or_item, Undefined
 
 
 class SynapseDelaysCounts(DataFrameI32):
@@ -117,7 +117,7 @@ class SynapseModel(EngineElementConfig):
         cls.reset_array(model.conn_probs,
                         n_indices=(len(ntypes.groups) * n_groups, n_delays))
 
-        counts = get_attr_or_key(model, 'counts')
+        counts = get_attr_or_item(model, 'counts')
 
         SynapseCountTensors.reset_model(
             counts, n_delays,

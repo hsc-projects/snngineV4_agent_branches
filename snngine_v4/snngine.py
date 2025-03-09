@@ -1,10 +1,7 @@
 import os
 
-from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
-    import NetworkReservoirConfig
 from snngine_v4.nn.construction.nn_builder import NetworkBuilder
 from snngine_v4.nn.spnn import SpatialNetwork
-from snngine_v4.nn.spnn_reservoir import NetworkReservoir
 from snngine_v4.snngine_config import EngineConfig
 from snngine_v4.visualization.cuda.gl_interop.gl_buffer import GLBufferMap
 
@@ -71,36 +68,48 @@ class SNNgine:
         self.network_manager.build(self.conf.construction)
         self.conf.current = self.network_manager.container_model
 
-        visual_models0 = {
-            # 'grid': self.conf.current.network.grid,
-            'grid': self.conf.current.network.elements[1].grid,
-        }
-
-        visual_models1 = {}
-        if self.conf.current.network.elements:
-            for i, el in enumerate(self.conf.current.network.elements):
-                if isinstance(el, NetworkReservoirConfig):
-                    visual_models1[f"el{i}"] = el
+        # visual_models = {
+        #     # 'grid': self.conf.current.network.grid,
+        #     'grid': self.conf.current.network.elements[1].grid,
+        # }
+        #
+        # # visual_models1 = {}
+        # if self.conf.current.network.elements:
+        #     for i, el in enumerate(self.conf.current.network.elements):
+        #         if isinstance(el, NetworkReservoirConfig):
+        #             visual_models[f"el{i}"] = el
 
         network: SpatialNetwork = self.network_manager[
             self.conf.current.network]
 
-        reservoir1: NetworkReservoir = network[
-            self.conf.current.network.elements[1]]
+        # reservoir1: NetworkReservoir = network[
+        #     self.conf.current.network.elements[1]]
+
+        visual_models = [
+            # self.conf.current.network.elements[1].grid,
+            self.conf.current.network.elements[1],
+        ]
 
         new_visuals = self.scene_manager.build_visuals(
-            visuals=visual_models1,
+            visuals=visual_models,
+            scene=self.conf.scenes.main,
+        )
+        new_visuals = self.scene_manager.build_visuals(
+            visuals=[self.conf.current.network.elements[1].grid],
+            scene=self.conf.scenes.main,
+            grid=network[self.conf.current.network.elements[1].grid]
+        )
+
+        plot_configs = list(
+            self.conf.current.network.simulator.plots.plot_config_values())
+
+        new_visuals0 = self.scene_manager.build_visuals(
+            visuals=plot_configs,
             scene=self.conf.scenes.main,
         )
 
-        # visual_models2 = {
-        #     'groups': self.conf.current.network.elements[1].L_Group_flags,
-        # }
-        new_visuals0 = self.scene_manager.build_visuals(
-            visuals=visual_models0,
-            scene=self.conf.scenes.main,
-            grid=reservoir1.grid
-        )
+        lines = new_visuals0[plot_configs[0]].built
+        self.scene_manager[self.conf.scenes.main]
 
         return new_visuals
 

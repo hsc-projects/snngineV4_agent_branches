@@ -12,7 +12,9 @@ from pydantic import (
 )
 
 from snngine_v4.utils.core_utils import get_intenum_member
-from snngine_v4.utils.data_utils.validation.dtype_annotation import UInt64, UInt8
+from snngine_v4.utils.data_utils.validation.dtype_annotation import (
+    UInt64, UInt8
+)
 from snngine_v4.utils.settings.config_model import ConfigModel
 
 
@@ -246,6 +248,34 @@ class NTypeGroupConnList(ConfigModel):
     gen_mode: TypeConnGenerationMode = TypeConnGenerationMode.UNIFORM
     conns: list[NTypeGroupConn | NTypeGroupConnInit]
 
+    def apply_init_weights(self, data):
+
+        for gc in self.conns:
+            if not isinstance(gc.w0, str):
+                data[
+                    gc.location[1]: gc.location[1] + gc.conn_shape[1],
+                    gc.location[0]: gc.location[0] + gc.conn_shape[0]] = gc.w0
+
+            # elif (gc.w0 == 'r') or (gc.w0 == '-r'):
+            #     r = torch.rand((gc.conn_shape[1], gc.conn_shape[0]))
+            #     if gc.w0 == '-r':
+            #         r = -r
+            #     self.N_weights[
+            #         gc.location[1]: gc.location[1] + gc.conn_shape[1],
+            #         gc.location[0]: gc.location[0] + gc.conn_shape[0]] = r
+            else:
+                raise NotImplementedError
+
+    def generate_conns(
+            self, groups: NTypeGroupList, n_syn):
+        match self.gen_mode:
+            case TypeConnGenerationMode.UNIFORM:
+                self.generate_uniform_connections(groups, n_syn)
+            case _:
+                raise NotImplementedError
+
+        return self
+
     def generate_uniform_connections(self, groups: NTypeGroupList, n_syn):
         match groups.gen_mode:
             case NTypeGroupGenerationMode.UNIFORM_RATIO:
@@ -288,12 +318,7 @@ class NTypeGroupConnList(ConfigModel):
                             syn_idx=syn_idx,
                         )
                         self.conns[i] = conn
-
-    def generate_conns(
-            self, groups: NTypeGroupList, n_syn):
-        match self.gen_mode:
-            case TypeConnGenerationMode.UNIFORM:
-                self.generate_uniform_connections(groups, n_syn)
+            case NTypeGroupGenerationMode.UNIFORM_RATIO:
+                pass
             case _:
-                raise NotImplementedError
-        return self
+                raise NotImplementedError(f"{groups.gen_mode.name}")

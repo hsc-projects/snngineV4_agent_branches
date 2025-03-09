@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from copy import copy
+
 import numpy as np
 from pydantic import BaseModel
-from vispy.scene import TurntableCamera, VisualNode, XYZAxis
+from vispy.scene import Line, TurntableCamera, VisualNode, XYZAxis
 from vispy.util.event import Event
 from vispy.visuals import (
     BoxVisual, CompoundVisual, LineVisual, MarkersVisual,
@@ -10,6 +12,7 @@ from vispy.visuals import (
 )
 from vispy.visuals.transforms import STTransform
 
+from snngine_v4.utils.core_utils import type_assertion
 from snngine_v4.utils.data_utils.validation.array_annotation \
     import ArrayInterfaces
 from snngine_v4.geometry.grid_config import FiniteGridConfig
@@ -28,6 +31,8 @@ from snngine_v4.utils.containers.mappings import Model2ObjectMap
 from snngine_v4.utils.field_utils import Undefined
 # from snngine_v4.utils.settings.ui_parameter_options import update_param_opts
 from snngine_v4.visualization.buffer_utils import adapt_dim
+from snngine_v4.visualization.config_models.plotting.multi_line_plot import \
+    MultiPlotConfig
 from snngine_v4.visualization.config_models.vispy_camera_configs import (
     CameraCenter, TurnTableCameraParameters,
 )
@@ -50,7 +55,7 @@ from snngine_v4.visualization.visual_builder import (
     VisualMixin,
 )
 from snngine_v4.visualization.visuals.grid_lines import (
-    GSGLLineVisual, FiniteGridLines,
+    GSGLLineVisual, FiniteGridLinesVisual,
     MultiBoxLinesVisual,
 )
 
@@ -76,12 +81,15 @@ class VispyLinks(Object2ObjectLinks):
         self.sub_visual_map = Model2ObjectMap()
 
         node_tree = None
-        if isinstance(vispy_obj, (BoxVisual, FiniteGridLines,
-                                  MultiBoxLinesVisual, MarkersVisual)):
+        if isinstance(vispy_obj, (BoxVisual,
+                                  FiniteGridLinesVisual,
+                                  MultiBoxLinesVisual,
+                                  Line,
+                                  MarkersVisual)):
             exp_model = VispyVisualBuilder.get_model(model)
             if model.__class__ != exp_model.__class__:
-                assert isinstance(model, (FiniteGridConfig,
-                                          NetworkReservoirConfig))
+                type_assertion(
+                    model, (FiniteGridConfig, NetworkReservoirConfig))
                 node_tree = signal_register.add_linked_model(
                     model, exp_model)
                 model = exp_model
@@ -138,34 +146,50 @@ class VispyLinks(Object2ObjectLinks):
 
             elif isinstance(self.sink, CompoundVisual):
                 if isinstance(self.source, BoxVisualInitConfig):
-                    assert isinstance(self.sink, BoxVisual)
+                    type_assertion(self.sink, BoxVisual)
                 elif isinstance(self.source, MultiBoxLinesVisualConfig):
-                    assert isinstance(self.sink, MultiBoxLinesVisual)
+                    type_assertion(self.sink, MultiBoxLinesVisual)
+                elif isinstance(self.source, MultiPlotConfig):
+                    type_assertion(self.sink, LineVisual)
                 else:
                     raise NotImplementedError
                 # noinspection PyProtectedMember
-                if len(self.sink._subvisuals) > 0:
-                    self.source.subvisuals = []
-                    # noinspection PyProtectedMember
-                    for sub_visual in self.sink._subvisuals:
-                        if isinstance(sub_visual, MeshVisual):
-                            # noinspection PyArgumentList
-                            sub_visual_model = MeshVisualConfig()
-                        elif isinstance(sub_visual, MultiBoxLinesVisual):
-                            sub_visual_model = MultiBoxLinesVisualConfig(
-                                pos=sub_visual.pos,
-                                connect=sub_visual.connect,
-                                width=sub_visual.width,
-                                color=sub_visual.color,
-                            )
-                        elif isinstance(sub_visual, GSGLLineVisual):
-                            sub_visual_model = None
-                        else:
+
+                sub_visuals = copy(self.sink._subvisuals)
+
+                if len(sub_visuals) > 0:
+
+                    if isinstance(self.source, MultiPlotConfig):
+                        if len(sub_visuals) > 2:
                             raise NotImplementedError
-                        if sub_visual_model is not None:
-                            self.sub_visual_map[sub_visual_model] = sub_visual
-                            self.source.subvisuals.append(
-                                sub_visual_model)
+                        sub_visual_model = self.source.sep_lines
+                        sub_visual = sub_visuals.pop(1)
+                        self.sub_visual_map[sub_visual_model] = sub_visual
+                        sub_visuals.pop(0)
+
+                    if len(sub_visuals) > 0:
+                        self.source.subvisuals = []
+                        # noinspection PyProtectedMember
+                        for sub_visual in self.sink._subvisuals:
+                            if isinstance(sub_visual, MeshVisual):
+                                # noinspection PyArgumentList
+                                sub_visual_model = MeshVisualConfig()
+                            elif isinstance(sub_visual, MultiBoxLinesVisual):
+                                sub_visual_model = MultiBoxLinesVisualConfig(
+                                    pos=sub_visual.pos,
+                                    connect=sub_visual.connect,
+                                    width=sub_visual.width,
+                                    color=sub_visual.color,
+                                )
+                            elif isinstance(sub_visual, GSGLLineVisual):
+                                sub_visual_model = None
+                            else:
+                                raise NotImplementedError
+                            if sub_visual_model is not None:
+                                self.sub_visual_map[sub_visual_model] = (
+                                    sub_visual)
+                                self.source.subvisuals.append(
+                                    sub_visual_model)
                 node_tree.read_model(self.source, b_ignore_existing=True)
 
             elif isinstance(self.sink, MeshVisual):

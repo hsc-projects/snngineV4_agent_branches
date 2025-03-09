@@ -321,4 +321,5 @@ class FiniteGridLinesVisual(BoxVisual):
         # self.g2g_info_arrays: Optional[G2GInfoArrays] = None
 
 
-FiniteGridLines = create_visual_node(FiniteGridLinesVisual)
+# FiniteGridLines = create_visual_node(FiniteGridLinesVisual)
+# FiniteGridLines = FiniteGridLinesVisual

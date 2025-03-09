@@ -163,6 +163,24 @@ def filter_dict(
     return result_dict
 
 
+def filter_dict_keys(dct, b_pop=False,
+                     include=None, exclude=None) -> dict:
+
+    res = {}
+    if include is not None:
+        for k in include:
+            if b_pop is True:
+                res[k] = dct.pop(k)
+            else:
+                res[k] = dct[k]
+    else:
+        res.update(dct)
+    if exclude is not None:
+        for k in exclude:
+            res.pop(k, None)
+    return res
+
+
 def filter_list(
         list_: list, type_,
         b_pop: bool = True,

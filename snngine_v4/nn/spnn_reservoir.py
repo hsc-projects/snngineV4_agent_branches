@@ -1,10 +1,10 @@
-from typing import ClassVar
+from functools import cached_property
+from typing import Callable, ClassVar, NewType, TYPE_CHECKING
 
 import torch
 
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
-from snngine_v4.nn.construction.config_models.neurons.synapse_model import \
-    (
+from snngine_v4.nn.construction.config_models.neurons.synapse_model import (
     SynapseCountTensors, SynapseModel,
 )
 from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
@@ -12,13 +12,21 @@ from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
 
 
 # noinspection PyUnresolvedReferences
-from snngine_v4.nn.cuda_backend import snn_utils, snn_construction_gpu
+from snngine_v4.nn.cuda_backend import (
+    snn_utils, snn_construction_gpu, snn_simulation_gpu)
 
 from snngine_v4.nn.construction.engine_element import EngineElement
-from snngine_v4.nn.neuron_states import NeuronState
 from snngine_v4.nn.synapses import Synapses, SynCounts
 from snngine_v4.utils.cuda_utils.tensor_dataframe import TensorDataFrame
 from snngine_v4.utils.cuda_utils.tensor_dict import TensorDict
+
+
+if TYPE_CHECKING:
+    from snngine_v4.nn.neuron_states import NeuronState
+    from snngine_v4.nn.spnn import SpatialNetwork
+else:
+    NeuronState = None
+    SpatialNetwork = None
 
 
 # noinspection PyPep8Naming
@@ -26,10 +34,11 @@ class NetworkReservoir(EngineElement):
 
     BUILDER_OBJECT_CLASS_MAP: ClassVar[dict] = {
         SynapseModel: Synapses,
-        SynapseCountTensors: SynCounts
+        SynapseCountTensors: SynCounts,
     }
 
     config_model: NetworkReservoirConfig
+    parent_element: Callable[..., SpatialNetwork]
 
     L_Group_neuronCounts: TensorDataFrame
     L_Group_flags: TensorDataFrame
@@ -56,41 +65,14 @@ class NetworkReservoir(EngineElement):
         self.G_neuron_typed_ccount = self.zeros_i32((2 * G + 1))
         self.L_Group_delay_counts = self.zeros_i32((G, D + 1))
 
-        self.pseudo_tensor_i32 = self.zeros_i32((1, 1))
-        self.fill_tensors()
-
     def fill_tensors(self,):
-        N = self.config_model.N
+
         S = self.config_model.S
         G = self.config_model.G
         D = self.config_model.D
         model: NetworkReservoirConfig = self.config_model
-        type_col = model.neuron_states.N_flags.index.N_type
-        group_col = model.neuron_states.N_flags.index.L_group
 
-        for g in self.config_model.type_groups:
-            # Set Neuron Type
-            # self.N_flags.type[g.start_idx:g.end_idx + 1] = g.ntype.value
-            self.neuron_states.N_flags[type_col][g.start_idx:g.end_idx + 1] = (
-                g.ntype.value)
-
-        self.N_pos = torch.tensor(self.config_model.pos, device=self.device)
-
-        # rows[0, 1]: inhibitory count, excitatory count,
-        # rows[2 * D]: number of neurons per delay (
-        # post_synaptic type: inhibitory, excitatory)
-        snn_construction_gpu.fill_N_flags_group_id_and_G_neuron_count_per_type(
-            N=N, G=G, N_pos=self.N_pos.data_ptr(),
-            # N_pos_shape=self.reservoir_config.reservoir_shape.as_tuple(),
-            N_pos_shape=self.config_model.grid.shape.as_tuple(),
-            N_flags=self.neuron_states.N_flags.data_ptr(),
-            # G_shape=self.reservoir_config.reservoir_segmentation.as_tuple(),
-            G_shape=self.config_model.grid.seg.as_tuple(),
-            G_neuron_counts=self.L_Group_neuronCounts.data_ptr(),
-            N_flags_row_type=self.neuron_states.N_flags.get_idx_loc(type_col),
-            N_flags_row_group=self.neuron_states.N_flags.get_idx_loc(group_col),
-            N_pos_n_cols=self.N_pos.shape[1]
-        )
+        self.neuron_states.fill_tensors_and_group_neuron_type_counts()
 
         ravel_counts = self.L_Group_neuronCounts[: 2, :]
         self.G_neuron_typed_ccount[1:] = ravel_counts.ravel().cumsum(dim=0)
@@ -145,51 +127,92 @@ class NetworkReservoir(EngineElement):
 
         self.neuron_states.apply_preset()
 
-        self.synapses.RepBackend = self._generate_RepBackend()
-
-        group_row = self.config_model.neuron_states.N_flags.index.L_group
-        self.synapses.fill_tensors(
-            S=S, D=D, G=G, N=N,
-            G_rep=self.L_Group2Group_flags[LG2GF_idx.rep],
-            N_flags=self.N_flags.gpu_values,
-            N_flags_row_group=self.N_flags.get_idx_loc(group_row),
-            L_Group_neuronCounts=self.L_Group_neuronCounts.gpu_values,
-            G_neuron_typed_ccount=self.G_neuron_typed_ccount,
-            L_Group_delay_counts=self.L_Group_delay_counts,
-            conn_probs=self.synapses.conn_probs.gpu_values,
-            ntypes=self.config_model.type_groups,
-            ntype_conns=self.config_model.type_conns,)
+        # group_row = self.config_model.neuron_states.N_flags.index.L_group
+        self.synapses.fill_tensors()
 
         self.sync_to_cpu()
 
         return
 
-    def _generate_RepBackend(self):
-        return snn_construction_gpu.SnnRepresentation(
-            N=self.config_model.N,
-            G=self.config_model.G,
-            S=self.config_model.S,
-            D=self.config_model.D,
-            curand_states_p=self.curand_states,
-            N_pos=self.N_pos.data_ptr(),
-            G_group_delay_counts=self.L_Group_delay_counts.data_ptr(),
-            G_flags=self.L_Group_flags.data_ptr(),
-            G_props=self.L_Group_properties.data_ptr(),
-            N_rep=self.synapses.N_rep.data_ptr(),
-            N_rep_buffer=self.synapses.N_rep_buffer.data_ptr(),
-            N_rep_pre_synaptic=self.synapses.rep_pre_synaptic.data_ptr(),
-            N_rep_pre_synaptic_idcs=self.synapses.rep_pre_synaptic_idcs
-            .data_ptr(),
-            N_rep_pre_synaptic_counts=self.synapses.rep_pre_synaptic_counts
-            .data_ptr(),
-            N_delays=self.synapses.N_delays.data_ptr(),
-            N_flags=self.neuron_states.N_flags.data_ptr(),
-            N_weights=self.synapses.N_weights.data_ptr(),
-            L_winner_take_all_map=self.pseudo_tensor_i32.data_ptr(),
-            max_n_winner_take_all_layers=1,
-            max_winner_take_all_layer_size=1
-        )
+    def G_neuron_counts_per_type(self, group=None):
+        counts = self.L_Group_neuronCounts[:self.config_model.n_type_groups]
+        if group is not None:
+            counts = counts[:, group]
+        return counts
+
+    @property
+    def G_rep(self):
+        g_rep = self.config_model.L_Group2Group_flags.index.rep
+        return self.L_Group2Group_flags[g_rep]
 
     @property
     def N_flags(self):
         return self.neuron_states.N_flags
+
+    @cached_property
+    def SimulatorBackend(self):
+
+        spnn = self.parent_element()
+        N = self.config_model.N
+        G = self.config_model.G
+        S = self.config_model.S
+        D = self.config_model.D
+
+        sim = snn_simulation_gpu.SnnSimulation(
+            N=N, G=G, S=S, D=D,
+            T=spnn.config_model.simulator.T,
+            n_voltage_plots=plotting_config.voltage_multiplot.n_plots,
+            voltage_plot_length=plotting_config.voltage_x_length,
+            voltage_plot_data=self._voltage_multiplot.vbo_array.data_ptr(),
+            voltage_plot_map=self._voltage_multiplot.map.data_ptr(),
+            n_scatter_plots=plotting_config.firing_scatter_plot.n_plots,
+            scatter_plot_length=plotting_config.firings_x_length,
+            scatter_plot_data=self._firing_scatter_plot.vbo_array.data_ptr(),
+            scatter_plot_map=self._firing_scatter_plot.map.data_ptr(),
+            curand_states_p=self.neurons.curand_states,
+            N_pos=self.neurons.N_visual.gpu_array.data_ptr(),
+            # N_G=self.N_G.data_ptr(),
+            G_group_delay_counts=self.neurons.G_group_delay_counts.data_ptr(),
+            G_flags=self.neurons.G_flags.data_ptr(),
+            G_props=self.neurons.G_props.data_ptr(),
+            N_rep=self.synapse_arrays.N_rep.data_ptr(),
+            N_rep_buffer=self.synapse_arrays.N_rep_buffer.data_ptr(),
+            N_rep_pre_synaptic=self.synapse_arrays.N_rep_pre_synaptic
+            .data_ptr(),
+            N_rep_pre_synaptic_idcs=self.synapse_arrays.N_rep_pre_synaptic_idcs
+            .data_ptr(),
+            N_rep_pre_synaptic_counts=self.synapse_arrays
+            .N_rep_pre_synaptic_counts.data_ptr(),
+            N_delays=self.synapse_arrays.N_delays.data_ptr(),
+            N_flags=self.neurons.N_flags.data_ptr(),
+            N_states=self.neurons.N_states.data_ptr(),
+            N_weights=self.synapse_arrays.N_weights.data_ptr(),
+            fired=self.Fired.data_ptr(),
+            last_fired=self.last_Fired.data_ptr(),
+            firing_times=self.Firing_times.data_ptr(),
+            firing_idcs=self.Firing_idcs.data_ptr(),
+            firing_counts=self.Firing_counts.data_ptr(),
+            G_firing_count_hist=self.G_firing_count_hist.data_ptr(),
+            G_stdp_config0=self.neurons.G2G_info.G_stdp_configs[0].data_ptr(),
+            G_stdp_config1=self.neurons.G2G_info.G_stdp_configs[1].data_ptr(),
+            G_avg_weight_inh=self.neurons.G2G_info.G_avg_weight_inh.data_ptr(),
+            G_avg_weight_exc=self.neurons.G2G_info.G_avg_weight_exc.data_ptr(),
+            G_syn_count_inh=self.neurons.G2G_info.G_syn_count_inh.data_ptr(),
+            G_syn_count_exc=self.neurons.G2G_info.G_syn_count_exc.data_ptr(),
+            L_winner_take_all_map=self.synapse_arrays.L_winner_take_all_map
+            .data_ptr(),
+            max_n_winner_take_all_layers=self._config.layering
+            .max_n_winner_take_all_layers,
+            max_winner_take_all_layer_size=self._config.layering
+            .max_winner_take_all_layer_size,
+            C_old=self.chemical_concentrations.c0.state.c_current.data_ptr(),
+            C_new=self.chemical_concentrations.c0.state.c_next.data_ptr(),
+            C_source=self.chemical_concentrations.c0.state.c_source.data_ptr(),
+            # debug_neuron_id=-1,
+            chem_grid_w=self.chemical_concentrations.c0.width,
+            chem_grid_h=self.chemical_concentrations.c0.height,
+            chem_grid_d=self.chemical_concentrations.c0.depth,
+            chem_k_val=self.chemical_concentrations.c0.k_val,
+            chem_depreciation=self.chemical_concentrations.c0.depreciation
+        )
+        return sim

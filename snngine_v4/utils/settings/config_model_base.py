@@ -9,7 +9,7 @@ from pydantic import (
 )
 from pydantic.types import PathType
 
-from snngine_v4.utils.core_utils import get_intenum_member
+from snngine_v4.utils.core_utils import filter_dict_keys, get_intenum_member
 from snngine_v4.utils.data_utils.deepdish_pack import deepdish
 from snngine_v4.utils.data_utils.validation.array_io import ArrayDictRW
 from snngine_v4.utils.field_utils import (
@@ -115,6 +115,16 @@ class ConfigModelMixin:
                 # a = deepdish.io.load(array_path)
                 pass
 
+    @classmethod
+    def cls_filter_dict_keys(cls, dct, b_pop=False, keys=None,
+                             include=None, exclude=None) -> dict:
+        if keys is None:
+            keys = cls.cls_model_keys()
+        if include is not None:
+            keys += include
+        return filter_dict_keys(
+            dct=dct, b_pop=b_pop, include=keys, exclude=exclude)
+
     def filtered_model_dict(self, type_filter=None, **kwargs):
         keys = self.model_keys(type_filter=type_filter, **kwargs)
         res = {}
@@ -211,16 +221,15 @@ class ConfigModelMixin:
             dct=dct, b_raise=b_raise, class_dict=class_dict)
 
     def post_init_process_extra_classes(self: BaseModel | ConfigModelMixin):
-        data = self
         # if isinstance(data, BaseModel):
-        if data.model_extra is not None:
+        if self.model_extra is not None:
             if self.EXTRA_CLASSES is not None:
-                for k in data.model_extra:
-                    if isinstance(data.model_extra[k], dict):
+                for k in self.model_extra:
+                    if isinstance(self.model_extra[k], dict):
                         new = self.model_interpret_dict(
-                            data.model_extra[k], b_raise=True)
+                            self.model_extra[k], b_raise=True)
                         if new is not None:
-                            setattr(data, k, new)
+                            setattr(self, k, new)
 
     @classmethod
     def validate_model_iterable_item(

@@ -126,24 +126,11 @@ class ModelObjectBuilder:
                     )
                     res.update(built_)
             else:
-                # built = None
-                # if ((model is None)
-                #         and (b_replace_missing_by_default_model is True)):
-                #     model = cls.BUILDER_DEFAULT_OBJECT_CLASS()
-                # if b_raise_if_missing_model and model is None:
-                #     raise ValueError('No object class found for model')
-                # if model is not None:
-                #     object_class = cls.find_object_class(
-                #         model, b_ignore_default=b_ignore_default_object_class,
-                #         b_raise=b_raise_if_missing_object_class)
-                #     if object_class is not None:
-
                 new_kwargs = {}
                 new_kwargs.update(common_kwargs)
                 new_kwargs.update(special_kwargs.pop(key, {}))
                 built = cls.cls_build_obj(
                     model=model, object_class=None,
-                    # b_ignore_default_object_class=True,
                     b_replace_missing_by_default_model=
                     b_replace_missing_by_default_model,
                     b_ignore_default_object_class=
@@ -152,10 +139,7 @@ class ModelObjectBuilder:
                     b_raise_if_missing_object_class=
                     b_raise_if_missing_object_class,
                     **common_kwargs
-                    # **new_kwargs
                 )
-                # else:
-                #     pass
                 res[model] = built
         return res
 
@@ -187,23 +171,10 @@ class ModelObjectBuilder:
             if b_raise:
                 raise
             object_class = None
-        # if model.__class__ not in cls.BUILDER_OBJECT_CLASS_MAP:
-        #     for k, v in cls.BUILDER_OBJECT_SUPERCLASS_MAP.items():
-        #         if issubclass(model.__class__, k):
-        #             object_class = v
-        #             break
-        # else:
-        #     object_class = cls.BUILDER_OBJECT_CLASS_MAP[model.__class__]
-        # if object_class is None:
-        #     if b_ignore_default is False:
-        #         object_class = cls.BUILDER_DEFAULT_OBJECT_CLASS
-        #     elif b_raise:
-        #         raise KeyError("Missing object class definition for "
-        #                        "{model.__class__}")
 
         if cls.BUILDER_OBJECT_CLASS_MIXER is not None:
-            object_class = cls.BUILDER_OBJECT_CLASS_MIXER()[object_class]
-
+            key_class = object_class
+            object_class = cls.BUILDER_OBJECT_CLASS_MIXER()[key_class]
         return object_class
 
     @classmethod
@@ -243,8 +214,7 @@ class ModelObjectBuilder:
         return model or cls.BUILDER_DEFAULT_MODEL_CLASS()
 
     @classmethod
-    def make_object(cls, object_class, object_model,
-                    **object_kwargs):
+    def make_object(cls, object_class, object_model, **object_kwargs):
         return object_class(**object_kwargs)
 
     @classmethod

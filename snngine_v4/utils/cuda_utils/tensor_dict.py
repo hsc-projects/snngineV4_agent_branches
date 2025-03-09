@@ -9,7 +9,7 @@ from snngine_v4.utils.containers.configurable_dict import (
     DictContainerConfig,
 )
 from snngine_v4.utils.containers.mappings import (
-    Object2ObjectMap,
+    Object2ObjectMap, ObjectMapConfig,
 )
 from snngine_v4.utils.cuda_utils.cuda_functions import (
     compare_devices, CudaKeywords,
@@ -28,22 +28,22 @@ class ArrayToTensorMap(Object2ObjectMap):
     ContainerConfigClass: ClassVar = np.ndarray, torch.Tensor
 
 
-# class DataFrameToTensorMap(Object2ObjectMap):
-#     ContainerConfigClass: ClassVar = pd.DataFrame, torch.Tensor
-
-
 class TensorDataFrameDict(ConfigurableDict):
     ContainerConfigClass: ClassVar = DictContainerConfig, TensorSeries
 
 
-class TensorDict(ConfigurableDict):
+class TensorDict(Object2ObjectMap):
     values: Callable[[], Iterable[torch.Tensor]]
-    # ContainerConfigClass: ClassVar = (DictContainerConfig, torch.Tensor)
 
-    class ContainerConfigClass(DictContainerConfig):
-        allowed_types: Type[torch.Tensor] = torch.Tensor
-        b_clear_allowed: bool = True
-        b_duplicate_check_by_id: bool = True
+    ContainerConfigClass: ClassVar = str, torch.Tensor
+
+    # class ContainerConfigClass(ObjectMapConfig):
+    #     allowed_types: Type[torch.Tensor] = torch.Tensor
+    #     b_clear_allowed: bool = True
+    #
+    # class InvertedConfigClass(ObjectMapConfig):
+    #     allowed_types: Type[str] = str
+    #     b_clear_allowed: bool = True
 
     def __init__(self, model: TypedDataFrameBase3D | None = None, **kwargs):
 
@@ -63,8 +63,8 @@ class TensorDict(ConfigurableDict):
                 device, model)
             self.array2tensor[model.data] = self.main_tensor
 
-    def clear(self, b_force: bool = False) -> None:
-        super().clear(b_force=b_force)
+    def clear(self, b_force: bool = False, b_clear_inv: bool = True) -> None:
+        super().clear(b_force=b_force, b_clear_inv=b_clear_inv)
         self.array2tensor.clear(b_force=True)
         # self.df2tensor.clear(b_force=True)
         self.tdf_dict.clear(b_force=True)
