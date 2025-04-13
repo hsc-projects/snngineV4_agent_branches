@@ -25,7 +25,7 @@ class BuilderDict(Model2ObjectMap, ModelObjectBuilder):
         if model_container is not None:
             if build_kwargs is not None:
                 build_res = self.cls_build_container(
-                    model_container=model_container, **build_kwargs)
+                    model_container=model_container, **build_kwargs).object_dict
                 self.update(build_res)
             else:
                 self.update(model_container)

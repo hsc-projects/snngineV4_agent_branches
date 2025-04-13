@@ -5,10 +5,10 @@
 #include "utils/launch_parameters.cuh"
 #include "operators/connector.cuh"
 
-#include <include/pybind11/include/pybind11/pybind11.h>
+#include <pybind11/pybind11.h>
 namespace py = pybind11;
 
-#include "utils/curand_states.cuh"
+// #include "utils/curand_states.cuh"
 
 int test_printing4();
 
@@ -42,7 +42,7 @@ void fill_G_exp_ccsyn_per_src_type_and_delay(
 	const int* G_neuron_counts,
 	float* G_conn_probs,
     int* G_exp_ccsyn_per_src_type_and_delay,
-	bool verbose = 0
+	bool verbose = false
 );
 
 void sort_N_rep(
@@ -50,7 +50,7 @@ void sort_N_rep(
 	int S,
 	int* sort_keys,
 	int* N_rep,
-	bool vebose = true
+	bool verbose = true
 );
 
 

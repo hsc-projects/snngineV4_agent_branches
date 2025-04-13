@@ -37,7 +37,8 @@ class ContainerBuildResult(Model2ObjectMap):
         for k, v in self.pairs():
             if v is not None:
                 v = v.built
-            res[k] = v
+            if v is not None:
+                res[k] = v
         return res
 
 
@@ -117,10 +118,13 @@ class ModelObjectBuilder:
                 if len(model_container_) > 0:
                     built_ = cls.cls_build_container(
                         model_container=model_container_,
-                        b_replace_missing_by_default_model=False,
-                        b_ignore_default_object_class=True,
-                        b_raise_if_missing_model=False,
-                        b_raise_if_missing_object_class=False,
+                        b_replace_missing_by_default_model=
+                        b_replace_missing_by_default_model,
+                        b_ignore_default_object_class=
+                        b_ignore_default_object_class,
+                        b_raise_if_missing_model=b_raise_if_missing_model,
+                        b_raise_if_missing_object_class=
+                        b_raise_if_missing_object_class,
                         special_kwargs=special_kwargs.pop(key, {}),
                         **common_kwargs
                     )
