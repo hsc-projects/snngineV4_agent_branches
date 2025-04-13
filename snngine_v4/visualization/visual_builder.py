@@ -29,7 +29,7 @@ from snngine_v4.utils.containers.configurable_dict import (
 )
 from snngine_v4.utils.class_mixer import ClassMixer
 from snngine_v4.utils.core_utils import filter_dict_keys
-from snngine_v4.utils.field_utils import get_attr_or_item, Undefined
+from snngine_v4.utils.field_utils import Undefined
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 from snngine_v4.utils.settings.settings_keywords import (
     BaseModelSlots,
@@ -276,10 +276,7 @@ class VispyVisualBuilder(BuilderDict):
     @classmethod
     def _convert_to_vispy(cls, dct, model: BaseModel):
         res = ConfigurableDict(
-            container_conf=DictContainerConfig(
-                b_duplicates_allowed=True
-            )
-        )
+            container_conf=DictContainerConfig(b_duplicates_allowed=True))
 
         dct.pop(InternalOpts.Slots.TECHNICAL, None)
         subvisuals = dct.pop(cls.SUBVISUALS_KW, None)

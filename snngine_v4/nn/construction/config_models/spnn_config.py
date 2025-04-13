@@ -28,6 +28,6 @@ class SpatialNetworkConfig(EngineElementConfig):
     bools: list[None | bool] | None = [None, True, False, True]
 
 
-if __name__ == '__main__':
-    from pprint import pprint
-    pprint(SpatialNetworkConfig().model_dump())
+# if __name__ == '__main__':
+#     from pprint import pprint
+#     pprint(SpatialNetworkConfig().model_dump())

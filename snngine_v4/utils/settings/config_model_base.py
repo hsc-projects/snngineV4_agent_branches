@@ -65,7 +65,7 @@ class ConfigModelMixin:
             model=model, b_exclude_class_name=b_exclude_class_name,
             **kwargs)
 
-    def export(self: Type[BaseModel],
+    def export(self: BaseModel | ConfigModelMixin,
                fn: str = None, mode='xml', round_trip=True, **kwargs):
 
         if mode != 'xml':
@@ -110,10 +110,10 @@ class ConfigModelMixin:
             array_path = fn_.replace(
                 BaseSettingsSlots.XML_FILE_ENDING,
                 BaseSettingsSlots.H5_FILE_ENDING)
-            if len(array_list) > 0:
-                deepdish.io.save(array_path, array_dct)
-                # a = deepdish.io.load(array_path)
-                pass
+            # if len(array_list) > 0:
+            #     deepdish.io.save(array_path, array_dct)
+            #     # a = deepdish.io.load(array_path)
+            #     pass
 
     @classmethod
     def cls_filter_dict_keys(cls, dct, b_pop=False, keys=None,

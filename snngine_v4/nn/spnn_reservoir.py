@@ -1,5 +1,5 @@
 from functools import cached_property
-from typing import Callable, ClassVar, NewType, TYPE_CHECKING
+from typing import Callable, ClassVar, TYPE_CHECKING
 
 import torch
 

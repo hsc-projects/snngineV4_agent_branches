@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from enum import IntEnum
+from enum import auto, IntEnum
+from functools import cached_property
 from typing import ClassVar, Type, TYPE_CHECKING
 
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.common.qobject_dicts import QDockWidgetDict, QWidgetDict
-
+from snngine_v4.gui.views.view_area import ViewArea
 
 from snngine_v4.gui.windows.main_window_widgets import (
     ButtonsDockWidget,
@@ -16,6 +17,7 @@ from snngine_v4.snngine_config import EngineConfig
 
 
 from snngine_v4.snngine import SNNgine
+from snngine_v4.visualization.scenes.main_network_scene import EngineSceneCanvas
 
 if TYPE_CHECKING:
     from snngine_v4.gui.parameter_tree.engine_parameter_tree import (
@@ -28,8 +30,9 @@ if TYPE_CHECKING:
 
 class WindowTypes(IntEnum):
     MAIN = 0
-    SETTINGS = 1
-    EXTRA_PARAMETERS = 2
+    SETTINGS = auto()
+    EXTRA_PARAMETERS = auto()
+    SECONDARY_VIEWS = auto()
 
 
 # noinspection PyPep8Naming
@@ -70,13 +73,12 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
         self.engine = engine
         self.connect_to_engine()
 
-    @property
+        self.centralWidget().layout().addWidget(
+            self.main_network_scene.native)
+
+    @cached_property
     def arrayEditorDockWidget(self) -> ArrayEditorDockWidget:
         return self.docks[self.ARRAYS_DOCK_NAME]
-
-    @property
-    def extraParametersWindow(self) -> ParameterArea:
-        return self.windows[WindowTypes.EXTRA_PARAMETERS]
 
     def build(self):
         raise NotImplementedError
@@ -97,15 +99,30 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
             self.windows[WindowTypes.SETTINGS].show)
 
         extra_pars_wdg = self.windows[WindowTypes.EXTRA_PARAMETERS]
-        extra_pars_action = QtWidgets.QAction('&Show Additional Parameters')
+        extra_pars_action = QtWidgets.QAction('Show &Additional Parameters')
         file_menu.addAction(extra_pars_action)
         extra_pars_action.triggered.connect(extra_pars_wdg.show)
         self.windows.action_map[extra_pars_action] = extra_pars_wdg
         for action in self.windows.action_map.inv[extra_pars_wdg]:
             action.setEnabled(False)
 
+        if WindowTypes.SECONDARY_VIEWS in self.windows:
+            views_action = QtWidgets.QAction('Secondary &Views', self)
+            file_menu.addAction(views_action)
+            views_action.triggered.connect(
+                self.windows[WindowTypes.SECONDARY_VIEWS].show)
+
+    @cached_property
+    def extraParametersWindow(self) -> ParameterArea:
+        return self.windows[WindowTypes.EXTRA_PARAMETERS]
+
     def get_tree(self, slot) -> QTree:
         return self.docks[slot.capitalize()].widget()
+
+    @cached_property
+    def main_network_scene(self):
+        return self.engine.scene_manager[
+            self.engine.conf.scenes.main]
 
     def make_settings_dock_widget(self, key) -> EngineTreeDockWidget:
         return self.SETTINGS_DOCK_CLASS(

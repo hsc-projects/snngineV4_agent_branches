@@ -6,13 +6,13 @@ from pyqtgraph.dockarea import Dock
 from qtpy import QtWidgets
 
 from snngine_v4.gui.common.docks import CustomPgDock
-from snngine_v4.gui.parameter_tree.parameters.widgets.table.df_table_widget import (
-    QDataFrameTableWidget, QDataFrameUIWidgets,
-)
+from snngine_v4.gui.parameter_tree.parameters.widgets.table.df_table_widget \
+    import (
+        QDataFrameTableWidget, QDataFrameUIWidgets,
+    )
 from snngine_v4.gui.parameter_tree.parameters.widgets.table.q_dataframe import \
     QDataFrame
 from snngine_v4.utils.containers.mappings import Object2ObjectMap
-from snngine_v4.utils.core_utils import type_assertion
 
 
 class QDataFrameDockMap(Object2ObjectMap):
@@ -24,12 +24,12 @@ class QDataFrameTableMap(Object2ObjectMap):
 
     def __init__(self, *arg, **kwargs):
         super().__init__(*arg, **kwargs)
-        self.dock_map: QDataFrameDockMap | dict[QDataFrame, TableDock] = (
+        self.docks: QDataFrameDockMap | dict[QDataFrame, TableDock] = (
             QDataFrameDockMap())
 
     def add_dock(self, dock: TableDock):
         wdg = dock.widget().table
-        self.dock_map[wdg.qdf] = dock
+        self.docks[wdg.qdf] = dock
         self[wdg.qdf] = wdg
 
     def add_table_widget(self, wdg):
@@ -95,4 +95,3 @@ class TableDock(CustomPgDock):
         dock_name = qdf.name + f" ({shape})"
         return cls(name=dock_name, widget=widget,
                    closable=closable, **kwargs)
-

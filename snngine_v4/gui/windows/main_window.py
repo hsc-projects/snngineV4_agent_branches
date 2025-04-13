@@ -10,6 +10,7 @@ from snngine_v4.gui.parameter_tree.vispy_connector import \
     VispyConnector
 from snngine_v4.gui.parameter_tree.parameters.widgets.table \
     .array_editor import ArrayEditorDockWidget
+from snngine_v4.gui.views.view_area import ViewArea
 from snngine_v4.gui.windows.extra_parameters import ParameterArea
 from snngine_v4.gui.windows.settings_window import SettingsWindow
 
@@ -31,12 +32,23 @@ class MainEngineWindow(MainEngineWindowBase):
 
     def __init__(self, engine: SNNgine):
 
+        sec_views = ViewArea(scene_manager=engine.scene_manager)
+
         windows = QWidgetDict({
             WindowTypes.SETTINGS: SettingsWindow(engine_config=engine.conf),
             WindowTypes.EXTRA_PARAMETERS: ParameterArea(),
+            WindowTypes.SECONDARY_VIEWS: sec_views
         })
 
+        # sec_views.show()
+        sec_views.resize(QtCore.QSize(640, 480))
+
         super().__init__(windows, engine=engine)
+
+        sec_views.show()
+        sec_views: ViewArea = self.windows[WindowTypes.SECONDARY_VIEWS]
+        sec_views.addDock(self.engine.conf.scenes.multiplot_voltage)
+        sec_views.addDock(self.engine.conf.scenes.current_voltage)
 
     @cached_property
     def b_pycuda_available(self):
@@ -47,6 +59,7 @@ class MainEngineWindow(MainEngineWindowBase):
             return False
 
     def build(self):
+        self.main_network_scene.set_current()
         self.engine.build_network()
         self.update_connections()
 
@@ -126,4 +139,10 @@ class MainEngineWindow(MainEngineWindowBase):
             tree=self.network_tree,
             network_manager=self.engine.network_manager,)
 
+        # self.show()
+        self.main_network_scene.set_current()
+        # sec_views: ViewArea = self.windows[WindowTypes.SECONDARY_VIEWS]
+        # sec_views.addDock(self.engine.conf.scenes.multiplot_voltage)
+        # sec_views.addDock(self.engine.conf.scenes.current_voltage)
+        self.main_network_scene.set_current()
         return

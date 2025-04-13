@@ -9,19 +9,25 @@ from snngine_v4.snngine import SNNgine
 
 class EngineApp(Application):
 
-    def __init__(
-            self, engine_or_settings: SNNgine | EngineConfig | str = None):
+    def __init__(self, settings: EngineConfig = None):
 
-        if not isinstance(engine_or_settings, SNNgine):
-            engine = SNNgine(settings=engine_or_settings)
-        else:
-            engine = engine_or_settings
+        if settings is None:
+            # noinspection PyArgumentList
+            settings = EngineConfig()
+
+        super().__init__(backend_name=settings.app.backend_name)
+
+        # noinspection PyProtectedMember
+        native_app = self._backend._vispy_get_native_app()
+        # if not isinstance(settings, SNNgine):
+        #     engine = SNNgine(settings=settings, app=self)
+        # else:
+        #     engine = settings
+        engine = SNNgine(settings=settings,
+                         # app=self
+                         )
 
         self.engine = engine
-
-        super().__init__(backend_name=self.conf.backend_name)
-        # noinspection PyProtectedMember
-        self._backend._vispy_get_native_app()
 
         qdarktheme.setup_theme(
             theme=self.conf.theme.name,
@@ -30,12 +36,6 @@ class EngineApp(Application):
 
         self.window = MainEngineWindow(engine)
         # self.engine.conf.export()
-
-        self.main_network_scene = self.engine.scene_manager[
-            self.engine.conf.scenes.main
-        ]
-        self.window.centralWidget().layout().addWidget(
-            self.main_network_scene.native)
 
         self.window.show()
         # self.window.windows[WindowTypes.SETTINGS].show()
@@ -47,6 +47,7 @@ class EngineApp(Application):
         #     'X', 10)
 
         self.window.build()
+        # self.window.show()
 
     @property
     def conf(self) -> EngineAppSettings:

@@ -1,32 +1,56 @@
-# Nvidia driver 560 <- 555
+# Nvidia driver 560 <- 555 (last working driver on Ubuntu 22)
 
 annotated-types~=0.7.0
-deepdiff~=8.0.1
-lxml==5.3.0
 
-numba==0.60.0
-numpy~=2.0.2
+darkdetect~=0.8.0
+# deepdiff~=8.0.1
+deepdiff~=8.4.2
+
+# lxml==5.3.0
+lxml~=5.3.2
+
+# numba==0.60.0
+numba==0.61.2
+
 # numpy==2.1.2
+# numpy~=2.0.2
+numpy~=2.2.4
+
 numpydantic~=1.6.3
 
-PyMeasure==0.14.0
+#PyMeasure==0.14.0
+PyMeasure==0.15.0
+
 pyqtgraph==0.13.7
 
-pandas==2.2.2
+# pandas==2.2.2
+pandas~=2.2.3
 
-pydantic>=2.9.0
-# pydantic_numpy==6.0.0
-pydantic-settings==2.4.0
+# pydantic>=2.9.0
+pydantic~=2.11.3
+pydantic_extra_types
+# pydantic-settings==2.4.0
+pydantic-settings~=2.8.1
 
-pyopengl==3.1.7
+# pyopengl==3.1.7
+pyopengl==3.1.9
 # pyqt6==6.7.1
 PySide6~=6.7.3
-pyqtdarktheme==2.1.0
+# PySide6~=6.9.0
+pyqtdarktheme==2.1.0 # --install-option="--ignore-requires-python"
 qtpy~=2.4.1
+
+scipy~=1.15.2
+tables~=3.10.2
 
 torch==2.4.1  # +cu124
 vispy==0.14.3
 
-pycuda==2024.1.2
 
+#    git clone https://github.com/inducer/pycuda.git
+#    cd ./pycuda
+#    sudo make install
+#    pip install .
+# pycuda~=2024.1.2
+pycuda~=2025.1
 

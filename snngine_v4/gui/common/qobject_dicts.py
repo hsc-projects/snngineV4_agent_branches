@@ -1,5 +1,6 @@
+from enum import IntEnum
 from functools import cached_property
-from typing import ClassVar, Type
+from typing import Callable, ClassVar, Type
 
 from qtpy import QtCore, QtWidgets
 from qtpy.QtWidgets import QDockWidget, QTreeWidget, QWidget
@@ -61,6 +62,8 @@ class QWidgetDictConfig(DictContainerConfig, frozen=True):
 class QWidgetDict(QObjectDict):
 
     ContainerConfigClass: ClassVar[Type[QWidgetDictConfig]] = QWidgetDictConfig
+
+    __getitem__: Callable[[str | IntEnum], QtWidgets.QWidget]
 
     def add_widget(self, widget: QWidget):
         if str in self.container_conf.allowed_key_types:

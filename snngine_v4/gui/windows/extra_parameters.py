@@ -3,7 +3,7 @@ from typing import Callable
 from pydantic import BaseModel
 from pyqtgraph.dockarea import Dock, DockArea
 
-from snngine_v4.gui.common.docks import CustomPgDock
+from snngine_v4.gui.common.docks import CustomPgDock, CustomPgDockArea
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
     EngineParameterTree
 
@@ -33,12 +33,11 @@ class ParameterDock(CustomPgDock):
         super().setVisible(visible)
 
 
-class ParameterArea(DockArea):
+class ParameterArea(CustomPgDockArea):
 
     def __init__(self, parent=None, temporary=False, home=None):
-        super().__init__(parent=parent, temporary=temporary, home=home)
-        self.dock_map = Object2ObjectMap()
-        # self.addDock(name='Tree0')
+        super().__init__(parent=parent, temporary=temporary,
+                         home=home)
 
     # noinspection PyPep8Naming
     def addDock(self, dock=None, position='bottom',

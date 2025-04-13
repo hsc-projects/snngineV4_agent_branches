@@ -7,6 +7,7 @@ from snngine_v4.visualization.config_models.visuals.lines import \
     XYZAxisVisualConfig
 
 
+# noinspection PyArgumentList
 class SceneSettings(ConfigModel):
 
     main: VispyCanvasConfig = VispyCanvasConfig(
@@ -17,7 +18,15 @@ class SceneSettings(ConfigModel):
         ),
         Visuals=SceneVisuals(axis=XYZAxisVisualConfig()))
 
-    # second: VispyCanvasConfig = VispyCanvasConfig(
-    #     Options=VispyCanvasConfigOptions(title='NetworkView'),
-    #     Views=SceneViews(main=VispyViewBoxConfig()),
-    #     Visuals=SceneVisuals(axis=XYZAxisVisualConfig()))
+    multiplot_voltage: VispyCanvasConfig = VispyCanvasConfig(
+        Options=VispyCanvasConfigOptions(title='Potential'),
+        Views=SceneViews(
+            main=VispyViewBoxConfig(),
+        ),
+        Visuals=SceneVisuals(axis=XYZAxisVisualConfig()))
+    current_voltage: VispyCanvasConfig = VispyCanvasConfig(
+        Options=VispyCanvasConfigOptions(title='Current'),
+        Views=SceneViews(
+            main=VispyViewBoxConfig(),
+        ),
+        Visuals=SceneVisuals(axis=XYZAxisVisualConfig()))

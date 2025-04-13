@@ -1,6 +1,8 @@
 import os
 from functools import cached_property
 
+from pydantic import BaseModel
+
 from snngine_v4.nn.construction.nn_builder import NetworkBuilder
 from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.snngine_config import EngineConfig
@@ -17,7 +19,7 @@ from snngine_v4.visualization.scenes.scene_manager import SceneManager
 
 class SNNgine:
 
-    def __init__(self, settings: EngineConfig | str = None):
+    def __init__(self, settings: EngineConfig | str = None, app=None):
 
         if settings is None:
             settings = EngineConfig()
@@ -25,9 +27,10 @@ class SNNgine:
 
         self.init_core()
 
-        # noinspection PyTypeHints
-        self.scene_manager: dict[str, EngineSceneCanvas] | SceneManager = (
-            SceneManager(self.conf.scenes))
+        # self.scene_manager: dict[str | BaseModel, EngineSceneCanvas]
+        # | SceneManager = SceneManager(self.conf.scenes)
+        self.scene_manager: SceneManager = SceneManager(
+            self.conf.scenes, app=app)
 
         self.network_manager = NetworkBuilder(
             container_model=self.conf.current)
@@ -125,7 +128,7 @@ class SNNgine:
         )
 
         lines = new_visuals0[plot_configs[0]].built
-        self.scene_manager[self.conf.scenes.main]
+        # self.scene_manager[self.conf.scenes.main]
 
         return new_visuals
 

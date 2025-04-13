@@ -77,7 +77,7 @@ class PlotConfig(LineVisualConfig):
 
 class SepLineData(LineVisualConfig):
 
-    n_sep_lines: NonNegativeInt = 1
+    n_sep_lines: NonNegativeInt = 10
     sep_line_offset: float = 2
     pos: Pos2DVBO = Field(
         default_factory=lambda: np.array([[0, 0]], dtype=np.float32),

@@ -1,8 +1,9 @@
 from typing import ClassVar
 
-from pyqtgraph.dockarea import Dock
+from pyqtgraph.dockarea import Dock, DockArea
 from qtpy import QtWidgets
 
+from snngine_v4.utils.containers.mappings import Object2ObjectMap
 from snngine_v4.utils.core_utils import type_assertion
 
 
@@ -53,3 +54,17 @@ class CustomPgDock(Dock):
             return w
         else:
             raise ValueError
+
+
+class CustomPgDockArea(DockArea):
+
+    dock_map: Object2ObjectMap
+
+    def __init__(self, dock_map=None, **kwargs):
+        if dock_map is None:
+            dock_map = Object2ObjectMap()
+        self.dock_map = dock_map
+        super().__init__(**kwargs)
+
+    def __getitem__(self, key):
+        return self.dock_map[key]

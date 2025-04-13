@@ -1,4 +1,4 @@
-from typing import ClassVar
+from typing import Callable, ClassVar
 
 from pydantic import BaseModel
 from vispy.scene import BaseCamera, ViewBox
@@ -28,9 +28,13 @@ class SceneManager(BuilderDict):
         VispyCanvasConfig: EngineSceneCanvas
     }
 
-    def __init__(self, model_container, **kwargs):
-        self.data: dict[BaseModel, EngineSceneCanvas] | None = None
-        super().__init__(model_container=model_container, **kwargs)
+    data: dict[BaseModel, EngineSceneCanvas] | None
+    __getitem__: Callable[[str | BaseModel], EngineSceneCanvas]
+
+    def __init__(self, model_container, app=None, **kwargs):
+        super().__init__(model_container=model_container,
+                         build_kwargs=dict(app=app),
+                         **kwargs)
 
     def build_visuals(self, visuals, scene, **kwargs):
         if isinstance(scene, BaseModel):
@@ -39,11 +43,13 @@ class SceneManager(BuilderDict):
 
     @classmethod
     def cls_build_visuals(cls, visuals, scene, **kwargs):
+        scene.set_current()
         parent = scene.new_visual_node_parent()
         visual_dict = VispyVisualBuilder.cls_build_container(
             visuals, parent=parent, **kwargs
         )
         scene.visual_node_dict.update(visual_dict.object_dict)
+        # scene._draw_scene()
         return visual_dict
 
     def get_built_objects(self, *models, container=None,
@@ -92,6 +98,7 @@ class SceneManager(BuilderDict):
 
         scene_opts = object_kwargs.pop(
             VispyCanvasConfig.Slots.OPTIONS, {})
+        scene_opts['app'] = object_kwargs.pop('app', None)
 
         wdg_opts = scene_opts.pop(
             VispyCanvasConfig.Slots.CENTRAL_WIDGET_OPTIONS, {})
@@ -127,8 +134,3 @@ class SceneManager(BuilderDict):
             cls.cls_build_visuals(
                 getattr(object_model, VispyCanvasConfig.Slots.VISUALS), scene)
         return scene
-
-    # def __setitem__(self, key, value):
-    #     super().__setitem__(key, value)
-    #     self.
-

@@ -29,8 +29,6 @@ from snngine_v4.utils.object_builder.object_builder import \
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 
 
-
-
 class EngineNodeElementConfig(ModelNodeTreeElementConfig):
     b_skip_forbidden_types: bool = True
     b_read_list_values: bool = True
@@ -57,9 +55,9 @@ class EngineElement(BuilderDict):
     }
 
     BUILDER_OBJECT_SUPERCLASS_MAP: ClassVar[dict] = {
-        TypedDataFrameBase3D: TensorDict,  # Keep order (1/3)
-        TypedDataFrameModel: TensorDataFrame,  # Keep order (2/3)
-        SeriesModel: TensorSeries,  # Keep order (3/3)
+        TypedDataFrameBase3D: TensorDict,       # Keep order (1/3)
+        TypedDataFrameModel: TensorDataFrame,   # Keep order (2/3)
+        SeriesModel: TensorSeries,              # Keep order (3/3)
     }
 
     def __init__(self, device,
@@ -96,9 +94,10 @@ class EngineElement(BuilderDict):
 
         if node_tree is None:
             raise ValueError
+
         self.root_element = root_element
+
         if self.root_element is not self:
-            # parent_element = root_element[node_tree.parent(self.config_model)]
             self.update_build_kwargs(parent_element)
 
         super().__init__(model_container=build_model,

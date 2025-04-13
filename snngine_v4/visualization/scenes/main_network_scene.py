@@ -26,4 +26,5 @@ class EngineSceneCanvas(SceneCanvas):
     def new_visual_node_parent(self, view_box=None):
         if view_box is None:
             view_box = list(self.view_dict.values())[0]
-        return view_box.scene
+        sc = view_box.scene
+        return sc

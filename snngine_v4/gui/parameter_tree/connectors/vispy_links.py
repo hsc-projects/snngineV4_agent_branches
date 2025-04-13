@@ -151,6 +151,7 @@ class VispyLinks(Object2ObjectLinks):
                     type_assertion(self.sink, MultiBoxLinesVisual)
                 elif isinstance(self.source, MultiPlotConfig):
                     type_assertion(self.sink, LineVisual)
+                    self.add_links(self.update_object)
                 else:
                     raise NotImplementedError
                 # noinspection PyProtectedMember
@@ -257,7 +258,8 @@ class VispyLinks(Object2ObjectLinks):
                     # signals = signal_register.extensions_map[pos_origin_model]
                 else:
                     raise AssertionError
-                # self.transform_signals: ModelParameterLinks = transform_signals
+                # self.transform_signals: ModelParameterLinks = \
+                # transform_signals
                 # print(
                 #     '\nconnect_transform',
                 #     self.source.__class__.__name__,
@@ -355,7 +357,9 @@ class VispyLinks(Object2ObjectLinks):
             if isinstance(kwargs[key], (tuple, dict)):
                 kwargs[key] = RGBAColor.to_vispy(kwargs[key])
 
-        if isinstance(obj, XYZAxis):
+        if isinstance(obj, (LineVisual,
+                            # XYZAxis
+                            )):
             if ((key == 'width')
                     or ((key == VispyKeyWords.CONNECT)
                         and isinstance(value, str))):

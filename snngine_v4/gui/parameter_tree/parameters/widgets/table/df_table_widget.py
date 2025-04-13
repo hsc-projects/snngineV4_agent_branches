@@ -191,12 +191,12 @@ class QDataFrameUIWidgets(QWidgetDict):
         if isinstance(w, MainEngineWindowBase):
             editor = w.arrayEditorDockWidget
             dock_area: ArrayEditorArea = editor.widget()
-            if self.qdf not in dock_area.qdf_map:
+            if self.qdf not in dock_area.dock_map:
                 dock_area.addDock(self.qdf)
                 if not editor.isVisible():
                     editor.show()
             else:
-                wdg, dock = dock_area[self.qdf]
+                dock = dock_area.dock_map.docks[self.qdf]
                 if dock.parent() is None:
                     dock.label.show()
                     dock_area.addDock(dock)
