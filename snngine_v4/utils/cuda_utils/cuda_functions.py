@@ -9,12 +9,19 @@ class CudaKeywords:
     DEVICE = 'device'
 
 
+def simplify_device(device):
+    if not isinstance(device, int) and (device != 'cpu'):
+        if device.type == 'cpu':
+            if device.index is not None:
+                raise NotImplementedError
+            return 'cpu'
+        else:
+            return device.index
+    return device
+
+
 def compare_devices(d0, d1):
-    if (not isinstance(d0, int)) and (d0 != 'cpu'):
-        d0 = d0.index
-    if (not isinstance(d1, int)) and (d1 != 'cpu'):
-        d1 = d1.index
-    return d0 == d1
+    return simplify_device(d0) == simplify_device(d1)
 
 
 def assert_device_equivalency(d0, d1):

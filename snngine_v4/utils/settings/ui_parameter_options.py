@@ -138,6 +138,10 @@ class ParamOpts(BaseModel, validate_default=True, extra='allow'):
         C_ARRAY_INTERFACE: ClassVar[str] = 'c_array_interface'
         C_ARRAY_DEFAULT_VALUE: ClassVar[str] = 'c_array_default_value'
         C_B_COLLECT_EXTRA_CLASSES: ClassVar[str] = 'c_b_collect_extra_classes'
+
+        # C_B_GROUP_EMIT_VALUE_CHANGED: ClassVar[str] = \
+        #     'c_b_group_emit_value_changed'
+
         # C_REFERENCE: ClassVar[str] = 'c_reference'
         # C_VALUE_INTERVAL: ClassVar[str] = 'c_value_interval'
 
@@ -184,6 +188,7 @@ class ParamOpts(BaseModel, validate_default=True, extra='allow'):
     c_b_collect_extra_classes: bool = False
     c_b_group_default_button: bool | None = None
     # c_reference: Any = None
+    # c_b_group_emit_value_changed: bool = False
 
     @classmethod
     def auto_expand_condition(cls, b_expand, opts):

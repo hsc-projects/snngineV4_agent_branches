@@ -11,11 +11,6 @@ from snngine_v4.utils.cuda_utils.tensor_dataframe import (
 )
 
 
-# noinspection PyUnresolvedReferences
-from snngine_v4.nn.cuda_backend import (
-    snn_utils, snn_construction_gpu, snn_simulation_gpu)
-
-
 if TYPE_CHECKING:
     from snngine_v4.nn.spnn_reservoir import NetworkReservoir
 else:
@@ -55,6 +50,11 @@ class NeuronState(EngineElement):
 
     # noinspection PyPep8Naming
     def fill_tensors_and_group_neuron_type_counts(self):
+
+        # noinspection PyUnresolvedReferences
+        from snngine_v4.nn.cuda_backend import (
+            snn_utils, snn_construction_gpu, snn_simulation_gpu
+        )
 
         reservoir = self.parent_element()
         N = reservoir.config_model.N

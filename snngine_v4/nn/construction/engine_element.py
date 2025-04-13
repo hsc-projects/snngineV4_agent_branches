@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import cached_property
 from typing import ClassVar
 
 import torch
@@ -14,7 +15,6 @@ from snngine_v4.utils.containers.node_map import (
     ModelNodeTreeElementConfig,
     ModelTree,
 )
-from snngine_v4.utils.core_utils import type_assertion
 from snngine_v4.utils.cuda_utils.cuda_functions import CudaKeywords
 from snngine_v4.utils.cuda_utils.tensor_dataframe import (
     TensorDataFrame, TensorSeries,
@@ -28,8 +28,7 @@ from snngine_v4.utils.object_builder.object_builder import \
     ObjectInitializationType
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 
-# noinspection PyUnresolvedReferences
-from snngine_v4.nn.cuda_backend import snn_utils
+
 
 
 class EngineNodeElementConfig(ModelNodeTreeElementConfig):
@@ -117,7 +116,7 @@ class EngineElement(BuilderDict):
         # if self.parent_element is not parent_element:
         #     raise AssertionError
 
-        if n_curand_states > 0:
+        if (n_curand_states > 0) and self.b_cuda_backend_available:
             self.curand_states = self._curand_states(n=n_curand_states)
         else:
             self.curand_states = None
@@ -142,8 +141,19 @@ class EngineElement(BuilderDict):
             self.root_element[key] = value
         super().__setitem__(key, value)
 
+    @cached_property
+    def b_cuda_backend_available(self):
+        try:
+            # noinspection PyUnresolvedReferences
+            from snngine_v4.nn.cuda_backend import snn_utils
+        except ModuleNotFoundError:
+            return False
+        return True
+
     @staticmethod
     def _curand_states(n):
+        # noinspection PyUnresolvedReferences
+        from snngine_v4.nn.cuda_backend import snn_utils
         cu = snn_utils.CuRandStates(n).ptr()
         return cu
 

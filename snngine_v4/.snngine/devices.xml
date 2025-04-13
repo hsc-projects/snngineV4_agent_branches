@@ -6,7 +6,7 @@
       <DictItem type="str" key="gloo_target">gl+</DictItem>
     </DictItem>
     <DictItem type="dict" class="CudaSettings" key="cuda">
-      <DictItem type="bool" key="b_require_pycuda">True</DictItem>
+      <DictItem type="bool" key="b_require_pycuda">False</DictItem>
     </DictItem>
   </devices>
 </dict>

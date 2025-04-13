@@ -14,8 +14,6 @@ from snngine_v4.nn.construction.config_models.reservoir.n_type_groups import (
 )
 from snngine_v4.nn.construction.engine_element import EngineElement
 
-# noinspection PyUnresolvedReferences
-from snngine_v4.nn.cuda_backend import snn_construction_gpu
 from snngine_v4.utils.cuda_utils.cuda_functions import \
     (
     print_allocated_memory_diff, save_current_allocated_memory,
@@ -70,12 +68,14 @@ class SynCounts(EngineElement):
     def fill_tensors(
             self, G, D, S, L_Group_neuronCounts, conn_probs,
             ntypes: NTypeGroupList, ntype_conns: NTypeGroupConnList):
+        # noinspection PyUnresolvedReferences
+        from snngine_v4.nn.cuda_backend import snn_construction_gpu
 
         self.G = G
         self.D = D
         self.S = S
         self.L_Group_neuronCounts = L_Group_neuronCounts
-
+        
         snn_construction_gpu.fill_G_exp_ccsyn_per_src_type_and_delay(
             S=S, D=D, G=G,
             G_neuron_counts=self.L_Group_neuronCounts.data_ptr(),
@@ -286,7 +286,10 @@ class Synapses(EngineElement):
         self.pseudo_tensor_i32 = self.zeros_i32((1, 1))
 
     def fill_tensors(self):
-        
+
+        # noinspection PyUnresolvedReferences
+        from snngine_v4.nn.cuda_backend import snn_construction_gpu
+
         reservoir = self.parent_element()
         
         N = reservoir.config_model.N
@@ -454,7 +457,10 @@ class Synapses(EngineElement):
         return (reservoir.N_flags.id - start_indices).type(torch.int32)
 
     @cached_property
-    def RepBackend(self) -> snn_construction_gpu.SnnRepresentation:
+    def RepBackend(self):
+        # noinspection PyUnresolvedReferences
+        from snngine_v4.nn.cuda_backend import snn_construction_gpu
+
         reservoir = self.parent_element()
         return snn_construction_gpu.SnnRepresentation(
             N=reservoir.config_model.N,

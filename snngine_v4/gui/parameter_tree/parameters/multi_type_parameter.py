@@ -223,6 +223,9 @@ class MultiTypeParameter(EngineGroupParameter):
         if isinstance(value, BaseModel):
             pass
 
+        if (type_ == str) and (b_is_og is False):
+            value_ = ''
+
         return value_, b_is_og, value_
 
     def add_type_child(self, value, t, default_value, signal_register, **opts):

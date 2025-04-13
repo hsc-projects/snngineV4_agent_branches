@@ -13,7 +13,7 @@ from snngine_v4.geometry.grid.finite_grid import FiniteGrid
 
 
 class GSGLLineVisual(_GLLineVisual):
-    _shaders = {
+    _shaders_og = {
         'vertex': """
             varying out vec4 v_color;
 
@@ -25,6 +25,24 @@ class GSGLLineVisual(_GLLineVisual):
         'fragment': """
 
             varying in vec4 g_color;
+
+            void main() {
+                gl_FragColor = g_color;
+            }
+        """
+    }
+    _shaders = {
+        'vertex': """
+            out vec4 v_color;
+
+            void main(void) {
+                gl_Position = $transform($to_vec4($position));
+                v_color = $color;
+            }
+        """,
+        'fragment': """
+
+            attribute vec4 g_color;
 
             void main() {
                 gl_FragColor = g_color;

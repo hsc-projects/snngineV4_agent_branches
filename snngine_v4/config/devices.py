@@ -13,7 +13,7 @@ class OpenGLSettings(ConfigModel):
 class CudaSettings(ConfigModel):
     parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts()
 
-    b_require_pycuda: bool = True
+    b_require_pycuda: bool = False
 
 
 class DeviceSettings(ConfigModel):

@@ -18,7 +18,7 @@ class SpatialNetworkConfig(EngineElementConfig):
         GRID: ClassVar[str] = "grid"
         ELEMENTS: ClassVar[str] = "elements"
 
-    device: int = 0
+    device: int | str = 0
 
     grid: FiniteGridConfig
 

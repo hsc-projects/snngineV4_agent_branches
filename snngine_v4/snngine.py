@@ -1,9 +1,14 @@
 import os
+from functools import cached_property
 
 from snngine_v4.nn.construction.nn_builder import NetworkBuilder
 from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.snngine_config import EngineConfig
-from snngine_v4.visualization.cuda.gl_interop.gl_buffer import GLBufferMap
+
+try:
+    from snngine_v4.visualization.cuda.gl_interop.gl_buffer import GLBufferMap
+except ModuleNotFoundError:
+    GLBufferMap = None
 
 from snngine_v4.visualization.scenes.main_network_scene import \
     EngineSceneCanvas
@@ -26,6 +31,14 @@ class SNNgine:
 
         self.network_manager = NetworkBuilder(
             container_model=self.conf.current)
+
+    @cached_property
+    def b_pycuda_available(self):
+        try:
+            import pycuda
+            return True
+        except ModuleNotFoundError:
+            return False
 
     def init_core(self):
 
@@ -62,8 +75,11 @@ class SNNgine:
         device = self.conf.construction.network.device
         if isinstance(device, int):
             import torch
-            if (device + 1) > torch.cuda.device_count():
-                self.conf.construction.network.device = 0
+            if torch.cuda.is_available():
+                if (device + 1) > torch.cuda.device_count():
+                    self.conf.construction.network.device = 0
+            else:
+                self.conf.construction.network.device = 'cpu'
 
         self.network_manager.build(self.conf.construction)
         self.conf.current = self.network_manager.container_model
@@ -114,4 +130,5 @@ class SNNgine:
         return new_visuals
 
     def close(self):
-        GLBufferMap().unregister_all()
+        if GLBufferMap:
+            GLBufferMap().unregister_all()

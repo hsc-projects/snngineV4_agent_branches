@@ -1,3 +1,4 @@
+from functools import cached_property
 from typing import ClassVar
 
 from qtpy import QtCore, QtWidgets
@@ -20,10 +21,7 @@ from snngine_v4.gui.windows.main_window_base import (
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import (
     EngineParameterTree, EngineTreeDockWidget,
 )
-from snngine_v4.gui.parameter_tree.cuda_connector import (
-    CudaConnector,
-    CudaVispyConnector,
-)
+from snngine_v4.gui.parameter_tree.tensor_connector import TensorConnector
 
 
 # noinspection PyPep8Naming
@@ -39,6 +37,14 @@ class MainEngineWindow(MainEngineWindowBase):
         })
 
         super().__init__(windows, engine=engine)
+
+    @cached_property
+    def b_pycuda_available(self):
+        try:
+            import pycuda
+            return True
+        except ModuleNotFoundError:
+            return False
 
     def build(self):
         self.engine.build_network()
@@ -108,12 +114,15 @@ class MainEngineWindow(MainEngineWindowBase):
         network_connector.cls_connect_tree(
             tree=self.network_tree,
             scene_manager=self.engine.scene_manager)
+        if self.b_pycuda_available:
+            from snngine_v4.gui.parameter_tree.cuda_connector import (
+                CudaVispyConnector,
+            )
+            model2buffers = CudaVispyConnector.cls_connect_tree(
+                tree=self.network_tree, scene_manager=self.engine.scene_manager,
+                device=current_model.network.device)
 
-        model2buffers = CudaVispyConnector.cls_connect_tree(
-            tree=self.network_tree, scene_manager=self.engine.scene_manager,
-            device=current_model.network.device)
-
-        model2tensors = CudaConnector.cls_connect_tree(
+        model2tensors = TensorConnector.cls_connect_tree(
             tree=self.network_tree,
             network_manager=self.engine.network_manager,)
 

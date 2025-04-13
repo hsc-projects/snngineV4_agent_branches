@@ -273,8 +273,12 @@ class ArrayParameter(ActionParameter, ActionParameterMixin):
 
     def value(self):
         if self.compare_value() is False:
-            raise RuntimeError
-            pass
+            if self.opts[ParamOpts.KW.VALUE] is None:
+                self.opts[ParamOpts.KW.VALUE] = self.qdf.value()
+            else:
+                self.compare_value()
+                raise RuntimeError
+                pass
         return self.opts[ParamOpts.KW.VALUE]
 
 

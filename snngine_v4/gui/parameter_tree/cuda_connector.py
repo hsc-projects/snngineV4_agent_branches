@@ -1,7 +1,6 @@
 from typing import Type
 
 from pydantic import BaseModel
-from pyqtgraph.parametertree.parameterTypes import GroupParameter
 from vispy.gloo import get_current_canvas
 from vispy.visuals import MarkersVisual, Visual
 
@@ -12,13 +11,10 @@ from snngine_v4.gui.parameter_tree.connectors.parameter_connector import \
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
     EngineParameterTree
 from snngine_v4.gui.parameter_tree.parameters.array.tensor_parameter import (
-    TensorDictParameter, TensorParameter,
+    TensorDictParameter,
 )
-from snngine_v4.nn.construction.engine_element import EngineElement
-from snngine_v4.nn.construction.nn_builder import NetworkBuilder
-from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.utils.containers.mappings import (
-    ObjectMapConfig, Object2ObjectMap, Many2OneObjectMap,
+    ObjectMapConfig, Many2OneObjectMap,
 )
 from snngine_v4.visualization.cuda.gl_interop.gl_tensor import (
     GLVBOTensor,
@@ -29,48 +25,6 @@ from snngine_v4.visualization.scenes.main_network_scene import (
     EngineSceneCanvas)
 from snngine_v4.visualization.scenes.scene_manager import (
     SceneManager)
-
-
-class CudaConnector(ParameterConnector):
-    @classmethod
-    def connect_object(cls, model: EngineElement,
-                       obj: GroupParameter,
-                       signal_register: ExtendedModelSignalsRegister,
-                       **kwargs):
-        res = {}
-        for c in obj.childs:
-            if isinstance(c, (TensorParameter, TensorDictParameter)):
-                name = c.name()
-                tensor = model.tensor_dict[c.name()]
-                if isinstance(c, TensorParameter):
-                    c.tensor = tensor
-                elif isinstance(c, TensorDictParameter):
-                    c.set_tensor(tensor)
-                else:
-                    raise TypeError
-                res[name] = tensor
-        return res
-
-    @classmethod
-    def cls_connect_tree(cls, tree: EngineParameterTree,
-                         network_manager: NetworkBuilder,
-                         container=None,
-                         **kwargs):
-        sr = tree.signal_register
-        network_model = network_manager.container_model.network
-        network: SpatialNetwork = network_manager[network_model]
-        mapping = cls.make_container()
-
-        def expand_mapping(elt: EngineElement):
-            for m in elt.children_models:
-                mapping[elt[m]] = sr.get_group(m)
-                expand_mapping(elt[m])
-        expand_mapping(network)
-        return super().cls_connect_tree(tree, mapping, container, **kwargs)
-
-    @classmethod
-    def make_container(cls):
-        return Object2ObjectMap(container_conf=cls.cls_make_container_conf())
 
 
 class CudaVispyConnector(ParameterConnector):
