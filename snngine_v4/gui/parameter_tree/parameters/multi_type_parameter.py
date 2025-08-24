@@ -3,7 +3,7 @@ from __future__ import annotations
 from copy import copy
 
 from types import NoneType
-from typing import get_args, get_origin
+from typing import get_args, get_origin, TypeAliasType
 
 from pydantic import BaseModel
 from pydantic_core import PydanticUndefined
@@ -23,7 +23,6 @@ from snngine_v4.utils.data_utils.index_config import (
     InconsistentType,
 )
 from pyqtgraph.parametertree import Parameter
-from typing_extensions import TypeAliasType
 
 from snngine_v4.gui.parameter_tree.parameters import (
     NoneTypeParameter,

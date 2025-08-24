@@ -28,6 +28,12 @@ class CudaBackendPlotTensors(EngineElement):
 
 class CudaBackendPlotConfig(EngineElementConfig):
 
+    current_plot_config: MultiPlotConfig = Field(
+        default_factory=lambda: MultiPlotConfig(
+            size_x=100
+        ),
+    )
+
     voltage_plot_config: MultiPlotConfig = Field(
         default_factory=lambda: MultiPlotConfig(
             size_x=100

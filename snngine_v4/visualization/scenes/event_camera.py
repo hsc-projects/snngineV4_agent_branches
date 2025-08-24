@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import ClassVar
 
 import numpy as np
-from vispy.scene import BaseCamera, TurntableCamera
+from vispy.scene import BaseCamera, PanZoomCamera, TurntableCamera
 
 from snngine_v4.visualization.scenes.setattribute_event import (
     Set3DAttributeEvent, SetAttributeEvent,
@@ -86,3 +86,15 @@ class EventTurntableCamera(EventCameraMixin, TurntableCamera):
                                  translate_speed=translate_speed,
                                  name=name, **kwargs)
         super().__init__()
+
+
+class EventPanZoomCamera(EventCameraMixin, PanZoomCamera):
+
+    def __init__(
+        self,
+        name=None,
+        **kwargs
+    ):
+        PanZoomCamera.__init__(self, name=name, **kwargs)
+        super().__init__()
+

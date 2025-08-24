@@ -1,25 +1,44 @@
 from typing import Callable, ClassVar
 
 from pydantic import BaseModel
-from vispy.scene import BaseCamera, ViewBox
+from vispy.scene import BaseCamera, PanZoomCamera, ViewBox
 
 from snngine_v4.utils.containers.mappings import (
     Model2ObjectMap,
 )
+from snngine_v4.utils.object_builder.object_builder import ModelObjectBuilder
 
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 from snngine_v4.visualization.config_models.vispy_camera_configs import (
-    CameraCenter, TurnTableCameraParameters,
+    CameraCenter, PanZoomCameraParameters, TurnTableCameraParameters,
 )
 from snngine_v4.visualization.config_models.vispy_canvas_config import (
     VispyCanvasConfig, VispyViewBoxConfig,
 )
 from snngine_v4.visualization.config_models.visuals import VisualConfig
-from snngine_v4.visualization.scenes.event_camera import \
-    EventTurntableCamera
+from snngine_v4.visualization.scenes.event_camera import (
+    EventPanZoomCamera, EventTurntableCamera,
+)
 from snngine_v4.visualization.scenes.main_network_scene import (
     EngineSceneCanvas)
 from snngine_v4.visualization.visual_builder import VispyVisualBuilder
+
+
+class CameraBuilder(ModelObjectBuilder):
+    BUILDER_OBJECT_CLASS_MAP: ClassVar = {
+        PanZoomCameraParameters: EventPanZoomCamera,
+        TurnTableCameraParameters: EventTurntableCamera,
+    }
+
+    @classmethod
+    def make_object(cls, object_class, object_model, **object_kwargs):
+
+        if isinstance(center := object_kwargs.get('center'), dict):
+            object_kwargs['center'] = CameraCenter(**center)
+
+        return super().make_object(
+            object_class=object_class, object_model=object_model,
+            **object_kwargs)
 
 
 class SceneManager(BuilderDict):
@@ -52,6 +71,9 @@ class SceneManager(BuilderDict):
         # scene._draw_scene()
         return visual_dict
 
+    def draw_scene(self, scene_model):
+        self[scene_model]._draw_scene()
+
     def get_built_objects(self, *models, container=None,
                           b_assert_key_exists=True):
         if container is None:
@@ -83,17 +105,6 @@ class SceneManager(BuilderDict):
         return container
 
     @classmethod
-    def _make_camera(cls, **kwargs) -> BaseCamera:
-
-        if 'center' in kwargs:
-            kwargs['center'] = CameraCenter(**kwargs['center'])
-
-        camera = EventTurntableCamera(**kwargs)
-        if not camera.name:
-            camera.name = 'camera'
-        return camera
-
-    @classmethod
     def make_object(cls, object_class, object_model, **object_kwargs):
 
         scene_opts = object_kwargs.pop(
@@ -107,8 +118,6 @@ class SceneManager(BuilderDict):
             VispyCanvasConfig.Slots.VISUALS, None)
         views = object_kwargs.pop(
             VispyCanvasConfig.Slots.VIEWS, {})
-        # visual_builder = object_kwargs.pop(
-        #     cls.VISUAL_BUILDER_KW, None)
 
         scene: EngineSceneCanvas = super().make_object(
             object_class=object_class, object_model=object_model,
@@ -124,9 +133,10 @@ class SceneManager(BuilderDict):
             view_model = getattr(views_model, k)
             camera_model = getattr(view_model, 'camera')
             view_config: VispyViewBoxConfig | dict
-            camera = cls._make_camera(**view_config.pop('camera'))
-            view = scene.view_dict[view_model] = ViewBox(
-                camera=camera, **view_config)
+            # camera = cls._make_camera(**view_config.pop('camera'))
+            camera = CameraBuilder.cls_build_obj(model=camera_model).built
+            view_config['camera'] = camera
+            view = scene.view_dict[view_model] = ViewBox(**view_config)
             scene.central_widget.add_widget(view)
             scene.camera_dict[camera_model] = camera
 
@@ -134,3 +144,6 @@ class SceneManager(BuilderDict):
             cls.cls_build_visuals(
                 getattr(object_model, VispyCanvasConfig.Slots.VISUALS), scene)
         return scene
+
+    def set_current(self, scene_model):
+        self[scene_model].set_current()

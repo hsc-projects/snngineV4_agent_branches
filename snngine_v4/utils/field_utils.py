@@ -5,7 +5,7 @@ from enum import Enum, IntEnum
 from types import GenericAlias, NoneType, UnionType
 from typing import (
     Annotated, Any, ClassVar, get_args, get_origin, Literal, Type,
-    Union,
+    Union, TypeAliasType
 )
 
 import numpy as np
@@ -15,7 +15,6 @@ from pydantic import BaseModel, BeforeValidator
 from pydantic.fields import FieldInfo
 from pydantic.types import AnyType
 from pydantic_core import PydanticUndefined
-from typing_extensions import TypeAliasType
 
 from .core_utils import type_assertion
 from snngine_v4.utils.data_utils.interval_utils import make_interval

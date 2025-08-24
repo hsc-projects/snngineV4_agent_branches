@@ -1,12 +1,16 @@
 from typing import ClassVar, Type
 
+from pydantic import Field
+
 from snngine_v4.utils.settings.config_model import (
     ConfigContainerModel,
     ConfigModel,
 )
 from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.visualization.config_models.vispy_camera_configs import \
-    TurnTableCameraParameters
+    (
+    PanZoomCameraParameters, TurnTableCameraParameters,
+)
 from snngine_v4.visualization.config_models.visuals.lines import \
     XYZAxisVisualConfig
 
@@ -46,7 +50,8 @@ class VispyViewBoxConfig(VispyWidgetConfig):
     border_width: int = 0
     padding: int = 0
     border_color: str | None = 'black'
-    camera: TurnTableCameraParameters
+    camera: TurnTableCameraParameters | PanZoomCameraParameters = Field(
+        default_factory=TurnTableCameraParameters)
 
 
 class SceneViews(ConfigContainerModel):

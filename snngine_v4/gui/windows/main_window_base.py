@@ -57,13 +57,14 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
         self.centralWidget().setLayout(QtWidgets.QVBoxLayout())
         self.centralWidget().layout().setContentsMargins(0, 0, 0, 0)
 
-        self.windows: QWidgetDict = windows
+        self.windows: dict[str, ViewArea] | QWidgetDict = windows
 
         self.right_toolbar = RightToolbar()
         self.addToolBar(
             QtCore.Qt.ToolBarArea.RightToolBarArea, self.right_toolbar)
 
-        self.docks: QDockWidgetDict = QDockWidgetDict()
+        self.docks: dict[str, ButtonsDockWidget] | QDockWidgetDict = (
+            QDockWidgetDict())
         self.setup_dock_widgets()
 
         self.scene_tree: QTree = self.get_tree(EngineConfig.Slots.SCENES)
@@ -78,6 +79,7 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
 
     @cached_property
     def arrayEditorDockWidget(self) -> ArrayEditorDockWidget:
+        # noinspection PyTypeChecker
         return self.docks[self.ARRAYS_DOCK_NAME]
 
     def build(self):
@@ -86,6 +88,7 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
     def connect_to_engine(self):
         buttons_dock = self.docks[self.ACTIONS_DOCK_NAME]
         buttons_dock.build_button.clicked.connect(self.build)
+        buttons_dock.test_button.clicked.connect(self.test_func)
 
         file_menu = self.menuBar().addMenu('&File')
 
@@ -168,6 +171,9 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
     @property
     def setting_trees(self) -> dict[str, QTree]:
         return self.windows[WindowTypes.SETTINGS].setting_trees
+
+    def test_func(self):
+        pass
 
     def toggleArrayEditorVisibility(self):
         if (editor := self.arrayEditorDockWidget).isVisible():

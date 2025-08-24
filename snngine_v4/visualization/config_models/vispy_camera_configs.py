@@ -22,8 +22,8 @@ class TurnTableCameraParameters(ConfigModel):
     parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         renamable=False,
         expanded=True,
-        c_coerce_to_limits=True,
         # expanded=False,
+        c_coerce_to_limits=True,
     )
 
     center: CameraCenter
@@ -39,3 +39,13 @@ class TurnTableCameraParameters(ConfigModel):
         default=None, gt=0, title='Zoom', json_schema_extra={
             ParamOpts.KW.C_NONE_MEANS_UNKNOWN: True
         })
+
+
+class PanZoomCameraParameters(ConfigModel):
+
+    parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
+        renamable=False,
+        # expanded=True,
+        expanded=False,
+        c_coerce_to_limits=True,
+    )

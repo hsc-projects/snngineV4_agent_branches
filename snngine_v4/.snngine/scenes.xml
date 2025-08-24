@@ -201,7 +201,7 @@
       </DictItem>
       <DictItem type="dict" class="SceneCameras" key="Cameras"/>
     </DictItem>
-    <DictItem type="dict" class="VispyCanvasConfig" key="current_voltage">
+    <DictItem type="dict" class="VispyCanvasConfig" key="multiplot_current">
       <DictItem type="dict" class="VispyCanvasConfigOptions" key="Options">
         <DictItem type="str" key="title">Current</DictItem>
         <DictItem type="list" key="size">
@@ -273,18 +273,7 @@
           </DictItem>
           <DictItem type="int" key="padding">0</DictItem>
           <DictItem type="int" key="margin">0</DictItem>
-          <DictItem type="dict" class="TurnTableCameraParameters" key="camera">
-            <DictItem type="dict" class="CameraCenter" key="center">
-              <DictItem type="bool" key="b_nullable">False</DictItem>
-            </DictItem>
-            <DictItem type="float" key="fov">45.0</DictItem>
-            <DictItem type="float" key="elevation">30.0</DictItem>
-            <DictItem type="float" key="azimuth">30.0</DictItem>
-            <DictItem type="float" key="roll">0.0</DictItem>
-            <DictItem type="NoneType" key="distance">None</DictItem>
-            <DictItem type="float" key="translate_speed">1.0</DictItem>
-            <DictItem type="NoneType" key="scale_factor">None</DictItem>
-          </DictItem>
+          <DictItem type="dict" class="PanZoomCameraParameters" key="camera"/>
         </DictItem>
       </DictItem>
       <DictItem type="dict" class="SceneVisuals" key="Visuals">

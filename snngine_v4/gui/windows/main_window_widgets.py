@@ -1,3 +1,5 @@
+from typing import Callable
+
 from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.common.docks import MainDockWidget
@@ -9,9 +11,14 @@ class ButtonsDockWidget(MainDockWidget):
         super().__init__(name, parent=parent,
                          features=features, **kwargs)
         self.setWidget(QtWidgets.QWidget())
-        self.widget().setLayout(QtWidgets.QGridLayout())
+        widget_layout = QtWidgets.QGridLayout()
+        self.widget().setLayout(widget_layout)
+
         self.build_button = QtWidgets.QPushButton('Build')
-        self.widget().layout().addWidget(self.build_button, 0, 0)
+        widget_layout.addWidget(self.build_button, 0, 0)
+
+        self.test_button = QtWidgets.QPushButton('[Test]')
+        widget_layout.addWidget(self.test_button, 0, 1)
 
 
 class RightToolbar(QtWidgets.QToolBar):

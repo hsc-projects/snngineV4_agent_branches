@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from types import UnionType
-from typing import Any, get_args, get_origin, Type, Union
+from typing import Any, get_args, get_origin, Type, TypeAliasType, Union
 
 import numpy as np
 from numpydantic import Shape
@@ -14,7 +14,6 @@ from pydantic import BaseModel
 
 # noinspection PyProtectedMember
 from pydantic.fields import FieldInfo
-from typing_extensions import TypeAliasType
 
 from snngine_v4.utils.containers.mappings import (
     ObjectMapConfig,

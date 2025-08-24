@@ -6,6 +6,8 @@ from pydantic import BaseModel
 from snngine_v4.nn.construction.nn_builder import NetworkBuilder
 from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.snngine_config import EngineConfig
+from snngine_v4.visualization.config_models.plotting.multi_line_plot import \
+    MultiPlotConfig
 
 try:
     from snngine_v4.visualization.cuda.gl_interop.gl_buffer import GLBufferMap
@@ -119,17 +121,17 @@ class SNNgine:
             grid=network[self.conf.current.network.elements[1].grid]
         )
 
-        plot_configs = list(
-            self.conf.current.network.simulator.plots.plot_config_values())
-
-        new_visuals0 = self.scene_manager.build_visuals(
-            visuals=plot_configs,
-            scene=self.conf.scenes.main,
+        plot_visual0 = self.scene_manager.build_visuals(
+            visuals=[self.conf.current.network.simulator.plots
+                     .voltage_plot_config],
+            scene=self.conf.scenes.multiplot_voltage,
         )
 
-        lines = new_visuals0[plot_configs[0]].built
-        # self.scene_manager[self.conf.scenes.main]
-
+        plot_visual1 = self.scene_manager.build_visuals(
+            visuals=[self.conf.current.network.simulator.plots
+                     .current_plot_config],
+            scene=self.conf.scenes.multiplot_current,
+        )
         return new_visuals
 
     def close(self):

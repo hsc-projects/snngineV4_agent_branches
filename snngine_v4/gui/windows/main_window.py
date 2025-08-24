@@ -1,3 +1,4 @@
+from copy import copy
 from functools import cached_property
 from typing import ClassVar
 
@@ -45,10 +46,22 @@ class MainEngineWindow(MainEngineWindowBase):
 
         super().__init__(windows, engine=engine)
 
-        sec_views.show()
+        self.add_secondary_views()
+        # sec_views.show()
+        # sec_views: ViewArea = self.windows[WindowTypes.SECONDARY_VIEWS]
+        # sec_views.addDock(self.engine.conf.scenes.multiplot_current)
+        # sec_views.addDock(self.engine.conf.scenes.multiplot_voltage)
+
+    def add_secondary_views(self):
+
         sec_views: ViewArea = self.windows[WindowTypes.SECONDARY_VIEWS]
-        sec_views.addDock(self.engine.conf.scenes.multiplot_voltage)
-        sec_views.addDock(self.engine.conf.scenes.current_voltage)
+        sec_views.show()
+
+        model_list = copy(self.engine.scene_manager.refs.data)
+        model_list.remove(self.engine.conf.scenes.main)
+        model_list.reverse()
+        for model in model_list:
+            sec_views.addDock(model)
 
     @cached_property
     def b_pycuda_available(self):
@@ -140,7 +153,7 @@ class MainEngineWindow(MainEngineWindowBase):
             network_manager=self.engine.network_manager,)
 
         # self.show()
-        self.main_network_scene.set_current()
+        # self.main_network_scene.set_current()
         # sec_views: ViewArea = self.windows[WindowTypes.SECONDARY_VIEWS]
         # sec_views.addDock(self.engine.conf.scenes.multiplot_voltage)
         # sec_views.addDock(self.engine.conf.scenes.current_voltage)

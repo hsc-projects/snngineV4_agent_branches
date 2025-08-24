@@ -20,6 +20,32 @@
       <DictItem type="dict" class="SimulatorOptions" key="simulator">
         <DictItem type="int" key="T">1000</DictItem>
         <DictItem type="dict" class="CudaBackendPlotConfig" key="plots">
+          <DictItem type="dict" class="MultiPlotConfig" key="current_plot_config">
+            <DictItem type="bool" key="visible">True</DictItem>
+            <DictItem type="dict" class="EnginePos3D" key="pos_origin">
+              <DictItem type="bool" key="b_nullable">False</DictItem>
+            </DictItem>
+            <DictItem type="int" key="width">1</DictItem>
+            <DictItem type="str" key="method">gl</DictItem>
+            <DictItem type="bool" key="antialias">False</DictItem>
+            <DictItem type="int" key="size_x">100</DictItem>
+            <DictItem type="int" key="max_size_x">10000</DictItem>
+            <DictItem type="int" key="view_mode">2</DictItem>
+            <DictItem type="int" key="n_plots">10</DictItem>
+            <DictItem type="dict" class="SepLineData" key="sep_lines">
+              <DictItem type="bool" key="visible">True</DictItem>
+              <DictItem type="dict" class="EnginePos3D" key="pos_origin">
+                <DictItem type="bool" key="b_nullable">False</DictItem>
+              </DictItem>
+              <DictItem type="int" key="width">1</DictItem>
+              <DictItem type="str" key="connect">segments</DictItem>
+              <DictItem type="str" key="method">gl</DictItem>
+              <DictItem type="bool" key="antialias">False</DictItem>
+              <DictItem type="int" key="n_sep_lines">10</DictItem>
+              <DictItem type="float" key="sep_line_offset">2.0</DictItem>
+            </DictItem>
+            <DictItem type="int" key="max_n_plots">1000</DictItem>
+          </DictItem>
           <DictItem type="dict" class="MultiPlotConfig" key="voltage_plot_config">
             <DictItem type="bool" key="visible">True</DictItem>
             <DictItem type="dict" class="EnginePos3D" key="pos_origin">

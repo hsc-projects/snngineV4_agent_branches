@@ -1,4 +1,6 @@
 from snngine_v4.utils.settings.config_model import ConfigModel
+from snngine_v4.visualization.config_models.vispy_camera_configs import \
+    PanZoomCameraParameters
 from snngine_v4.visualization.config_models.vispy_canvas_config import (
     SceneViews, SceneVisuals, VispyCanvasConfig,
     VispyCanvasConfigOptions, VispyViewBoxConfig,
@@ -24,9 +26,14 @@ class SceneSettings(ConfigModel):
             main=VispyViewBoxConfig(),
         ),
         Visuals=SceneVisuals(axis=XYZAxisVisualConfig()))
-    current_voltage: VispyCanvasConfig = VispyCanvasConfig(
+
+    multiplot_current: VispyCanvasConfig = VispyCanvasConfig(
         Options=VispyCanvasConfigOptions(title='Current'),
         Views=SceneViews(
-            main=VispyViewBoxConfig(),
+            main=VispyViewBoxConfig(
+                camera=PanZoomCameraParameters()
+            ),
         ),
-        Visuals=SceneVisuals(axis=XYZAxisVisualConfig()))
+        Visuals=SceneVisuals(
+            axis=XYZAxisVisualConfig()
+        ))

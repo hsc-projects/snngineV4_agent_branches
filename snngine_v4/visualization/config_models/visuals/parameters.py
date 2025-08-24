@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import auto, IntEnum, unique
 from types import NoneType
-from typing import Annotated, ClassVar
+from typing import Annotated, ClassVar, TypeAliasType
 
 import numpy as np
 from pydantic import BeforeValidator, Field
@@ -21,7 +21,6 @@ from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.utils.settings.xml_converter.xml_settings_source import (
     default_xml_model_config_dict, XMLSettingsConfigDict,
 )
-
 
 type ColorVBO = ArrayInterfaces().vbo_array_type(4)
 

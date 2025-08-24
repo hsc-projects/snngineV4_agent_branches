@@ -4,7 +4,7 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/snngine_v4/archive" />
     </content>
-    <orderEntry type="jdk" jdkName="snngineV4" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="snngine" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>
