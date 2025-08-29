@@ -21,8 +21,7 @@ from snngine_v4.visualization.scenes.main_network_scene import EngineSceneCanvas
 
 if TYPE_CHECKING:
     from snngine_v4.gui.parameter_tree.engine_parameter_tree import (
-        QTree, EngineTreeDockWidget,
-    )
+        EngineParameterTree, QTree, EngineTreeDockWidget)
     from snngine_v4.gui.parameter_tree.parameters.widgets.table \
         .array_editor import ArrayEditorDockWidget
     from snngine_v4.gui.windows.extra_parameters import ParameterArea
@@ -42,10 +41,14 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
     ARRAYS_DOCK_NAME: ClassVar[str] = 'Array Editor'
     CONTROLS_DOCK_NAME: ClassVar[str] = 'Controls'
 
-    SETTINGS_DOCK_CLASS: ClassVar[Type[EngineTreeDockWidget]] = None
+    PARAMETER_TREE_CLASS: ClassVar[Type[EngineParameterTree] | None]
+    SETTINGS_DOCK_CLASS: ClassVar[Type[EngineTreeDockWidget] | None]
 
-    def __init__(self, windows: QWidgetDict, engine: SNNgine):
+    def __init__(self, windows: QWidgetDict, engine: SNNgine,
+                 b_verbose: bool = True):
         super().__init__()
+
+        self.b_verbose = b_verbose
 
         self.setMenuBar(QtWidgets.QMenuBar())
         self.setCentralWidget(QtWidgets.QWidget(self))
@@ -65,13 +68,15 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
 
         self.docks: dict[str, ButtonsDockWidget] | QDockWidgetDict = (
             QDockWidgetDict())
+
+        self.engine = engine
+
         self.setup_dock_widgets()
 
         self.scene_tree: QTree = self.get_tree(EngineConfig.Slots.SCENES)
         self.constr_tree: QTree = self.get_tree(EngineConfig.Slots.CONSTR)
         self.network_tree: QTree = self.get_tree(EngineConfig.Slots.NETWORK)
 
-        self.engine = engine
         self.connect_to_engine()
 
         self.centralWidget().layout().addWidget(
@@ -120,6 +125,7 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
         return self.windows[WindowTypes.EXTRA_PARAMETERS]
 
     def get_tree(self, slot) -> QTree:
+        # noinspection PyTypeChecker
         return self.docks[slot.capitalize()].widget()
 
     @cached_property
@@ -128,9 +134,16 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
             self.engine.conf.scenes.main]
 
     def make_settings_dock_widget(self, key) -> EngineTreeDockWidget:
+        settings = getattr(self.engine.conf, key)
+        tree = self.PARAMETER_TREE_CLASS(
+            key.capitalize(), settings, showHeader=True,
+            b_verbose=self.b_verbose)
+
         return self.SETTINGS_DOCK_CLASS(
-            pars=self.setting_trees[key].copy(),
-            name=key.capitalize())
+            # pars=self.setting_trees[key].copy(),
+            pars=tree,
+            # name=key.capitalize()
+        )
 
     def addLeftDockWidget(
             self, widget_or_key: str | QtWidgets.QWidget):

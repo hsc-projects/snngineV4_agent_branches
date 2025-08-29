@@ -1,7 +1,9 @@
-from typing import Type
+from typing import Any, Type
 
 import numpy as np
 from pydantic_core import PydanticUndefined
+
+
 from pyqtgraph.parametertree import ParameterItem
 from pyqtgraph.parametertree.parameterTypes import (
     ActionParameter,
@@ -123,9 +125,9 @@ class ArrayParameter(ActionParameter, ActionParameterMixin):
         )
 
         default = opts.get(ParamOpts.KW.DEFAULT, None)
-        if default is not None:
-            if default != PydanticUndefined:
-                pass
+        if ((default is not None)
+                and (default is PydanticUndefined)):
+            pass
         opts[ParamOpts.KW.DEFAULT] = self.qdf.value()
         opts[ParamOpts.KW.VALUE] = None
         opts[ParamOpts.KW.EXPANDED] = False
@@ -187,28 +189,43 @@ class ArrayParameter(ActionParameter, ActionParameterMixin):
 
     def onDataChanged(self, qdf, change_type: DataChangeType, changes):
 
-        match change_type:
-            case self.qdf.BLOCK_SIGNAL_ROLE:
-                raise RuntimeError(
-                    f"change_type = BLOCK_SIGNAL_ROLE ({change_type})")
+        if change_type == self.qdf.BLOCK_SIGNAL_ROLE:
+            raise RuntimeError(
+                f"change_type = BLOCK_SIGNAL_ROLE ({change_type})")
 
         if self.model is not None:
-            match change_type:
-                case DataChangeType.CELL_UPDATED:
-                    self.model.data[changes[0], changes[1]] = changes[2]
-                case DataChangeType.COLUMN_VALUE_UPDATED:
-                    self.model.data[:, changes[0]] = changes[1]
-                case DataChangeType.INDEX_VALUE_UPDATED:
-                    self.model.data[changes[0], :] = changes[1]
-                case (DataChangeType.COLUMN_ADDED
-                      | DataChangeType.ROW_ADDED):
-                    raise NotImplementedError
-                case DataChangeType.SET_VALUE:
-                    self._actualize_value()
-                case DataChangeType.UNDEFINED:
-                    pass
-                case _:
-                    raise NotImplementedError(f"{change_type}")
+            try:
+                match change_type:
+                    case DataChangeType.CELL_UPDATED:
+                        self.model.data[changes[0], changes[1]] = changes[2]
+                    case DataChangeType.COLUMN_VALUE_UPDATED:
+                        self.model.data[:, changes[0]] = changes[1]
+                    case DataChangeType.INDEX_VALUE_UPDATED:
+                        self.model.data[changes[0], :] = changes[1]
+                    case (DataChangeType.COLUMN_ADDED
+                          | DataChangeType.ROW_ADDED):
+                        raise NotImplementedError
+                    case DataChangeType.SET_VALUE:
+                        self._actualize_value()
+                    case DataChangeType.UNDEFINED:
+                        pass
+                    case _:
+                        raise NotImplementedError(f"{change_type}")
+            except IndexError:
+                match change_type:
+                    case DataChangeType.CELL_UPDATED:
+                        if (changes[1] != 0) or (
+                                len(self.model.data.shape) != 1):
+                            raise AssertionError(
+                                "(changes[1] != 0) "
+                                "or (len(self.model.data.shape) != 1)")
+                        self.model.data[changes[0]] = changes[2]
+                    case DataChangeType.COLUMN_VALUE_UPDATED:
+                        self.model.data[:] = changes[1]
+                    case DataChangeType.INDEX_VALUE_UPDATED:
+                        self.model.data[changes[0]] = changes[1]
+                    case _:
+                        raise NotImplementedError(f"{change_type}")
         else:
             # if self.compare_value():
             #     self.opts[ParamOpts.KW.VALUE] = data
@@ -278,7 +295,11 @@ class ArrayParameter(ActionParameter, ActionParameterMixin):
             else:
                 self.compare_value()
                 raise RuntimeError
-                pass
+        if self.model is not None:
+            return {
+                'index': self.model.index,
+                'data': self.opts[ParamOpts.KW.VALUE],
+            }
         return self.opts[ParamOpts.KW.VALUE]
 
 

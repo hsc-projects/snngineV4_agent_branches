@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable
 
+import pyqtgraph
 from pyqtgraph.parametertree import Parameter, ParameterItem
 from pyqtgraph.parametertree.parameterTypes import (
     GroupParameter,
@@ -15,6 +16,7 @@ from snngine_v4.gui.parameter_tree.parameter_builder.options_builder import \
 from snngine_v4.gui.parameter_tree.parameters.common.action_mixins import (
     ActionItemMixin, ActionParameterMixin,
 )
+from snngine_v4.utils.field_utils import is_equal
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 
@@ -191,12 +193,22 @@ class EngineGroupParameter(GroupParameter, ActionParameterMixin):
 
     itemClass = EngineGroupParameterItem
 
-    children: Callable[[], list[Parameter]]
+    # children: Callable[[], list[Parameter]]
 
     sigApply = QtCore.Signal(object)
     sigSelected = QtCore.Signal(object, bool)
+    # sigValueChanged = QtCore.Signal(object, object)
 
     def __init__(self, **opts):
+
+        if ParamOpts.KW.C_INIT_VALUE not in opts:
+            init_value = opts[ParamOpts.KW.C_INIT_VALUE] \
+                = opts.pop(ParamOpts.KW.VALUE, None)
+            init_default = opts[ParamOpts.KW.C_INIT_DEFAULT] \
+                = opts.pop(ParamOpts.KW.DEFAULT, None)
+            if not is_equal(init_value, init_default):
+                pass
+
         super().__init__(**opts)
         if opts.get(ParamOpts.KW.C_B_GROUP_APPLY_BUTTON, False) is True:
             self.add_apply_action()
@@ -244,13 +256,23 @@ class EngineGroupParameter(GroupParameter, ActionParameterMixin):
                 param.setToDefault()
             self._modifiedSinceReset = False
 
+    def setValue(self, value, blockSignal=None):
+        return super().setValue(value, blockSignal=blockSignal)
+
     def value(self):
-        return {
+        if self.type() == 'list':
+            return [x.value() for x in self.children()]
+        # value = self.opts['value']
+        # if value is None:
+        value = {
             x.name(): x.value() for x in self.children()
         }
+        # return values_dct
+        return value
 
     def valueChanged(self, child: Parameter, value):
         if child.valueModifiedSinceResetToDefault() is True:
             self._modifiedSinceReset = True
         value_ = self.value()
         self.sigValueChanged.emit(self, value_)
+        # self.sigValueChanged.emit(self, )

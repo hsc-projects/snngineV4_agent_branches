@@ -44,7 +44,7 @@ from snngine_v4.gui.parameter_tree.parameters.widgets.custom_combobox import \
     CustomComboBox
 from snngine_v4.utils.field_utils import (
     b_is_annotated, b_is_literal_annotation,
-    extract_literal_values,
+    extract_literal_values, is_equal,
 )
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
@@ -178,7 +178,17 @@ class MultiTypeParameter(EngineGroupParameter):
     sigTypeChanged = QtCore.Signal(object, object)
 
     def __init__(self, **opts):
-        super().__init__(**opts)
+
+        if ParamOpts.KW.C_INIT_VALUE not in opts:
+            init_value = opts[ParamOpts.KW.C_INIT_VALUE] \
+                = opts.pop(ParamOpts.KW.VALUE, None)
+            init_default = opts[ParamOpts.KW.C_INIT_DEFAULT] \
+                = opts.pop(ParamOpts.KW.DEFAULT, None)
+            if not is_equal(init_value, init_default):
+                pass
+
+        super().__init__(b_check_set_values=False, **opts)
+        self.opts[ParamOpts.KW.DEFAULT] = opts[ParamOpts.KW.C_INIT_DEFAULT]
         self.children_map = MultiTypeParameterMap()
         self.type_parameter = ListParameter(name='Type', visible=False)
         self.addChild(self.type_parameter, autoIncrementName=True)
@@ -279,15 +289,20 @@ class MultiTypeParameter(EngineGroupParameter):
         opts.pop(ParamOpts.KW.TYPE)
         name = opts.pop(ParamOpts.KW.NAME)
         opts.pop(ParamOpts.KW.TITLE)
-        value = opts.pop(ParamOpts.KW.VALUE)
 
+        if ParamOpts.KW.VALUE in opts:
+            value = opts.pop(ParamOpts.KW.VALUE, None)
+            raise AssertionError("ParamOpts.KW.VALUE in opts")
+        init_value = opts.pop(ParamOpts.KW.C_INIT_VALUE)
         built_pars = []
         b_default_set = False
         default_value = opts.pop(ParamOpts.KW.DEFAULT, None)
 
+        # self.type_parameter.sigValueChanged.disconnect(self.onTypeChange)
+
         for t in self.data_types:
             p, b_default_set_ = self.add_type_child(
-                value, t, default_value, signal_register, **opts)
+                init_value, t, default_value, signal_register, **opts)
             if p is not None:
                 built_pars.append(p)
             if b_default_set_ is not None:
@@ -298,7 +313,8 @@ class MultiTypeParameter(EngineGroupParameter):
                 if isinstance(c, EngineGroupParameter):
                     c.connect_sigValueChanged()
                 c.sigValueChanged.connect(self.valueChanged)
-            # self.type_parameter.sigValueChanged.connect(self.valueChanged)
+
+        # self.type_parameter.sigValueChanged.connect(self.valueChanged)
         if b_default_set is True:
             self.type_parameter.setToDefault()
             self.onTypeChange(self.type_parameter, self.type_parameter.value())
@@ -320,18 +336,18 @@ class MultiTypeParameter(EngineGroupParameter):
                     c.show(s=not self.b_flat)
                     self.sigTypeChanged.emit(self, c)
 
-        if value == NoneType.__name__:
-            self.valueChanged(p, p.value())
+        # if value == NoneType.__name__:
+        self.valueChanged(p, p.value())
 
     def setValue(self, value, blockSignal=None):
-        super().setValue(value, blockSignal=blockSignal)
         try:
-            key = self.type_parameter.value()
+            type_parameter = self.type_parameter
         except AttributeError:
-            key = ''
-        if key != '':
-            return self.children_map[key].setValue(
-                value, blockSignal=self.valueChanged)
+            return
+        key = type_parameter.value()
+        super().setValue(value, blockSignal=blockSignal)
+        return self.children_map[key].setValue(
+            value, blockSignal=self.valueChanged)
 
     def valueChanged(self, child=None, value=PydanticUndefined):
         value_ = self.value()
@@ -347,4 +363,9 @@ class MultiTypeParameter(EngineGroupParameter):
         if key is None:
             key = NoneType
         if key != '':
-            return self.children_map[key].value()
+            try:
+                par = self.children_map[key]
+                value_ = par.value()
+            except KeyError:
+                raise
+            return value_

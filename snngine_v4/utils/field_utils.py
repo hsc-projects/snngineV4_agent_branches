@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import operator
 from copy import copy
 from enum import Enum, IntEnum
 from types import GenericAlias, NoneType, UnionType
@@ -10,6 +11,7 @@ from typing import (
 
 import numpy as np
 import pandas as pd
+import pyqtgraph
 from annotated_types import Ge, Gt, Le, Lt
 from pydantic import BaseModel, BeforeValidator
 from pydantic.fields import FieldInfo
@@ -184,7 +186,7 @@ def b_field_has_default(field_info: FieldInfo) -> bool:
         raise NotImplementedError
 
 
-def extract_field_default(field_info: FieldInfoInputType) -> bool:
+def extract_field_default(field_info: FieldInfoInputType):
     if isinstance(field_info, tuple):
         field_info = as_field_info(field_info)
     if isinstance(field_info, FieldInfo):
@@ -500,6 +502,16 @@ def interval_from_metadata(metadata: list, default='inf'):
     return interval
 
 
+def model_attributes(model, keys=None, **kwargs):
+    if keys is None:
+        keys = model_keys(model, **kwargs)
+    elif len(kwargs) > 1:
+        raise ValueError("keys is not None and len(kwargs) > 1")
+    # noinspection PyArgumentList
+    getter = operator.itemgetter(*keys)
+    return getter(model.__dict__)
+
+
 def model_keys(model: BaseModel | Type[BaseModel],
                b_include_extra=True, b_include_computed=True,
                type_filter=None,
@@ -560,3 +572,48 @@ type ListParameterType = Annotated[
     ListParameterType_, BeforeValidator(validate_list_parameter_type)]
 
 
+def non_array_or_basemodel_items(model, values=None, **kwargs):
+    if values is None:
+        values = model_attributes(model, **kwargs)
+    return tuple([x for x in values
+                  if not isinstance(x, (np.ndarray, BaseModel))])
+
+
+def array_or_basemodel_items(model, values=None, **kwargs):
+    if values is None:
+        values = model_attributes(model, **kwargs)
+    return tuple([x for x in values if isinstance(x, (np.ndarray, BaseModel))])
+
+
+def compare_basemodels_with_array_fields(a, b):
+
+    a_keys = model_keys(a)
+    if a_keys != model_keys(b):
+        return False
+
+    a_attributes = model_attributes(a, keys=a_keys)
+    b_attributes = model_attributes(b, keys=a_keys)
+
+    if (non_array_or_basemodel_items(a, values=a_attributes)
+            != non_array_or_basemodel_items(b, values=b_attributes)):
+        return False
+
+    a_vals2 = array_or_basemodel_items(a, values=a_attributes)
+    b_vals2 = array_or_basemodel_items(b, values=b_attributes)
+
+    for i, av in enumerate(a_vals2):
+        if not is_equal(av, b_vals2[i]):
+            return False
+    return True
+
+
+def is_equal(a, b):
+    if isinstance(a, BaseModel) and isinstance(b, BaseModel):
+        if a is b:
+            return True
+        try:
+            a == b
+        except ValueError:
+            return compare_basemodels_with_array_fields(a, b)
+
+    return pyqtgraph.functions.eq(a, b)

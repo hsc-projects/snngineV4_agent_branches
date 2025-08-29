@@ -103,7 +103,7 @@ class SeriesModel(ConfigModel):
             self.data = self.zeroes()
         if self.index is not None:
             if len(self.index) != self.data.shape[0]:
-                raise ValueError()
+                raise ValueError("len(self.index) != self.data.shape[0]")
 
     def model_post_init(self, __context):
         super().model_post_init(__context)
@@ -121,18 +121,19 @@ class SeriesModel(ConfigModel):
     @classmethod
     def _validate_model_before(
             cls, data: Any) -> Any:
-        if isinstance(data, (np.ndarray, )):
+        if isinstance(data, (np.ndarray,)):
             data = {cls.Slots.DATA: data}
         elif isinstance(data, pd.Series):
             data = {cls.Slots.DATA: data.values,
                     cls.Slots.INDEX: list(data.index)}
-        return super()._validate_model_before(data=data)
+        res = super()._validate_model_before(data=data)
+        return res
 
 
 class SeriesF32(SeriesModel):
     data: f32_1D = Field(
         default_factory=lambda: np.array([], dtype=np.float32),
-        repr=False)
+        repr=True)
 
 
 class TypedDataFrameModel(SeriesModel):

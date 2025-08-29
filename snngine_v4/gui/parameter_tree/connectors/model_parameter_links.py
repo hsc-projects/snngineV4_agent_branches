@@ -60,7 +60,7 @@ class ObjectParameterLink(Object2ObjectLink):
 
                 self.sink.setValue(value)
             case LinkStateType.SINK2SOURCE:
-                if args[0] != self.sink:
+                if args[0] != self.sink:  # assert expected parameter
                     raise AssertionError
                 value = self.sink.value()
                 if value is None:
@@ -86,6 +86,22 @@ class ObjectParameterLink(Object2ObjectLink):
                             self.source, self.source_key, None)
                         pass
                     else:
+
+                        from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config import \
+                            NetworkReservoirConfig
+                        from snngine_v4.nn.construction.config_models.neurons.neuron_state import \
+                            NeuronStateModel
+                        from snngine_v4.nn.construction.config_models.neurons.neuron_state import \
+                            NeuronInitializerParameters
+                        from snngine_v4.nn.construction.config_models.neurons.presets.preset_base import \
+                            PresetParameter, Preset, F32Preset
+                        from snngine_v4.utils.data_utils.dataframe_config import \
+                            SeriesModel, IndexConfig
+                        from snngine_v4.geometry.spatial_pars import EnginePos3D
+                        EnginePos3D
+                        # preset = value['elements'][0]['neuron_states']['initializer'][
+                        #     'presets']['preset']
+                        self.source.__setattr__(self.source, self.source_key, value)
                         raise err
                 value_str = str(getattr(self.source, self.source_key))
                 msg = f"<- from parameter"
@@ -102,7 +118,7 @@ class ObjectParameterLink(Object2ObjectLink):
         else:
             sink_name = " '" + sink_name + "'"
 
-        print(source_name, msg, sink_name, value_str)
+        print(source_name, msg + sink_name, value_str)
         # print(f"[{id(self.source)}]", f"({id(self.sink)})")
 
     @staticmethod
@@ -134,8 +150,8 @@ class ModelParameterLinks(Object2ObjectLinks):
             |
             Callable[[Type[str] | Type[ObjectParameterLink]],
                      Object2ObjectMap]
-                     # | dict[str, ObjectParameterLink]
-                     # | dict[ObjectParameterLink, Parameter]]
+            # | dict[str, ObjectParameterLink]
+            # | dict[ObjectParameterLink, Parameter]]
     )
 
     def __init__(self, model, group_param=None, ext_obj_attr_map=None,

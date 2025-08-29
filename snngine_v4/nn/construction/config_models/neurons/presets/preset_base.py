@@ -1,5 +1,6 @@
-from typing import Callable, ClassVar
+from typing import Any, Callable, ClassVar
 
+import numpy as np
 import pandas as pd
 from pydantic import Field
 
@@ -56,8 +57,8 @@ class PresetParameter(ConfigModel):
 
     PRESET_CONTAINER: ClassVar[type(dict)] = PresetsContainer
 
-    preset_type: ListParameterModel
-    preset_name: ListParameterModel
+    preset_type: ListParameterModel | str
+    preset_name: ListParameterModel | str
 
     preset: Preset
 
@@ -66,13 +67,28 @@ class PresetParameter(ConfigModel):
             **kwargs)
 
     def model_post_init(self, __context):
+        init_preset = None
+        if isinstance(self.preset_type, str):
+            init_preset = self.preset_type
+            self.preset_type = ListParameterModel()
         if len(self.preset_type.limits) == 0:
             self.preset_type.limits = self.preset_container.preset_types
-            self.preset_type.value = self.preset_type.limits[0]
+            if init_preset is not None:
+                self.preset_type.value = init_preset
+            else:
+                self.preset_type.value = self.preset_type.limits[0]
+
+        init_name = None
+        if isinstance(self.preset_name, str):
+            init_name = self.preset_name
+            self.preset_name = ListParameterModel()
         if len(self.preset_name.limits) == 0:
             df = self.preset_type_values
             self.preset_name.limits = list(df.columns)
-            self.preset_name.value = self.preset_name.limits[0]
+            if init_preset is not None:
+                self.preset_name.value = init_name
+            else:
+                self.preset_name.value = self.preset_name.limits[0]
             self.preset = Preset(f32=df[self.preset_name.value])
 
     @property

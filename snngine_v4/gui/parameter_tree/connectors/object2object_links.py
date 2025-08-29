@@ -268,7 +268,7 @@ class Object2ObjectLinks(TypeSortedMap):
                        debug_catch=BaseException):
 
         link_map = self.get_sub_map_by_type(link_type)
-        
+
         def set_attr(self_, key, value):
 
             if (b_allow_new is False) and (not hasattr(self_, key)):
@@ -276,13 +276,18 @@ class Object2ObjectLinks(TypeSortedMap):
             try:
                 # skip validation for BaseModels
                 # object.__setattr__(self_, key, value)
-                if isinstance(getattr(self_, key), SeriesModel):
+                if (isinstance(getattr(self_, key), SeriesModel)
+                        and (not isinstance(value, (dict, SeriesModel)))):
                     setattr(getattr(self_, key), SeriesModel.Slots.DATA, value)
                 else:
                     setattr(self_, key, value)
                 if self_.__setattr__ != set_attr:
-                    # self_.__setattr__ = set_attr
-                    raise AssertionError
+                    from snngine_v4.config.construction import \
+                        EngineConstructionConfig
+                    if isinstance(obj, EngineConstructionConfig):
+                        self_.__setattr__ = set_attr
+                    else:
+                        raise AssertionError("self_.__setattr__ != set_attr")
                 try:
                     link_map[key][LinkStateType.SOURCE2SINK].emit(value)
                 except KeyError:
@@ -295,7 +300,7 @@ class Object2ObjectLinks(TypeSortedMap):
                         setattr(getattr(self_, key), 'value', value)
                     else:
                         raise
-                        setattr(getattr(self_, key), 'limits', value)
+                        # setattr(getattr(self_, key), 'limits', value)
                     link_map[key][LinkStateType.SOURCE2SINK].emit(value)
                 else:
                     raise
@@ -304,14 +309,14 @@ class Object2ObjectLinks(TypeSortedMap):
 
         if obj in self.replaced_method_map:
             if self.ext_obj_attr_map is None:
-                raise AssertionError
+                raise AssertionError("self.ext_obj_attr_map is None")
         else:
             self.replaced_method_map[obj] = obj.__setattr__
 
         # TODO:
         if type(obj.__setattr__).__name__ != 'method':
             if self.ext_obj_attr_map is None:
-                raise AssertionError
+                raise AssertionError("self.ext_obj_attr_map is None")
         # self.__class__.REGISTERED_IDS.append(id(obj))
 
         obj.__setattr__ = set_attr

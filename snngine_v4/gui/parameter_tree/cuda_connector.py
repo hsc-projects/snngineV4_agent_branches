@@ -47,7 +47,7 @@ class CudaVispyConnector(ParameterConnector):
                 shape=(len(model.pos), obj._data.dtype.itemsize // 4),
                 device=device, **kwargs)
             res['vbo'] = gl_tensor
-            print(gl_tensor)
+            # print(gl_tensor)
         else:
             pass
             # raise NotImplementedError

@@ -29,6 +29,7 @@ from snngine_v4.gui.parameter_tree.tensor_connector import TensorConnector
 # noinspection PyPep8Naming
 class MainEngineWindow(MainEngineWindowBase):
 
+    PARAMETER_TREE_CLASS: ClassVar = EngineParameterTree
     SETTINGS_DOCK_CLASS: ClassVar = EngineTreeDockWidget
 
     def __init__(self, engine: SNNgine):
@@ -92,14 +93,14 @@ class MainEngineWindow(MainEngineWindowBase):
         array_dock = ArrayEditorDockWidget(name=self.ARRAYS_DOCK_NAME)
         self.addRightDockWidget('A', array_dock)
 
-        controls_tree = EngineParameterTree()
+        controls_tree = EngineParameterTree(name=self.CONTROLS_DOCK_NAME)
 
         features = (
             QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable
             | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable
             | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetClosable)
         controls_dock = EngineTreeDockWidget(
-            pars=controls_tree, name=self.CONTROLS_DOCK_NAME,
+            pars=controls_tree,
             features=features)
         self.addRightDockWidget('C', controls_dock)
 
@@ -158,4 +159,5 @@ class MainEngineWindow(MainEngineWindowBase):
         # sec_views.addDock(self.engine.conf.scenes.multiplot_voltage)
         # sec_views.addDock(self.engine.conf.scenes.current_voltage)
         self.main_network_scene.set_current()
+
         return

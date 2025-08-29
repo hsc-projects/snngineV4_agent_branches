@@ -17,7 +17,8 @@ from snngine_v4.utils.data_utils.validation.array_annotation import (
 from snngine_v4.utils.field_utils import (
     AnnotationType, b_field_has_default,
     b_is_annotated, b_is_int_annotation, b_is_literal_annotation, b_is_optional,
-    b_is_union, get_field_frozen, interval_from_annotated, interval_from_field,
+    b_is_union, extract_field_default, get_field_frozen,
+    interval_from_annotated, interval_from_field,
     extract_literal_values, extract_type_from_annotation,
     get_field_json_schema_extra,
     get_field_multiple_of,
@@ -122,7 +123,7 @@ class OptionsBuilder:
 
         b_has_default = b_field_has_default(field_info=fi)
         if b_has_default:
-            options.default = fi.default
+            options.default = extract_field_default(field_info=fi)
 
         if (value is PydanticUndefined) and b_has_default:
             value = options.default

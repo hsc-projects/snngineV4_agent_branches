@@ -24,7 +24,7 @@ class SpatialNetwork(EngineElement):
         FiniteGridConfig: FiniteGrid,
         NetworkReservoirConfig: NetworkReservoir,
         NeuronStateModel: NeuronState,
-        # SimulatorOptions: Simulator,
+        SimulatorOptions: Simulator,
     }
 
     config_model: SpatialNetworkConfig

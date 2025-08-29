@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, ClassVar, Type
 
 from pyqtgraph.dockarea import Dock
 
@@ -15,7 +15,7 @@ def pass_floating():
 
 class ViewDock(CustomPgDock):
 
-    WIDGET_CLASS: EngineSceneCanvas
+    WIDGET_CLASS: ClassVar[Type[EngineSceneCanvas]]
     widget: Callable[..., EngineSceneCanvas]
 
     # def clear(self):

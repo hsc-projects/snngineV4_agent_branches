@@ -7,6 +7,7 @@ from pydantic import Field
 from snngine_v4.nn.construction.config_models.engine_element_config import \
     EngineElementConfig
 from snngine_v4.nn.construction.engine_element import EngineElement
+from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.visualization.config_models.plotting.multi_line_plot import (
     MultiPlotConfig,
     PlotConfig,
@@ -27,6 +28,9 @@ class CudaBackendPlotTensors(EngineElement):
 
 
 class CudaBackendPlotConfig(EngineElementConfig):
+
+    parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
+        expanded=False)
 
     current_plot_config: MultiPlotConfig = Field(
         default_factory=lambda: MultiPlotConfig(

@@ -139,6 +139,9 @@ class ParamOpts(BaseModel, validate_default=True, extra='allow'):
         C_ARRAY_DEFAULT_VALUE: ClassVar[str] = 'c_array_default_value'
         C_B_COLLECT_EXTRA_CLASSES: ClassVar[str] = 'c_b_collect_extra_classes'
 
+        C_INIT_VALUE: ClassVar[str] = 'c_init_value'
+        C_INIT_DEFAULT: ClassVar[str] = 'c_init_default'
+
         # C_B_GROUP_EMIT_VALUE_CHANGED: ClassVar[str] = \
         #     'c_b_group_emit_value_changed'
 

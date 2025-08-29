@@ -25,10 +25,14 @@ class EngineParameterTree(ParameterTree):
                  model: BaseModel = None,
                  parent=None, showHeader=True,
                  signal_register: ExtendedModelSignalsRegister = None,
+                 b_verbose: bool = True,
                  **kwargs):
 
         if name is None:
             name = self.__class__.__name__
+
+        if b_verbose:
+            print('New EngineParameterTree:', name)
 
         super().__init__(parent=parent, showHeader=showHeader)
         self.setObjectName(name)

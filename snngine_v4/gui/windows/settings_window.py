@@ -10,10 +10,10 @@ from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
 
 class SettingsWindow(QtWidgets.QWidget):
 
-    def __init__(self, engine_config: EngineConfig, parent=None):
-
+    def __init__(self, engine_config: EngineConfig, parent=None,
+                 b_verbose: bool = True):
         super().__init__(parent=parent)
-
+        self.b_verbose = b_verbose
         self.engine_config: EngineConfig = engine_config
 
         self.setLayout(QtWidgets.QVBoxLayout())
@@ -37,7 +37,12 @@ class SettingsWindow(QtWidgets.QWidget):
         self.options_layout.setContentsMargins(0, 0, 0, 0)
         self.top_layout.addLayout(self.options_layout)
 
-        for k in self.engine_config.model_keys():
+        for k in self.engine_config.model_keys(
+            exclude=[
+                EngineConfig.Slots.SCENES,
+                EngineConfig.Slots.CONSTR,
+                EngineConfig.Slots.NETWORK,]
+        ):
             settings = getattr(engine_config, k)
             self.add_settings(settings, name=k)
 
@@ -58,7 +63,8 @@ class SettingsWindow(QtWidgets.QWidget):
     def add_settings(self, settings: BaseModel, name):
 
         tree: EngineParameterTree | QtWidgets.QTreeWidget = (
-            EngineParameterTree(name, settings, showHeader=True))
+            EngineParameterTree(name, settings, showHeader=True,
+                                b_verbose=self.b_verbose))
         self.setting_trees.add_widget(tree)
 
         if len(self.setting_trees) > 1:
