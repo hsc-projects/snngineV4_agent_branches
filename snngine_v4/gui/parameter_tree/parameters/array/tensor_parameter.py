@@ -1,4 +1,3 @@
-from enum import IntEnum
 from typing import Type
 
 import numpy as np
@@ -20,12 +19,12 @@ from snngine_v4.utils.data_utils.validation.array_annotation import \
     ArrayInterfaces
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
-try:
-    from snngine_v4.visualization.cuda.gl_interop.gl_tensor_dict \
-        import GLTensorDict
-except ModuleNotFoundError:
-    class GLTensorDict:
-        pass
+# try:
+from snngine_v4.visualization.cuda.gl_interop.gl_tensor_dict \
+    import GLTensorDict
+# except ModuleNotFoundError:
+#     class GLTensorDict:
+#         pass
 
 from snngine_v4.utils.cuda_utils.tensor_dict import TensorDict
 
@@ -33,7 +32,7 @@ from snngine_v4.utils.cuda_utils.tensor_dict import TensorDict
 class TensorParameter(ArrayParameter):
 
     sigTensorSet = QtCore.Signal(object, object)
-    sigTensorChanged = QtCore.Signal(object, int, object)
+    # sigTensorChanged = QtCore.Signal(object, int, object)
 
     def __init__(self, tensor=None, **opts):
         self._tensor = None
@@ -73,7 +72,7 @@ class TensorParameter(ArrayParameter):
                     t_value = torch.from_numpy(np.array(
                         changes[2], dtype=changes[2].dtype))
                     self.tensor[changes[0], changes[1]] = t_value
-                    self.sigTensorChanged.emit(self)
+                    # self.sigTensorChanged.emit(self, change_type, changes)
                 else:
                     pass
 
@@ -94,13 +93,21 @@ class TensorParameter(ArrayParameter):
         super().onDataChanged(qdf, change_type, changes)
 
 
-class TensorDictParameter(ArrayDictParameter):
+type TensorDictType = TensorDict | GLTensorDict | None
 
+
+class TensorDictParameter(ArrayDictParameter):
+    """
+    Only interacts with the dict (not the model)
+    """
     PARAMETER_CLASS: Type[TensorParameter] = TensorParameter
 
-    def __init__(self, value: TensorDict | GLTensorDict = None,
-                 model: TypedDataFrameBase3D | None = None,
-                 signal_register=None, **opts):
+    def __init__(
+            self,
+            value: TensorDictType = None,
+            model: TypedDataFrameBase3D | None = None,
+            signal_register=None,
+            **opts):
 
         opts.setdefault('name', 'tensors')
         super().__init__(value=value, model=model,
@@ -141,10 +148,10 @@ class TensorDictParameter(ArrayDictParameter):
                     p.sigValueChanged.connect(self.valueChanged)
                     res[k] = p
                 else:
-                    raise NotImplementedError
+                    raise NotImplementedError(f"len(v.shape) == {len(v.shape)}")
             return res
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"type(value) == {type(value)}")
 
     def set_tensor(self, tensor):
         tensor_params = [x for x in self.children()

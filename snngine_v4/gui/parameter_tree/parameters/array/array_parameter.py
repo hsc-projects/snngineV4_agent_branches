@@ -305,6 +305,11 @@ class ArrayParameter(ActionParameter, ActionParameterMixin):
 
 class ArrayDictParameter(EngineGroupParameter):
 
+    """
+    The models are exclusively used as templates for now.
+    Do not update their (don't pass them to children parameters).
+    """
+
     PARAMETER_CLASS: Type[ArrayParameter] = ArrayParameter
 
     def __init__(self, value: TypedDataFrameBase3D | None = None,
@@ -346,7 +351,7 @@ class ArrayDictParameter(EngineGroupParameter):
                     self.addChild(p)
                     p.sigValueChanged.connect(self.valueChanged)
                     res[k] = p
-            elif isinstance(value, SeriesModel):
+            else:
                 c_data_types = OptionsBuilder.get_parameter_type(
                     model, SeriesModel.Slots.DATA)
 
@@ -355,7 +360,7 @@ class ArrayDictParameter(EngineGroupParameter):
                 name = SeriesModel.Slots.DATA
                 opts_ = OptionsBuilder.from_annotation(
                     ann=c_data_types, name=name,
-                    value=value.data, **opts)
+                    value=model.data, **opts)
                 if opts_[ParamOpts.KW.NAME] != name:
                     raise AssertionError
                 p = self.PARAMETER_CLASS(
@@ -364,4 +369,10 @@ class ArrayDictParameter(EngineGroupParameter):
                 p.sigValueChanged.connect(self.valueChanged)
                 res[name] = p
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"type(value)={type(value)}")
+
+    def value(self):
+        # data_dict = super().value()
+        data_dict = {}
+        return data_dict
+

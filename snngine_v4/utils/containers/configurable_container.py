@@ -10,7 +10,7 @@ from pydantic.types import AnyType
 from snngine_v4.utils.core_utils import filter_dict, filter_list
 from snngine_v4.utils.field_utils import (
     extract_field_default, extract_type_from_type_annotation,
-    b_field_has_default, fill_field_default,
+    b_field_has_default,
     Undefined,
 )
 from snngine_v4.utils.settings.config_model import ConfigModel
@@ -106,6 +106,7 @@ class ContainerConfig(ConfigModel, frozen=True):
                 data.allowed_types, data.forbidden_types)
             and (data.b_duplicate_check_by_id
                  or data.b_remove_by_id_allowed)):
+            # noinspection PyUnboundLocalVariable
             raise ConfigurationError(
                 f"b_int_allowed={b_int_allowed} "
                 f"and "

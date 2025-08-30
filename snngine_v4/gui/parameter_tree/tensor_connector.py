@@ -17,6 +17,7 @@ from snngine_v4.utils.containers.mappings import Object2ObjectMap
 
 
 class TensorConnector(ParameterConnector):
+    # noinspection PyUnreachableCode
     @classmethod
     def connect_object(cls, model: EngineElement,
                        obj: GroupParameter,
@@ -30,9 +31,10 @@ class TensorConnector(ParameterConnector):
                 if isinstance(c, TensorParameter):
                     c.tensor = tensor
                 elif isinstance(c, TensorDictParameter):
+                    c: TensorDictParameter
                     c.set_tensor(tensor)
                 else:
-                    raise TypeError
+                    raise TypeError(f"type(c) == {type(c)}")
                 res[name] = tensor
         return res
 

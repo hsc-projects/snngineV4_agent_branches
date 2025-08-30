@@ -144,7 +144,6 @@ class TypedDataFrameModel(SeriesModel):
     columns: list[str] | None = Field(default=None, repr=False)
     data: i64_2D = Field(repr=False)
 
-
     @classmethod
     def _apply_column_value(cls, data, i, value):
         data.iloc[:, i] = value
@@ -231,6 +230,14 @@ class TypedDataFrameBase3D(TypedDataFrameModel):
     def item_validation_interface(self):
         return ArrayInterfaces().make_type(
             '* x', '* y', dtype=self.data.dtype)
+
+    @classmethod
+    def _validate_model_before(
+            cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            pass
+        res = super()._validate_model_before(data=data)
+        return res
 
 
 class DataFrameI32D3(TypedDataFrameBase3D):
