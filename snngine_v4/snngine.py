@@ -37,6 +37,7 @@ class SNNgine:
         self.network_manager = NetworkBuilder(
             container_model=self.conf.current)
 
+
     @cached_property
     def b_pycuda_available(self):
         try:
@@ -100,15 +101,13 @@ class SNNgine:
         #         if isinstance(el, NetworkReservoirConfig):
         #             visual_models[f"el{i}"] = el
 
-        network: SpatialNetwork = self.network_manager[
-            self.conf.current.network]
-
         # reservoir1: NetworkReservoir = network[
         #     self.conf.current.network.elements[1]]
+        network_elt_config = self.conf.current.network.elements[0]
 
         visual_models = [
             # self.conf.current.network.elements[1].grid,
-            self.conf.current.network.elements[1],
+            network_elt_config
         ]
 
         new_visuals = self.scene_manager.build_visuals(
@@ -116,23 +115,31 @@ class SNNgine:
             scene=self.conf.scenes.main,
         )
         new_visuals = self.scene_manager.build_visuals(
-            visuals=[self.conf.current.network.elements[1].grid],
+            visuals=[network_elt_config.grid],
             scene=self.conf.scenes.main,
-            grid=network[self.conf.current.network.elements[1].grid]
+            grid=self.network[network_elt_config.grid]
         )
 
         plot_visual0 = self.scene_manager.build_visuals(
             visuals=[self.conf.current.network.simulator.plots
-                     .voltage_plot_config],
+                     .voltage_plot],
             scene=self.conf.scenes.multiplot_voltage,
         )
 
         plot_visual1 = self.scene_manager.build_visuals(
             visuals=[self.conf.current.network.simulator.plots
-                     .current_plot_config],
+                     .current_plot],
             scene=self.conf.scenes.multiplot_current,
         )
         return new_visuals
+
+    def post_connect_network_init(self):
+        self.network.configure_simulator(element=0)
+
+    @property
+    def network(self) -> SpatialNetwork:
+        return self.network_manager[
+            self.conf.current.network]
 
     def close(self):
         if GLBufferMap:

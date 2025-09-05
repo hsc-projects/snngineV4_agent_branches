@@ -76,6 +76,7 @@ class MainEngineWindow(MainEngineWindowBase):
         self.main_network_scene.set_current()
         self.engine.build_network()
         self.update_connections()
+        self.engine.post_connect_network_init()
 
     def addRightDockWidget(self, key, widget: MainDockWidget):
         show_dock_action = QtWidgets.QAction(key, self.right_toolbar)
@@ -119,8 +120,8 @@ class MainEngineWindow(MainEngineWindowBase):
 
         sr = self.network_tree.signal_register
         # sync_signal_register = ExtendedModelSignalsRegister()
-        model0 = current_model.network.elements[1].pos_origin
-        model1 = current_model.network.elements[1].grid.pos_origin
+        model0 = current_model.network.elements[0].pos_origin
+        model1 = current_model.network.elements[0].grid.pos_origin
         # sr[model0].add_parameter(sr.get_group(model1))
         # o2o_links = ModelParameterLinks(
         #     model=model0,
@@ -137,7 +138,6 @@ class MainEngineWindow(MainEngineWindowBase):
         # )
 
         network_connector = VispyConnector()
-        # network_connector.connect_tree(
         network_connector.cls_connect_tree(
             tree=self.network_tree,
             scene_manager=self.engine.scene_manager)
@@ -148,6 +148,11 @@ class MainEngineWindow(MainEngineWindowBase):
             model2buffers = CudaVispyConnector.cls_connect_tree(
                 tree=self.network_tree, scene_manager=self.engine.scene_manager,
                 device=current_model.network.device)
+            self.engine.network.cuda_opengl_map = model2buffers
+            multiplot_buffers = model2buffers[
+                self.engine.conf.current.network.simulator.plots
+                .voltage_plot
+            ]
 
         model2tensors = TensorConnector.cls_connect_tree(
             tree=self.network_tree,

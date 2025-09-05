@@ -151,6 +151,7 @@ class VisualMixin:
                 v: Visual
                 if not isinstance(v, VisualMixin):
                     if isinstance(v, (MeshVisual, LineVisual)):
+                        # noinspection PyUnreachableCode
                         if isinstance(v, MeshVisual):
                             v.events.add(
                                 auto_connect=False,
@@ -161,7 +162,8 @@ class VisualMixin:
                             v.events.add(
                                 auto_connect=False,
                                 attr_changed=SetAttributeEvent,
-                                mesh_data_changed=MeshDataChangedEvent)
+                                # mesh_data_changed=MeshDataChangedEvent
+                            )
                         if b_verbose:
                             print('added events:', v.__class__.__name__, id(v))
                     else:

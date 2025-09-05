@@ -4,7 +4,10 @@ from typing import ClassVar
 import numpy as np
 from pydantic import Field, NonNegativeInt
 
-from snngine_v4.utils.data_utils.validation.array_annotation import Bool1D
+from snngine_v4.utils.data_utils.dataframe_config import SeriesI32
+from snngine_v4.utils.data_utils.validation.array_annotation import (
+    Bool1D,
+)
 from snngine_v4.geometry.spatial_pars import Pos2DVBO
 from snngine_v4.utils.settings.ui_parameter_options import p_field
 from snngine_v4.visualization.config_models.visuals import (
@@ -107,15 +110,13 @@ class SepLineData(LineVisualConfig):
 class MultiPlotConfig(PlotConfig):
 
     SEP_LINES_KW: ClassVar[str] = 'sep_lines'
+    MAP_KW: ClassVar[str] = 'map'
 
     n_plots: NonNegativeInt = 10
     sep_lines: SepLineData | None = Field(
         default_factory=lambda: SepLineData())
     max_n_plots: int = 1000
-
-    @property
-    def shape(self) -> NonNegativeInt:
-        return self.size_x, self.n_plots
+    map: SeriesI32
 
     @property
     def data_size(self) -> NonNegativeInt:
@@ -143,3 +144,7 @@ class MultiPlotConfig(PlotConfig):
             mesh[0].ravel(),
             mesh[1].ravel(),
         ]).T
+
+    @property
+    def shape(self) -> NonNegativeInt:
+        return self.size_x, self.n_plots

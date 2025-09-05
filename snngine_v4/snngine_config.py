@@ -47,9 +47,11 @@ class EngineConfig(XMLSettingsModel):
         default_factory=lambda:  EngineConstructionConfig(
             network=SpatialNetworkConfig(
                 device=1,
-                elements=[EngineElementConfig(),
-                          NetworkReservoirConfig(),
-                          EngineElementConfig(), ])))
+                elements=[
+                    # EngineElementConfig(),
+                    NetworkReservoirConfig(),
+                    # EngineElementConfig(),
+                ])))
 
     current: EngineConstructionConfig
 

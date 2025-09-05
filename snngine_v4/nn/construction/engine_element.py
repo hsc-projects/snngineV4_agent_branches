@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import ClassVar
+from typing import ClassVar, Tuple, Type
 
 import torch
 from pydantic import BaseModel
 
+from snngine_v4.visualization.cuda.gl_interop import GLTensorDict
 
-from snngine_v4.nn.construction.config_models.engine_element_config \
-    import EngineElementConfig
+from snngine_v4.nn.construction.config_models.engine_element_config import (
+    EngineElementConfig,
+    EngineElementConfigMixin,
+)
 
-from snngine_v4.utils.containers.mappings import ObjectMapConfig
 from snngine_v4.utils.containers.node_map import (
     ModelNodeTreeElementConfig,
     ModelTree,
@@ -29,18 +31,19 @@ from snngine_v4.utils.object_builder.object_builder import \
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 
 
-class EngineNodeElementConfig(ModelNodeTreeElementConfig):
+
+class EngineNodesConfig(ModelNodeTreeElementConfig):
     b_skip_forbidden_types: bool = True
     b_read_list_values: bool = True
 
 
 class EngineNodes(ModelTree):
-    InvertedConfigClass: ClassVar[type(ObjectMapConfig)] = (
-        EngineNodeElementConfig, EngineElementConfig)
-
+    InvertedConfigClass: ClassVar[
+        Tuple[type(EngineNodesConfig), type(EngineElementConfigMixin)]] = (
+        EngineNodesConfig, EngineElementConfigMixin)
 
 class EngineElement(BuilderDict):
-
+    """"""
     TENSOR_DICT_KW: ClassVar[str] = 'tensor_dict'
 
     ROOT_ELEMENT_KW: ClassVar[str] = 'root_element'
@@ -55,10 +58,12 @@ class EngineElement(BuilderDict):
     }
 
     BUILDER_OBJECT_SUPERCLASS_MAP: ClassVar[dict] = {
-        TypedDataFrameBase3D: TensorDict,       # Keep order (1/3)
-        TypedDataFrameModel: TensorDataFrame,   # Keep order (2/3)
-        SeriesModel: TensorSeries,              # Keep order (3/3)
+        TypedDataFrameBase3D: TensorDict,  #        Keep order (1/3)
+        TypedDataFrameModel: TensorDataFrame,  #    Keep order (2/3)
+        SeriesModel: TensorSeries,  #               Keep order (3/3)
     }
+
+    # root_element: SpatialNetwork
 
     def __init__(self, device,
                  model=None,
@@ -99,15 +104,17 @@ class EngineElement(BuilderDict):
 
         if self.root_element is not self:
             self.update_build_kwargs(parent_element)
+        else:
+            self._cuda_opengl_map = None
 
         super().__init__(model_container=build_model,
                          node_tree=node_tree,
-                         build_kwargs={
-                             CudaKeywords.DEVICE: self.device,
-                             self.NODE_TREE_KW: node_tree,
-                             self.ROOT_ELEMENT_KW: root_element,
-                             self.PARENT_ELEMENT_KW: self,
-                         },
+                         # build_kwargs={
+                         #     CudaKeywords.DEVICE: self.device,
+                         #     self.NODE_TREE_KW: node_tree,
+                         #     self.ROOT_ELEMENT_KW: root_element,
+                         #     self.PARENT_ELEMENT_KW: self,
+                         # },
                          **kwargs)
 
         if self.node_tree is None:
@@ -149,12 +156,35 @@ class EngineElement(BuilderDict):
             return False
         return True
 
+    @property
+    def children_models(self):
+        return self.node_tree.children(self.config_model)
+
+    @property
+    def children_elements(self):
+        return [self.root_element[x] for x in self.children_models]
+
     @staticmethod
     def _curand_states(n):
         # noinspection PyUnresolvedReferences
         from snngine_v4.nn.cuda_backend import snn_utils
         cu = snn_utils.CuRandStates(n).ptr()
         return cu
+
+    @property
+    def cuda_gl_dict(self) -> GLTensorDict:
+        gl_dict = self.cuda_opengl_map[self.config_model]
+        return gl_dict
+
+    @cached_property
+    def default_build_kwargs(self):
+        return {
+            CudaKeywords.DEVICE: self.device,
+            self.NODE_TREE_KW: self.node_tree,
+            self.ROOT_ELEMENT_KW: self.root_element,
+            self.PARENT_ELEMENT_KW: self,
+            'b_raise_if_missing_object_class': True
+        }
 
     @classmethod
     def make_object_kwargs(cls, object_class, model: BaseModel, **kwargs):
@@ -167,29 +197,37 @@ class EngineElement(BuilderDict):
         return object_kwargs
 
     @property
-    def children_models(self):
-        return self.node_tree.children(self.config_model)
+    def cuda_opengl_map(self):
+        return self.root_element._cuda_opengl_map
 
-    @property
-    def children_elements(self):
-        return [self.root_element[x] for x in self.children_models]
+    @cuda_opengl_map.setter
+    def cuda_opengl_map(self, value):
+        self.root_element._cuda_opengl_map = value
 
     def parent_element(self):
-        return self.root_element[self.node_tree.parent(self.config_model)]
+        parent_model = self.node_tree.parent(self.config_model)
+        try:
+            return self.root_element[parent_model]
+        except KeyError:
+            if parent_model is self.root_element.config_model:
+                self.root_element[parent_model] = self.root_element
+                return self.root_element[parent_model]
+            raise
 
     def set_tensor_attr(self):
-        tdf_model_dict = self.config_model.tdf_dict()
-        for k, model in tdf_model_dict.items():
-            if model in self:
-                setattr(self, k, self[model])
-            else:
-                pass
-        elt_model_dict = self.config_model.elt_dict()
-        for k, model in elt_model_dict.items():
-            if model in self:
-                setattr(self, k, self[model])
-            else:
-                pass
+        if isinstance(self.config_model, EngineElementConfigMixin):
+            tdf_model_dict = self.config_model.tdf_dict()
+            for k, model in tdf_model_dict.items():
+                if model in self:
+                    setattr(self, k, self[model])
+                else:
+                    pass
+            elt_model_dict = self.config_model.elt_dict()
+            for k, model in elt_model_dict.items():
+                if model in self:
+                    setattr(self, k, self[model])
+                else:
+                    pass
 
     def sync_to_cpu(self):
         self.tensor_dict.sync_to_cpu()

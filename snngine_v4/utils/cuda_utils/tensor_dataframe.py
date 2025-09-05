@@ -11,11 +11,11 @@ from snngine_v4.utils.data_utils.index_config import (
 )
 
 
-class DeviceSyncError(BaseException):
+class DeviceSyncError(Exception):
     pass
 
 
-class InconsistencyError(BaseException):
+class InconsistencyError(Exception):
     pass
 
 

@@ -15,7 +15,7 @@ from snngine_v4.utils.containers.mappings import (
 )
 
 
-class SuperMapConfigError(BaseException):
+class SuperMapConfigError(Exception):
     pass
 
 

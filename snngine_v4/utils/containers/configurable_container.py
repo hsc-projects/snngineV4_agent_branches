@@ -16,15 +16,15 @@ from snngine_v4.utils.field_utils import (
 from snngine_v4.utils.settings.config_model import ConfigModel
 
 
-class ConfigurationError(BaseException):
+class ConfigurationError(Exception):
     pass
 
 
-class ExtensionByDuplicateError(BaseException):
+class ExtensionByDuplicateError(Exception):
     pass
 
 
-class UndefinedDefaultError(BaseException):
+class UndefinedDefaultError(Exception):
     pass
 
 

@@ -43,7 +43,6 @@ from snngine_v4.utils.field_utils import (
 
 from snngine_v4.utils.settings.ui_parameter_options import (
     FrozenParamOpts,
-    ParamOpts,
 )
 
 

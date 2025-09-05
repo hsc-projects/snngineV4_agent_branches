@@ -156,8 +156,10 @@ def fill_array_field_default(
     return dct[key]
 
 
+# noinspection DuplicatedCode
 type Bool1D = ArrayInterfaces().make_type('* x', dtype=np.bool)
 type Bool2D = ArrayInterfaces().make_type('* x', '* y', dtype=np.bool)
+type i32_1D = ArrayInterfaces().make_type('* x', dtype=np.int32)
 type i32_2D = ArrayInterfaces().make_type('* x', '* y', dtype=np.int32)
 type i32_3D = ArrayInterfaces().make_type(
     '* x', '* y', '* z', dtype=np.int32)

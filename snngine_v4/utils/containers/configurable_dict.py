@@ -83,7 +83,7 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
 
     def set_default(
             self, item,
-            error: BaseException | Type[BaseException] = UndefinedDefaultError):
+            error: Exception | Type[Exception] = UndefinedDefaultError):
         if self._container_conf.default_value != Undefined:
             self[item] = self._container_conf.default_value
             return self[item]

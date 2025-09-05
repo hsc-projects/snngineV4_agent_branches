@@ -57,8 +57,10 @@ class PresetParameter(ConfigModel):
 
     PRESET_CONTAINER: ClassVar[type(dict)] = PresetsContainer
 
-    preset_type: ListParameterModel | str
-    preset_name: ListParameterModel | str
+    preset_type: ListParameterModel | str = Field(
+        default_factory=ListParameterModel)
+    preset_name: ListParameterModel | str = Field(
+        default_factory=ListParameterModel)
 
     preset: Preset
 

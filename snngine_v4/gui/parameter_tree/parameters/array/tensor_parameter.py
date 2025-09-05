@@ -19,12 +19,7 @@ from snngine_v4.utils.data_utils.validation.array_annotation import \
     ArrayInterfaces
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
-# try:
-from snngine_v4.visualization.cuda.gl_interop.gl_tensor_dict \
-    import GLTensorDict
-# except ModuleNotFoundError:
-#     class GLTensorDict:
-#         pass
+from snngine_v4.visualization.cuda.gl_interop import GLTensorDict
 
 from snngine_v4.utils.cuda_utils.tensor_dict import TensorDict
 

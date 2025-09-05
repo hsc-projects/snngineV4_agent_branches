@@ -9,9 +9,9 @@ import numpy as np
 from snngine_v4.utils.data_utils.index_config import IndexConfig, RowOrColumn
 from snngine_v4.utils.data_utils.validation.array_annotation import (
     ArrayInterfaces, Bool2D,
-    i32_2D, i32_3D,
+    i32_1D, i32_2D, i32_3D,
     i64_1D, i64_2D,
-    f32_1D, f32_2D, f32_3D
+    f32_1D, f32_2D, f32_3D,
 )
 from snngine_v4.utils.field_utils import Undefined
 from snngine_v4.utils.settings.config_model import ConfigModel
@@ -128,6 +128,12 @@ class SeriesModel(ConfigModel):
                     cls.Slots.INDEX: list(data.index)}
         res = super()._validate_model_before(data=data)
         return res
+
+
+class SeriesI32(SeriesModel):
+    data: i32_1D = Field(
+        default_factory=lambda: np.array([], dtype=np.int32),
+        repr=True)
 
 
 class SeriesF32(SeriesModel):

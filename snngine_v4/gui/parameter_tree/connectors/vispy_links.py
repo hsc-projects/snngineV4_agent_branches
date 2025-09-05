@@ -396,7 +396,7 @@ class VispyLinks(Object2ObjectLinks):
         return kwargs
 
     def prepare_object(self, obj, link_type: LinkStateType,
-                       debug_catch=BaseException, **kwargs):
+                       debug_catch=Exception, **kwargs):
         raise NotImplementedError
 
     def update_camera_object(

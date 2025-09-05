@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import cached_property
 from types import NoneType
 from typing import Type
 
@@ -23,6 +24,8 @@ class BuilderDict(Model2ObjectMap, ModelObjectBuilder):
         self.node_tree = node_tree
         super().__init__(**kwargs)
         if model_container is not None:
+            if build_kwargs is None:
+                build_kwargs = self.default_build_kwargs
             if build_kwargs is not None:
                 build_res = self.cls_build_container(
                     model_container=model_container, **build_kwargs).object_dict
@@ -35,6 +38,10 @@ class BuilderDict(Model2ObjectMap, ModelObjectBuilder):
         build_result = self.cls_build_obj(model=model, **kwargs).built
         self[model] = build_result
         return build_result
+
+    @cached_property
+    def default_build_kwargs(self):
+        return None
 
     @classmethod
     def cls_make_container_conf(

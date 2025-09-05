@@ -9,18 +9,29 @@ from snngine_v4.utils.data_utils.dataframe_config import (
 from snngine_v4.utils.settings.config_model import ConfigModel
 
 
-class EngineElementConfig(ConfigModel):
 
-    class Slots:
-        INITIALIZER: ClassVar[str] = 'initializer'
-
-    def elt_dict(self, **kwargs):
+class EngineElementConfigMixin:
+    def elt_dict(self: ConfigModel, **kwargs):
         return self.filtered_model_dict(
             type_filter=EngineElementConfig, **kwargs)
 
-    def elt_values(self, **kwargs):
+    def elt_values(self: ConfigModel, **kwargs):
         return self.filtered_model_values(
             type_filter=EngineElementConfig, **kwargs)
+
+    def tdf_dict(self: ConfigModel, **kwargs):
+        return self.filtered_model_dict(
+            type_filter=SeriesModel, **kwargs)
+
+    def tdf_values(self: ConfigModel, **kwargs):
+        return self.filtered_model_values(
+            type_filter=SeriesModel, **kwargs)
+
+
+class EngineElementConfig(ConfigModel, EngineElementConfigMixin):
+
+    class Slots:
+        INITIALIZER: ClassVar[str] = 'initializer'
 
     @staticmethod
     def reset_array(model, class_=None, slot=None, n_indices=None, n_cols=None):
@@ -40,14 +51,6 @@ class EngineElementConfig(ConfigModel):
                 n_indices=n_indices, n_cols=n_cols, )
         else:
             value.data = value.zeroes(n_cols=n_cols, n_indices=n_indices)
-
-    def tdf_dict(self, **kwargs):
-        return self.filtered_model_dict(
-            type_filter=SeriesModel, **kwargs)
-
-    def tdf_values(self, **kwargs):
-        return self.filtered_model_values(
-            type_filter=SeriesModel, **kwargs)
 
 
 class EngineElementConfig3D(EngineElementConfig, Object3DConfig):

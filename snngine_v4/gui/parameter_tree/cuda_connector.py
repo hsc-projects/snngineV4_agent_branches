@@ -2,7 +2,8 @@ from typing import Type
 
 from pydantic import BaseModel
 from vispy.gloo import get_current_canvas
-from vispy.visuals import MarkersVisual, Visual
+from vispy.visuals import LineVisual, MarkersVisual, Visual
+from vispy.visuals.line.line import _GLLineVisual
 
 from snngine_v4.gui.parameter_tree.connectors.model_signals_register import \
     ExtendedModelSignalsRegister
@@ -16,6 +17,8 @@ from snngine_v4.gui.parameter_tree.parameters.array.tensor_parameter import (
 from snngine_v4.utils.containers.mappings import (
     ObjectMapConfig, Many2OneObjectMap,
 )
+from snngine_v4.visualization.config_models.plotting.multi_line_plot import \
+    MultiPlotConfig
 from snngine_v4.visualization.cuda.gl_interop.gl_tensor import (
     GLVBOTensor,
 )
@@ -28,9 +31,12 @@ from snngine_v4.visualization.scenes.scene_manager import (
 
 
 class CudaVispyConnector(ParameterConnector):
+    """"""
+
 
     class ContainerConfigClass(ObjectMapConfig, frozen=True):
         allowed_types: Type[GLTensorDict] = GLTensorDict
+
 
     @classmethod
     def connect_object(cls, model: BaseModel, obj: Visual,
@@ -48,6 +54,15 @@ class CudaVispyConnector(ParameterConnector):
                 device=device, **kwargs)
             res['vbo'] = gl_tensor
             # print(gl_tensor)
+        elif isinstance(obj, LineVisual):
+            if isinstance(model, MultiPlotConfig):
+                line_sub_visual: _GLLineVisual = obj._line_visual
+                pos_vbo_id = cls.gl_buffer_id(line_sub_visual._pos_vbo.id)
+                gl_tensor = GLVBOTensor(
+                    opengl_id=pos_vbo_id,
+                    shape=(len(obj.pos), obj.pos.dtype.itemsize // 4),
+                    device=device, **kwargs)
+                res['pos_vbo'] = gl_tensor
         else:
             pass
             # raise NotImplementedError

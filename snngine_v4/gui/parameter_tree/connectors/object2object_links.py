@@ -265,7 +265,7 @@ class Object2ObjectLinks(TypeSortedMap):
 
     def prepare_object(self, obj, link_type: LinkStateType,
                        b_allow_new: bool = False,
-                       debug_catch=BaseException):
+                       debug_catch=Exception):
 
         link_map = self.get_sub_map_by_type(link_type)
 

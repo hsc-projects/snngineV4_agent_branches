@@ -61,76 +61,77 @@ class NetworkReservoir(EngineElement):
         self.L_Group_delay_counts = self.zeros_i32((G, D + 1))
 
     def fill_tensors(self,):
-        if self.b_cuda_backend_available is True:
-            # noinspection PyUnresolvedReferences
-            from snngine_v4.nn.cuda_backend import (
-                snn_utils, snn_construction_gpu, snn_simulation_gpu
-            )
+        if self.b_cuda_backend_available is False:
+            return
+        # noinspection PyUnresolvedReferences
+        from snngine_v4.nn.cuda_backend import (
+            snn_utils, snn_construction_gpu, snn_simulation_gpu
+        )
 
-            S = self.config_model.S
-            G = self.config_model.G
-            D = self.config_model.D
-            model: NetworkReservoirConfig = self.config_model
+        S = self.config_model.S
+        G = self.config_model.G
+        D = self.config_model.D
+        model: NetworkReservoirConfig = self.config_model
 
-            self.neuron_states.fill_tensors_and_group_neuron_type_counts()
+        self.neuron_states.fill_tensors_and_group_neuron_type_counts()
 
-            ravel_counts = self.L_Group_neuronCounts[: 2, :]
-            self.G_neuron_typed_ccount[1:] = ravel_counts.ravel().cumsum(dim=0)
+        ravel_counts = self.L_Group_neuronCounts[: 2, :]
+        self.G_neuron_typed_ccount[1:] = ravel_counts.ravel().cumsum(dim=0)
 
-            self.neuron_states.N_flags.sync_to_df()
-            self.config_model.neuron_states.N_flags.validate_data(
-                data=self.neuron_states.N_flags, N_pos=self.N_pos,
-                # shape=self.reservoir_config.reservoir_shape.as_tuple(),)
-                shape=self.config_model.grid.shape.as_tuple(),)
+        self.neuron_states.N_flags.sync_to_df()
+        self.config_model.neuron_states.N_flags.validate_data(
+            data=self.neuron_states.N_flags, N_pos=self.N_pos,
+            # shape=self.reservoir_config.reservoir_shape.as_tuple(),)
+            shape=self.config_model.grid.shape.as_tuple(),)
 
-            b_thalamic_input_row = model.L_Group_flags.index.b_thalamic_input
-            sensory_input_type_row = model.L_Group_flags.index.sensory_input_type
-            b_monitor_group_firing_count_row = (
-                model.L_Group_flags.index.b_monitor_group_firing_count)
+        b_thalamic_input_row = model.L_Group_flags.index.b_thalamic_input
+        sensory_input_type_row = model.L_Group_flags.index.sensory_input_type
+        b_monitor_group_firing_count_row = (
+            model.L_Group_flags.index.b_monitor_group_firing_count)
 
-            self.L_Group_flags[b_thalamic_input_row] = 0
-            self.L_Group_flags[b_thalamic_input_row][: G // 2] = 1
-            self.L_Group_flags[sensory_input_type_row] = -1
-            self.L_Group_flags[b_monitor_group_firing_count_row] = 1
+        self.L_Group_flags[b_thalamic_input_row] = 0
+        self.L_Group_flags[b_thalamic_input_row][: G // 2] = 1
+        self.L_Group_flags[sensory_input_type_row] = -1
+        self.L_Group_flags[b_monitor_group_firing_count_row] = 1
 
-            G_pos = torch.tensor(self.grid.pos, device=self.device)
+        G_pos = torch.tensor(self.grid.pos, device=self.device)
 
-            G_distance = torch.cdist(G_pos, G_pos)
-            max_dist = G_distance.max()
-            G_delay_distance = ((D - 1) * G_distance / max_dist).round().int()
-            G_rep = (torch.sort(G_delay_distance, dim=1, stable=True)
-                     .indices.int())
+        G_distance = torch.cdist(G_pos, G_pos)
+        max_dist = G_distance.max()
+        G_delay_distance = ((D - 1) * G_distance / max_dist).round().int()
+        G_rep = (torch.sort(G_delay_distance, dim=1, stable=True)
+                 .indices.int())
 
-            dist_idx = self.config_model.L_Group2Group_properties.index
-            LG2GF_idx = self.config_model.L_Group2Group_flags.index
+        dist_idx = self.config_model.L_Group2Group_properties.index
+        LG2GF_idx = self.config_model.L_Group2Group_flags.index
 
-            self.L_Group2Group_properties[dist_idx.distance][:] = G_distance
-            self.L_Group2Group_flags[LG2GF_idx.delay_distance][:] = G_delay_distance
-            self.L_Group2Group_flags[LG2GF_idx.rep][:] = G_rep
+        self.L_Group2Group_properties[dist_idx.distance][:] = G_distance
+        self.L_Group2Group_flags[LG2GF_idx.delay_distance][:] = G_delay_distance
+        self.L_Group2Group_flags[LG2GF_idx.rep][:] = G_rep
 
-            snn_construction_gpu.fill_G_neuron_count_per_delay(
-                S=S, D=D, G=G,
-                G_delay_distance=self.L_Group2Group_flags[LG2GF_idx.delay_distance]
-                .data_ptr(),
-                G_neuron_counts=self.L_Group_neuronCounts.data_ptr())
+        snn_construction_gpu.fill_G_neuron_count_per_delay(
+            S=S, D=D, G=G,
+            G_delay_distance=self.L_Group2Group_flags[LG2GF_idx.delay_distance]
+            .data_ptr(),
+            G_neuron_counts=self.L_Group_neuronCounts.data_ptr())
 
-            self.config_model.L_Group_neuronCounts.validate_data(
-                data=self.L_Group_neuronCounts.gpu_values,
-                type_groups=self.config_model.type_groups, D=D, G=G,)
+        self.config_model.L_Group_neuronCounts.validate_data(
+            data=self.L_Group_neuronCounts.gpu_values,
+            type_groups=self.config_model.type_groups, D=D, G=G,)
 
-            for d in range(D):
-                self.L_Group_delay_counts[:, d + 1] = (
-                    self.L_Group_delay_counts[:, d]
-                    + G_delay_distance.eq(d).sum(dim=1))
+        for d in range(D):
+            self.L_Group_delay_counts[:, d + 1] = (
+                self.L_Group_delay_counts[:, d]
+                + G_delay_distance.eq(d).sum(dim=1))
 
-            # self.sync_to_cpu()
+        # self.sync_to_cpu()
 
-            self.neuron_states.apply_preset()
+        self.neuron_states.apply_preset()
 
-            # group_row = self.config_model.neuron_states.N_flags.index.L_group
-            self.synapses.fill_tensors()
+        # group_row = self.config_model.neuron_states.N_flags.index.L_group
+        self.synapses.fill_tensors()
 
-            self.sync_to_cpu()
+        self.sync_to_cpu()
 
         return
 
@@ -148,71 +149,3 @@ class NetworkReservoir(EngineElement):
     @property
     def N_flags(self):
         return self.neuron_states.N_flags
-
-    @cached_property
-    def SimulatorBackend(self):
-
-        spnn = self.parent_element()
-        N = self.config_model.N
-        G = self.config_model.G
-        S = self.config_model.S
-        D = self.config_model.D
-
-        sim = snn_simulation_gpu.SnnSimulation(
-            N=N, G=G, S=S, D=D,
-            T=spnn.config_model.simulator.T,
-            n_voltage_plots=plotting_config.voltage_multiplot.n_plots,
-            voltage_plot_length=plotting_config.voltage_x_length,
-            voltage_plot_data=self._voltage_multiplot.vbo_array.data_ptr(),
-            voltage_plot_map=self._voltage_multiplot.map.data_ptr(),
-            n_scatter_plots=plotting_config.firing_scatter_plot.n_plots,
-            scatter_plot_length=plotting_config.firings_x_length,
-            scatter_plot_data=self._firing_scatter_plot.vbo_array.data_ptr(),
-            scatter_plot_map=self._firing_scatter_plot.map.data_ptr(),
-            curand_states_p=self.neurons.curand_states,
-            N_pos=self.neurons.N_visual.gpu_array.data_ptr(),
-            # N_G=self.N_G.data_ptr(),
-            G_group_delay_counts=self.neurons.G_group_delay_counts.data_ptr(),
-            G_flags=self.neurons.G_flags.data_ptr(),
-            G_props=self.neurons.G_props.data_ptr(),
-            N_rep=self.synapse_arrays.N_rep.data_ptr(),
-            N_rep_buffer=self.synapse_arrays.N_rep_buffer.data_ptr(),
-            N_rep_pre_synaptic=self.synapse_arrays.N_rep_pre_synaptic
-            .data_ptr(),
-            N_rep_pre_synaptic_idcs=self.synapse_arrays.N_rep_pre_synaptic_idcs
-            .data_ptr(),
-            N_rep_pre_synaptic_counts=self.synapse_arrays
-            .N_rep_pre_synaptic_counts.data_ptr(),
-            N_delays=self.synapse_arrays.N_delays.data_ptr(),
-            N_flags=self.neurons.N_flags.data_ptr(),
-            N_states=self.neurons.N_states.data_ptr(),
-            N_weights=self.synapse_arrays.N_weights.data_ptr(),
-            fired=self.Fired.data_ptr(),
-            last_fired=self.last_Fired.data_ptr(),
-            firing_times=self.Firing_times.data_ptr(),
-            firing_idcs=self.Firing_idcs.data_ptr(),
-            firing_counts=self.Firing_counts.data_ptr(),
-            G_firing_count_hist=self.G_firing_count_hist.data_ptr(),
-            G_stdp_config0=self.neurons.G2G_info.G_stdp_configs[0].data_ptr(),
-            G_stdp_config1=self.neurons.G2G_info.G_stdp_configs[1].data_ptr(),
-            G_avg_weight_inh=self.neurons.G2G_info.G_avg_weight_inh.data_ptr(),
-            G_avg_weight_exc=self.neurons.G2G_info.G_avg_weight_exc.data_ptr(),
-            G_syn_count_inh=self.neurons.G2G_info.G_syn_count_inh.data_ptr(),
-            G_syn_count_exc=self.neurons.G2G_info.G_syn_count_exc.data_ptr(),
-            L_winner_take_all_map=self.synapse_arrays.L_winner_take_all_map
-            .data_ptr(),
-            max_n_winner_take_all_layers=self._config.layering
-            .max_n_winner_take_all_layers,
-            max_winner_take_all_layer_size=self._config.layering
-            .max_winner_take_all_layer_size,
-            C_old=self.chemical_concentrations.c0.state.c_current.data_ptr(),
-            C_new=self.chemical_concentrations.c0.state.c_next.data_ptr(),
-            C_source=self.chemical_concentrations.c0.state.c_source.data_ptr(),
-            # debug_neuron_id=-1,
-            chem_grid_w=self.chemical_concentrations.c0.width,
-            chem_grid_h=self.chemical_concentrations.c0.height,
-            chem_grid_d=self.chemical_concentrations.c0.depth,
-            chem_k_val=self.chemical_concentrations.c0.k_val,
-            chem_depreciation=self.chemical_concentrations.c0.depreciation
-        )
-        return sim

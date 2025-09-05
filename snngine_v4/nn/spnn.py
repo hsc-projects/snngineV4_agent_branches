@@ -1,4 +1,7 @@
+from functools import cached_property
 from typing import ClassVar
+
+from pydantic import BaseModel
 
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
 from snngine_v4.geometry.grid_config import FiniteGridConfig
@@ -15,10 +18,20 @@ from snngine_v4.nn.sim.simulator import Simulator, SimulatorOptions
 
 from snngine_v4.nn.spnn_reservoir import NetworkReservoir
 from snngine_v4.nn.construction.engine_element import EngineElement, EngineNodes
+from snngine_v4.utils.cuda_utils.cuda_functions import CudaKeywords
+from snngine_v4.utils.cuda_utils.tensor_dict import TensorDict
+
+
+type GetNetworkElementType = (int | EngineElementConfig
+                              | EngineElement | NetworkReservoirConfig)
+type NetworkElementType = NetworkReservoir | EngineElement
 
 
 # noinspection PyPep8Naming
 class SpatialNetwork(EngineElement):
+    """
+
+    """
 
     BUILDER_OBJECT_CLASS_MAP: ClassVar = {
         FiniteGridConfig: FiniteGrid,
@@ -33,18 +46,52 @@ class SpatialNetwork(EngineElement):
 
         self.data: dict[EngineElementConfig, EngineElement] | None = None
 
+        node_tree = EngineNodes(root=model)
+
         super().__init__(build_model=model.elements,
                          device=device,
                          config_model=model,
-                         node_tree=EngineNodes(root=model),
+                         node_tree=node_tree,
                          root_element=self,
                          )
 
-        self.grid: FiniteGrid = self.add_build(self.config_model.grid)
         for elt_conf in self.config_model.elements:
             elt = self[elt_conf]
             if isinstance(elt, NetworkReservoir):
                 elt.fill_tensors()
 
-        p = self[model.elements[1]].neuron_states.parent_element()
+        p = self.get_network_element(0).neuron_states.parent_element()
 
+        self.simulator
+
+    # @cached_property
+    # def engine_build_kwargs(self):
+    #     return {
+    #         CudaKeywords.DEVICE: self.device,
+    #         self.NODE_TREE_KW: self.node_tree,
+    #         self.ROOT_ELEMENT_KW: self,
+    #         self.PARENT_ELEMENT_KW: self,
+    #     }
+
+    def configure_simulator(self, element: GetNetworkElementType):
+        self.simulator.init_simulator_backend(
+            element=self.get_network_element(element))
+
+    def get_network_element(
+            self, index_or_model: GetNetworkElementType) -> NetworkElementType:
+        if isinstance(index_or_model, int):
+            index_or_model = self.config_model.elements[index_or_model]
+        elif isinstance(index_or_model, EngineElement):
+            return index_or_model
+        return self[index_or_model]
+
+    @cached_property
+    def grid(self) -> FiniteGrid:
+        self.add_build(self.config_model.grid)
+        return self[self.config_model.grid]
+
+    @cached_property
+    def simulator(self) -> Simulator:
+        self.add_build(self.config_model.simulator,
+                       **self.default_build_kwargs)
+        return self[self.config_model.simulator]

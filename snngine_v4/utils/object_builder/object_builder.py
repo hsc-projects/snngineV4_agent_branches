@@ -28,7 +28,7 @@ class ContainerBuildResultConfig(ObjectMapConfig, frozen=True):
 
 
 class ContainerBuildResult(Model2ObjectMap):
-
+    """"""
     ContainerConfigClass: ClassVar = ContainerBuildResultConfig
 
     @property
@@ -48,18 +48,18 @@ class ObjectInitializationType(IntEnum):
     MODEL_AND_KWARGS = auto()
 
 
-class MissingClassDefinitionError(BaseException):
-    pass
+class MissingClassDefinitionError(Exception):
+    """Raised when a class definition is missing"""
 
 
 class ModelObjectBuilder:
-
+    """"""
     b_enum_to_values: ClassVar[bool] = True
 
-    BUILDER_DEFAULT_MODEL_CLASS: ClassVar[Type[BaseModel]] = None
-    DEFAULT_MODEL_CONTAINER_CLASS: ClassVar[Type[BaseModel]] = None
+    BUILDER_DEFAULT_MODEL_CLASS: ClassVar[Type[BaseModel] | None] = None
+    DEFAULT_MODEL_CONTAINER_CLASS: ClassVar[Type[BaseModel] | None] = None
 
-    BUILDER_DEFAULT_OBJECT_CLASS: ClassVar[Type] = None
+    BUILDER_DEFAULT_OBJECT_CLASS: ClassVar[Type| None] = None
     BUILDER_OBJECT_CLASS_MAP: ClassVar[dict[Type[BaseModel], Type]] = {}
     BUILDER_OBJECT_SUPERCLASS_MAP: ClassVar[dict[Type[BaseModel], Type]] = {}
     BUILDER_OBJECT_CLASS_MIXER: ClassVar[Type[ClassMixer] | None] = None
@@ -67,10 +67,10 @@ class ModelObjectBuilder:
     DEFAULT_OBJECT_INIT_TYPE: ObjectInitializationType = (
         ObjectInitializationType.KWARGS)
 
-    OBJECT_INIT_TYPES: ClassVar[dict[Type[BaseModel],
-                                ObjectInitializationType]] = {}
-    OBJECT_INIT_SUPER_TYPES: ClassVar[dict[Type[BaseModel],
-                                      ObjectInitializationType]] = {}
+    OBJECT_INIT_TYPES: ClassVar[
+        dict[Type[BaseModel], ObjectInitializationType]] = {}
+    OBJECT_INIT_SUPER_TYPES: ClassVar[
+        dict[Type[BaseModel], ObjectInitializationType]] = {}
 
     @classmethod
     def cls_build_container(
@@ -94,8 +94,9 @@ class ModelObjectBuilder:
             keys = model_container.keys()
             models = model_container.values()
         elif isinstance(model_container, BaseModel):
-            keys = model_keys(model=model_container,
-                              exclude=BaseModelSlots.CLASS__NAME)
+            keys = model_keys(
+                model=model_container,
+                exclude=BaseModelSlots.CLASS__NAME)
             keys = [k for k in keys
                     if isinstance(getattr(model_container, k), BaseModel)]
             models = [getattr(model_container, k) for k in keys]
@@ -159,8 +160,9 @@ class ModelObjectBuilder:
         if default is not None:
             return default
         else:
+            name_list = ', '.join([x.__name__ for x in class_dct.keys()])
             raise MissingClassDefinitionError(
-                f"{class_} is not in {class_dct.keys()}")
+                f"{class_.__name__} is not in [{name_list}]")
 
     @classmethod
     def find_object_class(cls, model, b_ignore_default: bool,
@@ -171,9 +173,9 @@ class ModelObjectBuilder:
                 super_dct=cls.BUILDER_OBJECT_SUPERCLASS_MAP,
                 default=cls.BUILDER_DEFAULT_OBJECT_CLASS
                 if (b_ignore_default is False) else None)
-        except MissingClassDefinitionError:
+        except MissingClassDefinitionError as error:
             if b_raise:
-                raise
+                raise error
             object_class = None
 
         if cls.BUILDER_OBJECT_CLASS_MIXER is not None:
@@ -215,7 +217,9 @@ class ModelObjectBuilder:
 
     @classmethod
     def get_model(cls, model: BaseModel | None):
-        return model or cls.BUILDER_DEFAULT_MODEL_CLASS()
+        if model is None:
+            return cls.BUILDER_DEFAULT_MODEL_CLASS()
+        return model
 
     @classmethod
     def make_object(cls, object_class, object_model, **object_kwargs):

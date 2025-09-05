@@ -20,10 +20,15 @@ class NeuronInitializerParameters(ConfigModel):
 
 
 class NeuronStateModel(EngineElementConfig):
+    """
+
+    """
+
 
     class Slots(EngineElementConfig.Slots):
         FLAGS: ClassVar[str] = 'N_flags'
         PROPS: ClassVar[str] = 'N_props'
+
 
     initializer: NeuronInitializerParameters
     N_flags: NeuronFlags
