@@ -4,12 +4,13 @@ from copy import copy
 
 import numpy as np
 from pydantic import BaseModel
-from vispy.scene import Line, TurntableCamera, VisualNode, XYZAxis
+from vispy.scene import Line, Markers, TurntableCamera, VisualNode, XYZAxis
 from vispy.util.event import Event
 from vispy.visuals import (
     BoxVisual, CompoundVisual, LineVisual, MarkersVisual,
     MeshVisual, Visual,
 )
+from vispy.visuals.line.line import _GLLineVisual
 from vispy.visuals.transforms import STTransform
 
 from snngine_v4.utils.core_utils import type_assertion
@@ -31,8 +32,10 @@ from snngine_v4.utils.containers.mappings import Model2ObjectMap
 from snngine_v4.utils.field_utils import Undefined
 # from snngine_v4.utils.settings.ui_parameter_options import update_param_opts
 from snngine_v4.visualization.buffer_utils import adapt_dim
-from snngine_v4.visualization.config_models.plotting.multi_line_plot import \
-    MultiPlotConfig
+from snngine_v4.visualization.config_models.plotting.multi_line_plot import (
+    MultiLinePlotConfig,
+    MultiLinePlotConfig, MultiScatterPlotConfig
+)
 from snngine_v4.visualization.config_models.vispy_camera_configs import (
     CameraCenter, TurnTableCameraParameters,
 )
@@ -52,8 +55,10 @@ from snngine_v4.visualization.scenes.setattribute_event import (
 )
 from snngine_v4.visualization.visual_builder import (
     VispyVisualBuilder,
-    VisualMixin,
+    VisualMixin, VisualMixins,
 )
+from snngine_v4.visualization.visuals.compound_markers import \
+    CompoundMarkersVisual
 from snngine_v4.visualization.visuals.grid_lines import (
     GSGLLineVisual, FiniteGridLinesVisual,
     MultiBoxLinesVisual,
@@ -82,6 +87,7 @@ class VispyLinks(Object2ObjectLinks):
 
         node_tree = None
         if isinstance(vispy_obj, (BoxVisual,
+                                  CompoundMarkersVisual,
                                   FiniteGridLinesVisual,
                                   MultiBoxLinesVisual,
                                   Line,
@@ -149,24 +155,36 @@ class VispyLinks(Object2ObjectLinks):
                     type_assertion(self.sink, BoxVisual)
                 elif isinstance(self.source, MultiBoxLinesVisualConfig):
                     type_assertion(self.sink, MultiBoxLinesVisual)
-                elif isinstance(self.source, MultiPlotConfig):
+                elif isinstance(self.source, MultiLinePlotConfig):
                     type_assertion(self.sink, LineVisual)
                     self.add_links(self.update_object)
+                elif isinstance(self.source, MultiScatterPlotConfig):
+                    type_assertion(self.sink, CompoundMarkersVisual)
+                    self.add_links(self.update_object)
                 else:
-                    raise NotImplementedError
+                    raise NotImplementedError(type(self.source).__name__)
                 # noinspection PyProtectedMember
 
                 sub_visuals = copy(self.sink._subvisuals)
 
                 if len(sub_visuals) > 0:
 
-                    if isinstance(self.source, MultiPlotConfig):
-                        if len(sub_visuals) > 2:
+                    if isinstance(self.source, (MultiLinePlotConfig,
+                                                MultiScatterPlotConfig)):
+                        if len(sub_visuals) != 2:
                             raise NotImplementedError
                         sub_visual_model = self.source.sep_lines
-                        sub_visual = sub_visuals.pop(1)
-                        self.sub_visual_map[sub_visual_model] = sub_visual
-                        sub_visuals.pop(0)
+                        sub_visual0 = sub_visuals.pop(0)
+                        sub_visual1 = sub_visuals.pop(0)
+                        type_assertion(
+                            sub_visual1,
+                            VispyVisualBuilder.find_object_class(
+                                sub_visual_model, b_ignore_default=True))
+                        self.sub_visual_map[sub_visual_model] = sub_visual1
+                        if isinstance(self.source, MultiLinePlotConfig):
+                            type_assertion(sub_visual0, _GLLineVisual)
+                        elif isinstance(self.source, MultiScatterPlotConfig):
+                            type_assertion(sub_visual0, Markers)
 
                     if len(sub_visuals) > 0:
                         self.source.subvisuals = []

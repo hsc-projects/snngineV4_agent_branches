@@ -2,19 +2,21 @@ from enum import auto, IntEnum
 from typing import ClassVar
 
 import numpy as np
-from pydantic import Field, NonNegativeInt
+from pydantic import Field, NonNegativeFloat, NonNegativeInt
 
+from snngine_v4.utils.core_utils import filter_dict_keys
 from snngine_v4.utils.data_utils.dataframe_config import SeriesI32
 from snngine_v4.utils.data_utils.validation.array_annotation import (
     Bool1D,
 )
 from snngine_v4.geometry.spatial_pars import Pos2DVBO
+from snngine_v4.utils.settings.config_model import ConfigModel
 from snngine_v4.utils.settings.ui_parameter_options import p_field
 from snngine_v4.visualization.config_models.visuals import (
-    LineVisualConfig,
+    LineVisualConfig, MarkersVisualConfig, VisualConfig,
 )
 from snngine_v4.visualization.config_models.visuals.parameters import (
-    ColorVBO,
+    ColorVBO, RGBAColorType,
 )
 
 
@@ -25,26 +27,7 @@ class PlotViewMode(IntEnum):
     NONE = auto()
 
 
-class PlotConfig(LineVisualConfig):
-    size_x: NonNegativeInt = 1
-    max_size_x: int = 10000
-
-    # noinspection Pydantic
-    connect: Bool1D = Field(
-        default_factory=lambda: np.array([True, True, False],
-                                         dtype=np.bool),
-        repr=False)
-
-    pos: Pos2DVBO = Field(
-        default_factory=lambda: np.array([
-            [0, 0],
-            [0, 0],
-            [0, 0],], dtype=np.float32),
-        repr=False)
-    color: ColorVBO = Field(
-        default_factory=lambda: np.array(
-            [[0, 0, 0, 0]], dtype=np.float32), repr=False)
-    view_mode: PlotViewMode = PlotViewMode.SCENE
+class PlotConfigMixin:
 
     @property
     def data_size(self) -> NonNegativeInt:
@@ -68,6 +51,28 @@ class PlotConfig(LineVisualConfig):
         pos[:, 0] = np.linspace(0, self.data_size - 1, self.data_size),
         return pos
 
+
+class LinePlotConfigBase(LineVisualConfig):
+    size_x: NonNegativeInt = 1
+    max_size_x: int = 10000
+
+    # noinspection Pydantic
+    connect: Bool1D = Field(
+        default_factory=lambda: np.array([True, True, False],
+                                         dtype=np.bool),
+        repr=False)
+
+    pos: Pos2DVBO = Field(
+        default_factory=lambda: np.array([
+            [0, 0],
+            [0, 0],
+            [0, 0],], dtype=np.float32),
+        repr=False)
+    color: ColorVBO = Field(
+        default_factory=lambda: np.array(
+            [[0, 0, 0, 0]], dtype=np.float32), repr=False)
+    view_mode: PlotViewMode = PlotViewMode.SCENE
+
     def model_post_init(self, __context):
         super().model_post_init(__context)
         if self.pos.shape != (self.data_size, 2):
@@ -76,6 +81,10 @@ class PlotConfig(LineVisualConfig):
             self.connect = self.make_connect()
         if self.color.shape != (self.data_size, 4):
             self.color = self.make_color()
+
+
+class PlotConfig(LinePlotConfigBase, PlotConfigMixin):
+    pass
 
 
 class SepLineData(LineVisualConfig):
@@ -106,17 +115,19 @@ class SepLineData(LineVisualConfig):
         pos[:, 1] = np.linspace(0, n_plots, self.n_sep_lines).repeat(2)
         return pos, color
 
+    @classmethod
+    def keep_object_init_kwargs(cls, kwargs):
+        line_keys = set(LineVisualConfig.cls_model_keys())
+        plot_keys0 = set(SepLineData.cls_model_keys())
+        exclude = plot_keys0 - line_keys
+        kwargs_ = filter_dict_keys(dct=kwargs, exclude=exclude)
+        return kwargs_
 
-class MultiPlotConfig(PlotConfig):
+
+class MultiPlotConfigMixin(PlotConfigMixin):
 
     SEP_LINES_KW: ClassVar[str] = 'sep_lines'
     MAP_KW: ClassVar[str] = 'map'
-
-    n_plots: NonNegativeInt = 10
-    sep_lines: SepLineData | None = Field(
-        default_factory=lambda: SepLineData())
-    max_n_plots: int = 1000
-    map: SeriesI32
 
     @property
     def data_size(self) -> NonNegativeInt:
@@ -145,6 +156,87 @@ class MultiPlotConfig(PlotConfig):
             mesh[1].ravel(),
         ]).T
 
+    @classmethod
+    def _keep_object_init_kwargs(
+            cls: ConfigModel,
+            kwargs, core_class: type[VisualConfig]):
+        line_keys = set(core_class.cls_model_keys())
+        # plot_keys0 = set(SepLineData.cls_model_keys())
+        plot_keys1 = set(cls.cls_model_keys())
+        # exclude = plot_keys0 - line_keys
+        exclude = plot_keys1 - line_keys
+        kwargs_ = filter_dict_keys(dct=kwargs, exclude=exclude)
+        return kwargs_
+
     @property
     def shape(self) -> NonNegativeInt:
         return self.size_x, self.n_plots
+
+
+class MultiLinePlotConfigBase(LinePlotConfigBase):
+
+    n_plots: NonNegativeInt = 10
+    sep_lines: SepLineData | None = Field(
+        default_factory=lambda: SepLineData())
+    max_n_plots: int = 1000
+    map: SeriesI32
+
+
+class MultiLinePlotConfig(MultiLinePlotConfigBase, MultiPlotConfigMixin):
+
+    @classmethod
+    def keep_object_init_kwargs(cls, kwargs):
+        return cls._keep_object_init_kwargs(kwargs, LineVisualConfig)
+
+
+class MultiScatterPlotConfigBase(MarkersVisualConfig):
+
+    size_x: NonNegativeInt = 1
+    max_size_x: int = 10000
+
+    # connect: Bool1D = Field(
+    #     default_factory=lambda: np.array([True, True, False],
+    #                                      dtype=np.bool),
+    #     repr=False)
+
+    pos: Pos2DVBO = Field(
+        default_factory=lambda: np.array([
+            [0, 0],
+            [0, 0],
+            [0, 0],], dtype=np.float32),
+        repr=False)
+    face_color: ColorVBO = Field(
+        default_factory=lambda: np.array(
+            [[0, 0, 0, 0]], dtype=np.float32), repr=False)
+    view_mode: PlotViewMode = PlotViewMode.SCENE
+
+    n_plots: NonNegativeInt = 10
+    sep_lines: SepLineData | None = Field(
+        default_factory=lambda: SepLineData())
+    max_n_plots: int = 1000
+    map: SeriesI32
+
+    size: NonNegativeFloat | None = Field(default=3, le=50)
+    edge_width: float | None = Field(default=0, ge=0, le=20)
+    edge_color: RGBAColorType = 'black'
+
+    def model_post_init(self, __context):
+        super().model_post_init(__context)
+        if self.pos.shape != (self.data_size, 2):
+            self.pos = self.make_pos()
+        # if self.connect.shape != self.data_size:
+        #     self.connect = self.make_connect()
+        if self.face_color.shape != (self.data_size, 4):
+            self.face_color = self.make_color()
+
+
+class MultiScatterPlotConfig(MultiScatterPlotConfigBase,
+                             MultiPlotConfigMixin):
+    def make_color(self):
+        color = super().make_color()
+        color[:, 3] = 0
+        return color
+
+    @classmethod
+    def keep_object_init_kwargs(cls, kwargs):
+        return cls._keep_object_init_kwargs(kwargs, MarkersVisualConfig)

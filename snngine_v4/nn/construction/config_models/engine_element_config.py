@@ -9,7 +9,6 @@ from snngine_v4.utils.data_utils.dataframe_config import (
 from snngine_v4.utils.settings.config_model import ConfigModel
 
 
-
 class EngineElementConfigMixin:
     def elt_dict(self: ConfigModel, **kwargs):
         return self.filtered_model_dict(

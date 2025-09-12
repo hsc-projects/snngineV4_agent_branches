@@ -51,11 +51,14 @@ from snngine_v4.visualization.config_models.visuals.boxes import (
     BoxVisualInitConfig, OuterGridVisualInitConfig,
 )
 from snngine_v4.visualization.config_models.plotting.multi_line_plot import (
-    MultiPlotConfig, SepLineData,
+    MultiLinePlotConfig, MultiLinePlotConfig, MultiLinePlotConfigBase,
+    MultiPlotConfigMixin, MultiScatterPlotConfig, SepLineData,
 )
 from snngine_v4.visualization.scenes.setattribute_event import (
     MeshDataChangedEvent, SetAttributeEvent,
 )
+from snngine_v4.visualization.visuals.compound_markers import \
+    CompoundMarkersVisual
 from snngine_v4.visualization.visuals.grid_lines import (
     FiniteGridLinesVisual, MultiBoxLinesVisual,
 )
@@ -96,6 +99,12 @@ class VisualMixin:
                                VispyKeyWords.CONNECT,
                                'width']
 
+    SET_DATA_MarkerVisual_KWS = [VispyKeyWords.POS,
+                                 VispyKeyWords.EDGE_COLOR,
+                                 VispyKeyWords.FACE_COLOR,
+                                 VispyKeyWords.SIZE,
+                                 VispyKeyWords.EDGE_WIDTH,],
+
     SET_DATA_KWS = {
         LineVisual: SET_DATA_LineVisual_KWS,
         Line: SET_DATA_LineVisual_KWS,
@@ -104,12 +113,8 @@ class VisualMixin:
         # FiniteGridLines: [],
         FiniteGridLinesVisual: [],
         Box: [VispyKeyWords.COLOR],
-        Markers: [VispyKeyWords.POS,
-                  VispyKeyWords.EDGE_COLOR,
-                  VispyKeyWords.FACE_COLOR,
-                  VispyKeyWords.SIZE,
-                  VispyKeyWords.EDGE_WIDTH,
-                  ],
+        Markers: SET_DATA_MarkerVisual_KWS,
+        CompoundMarkersVisual: SET_DATA_MarkerVisual_KWS,
         MeshVisual: ['vertices', 'faces',
                      VispyKeyWords.VERTEX_COLORS,
                      VispyKeyWords.FACE_COLORS,
@@ -184,7 +189,7 @@ class VisualMixins(ClassMixer):
                 attr_changed_keys = {'_mesh': ['shading']}
             elif class_item == MeshVisual:
                 attr_changed_keys = ['color']
-            elif class_item == Markers:
+            elif class_item in (Markers, CompoundMarkersVisual):
                 attr_changed_keys = (
                     ['alpha'] + MarkersVisualConfig.cls_model_keys())
             else:
@@ -197,7 +202,7 @@ class VisualMixins(ClassMixer):
 
             if not issubclass(class_item, VisualNode):
                 set_data_kws = VisualMixin.SET_DATA_KWS[class_item]
-                class_item = create_visual_node(FiniteGridLinesVisual)
+                class_item = create_visual_node(class_item)
                 VisualMixin.SET_DATA_KWS[class_item] = set_data_kws
 
             def init(self: VisualMixin | Visual, *args, **kwargs_):
@@ -206,18 +211,18 @@ class VisualMixins(ClassMixer):
                     subvisuals = kwargs_.pop(
                         VispyVisualBuilder.SUBVISUALS_KW, None)
                     sep_lines = kwargs_.pop(
-                        MultiPlotConfig.SEP_LINES_KW, None)
+                        MultiPlotConfigMixin.SEP_LINES_KW, None)
                     if sep_lines is not None:
                         if subvisuals is None:
                             subvisuals = []
                         subvisuals += [sep_lines]
 
-                    line_keys = set(LineVisualConfig.cls_model_keys())
-                    plot_keys0 = set(SepLineData.cls_model_keys())
-                    plot_keys1 = set(MultiPlotConfig.cls_model_keys())
-                    exclude = plot_keys0 - line_keys
-                    exclude |= plot_keys1 - line_keys
-                    kwargs_ = filter_dict_keys(dct=kwargs_, exclude=exclude)
+                    # line_keys = set(LineVisualConfig.cls_model_keys())
+                    # plot_keys0 = set(SepLineData.cls_model_keys())
+                    # plot_keys1 = set(MultiLinePlotConfig.cls_model_keys())
+                    # exclude = plot_keys0 - line_keys
+                    # exclude |= plot_keys1 - line_keys
+                    # kwargs_ = filter_dict_keys(dct=kwargs_, exclude=exclude)
 
                 visible = kwargs_.pop('visible', True)
                 pos_origin = kwargs_.pop(EnginePos3D.Slots.POS_ORIGIN, True)
@@ -254,9 +259,9 @@ class VispyVisualBuilder(BuilderDict):
 
     VISPY_VISUAL_DUMP_KW: ClassVar[str] = 'vispy'
 
-    POS_KW: ClassVar[str] = 'pos'
-    COLOR_KW: ClassVar[str] = 'color'
-    SUBVISUALS_KW: ClassVar[str] = 'subvisuals'
+    POS_KW: ClassVar[str] = VispyKeyWords.POS
+    COLOR_KW: ClassVar[str] = VispyKeyWords.COLOR
+    SUBVISUALS_KW: ClassVar[str] = VispyKeyWords.SUBVISUALS
 
     BUILDER_OBJECT_CLASS_MIXER: ClassVar = VisualMixins
 
@@ -268,12 +273,17 @@ class VispyVisualBuilder(BuilderDict):
         MarkersVisualConfig: Markers,
         NetworkReservoirConfig: Markers,
         # PlotConfig: Line,
-        MultiPlotConfig: Line,
         LineVisualConfig: Line,
+        MultiLinePlotConfig: Line,
+        MultiScatterPlotConfig: CompoundMarkersVisual,
         SepLineData: Line,
     }
 
-    # BUILDER_OBJECT_SUPERCLASS_MAP: ClassVar = {}
+    BUILDER_OBJECT_SUPERCLASS_MAP: ClassVar = {
+        MultiLinePlotConfig: BUILDER_OBJECT_CLASS_MAP[MultiLinePlotConfig],
+        MultiScatterPlotConfig: BUILDER_OBJECT_CLASS_MAP[
+            MultiScatterPlotConfig],
+    }
 
     @classmethod
     def _convert_to_vispy(cls, dct, model: BaseModel):
@@ -283,17 +293,17 @@ class VispyVisualBuilder(BuilderDict):
         dct.pop(InternalOpts.Slots.TECHNICAL, None)
         subvisuals = dct.pop(cls.SUBVISUALS_KW, None)
         if subvisuals and len(subvisuals) > 0:
-            if not isinstance(model, MultiPlotConfig):
+            if not isinstance(model, MultiPlotConfigMixin):
                 raise AssertionError
             pass
         elif subvisuals is not None:
             pass
 
-        if isinstance(model, MultiPlotConfig):
+        if isinstance(model, MultiPlotConfigMixin):
             if model.sep_lines is not None:
                 if cls.SUBVISUALS_KW not in dct:
                     dct[cls.SUBVISUALS_KW] = []
-                dct.pop(MultiPlotConfig.SEP_LINES_KW)
+                dct.pop(MultiPlotConfigMixin.SEP_LINES_KW)
                 sub_vis = VispyVisualBuilder.cls_build_obj(
                     model.sep_lines).built
                 dct[cls.SUBVISUALS_KW] += [sub_vis]
@@ -335,22 +345,30 @@ class VispyVisualBuilder(BuilderDict):
                         vals = [AxDir3D.vispy_name_alias(x) for x in vals]
                         dct[k] = tuple(vals)
 
+            if isinstance(model, (SepLineData,
+                                  MultiLinePlotConfig,
+                                  MultiScatterPlotConfig)):
+                dct = model.keep_object_init_kwargs(dct)
+
             for k in up_keys:
                 dct.pop(k)
                 res.update(up_keys[k])
             res.update(dct)
-
+        else:
+            raise NotImplementedError
         return res.data
 
     @classmethod
     def get_model(cls, model: BaseModel | None):
-        dump = model.model_dump(mode='python',
-                                round_trip=True,
-                                exclude={BaseModelSlots.CLASS__NAME})
-        if isinstance(model, FiniteGridConfig):
-            model = OuterGridVisualInitConfig(**dump)
-        elif isinstance(model, NetworkReservoirConfig):
-            model = MarkersVisualConfig(pos=dump['pos'])
+        if isinstance(model, (FiniteGridConfig,
+                              NetworkReservoirConfig)):
+            dump = model.model_dump(mode='python',
+                                    round_trip=True,
+                                    exclude={BaseModelSlots.CLASS__NAME})
+            if isinstance(model, FiniteGridConfig):
+                model = OuterGridVisualInitConfig(**dump)
+            elif isinstance(model, NetworkReservoirConfig):
+                model = MarkersVisualConfig(pos=dump['pos'])
         return super().get_model(model=model)
 
     @classmethod

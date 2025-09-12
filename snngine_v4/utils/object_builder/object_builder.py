@@ -59,7 +59,7 @@ class ModelObjectBuilder:
     BUILDER_DEFAULT_MODEL_CLASS: ClassVar[Type[BaseModel] | None] = None
     DEFAULT_MODEL_CONTAINER_CLASS: ClassVar[Type[BaseModel] | None] = None
 
-    BUILDER_DEFAULT_OBJECT_CLASS: ClassVar[Type| None] = None
+    BUILDER_DEFAULT_OBJECT_CLASS: ClassVar[Type | None] = None
     BUILDER_OBJECT_CLASS_MAP: ClassVar[dict[Type[BaseModel], Type]] = {}
     BUILDER_OBJECT_SUPERCLASS_MAP: ClassVar[dict[Type[BaseModel], Type]] = {}
     BUILDER_OBJECT_CLASS_MIXER: ClassVar[Type[ClassMixer] | None] = None
@@ -176,6 +176,8 @@ class ModelObjectBuilder:
         except MissingClassDefinitionError as error:
             if b_raise:
                 raise error
+            if cls.BUILDER_OBJECT_CLASS_MIXER is not None:
+                raise error
             object_class = None
 
         if cls.BUILDER_OBJECT_CLASS_MIXER is not None:
@@ -255,3 +257,4 @@ class ModelObjectBuilder:
                 new = cls.make_object(object_class, model, **object_kwargs)
 
                 return BuildResult(built=new, model=model, kwargs=object_kwargs)
+        return BuildResult(built=None, model=model, kwargs=kwargs)

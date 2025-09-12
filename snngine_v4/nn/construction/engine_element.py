@@ -31,7 +31,6 @@ from snngine_v4.utils.object_builder.object_builder import \
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 
 
-
 class EngineNodesConfig(ModelNodeTreeElementConfig):
     b_skip_forbidden_types: bool = True
     b_read_list_values: bool = True
@@ -42,8 +41,24 @@ class EngineNodes(ModelTree):
         Tuple[type(EngineNodesConfig), type(EngineElementConfigMixin)]] = (
         EngineNodesConfig, EngineElementConfigMixin)
 
+
+# class UndefinedEngineElement(BuilderDict):
+#     def __init__(self, model_container=None, build_kwargs=None,
+#                  node_tree=None,
+#                  **kwargs):
+#         super().__init__(model_container=model_container,
+#                          build_kwargs=build_kwargs,
+#                          node_tree=node_tree)
+#
+#     @property
+#     def children_models(self):
+#         return []
+
+
 class EngineElement(BuilderDict):
-    """"""
+    """
+
+    """
     TENSOR_DICT_KW: ClassVar[str] = 'tensor_dict'
 
     ROOT_ELEMENT_KW: ClassVar[str] = 'root_element'
@@ -58,11 +73,12 @@ class EngineElement(BuilderDict):
     }
 
     BUILDER_OBJECT_SUPERCLASS_MAP: ClassVar[dict] = {
-        TypedDataFrameBase3D: TensorDict,  #        Keep order (1/3)
-        TypedDataFrameModel: TensorDataFrame,  #    Keep order (2/3)
-        SeriesModel: TensorSeries,  #               Keep order (3/3)
+        TypedDataFrameBase3D: TensorDict,       # Keep order (1/3)
+        TypedDataFrameModel: TensorDataFrame,   # Keep order (2/3)
+        SeriesModel: TensorSeries,              # Keep order (3/3)
     }
 
+    # BUILDER_DEFAULT_OBJECT_CLASS: ClassVar = UndefinedEngineElement
     # root_element: SpatialNetwork
 
     def __init__(self, device,
@@ -183,7 +199,8 @@ class EngineElement(BuilderDict):
             self.NODE_TREE_KW: self.node_tree,
             self.ROOT_ELEMENT_KW: self.root_element,
             self.PARENT_ELEMENT_KW: self,
-            'b_raise_if_missing_object_class': True
+            'b_ignore_default_object_class': True,
+            'b_raise_if_missing_object_class': False
         }
 
     @classmethod

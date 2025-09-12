@@ -32,7 +32,7 @@ class MarkersVisualConfig(VisualConfig):
             dtype=np.float32),
         repr=False)
     size: NonNegativeFloat | None = Field(default=7, le=50)
-    edge_width: float | None = Field(default=1, gt=0, le=20)
+    edge_width: float | None = Field(default=1, ge=0, le=20)
     # edge_width_rel: NonNegativeFloat | None = Field(default=None, le=15)
     edge_color: RGBAColorType = 'green'
     face_color: ColorType = 'white'

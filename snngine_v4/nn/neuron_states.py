@@ -18,7 +18,9 @@ else:
 
 
 class NeuronState(EngineElement):
+    """
 
+    """
     config_model: NeuronStateModel
     parent_element: Callable[..., NetworkReservoir]
 

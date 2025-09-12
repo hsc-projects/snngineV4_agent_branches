@@ -100,6 +100,8 @@ class VispyKeyWords:
     BORDER: ClassVar[str] = 'border'
     _BORDER: ClassVar[str] = '_border'
 
+    SUBVISUALS: ClassVar[str] = 'subvisuals'
+
 
 class RGBAColor(ConfigModel):
 

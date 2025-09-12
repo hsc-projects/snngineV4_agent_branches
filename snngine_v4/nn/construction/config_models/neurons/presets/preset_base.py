@@ -1,6 +1,5 @@
-from typing import Any, Callable, ClassVar
+from typing import Callable, ClassVar
 
-import numpy as np
 import pandas as pd
 from pydantic import Field
 
@@ -28,7 +27,7 @@ class PresetsContainer(SingletonDict):
             ConfigurableDict())
         self.add_presets(IzhikevichPresets())
 
-    def add_presets(self, model: type(IzhikevichPresets), name=None):
+    def add_presets(self, model: IzhikevichPresets, name=None):
         if name is None:
             name = model.__class__.__name__
         self[name] = model.dataframe
@@ -48,14 +47,15 @@ class Preset(ConfigModel):
 
 
 class PresetParameter(ConfigModel):
-
+    """
+    """
     parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         expanded=True,
         c_auto_collapse=True,
         c_collapsed_children=True,
     )
 
-    PRESET_CONTAINER: ClassVar[type(dict)] = PresetsContainer
+    PRESET_CONTAINER: ClassVar[type[dict]] = PresetsContainer
 
     preset_type: ListParameterModel | str = Field(
         default_factory=ListParameterModel)

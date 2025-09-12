@@ -18,7 +18,7 @@ from snngine_v4.utils.containers.mappings import (
     ObjectMapConfig, Many2OneObjectMap,
 )
 from snngine_v4.visualization.config_models.plotting.multi_line_plot import \
-    MultiPlotConfig
+    MultiLinePlotConfig
 from snngine_v4.visualization.cuda.gl_interop.gl_tensor import (
     GLVBOTensor,
 )
@@ -55,7 +55,7 @@ class CudaVispyConnector(ParameterConnector):
             res['vbo'] = gl_tensor
             # print(gl_tensor)
         elif isinstance(obj, LineVisual):
-            if isinstance(model, MultiPlotConfig):
+            if isinstance(model, MultiLinePlotConfig):
                 line_sub_visual: _GLLineVisual = obj._line_visual
                 pos_vbo_id = cls.gl_buffer_id(line_sub_visual._pos_vbo.id)
                 gl_tensor = GLVBOTensor(

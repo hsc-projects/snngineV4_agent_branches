@@ -7,7 +7,7 @@ from snngine_v4.nn.construction.config_models.engine_element_config import \
 from snngine_v4.nn.construction.engine_element import EngineElement
 from snngine_v4.nn.sim.gpu_plots import (
     CudaBackendPlotConfig,
-    CudaBackendPlotTensors,
+    CudaBackendPlotTensors, PlotElement,
 )
 
 from snngine_v4.nn.spnn_reservoir import NetworkReservoir
@@ -59,18 +59,17 @@ class Simulator(EngineElement):
         S = element.config_model.S
         D = element.config_model.D
 
-        volt_plot = self.plots.voltage_plot
-        volt_plot = self.plots[self.plots.config_model.voltage_plot]
-
-        volt_plot.pos_vbo()
+        # volt_plot = self.plots.voltage_plot
+        volt_plot: PlotElement = self.plots[
+            self.plots.config_model.voltage_plot]
         return
         sim = snn_simulation_gpu.SnnSimulation(
             N=N, G=G, S=S, D=D,
             T=spnn.config_model.simulator.T,
             n_voltage_plots=volt_plot.config_model.n_plots,
             voltage_plot_length=volt_plot.config_model.size_x,
-            voltage_plot_data=volt_plot.pos_vbo().te.data_ptr(),
-            voltage_plot_map=self._voltage_multiplot.map.data_ptr(),
+            voltage_plot_data=volt_plot.pos_vbo().data_ptr(),
+            voltage_plot_map=volt_plot.map.data_ptr(),
             n_scatter_plots=plotting_config.firing_scatter_plot.n_plots,
             scatter_plot_length=plotting_config.firings_x_length,
             scatter_plot_data=self._firing_scatter_plot.vbo_array.data_ptr(),

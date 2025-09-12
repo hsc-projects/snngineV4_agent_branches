@@ -7,7 +7,7 @@ from snngine_v4.nn.construction.nn_builder import NetworkBuilder
 from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.snngine_config import EngineConfig
 from snngine_v4.visualization.config_models.plotting.multi_line_plot import \
-    MultiPlotConfig
+    MultiLinePlotConfig
 
 try:
     from snngine_v4.visualization.cuda.gl_interop.gl_buffer import GLBufferMap
@@ -128,7 +128,7 @@ class SNNgine:
 
         plot_visual1 = self.scene_manager.build_visuals(
             visuals=[self.conf.current.network.simulator.plots
-                     .current_plot],
+                     .firings_scatter_plot],
             scene=self.conf.scenes.multiplot_current,
         )
         return new_visuals
