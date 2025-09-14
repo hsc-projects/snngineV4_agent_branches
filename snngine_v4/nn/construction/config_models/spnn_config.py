@@ -9,7 +9,7 @@ from snngine_v4.nn.construction.config_models.engine_element_config import (
 )
 from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
     import NetworkReservoirConfig
-from snngine_v4.nn.sim.simulator import SimulatorOptions
+from snngine_v4.nn.sim.sim_parameters import SimulatorOptions
 
 
 class SpatialNetworkConfig(EngineElementConfig):

@@ -118,6 +118,11 @@ class NodeTree(Object2ObjectMap):
     def add_element(self, element, parent=None):
 
         if self.b_skippable_element(element):
+            if ((parent is not None)
+                    and (b_valid_type := self.b_valid_item_type(element))
+                    and (self.parent(element) is not parent)):
+                raise AssertionError(
+                    "Element already exists and has a different parent")
             return None
 
         if parent is None:

@@ -1,8 +1,6 @@
 from functools import cached_property
 from typing import ClassVar
 
-from pydantic import BaseModel
-
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
 from snngine_v4.geometry.grid_config import FiniteGridConfig
 from snngine_v4.nn.construction.config_models.neurons.neuron_state import \
@@ -14,12 +12,11 @@ from snngine_v4.nn.construction.config_models.engine_element_config \
 from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
     import NetworkReservoirConfig
 from snngine_v4.nn.neuron_states import NeuronState
-from snngine_v4.nn.sim.simulator import Simulator, SimulatorOptions
+from snngine_v4.nn.sim.simulator import Simulator
+from snngine_v4.nn.sim.sim_parameters import SimulatorOptions
 
 from snngine_v4.nn.spnn_reservoir import NetworkReservoir
 from snngine_v4.nn.construction.engine_element import EngineElement, EngineNodes
-from snngine_v4.utils.cuda_utils.cuda_functions import CudaKeywords
-from snngine_v4.utils.cuda_utils.tensor_dict import TensorDict
 
 
 type GetNetworkElementType = (int | EngineElementConfig
@@ -61,8 +58,11 @@ class SpatialNetwork(EngineElement):
                 elt.fill_tensors()
 
         p = self.get_network_element(0).neuron_states.parent_element()
-
-        self.simulator
+        self.add_build(self.config_model.grid,
+                       parent_model=self.config_model,
+                       b_default_build_kwargs=False)
+        self.add_build(self.config_model.simulator,
+                       parent_model=self.config_model)
 
     # @cached_property
     # def engine_build_kwargs(self):
@@ -74,7 +74,7 @@ class SpatialNetwork(EngineElement):
     #     }
 
     def configure_simulator(self, element: GetNetworkElementType):
-        self.simulator.init_simulator_backend(
+        self.simulator.add_simulation(
             element=self.get_network_element(element))
 
     def get_network_element(
@@ -87,11 +87,8 @@ class SpatialNetwork(EngineElement):
 
     @cached_property
     def grid(self) -> FiniteGrid:
-        self.add_build(self.config_model.grid)
         return self[self.config_model.grid]
 
     @cached_property
     def simulator(self) -> Simulator:
-        self.add_build(self.config_model.simulator,
-                       **self.default_build_kwargs)
         return self[self.config_model.simulator]

@@ -1,3 +1,4 @@
+from enum import IntEnum
 from typing import ClassVar
 
 import torch

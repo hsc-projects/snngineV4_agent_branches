@@ -234,7 +234,7 @@ class MultiScatterPlotConfig(MultiScatterPlotConfigBase,
                              MultiPlotConfigMixin):
     def make_color(self):
         color = super().make_color()
-        color[:, 3] = 0
+        # color[:, 3] = 0
         return color
 
     @classmethod

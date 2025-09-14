@@ -1,3 +1,4 @@
+from enum import IntEnum, auto
 from typing import Type
 
 from pydantic import BaseModel
@@ -20,7 +21,7 @@ from snngine_v4.utils.containers.mappings import (
 from snngine_v4.visualization.config_models.plotting.multi_line_plot import \
     MultiLinePlotConfig
 from snngine_v4.visualization.cuda.gl_interop.gl_tensor import (
-    GLVBOTensor,
+    GLBufferTensor, GLVBOTensor,
 )
 from snngine_v4.visualization.cuda.gl_interop.gl_tensor_dict import (
     GLTensorDict)
@@ -28,15 +29,67 @@ from snngine_v4.visualization.scenes.main_network_scene import (
     EngineSceneCanvas)
 from snngine_v4.visualization.scenes.scene_manager import (
     SceneManager)
+from snngine_v4.visualization.visuals.compound_markers import \
+    CompoundMarkersVisual
+
+
+class GLBufferTypes(IntEnum):
+    VBO = 0
+    IBO = auto()
+    POS_VBO = auto()
+    CONNECT_IBO = auto()
 
 
 class CudaVispyConnector(ParameterConnector):
-    """"""
+    """
 
+    """
 
     class ContainerConfigClass(ObjectMapConfig, frozen=True):
         allowed_types: Type[GLTensorDict] = GLTensorDict
 
+    @classmethod
+    def to_gl_buffer(cls,
+                     buffer_type: GLBufferTypes,
+                     device,
+                     obj: Visual,
+                     model: BaseModel,
+                     **kwargs) -> GLBufferTensor:
+        match buffer_type:
+            case GLBufferTypes.POS_VBO:
+                if isinstance(obj, (MarkersVisual,
+                                    CompoundMarkersVisual)):
+                    # noinspection PyProtectedMember
+                    if isinstance(obj, CompoundMarkersVisual):
+                        return cls.to_gl_buffer(
+                            buffer_type=GLBufferTypes.POS_VBO,
+                            device=device, obj=obj.markers_visual, model=model,
+                            **kwargs
+                        )
+                    gl_id = cls.gl_buffer_id(obj._vbo.id)
+                    # noinspection PyProtectedMember
+                    return GLVBOTensor(
+                        opengl_id=gl_id,
+                        shape=(len(model.pos), obj._data.dtype.itemsize // 4),
+                        device=device, **kwargs)
+                    # print(gl_tensor)
+                elif isinstance(obj, LineVisual):
+                    if isinstance(model, MultiLinePlotConfig):
+                        line_sub_visual: _GLLineVisual = obj._line_visual
+                        pos_vbo_id = cls.gl_buffer_id(
+                            line_sub_visual._pos_vbo.id)
+                        return GLVBOTensor(
+                            opengl_id=pos_vbo_id,
+                            shape=(len(obj.pos), obj.pos.dtype.itemsize // 4),
+                            device=device, **kwargs)
+                    else:
+                        raise NotImplementedError(
+                            f"{obj.__class__.__name__}, "
+                            f"{model.__class__.__name__}")
+                else:
+                    raise NotImplementedError(f"{obj.__class__.__name__}")
+            case _:
+                raise NotImplementedError(f"{buffer_type.name}")
 
     @classmethod
     def connect_object(cls, model: BaseModel, obj: Visual,
@@ -44,25 +97,22 @@ class CudaVispyConnector(ParameterConnector):
                        **kwargs):
         device = kwargs.pop('device')
         res = GLTensorDict()
-        if isinstance(obj, MarkersVisual):
+
+        if (isinstance(obj, (MarkersVisual, CompoundMarkersVisual))
+                or (isinstance(obj, LineVisual)
+                    and isinstance(model, MultiLinePlotConfig))):
+
             # noinspection PyProtectedMember
-            gl_id = cls.gl_buffer_id(obj._vbo.id)
-            # noinspection PyProtectedMember
-            gl_tensor = GLVBOTensor(
-                opengl_id=gl_id,
-                shape=(len(model.pos), obj._data.dtype.itemsize // 4),
-                device=device, **kwargs)
-            res['vbo'] = gl_tensor
+            gl_tensor = cls.to_gl_buffer(
+                buffer_type=GLBufferTypes.POS_VBO,
+                device=device, obj=obj, model=model, **kwargs)
+            res[GLBufferTypes.POS_VBO.name] = gl_tensor
             # print(gl_tensor)
-        elif isinstance(obj, LineVisual):
-            if isinstance(model, MultiLinePlotConfig):
-                line_sub_visual: _GLLineVisual = obj._line_visual
-                pos_vbo_id = cls.gl_buffer_id(line_sub_visual._pos_vbo.id)
-                gl_tensor = GLVBOTensor(
-                    opengl_id=pos_vbo_id,
-                    shape=(len(obj.pos), obj.pos.dtype.itemsize // 4),
-                    device=device, **kwargs)
-                res['pos_vbo'] = gl_tensor
+        # elif
+        #         gl_tensor = cls.to_gl_buffer(
+        #             buffer_type=GLBufferTypes.POS_VBO,
+        #             device=device, obj=obj, model=model, **kwargs)
+        #         res[GLBufferTypes.POS_VBO.name] = gl_tensor
         else:
             pass
             # raise NotImplementedError

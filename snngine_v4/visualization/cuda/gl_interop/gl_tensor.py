@@ -22,6 +22,9 @@ class GLBufferTensor:
             strides=strides, device=device, stream=stream)
         self.validation_interface: TypedNumpyInterface = validation_interface
 
+    def data_ptr(self):
+        return self.tensor.data_ptr()
+
     @property
     def device(self):
         return self.gl_buffer.device

@@ -145,6 +145,14 @@ class EngineElement(BuilderDict):
 
         self.set_tensor_attr()
 
+    def __repr__(self):
+        type_ = type(self)
+        # module = type_.__module__
+        # qualname = type_.__qualname__
+        name = type_.__name__
+        # return f"<{module}.{qualname} object at {hex(id(self))}>"
+        return f"<{name} object at {hex(id(self))}>"
+
     def __setattr__(self, key, value):
         if key != self.TENSOR_DICT_KW:
             if isinstance(value, (TensorSeries, TensorDict, torch.Tensor)):

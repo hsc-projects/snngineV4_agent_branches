@@ -6,8 +6,7 @@ from pyqtgraph.parametertree.parameterTypes import (
     QtEnumParameter,
 )
 
-from snngine_v4.gui.parameter_tree.parameters.none_type_parameter import \
-    (
+from snngine_v4.gui.parameter_tree.parameters.none_type_parameter import (
     NoneTypeParameter, UndefinedTypeParameter,
 )
 

@@ -28,6 +28,10 @@ class CompoundMarkersVisual(CompoundVisual):
     def alpha(self, value):
         self._markers_visual.alpha = value
 
+    @property
+    def markers_visual(self):
+        return self._markers_visual
+
     def set_data(self, *args, **kwargs):
         self._markers_visual.set_data(*args, **kwargs)
         # self.update()

@@ -16,10 +16,8 @@ from snngine_v4.gui.windows.main_window_widgets import (
 from snngine_v4.snngine_config import EngineConfig
 
 
-from snngine_v4.snngine import SNNgine
-from snngine_v4.visualization.scenes.main_network_scene import EngineSceneCanvas
-
 if TYPE_CHECKING:
+    from snngine_v4.snngine import SNNgine
     from snngine_v4.gui.parameter_tree.engine_parameter_tree import (
         EngineParameterTree, QTree, EngineTreeDockWidget)
     from snngine_v4.gui.parameter_tree.parameters.widgets.table \

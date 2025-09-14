@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import copy
 from functools import cached_property
 from types import NoneType
 from typing import Type
@@ -9,6 +10,7 @@ from pydantic import BaseModel
 from snngine_v4.utils.containers.mappings import (
     Model2ObjectMap, ObjectMapConfig,
 )
+from snngine_v4.utils.containers.node_map import ModelTree
 from snngine_v4.utils.core_utils import type_assertion
 from snngine_v4.utils.object_builder.object_builder import (
     ContainerBuildResult,
@@ -19,9 +21,9 @@ from snngine_v4.utils.object_builder.object_builder import (
 class BuilderDict(Model2ObjectMap, ModelObjectBuilder):
 
     def __init__(self, model_container=None, build_kwargs=None,
-                 node_tree=None,
+                 node_tree: ModelTree = None,
                  **kwargs):
-        self.node_tree = node_tree
+        self.node_tree: ModelTree = node_tree
         super().__init__(**kwargs)
         if model_container is not None:
             if build_kwargs is None:
@@ -34,9 +36,24 @@ class BuilderDict(Model2ObjectMap, ModelObjectBuilder):
                 self.update(model_container)
 
     def add_build(self: dict[BaseModel, object] | BuilderDict,
-                  model, **kwargs):
-        build_result = self.cls_build_obj(model=model, **kwargs).built
+                  model,
+                  b_default_build_kwargs: bool = True,
+                  parent_model=None,
+                  **kwargs):
+
+        if ((b_default_build_kwargs is True)
+                and isinstance(defaults := self.default_build_kwargs, dict)):
+            kwargs_ = copy(defaults)
+            kwargs_.update(kwargs)
+        else:
+            kwargs_ = kwargs
+
+        build_result = self.cls_build_obj(model=model, **kwargs_).built
         self[model] = build_result
+
+        if (self.node_tree is not None) and (parent_model is not None):
+            self.node_tree.add_element(model, parent=parent_model)
+
         return build_result
 
     @cached_property

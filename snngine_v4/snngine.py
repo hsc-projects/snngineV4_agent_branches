@@ -1,21 +1,16 @@
 import os
 from functools import cached_property
 
-from pydantic import BaseModel
 
 from snngine_v4.nn.construction.nn_builder import NetworkBuilder
 from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.snngine_config import EngineConfig
-from snngine_v4.visualization.config_models.plotting.multi_line_plot import \
-    MultiLinePlotConfig
 
 try:
     from snngine_v4.visualization.cuda.gl_interop.gl_buffer import GLBufferMap
 except ModuleNotFoundError:
     GLBufferMap = None
 
-from snngine_v4.visualization.scenes.main_network_scene import \
-    EngineSceneCanvas
 from snngine_v4.visualization.scenes.scene_manager import SceneManager
 
 
