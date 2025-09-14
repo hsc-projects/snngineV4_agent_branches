@@ -14,7 +14,7 @@ from snngine_v4.geometry.spatial_pars import (
 from snngine_v4.utils.settings.ui_parameter_options import p_field
 
 from snngine_v4.visualization.config_models.visuals.parameters import \
-    ColorType
+    BufferColorType
 from snngine_v4.visualization.config_models.visuals.visual_config import \
     VisualConfig
 
@@ -24,7 +24,7 @@ type LineConnectType = Literal['strip', 'segments'] | None
 class LineVisualConfig(VisualConfig):
 
     pos: Pos3DVBO = Field(default=None, repr=False)
-    color: ColorType = Field(repr=False)
+    color: BufferColorType = Field(repr=False)
     width: NonNegativeInt = p_field(default=1,  readonly=False, le=15)
     connect: LineConnectType = p_field(default='strip',  readonly=True,
                                        repr=False)
@@ -47,7 +47,7 @@ class XYZAxisVisualConfig(LineVisualConfig):
     connect: LineConnectType = p_field(
         default='segments',  readonly=False,
         repr=False,)
-    color: ColorType = Field(
+    color: BufferColorType = Field(
         default_factory=lambda: np.array([
             [1, 0, 0, 1],
             [1, 0, 0, 1],

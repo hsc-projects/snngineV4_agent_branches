@@ -3,8 +3,7 @@ from typing import Callable, ClassVar
 import pandas as pd
 from pydantic import Field
 
-from snngine_v4.nn.construction.config_models.neurons.presets \
-    .izhikevich_presets import (
+from snngine_v4.nn.config_models.neurons.presets.izhikevich_presets import (
         IzhikevichPresets,
     )
 from snngine_v4.utils.containers.configurable_dict import (

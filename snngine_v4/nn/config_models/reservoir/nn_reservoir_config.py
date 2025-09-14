@@ -7,27 +7,29 @@ import numpy as np
 
 from pydantic import computed_field, Field, NonNegativeInt
 
+from snngine_v4.chemistry.chem_models import (ChemicalContainerModel,
+                                              DefaultChemicals)
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
-from snngine_v4.geometry.grid_config import FiniteGridConfig
-from snngine_v4.nn.construction.config_models.neurons.synapse_model import (
+from snngine_v4.geometry.grid.finite_grid_config import FiniteGridConfig
+from snngine_v4.nn.config_models.neurons.synapse_model import (
     SynapseModel,
 )
-from snngine_v4.nn.construction.config_models.reservoir.n_type_groups import (
+from snngine_v4.nn.config_models.reservoir.n_type_groups import (
     NeuronType, NeuronTypeGroup,
     NTypeGroupConnInit, NTypeGroupConnList,
     NTypeGroupList,
 )
-from snngine_v4.nn.construction.config_models.engine_element_config import (
+from snngine_v4.construction.engine_element_config import (
     EngineElementConfig3D,
 )
 from snngine_v4.geometry.spatial_pars import (
     Pos3DVBO,
     Segmentation3D,
 )
-from snngine_v4.nn.construction.config_models.reservoir.lgroup_states import (
+from snngine_v4.nn.config_models.reservoir.lgroup_states import (
     LGNeuronCounts, LG2LGFlags, LG2LGProp, LGroupProps, LGroupFlags,
 )
-from snngine_v4.nn.construction.config_models.neurons.neuron_state import (
+from snngine_v4.nn.config_models.neurons.neuron_state import (
     NeuronStateModel,
 )
 from snngine_v4.utils.data_utils.dataframe_config import (
@@ -134,6 +136,9 @@ class NetworkReservoirConfig(EngineElementConfig3D):
 
     L_Group2Group_flags: LG2LGFlags
     L_Group2Group_properties: LG2LGProp
+
+    chemicals: DefaultChemicals = Field(
+        default_factory=DefaultChemicals)
 
     @staticmethod
     def _calc_delay_count(n_neurons, max_=20, min_=2, ):

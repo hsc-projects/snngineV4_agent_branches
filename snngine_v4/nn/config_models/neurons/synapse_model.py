@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from snngine_v4.nn.construction.config_models.engine_element_config import \
+from snngine_v4.construction.engine_element_config import \
     EngineElementConfig
-from snngine_v4.nn.construction.config_models.reservoir.n_type_groups import \
+from snngine_v4.nn.config_models.reservoir.n_type_groups import \
     NTypeGroupList
 from snngine_v4.utils.data_utils.dataframe_config import (
     DataFrameF32,
     DataFrameI32,
 )
-from snngine_v4.utils.field_utils import get_attr_or_item, Undefined
+from snngine_v4.utils.field_utils import get_attr_or_item
 
 
 class SynapseDelaysCounts(DataFrameI32):

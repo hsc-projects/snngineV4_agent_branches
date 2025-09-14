@@ -15,7 +15,6 @@ from snngine_v4.gui.parameter_tree.connectors.object2object_links import (
 from snngine_v4.gui.parameter_tree.parameters.multi_type_parameter import \
     MultiTypeParameter
 from snngine_v4.utils.containers.mappings import (
-    Many2OneObjectMap,
     Object2ObjectMap,
 )
 from snngine_v4.utils.containers.super_maps import TypeSortedMap
@@ -55,7 +54,7 @@ class ObjectParameterLink(Object2ObjectLink):
                 elif args[1] != self.source_key:
                     raise AssertionError
                 value = args[2]
-                msg = f"-> set parameter value"
+                msg = f">> parameter"
                 value_str = str(value)
 
                 self.sink.setValue(value)
@@ -86,29 +85,19 @@ class ObjectParameterLink(Object2ObjectLink):
                             self.source, self.source_key, None)
                         pass
                     else:
-
-                        from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config import \
-                            NetworkReservoirConfig
-                        from snngine_v4.nn.construction.config_models.neurons.neuron_state import \
-                            NeuronStateModel
-                        from snngine_v4.nn.construction.config_models.neurons.neuron_state import \
-                            NeuronInitializerParameters
-                        from snngine_v4.nn.construction.config_models.neurons.presets.preset_base import \
-                            PresetParameter, Preset, F32Preset
-                        from snngine_v4.utils.data_utils.dataframe_config import \
-                            SeriesModel, IndexConfig
-                        from snngine_v4.geometry.spatial_pars import EnginePos3D
-                        EnginePos3D
-                        # preset = value['elements'][0]['neuron_states']['initializer'][
-                        #     'presets']['preset']
-                        self.source.__setattr__(self.source, self.source_key, value)
+                        # noinspection PyArgumentList
+                        self.source.__setattr__(
+                            self.source, self.source_key, value)
                         raise err
                 value_str = str(getattr(self.source, self.source_key))
-                msg = f"<- from parameter"
+                msg = f"<< parameter"
             case _:
                 raise TypeError(f"{link_type.name}")
 
         source_name = f"[{self.source.__class__.__name__}].{self.source_key}"
+
+        if self.source_key == 'pos_origin':
+            pass
 
         if value_str != '':
             value_str = ': ' + value_str

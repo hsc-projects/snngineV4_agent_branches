@@ -3,11 +3,11 @@ from __future__ import annotations
 from typing import ClassVar
 
 
-from snngine_v4.geometry.grid_config import FiniteGridConfig
-from snngine_v4.nn.construction.config_models.engine_element_config import (
+from snngine_v4.geometry.grid.finite_grid_config import FiniteGridConfig
+from snngine_v4.construction.engine_element_config import (
     EngineElementConfig,
 )
-from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
+from snngine_v4.nn.config_models.reservoir.nn_reservoir_config \
     import NetworkReservoirConfig
 from snngine_v4.nn.sim.sim_parameters import SimulatorOptions
 

@@ -16,7 +16,7 @@ from vispy.visuals.transforms import STTransform
 from snngine_v4.utils.core_utils import type_assertion
 from snngine_v4.utils.data_utils.validation.array_annotation \
     import ArrayInterfaces
-from snngine_v4.geometry.grid_config import FiniteGridConfig
+from snngine_v4.geometry.grid.finite_grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import Ax3D, EnginePos3D
 from snngine_v4.gui.parameter_tree.connectors.model_parameter_links import (
     ModelParameterLinks, ObjectParameterLink,
@@ -26,14 +26,13 @@ from snngine_v4.gui.parameter_tree.connectors.model_signals_register import \
 from snngine_v4.gui.parameter_tree.connectors.object2object_links import (
     LinkStateType, Object2ObjectLinks,
 )
-from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
+from snngine_v4.nn.config_models.reservoir.nn_reservoir_config \
     import NetworkReservoirConfig
 from snngine_v4.utils.containers.mappings import Model2ObjectMap
 from snngine_v4.utils.field_utils import Undefined
 # from snngine_v4.utils.settings.ui_parameter_options import update_param_opts
 from snngine_v4.visualization.buffer_utils import adapt_dim
 from snngine_v4.visualization.config_models.plotting.multi_line_plot import (
-    MultiLinePlotConfig,
     MultiLinePlotConfig, MultiScatterPlotConfig
 )
 from snngine_v4.visualization.config_models.vispy_camera_configs import (
@@ -55,8 +54,7 @@ from snngine_v4.visualization.scenes.setattribute_event import (
 )
 from snngine_v4.visualization.visual_builder import (
     VispyVisualBuilder,
-    VisualMixin, VisualMixins,
-)
+    VisualMixin, )
 from snngine_v4.visualization.visuals.compound_markers import \
     CompoundMarkersVisual
 from snngine_v4.visualization.visuals.grid_lines import (

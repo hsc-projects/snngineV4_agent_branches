@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import Callable, ClassVar, TYPE_CHECKING
 
-from snngine_v4.nn.construction.engine_element import EngineElement
+from snngine_v4.construction.engine_element import EngineElement
 from snngine_v4.nn.sim.gpu_plots import (
-    CudaBackendPlotTensors, PlotElement,
-)
+    CudaBackendPlotTensors, )
 from snngine_v4.nn.sim.sim_parameters import (CudaBackendPlotConfig,
                                               SimulatorOptions)
 from snngine_v4.nn.sim.simulation import Simulation, SimulationModel

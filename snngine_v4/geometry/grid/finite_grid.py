@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Iterable, Sized
-
 import numpy as np
 import pandas as pd
 
@@ -11,12 +9,16 @@ from snngine_v4.geometry.grid.grid_mask_maker import (
     mask_value_interval,
     MaskMaker, n_neighbours,
 )
-from snngine_v4.geometry.grid_config import FiniteGridConfig, TechnicalValues
+from snngine_v4.geometry.grid.finite_grid_config import (FiniteGridConfig,
+                                                         LinkedFiniteGridConfig)
 
 
 class FiniteGrid:
 
-    def __init__(self, model: FiniteGridConfig):
+    def __init__(self, model: FiniteGridConfig | LinkedFiniteGridConfig):
+
+        # A technical maximum z value, used for grid visuals
+        self._technical_max_z_value = model.technical.max_z
 
         self.pos_origin = model.pos_origin.data
         self.shape = model.shape.data
@@ -43,9 +45,6 @@ class FiniteGrid:
         # # The segmentation of the grid
         # if not hasattr(self, 'segmentation'):
         #     self.segmentation = np.array(seg)
-
-        # A technical maximum z value, used for grid visuals
-        self._technical_max_z_value = model.technical.max_z
 
         # The lattice of the grid
         self._lattice = (float(self.shape[0] / self.segmentation[0]),

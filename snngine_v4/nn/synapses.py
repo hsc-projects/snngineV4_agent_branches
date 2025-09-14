@@ -6,17 +6,17 @@ from typing import Callable, TYPE_CHECKING
 import numpy as np
 import torch
 
-from snngine_v4.nn.construction.config_models.neurons.synapse_model import (
+from snngine_v4.nn.config_models.neurons.synapse_model import (
     SynapseCountTensors, SynapseModel,
 )
-from snngine_v4.nn.construction.config_models.reservoir.n_type_groups import (
+from snngine_v4.nn.config_models.reservoir.n_type_groups import (
     NeuronType, NTypeGroupConnList, NTypeGroupList,
 )
-from snngine_v4.nn.construction.engine_element import EngineElement
+from snngine_v4.construction.engine_element import EngineElement
 
 from snngine_v4.utils.cuda_utils.cuda_functions import \
     (
-    print_allocated_memory_diff, save_current_allocated_memory,
+    save_current_allocated_memory,
 )
 
 from snngine_v4.utils.cuda_utils.tensor_dataframe import TensorDataFrame

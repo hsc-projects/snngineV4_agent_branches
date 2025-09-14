@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from typing import Callable, TYPE_CHECKING
 
-from snngine_v4.nn.construction.config_models.engine_element_config import \
+from snngine_v4.construction.engine_element_config import \
     EngineElementConfig
-from snngine_v4.nn.construction.engine_element import EngineElement
+from snngine_v4.construction.engine_element import EngineElement
 from snngine_v4.nn.sim.gpu_plots import PlotElement
 
 

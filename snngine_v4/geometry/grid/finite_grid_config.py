@@ -5,7 +5,7 @@ from typing import ClassVar
 from pydantic import Field
 
 from snngine_v4.geometry.spatial_pars import (
-    EnginePos3D, FloatShape3D,
+    Shape3Df32,
     Object3DConfig, Segmentation3D,
 )
 from snngine_v4.utils.settings.config_model import ConfigModel
@@ -20,10 +20,26 @@ class TechnicalValues(ConfigModel):
     max_z: int = 100
 
 
-class FiniteGridConfig(Object3DConfig):
+class LinkedFiniteGridConfig(ConfigModel):
 
-    # pos_origin: EnginePos3D = Field(
-    #     default_factory=lambda: EnginePos3D.from_tuple((0, 0, 0)))
+    technical: TechnicalValues
+
+    parent_config: Object3DConfig = Field(exclude=True)
+
+    @property
+    def pos_origin(self):
+        return self.parent_config.pos_origin
+
+    @property
+    def shape(self):
+        raise NotImplementedError
+
+    @property
+    def seg(self):
+        raise NotImplementedError
+
+
+class FiniteGridConfig(Object3DConfig):
 
     parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         expanded=True,
@@ -32,7 +48,7 @@ class FiniteGridConfig(Object3DConfig):
     )
 
     technical: TechnicalValues
-    shape: FloatShape3D
+    shape: Shape3Df32
     seg: Segmentation3D
 
 

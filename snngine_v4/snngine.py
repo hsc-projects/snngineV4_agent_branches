@@ -2,7 +2,8 @@ import os
 from functools import cached_property
 
 
-from snngine_v4.nn.construction.nn_builder import NetworkBuilder
+from snngine_v4.construction.nn_builder import NetworkBuilder
+from snngine_v4.geometry.volume import VolumeShapeHDW
 from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.snngine_config import EngineConfig
 
@@ -31,7 +32,6 @@ class SNNgine:
 
         self.network_manager = NetworkBuilder(
             container_model=self.conf.current)
-
 
     @cached_property
     def b_pycuda_available(self):
@@ -100,19 +100,19 @@ class SNNgine:
         #     self.conf.current.network.elements[1]]
         network_elt_config = self.conf.current.network.elements[0]
 
-        visual_models = [
-            # self.conf.current.network.elements[1].grid,
-            network_elt_config
-        ]
+        # visual_models = [
+        #     # self.conf.current.network.elements[1].grid,
+        #     network_elt_config
+        # ]
 
         new_visuals = self.scene_manager.build_visuals(
-            visuals=visual_models,
+            visuals=[network_elt_config],
             scene=self.conf.scenes.main,
         )
         new_visuals = self.scene_manager.build_visuals(
             visuals=[network_elt_config.grid],
             scene=self.conf.scenes.main,
-            grid=self.network[network_elt_config.grid]
+            grid=self.network.grid
         )
 
         plot_visual0 = self.scene_manager.build_visuals(
@@ -125,6 +125,21 @@ class SNNgine:
             visuals=[self.conf.current.network.simulator.plots
                      .firings_scatter_plot],
             scene=self.conf.scenes.multiplot_current,
+        )
+
+        c0_config = network_elt_config.chemicals.C0
+        chem_data = self.network[c0_config].init_data_cpu
+        ref_shape = VolumeShapeHDW.hdw_to_wdh(c0_config.shape.data)
+        elt_shape = network_elt_config.grid.shape
+        initial_scale = (elt_shape[0] / (ref_shape[0]),
+                         elt_shape[1] / (ref_shape[1]),
+                         elt_shape[2] / (ref_shape[2]))
+
+        chem_visual = self.scene_manager.build_visuals(
+            visuals=[network_elt_config.chemicals.C0],
+            scene=self.conf.scenes.main,
+            vol=chem_data,
+            initial_scale=initial_scale,
         )
         return new_visuals
 

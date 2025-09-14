@@ -13,7 +13,7 @@ from snngine_v4.geometry.spatial_pars import Pos2DVBO
 from snngine_v4.utils.settings.config_model import ConfigModel
 from snngine_v4.utils.settings.ui_parameter_options import p_field
 from snngine_v4.visualization.config_models.visuals import (
-    LineVisualConfig, MarkersVisualConfig, VisualConfig,
+    LineVisualConfig, MarkersVisualConfig,
 )
 from snngine_v4.visualization.config_models.visuals.parameters import (
     ColorVBO, RGBAColorType,
@@ -159,7 +159,7 @@ class MultiPlotConfigMixin(PlotConfigMixin):
     @classmethod
     def _keep_object_init_kwargs(
             cls: ConfigModel,
-            kwargs, core_class: type[VisualConfig]):
+            kwargs, core_class: type[ConfigModel]):
         line_keys = set(core_class.cls_model_keys())
         # plot_keys0 = set(SepLineData.cls_model_keys())
         plot_keys1 = set(cls.cls_model_keys())

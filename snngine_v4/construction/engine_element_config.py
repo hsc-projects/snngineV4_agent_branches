@@ -12,11 +12,11 @@ from snngine_v4.utils.settings.config_model import ConfigModel
 class EngineElementConfigMixin:
     def elt_dict(self: ConfigModel, **kwargs):
         return self.filtered_model_dict(
-            type_filter=EngineElementConfig, **kwargs)
+            type_filter=EngineElementConfigMixin, **kwargs)
 
     def elt_values(self: ConfigModel, **kwargs):
         return self.filtered_model_values(
-            type_filter=EngineElementConfig, **kwargs)
+            type_filter=EngineElementConfigMixin, **kwargs)
 
     def tdf_dict(self: ConfigModel, **kwargs):
         return self.filtered_model_dict(

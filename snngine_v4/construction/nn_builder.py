@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 
 from snngine_v4.config.construction import EngineConstructionConfig
-from snngine_v4.nn.construction.config_models.spnn_config import \
+from snngine_v4.nn.config_models.spnn_config import \
     SpatialNetworkConfig
 from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.utils.containers.mappings import ObjectMapConfig

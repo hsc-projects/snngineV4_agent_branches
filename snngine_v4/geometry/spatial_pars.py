@@ -4,7 +4,7 @@ from enum import IntEnum, unique
 from typing import ClassVar
 
 import numpy as np
-from pydantic import Field
+from pydantic import Field, ValidationError
 
 from snngine_v4.utils.data_utils.dataframe_config import (
     SeriesModel,
@@ -69,6 +69,7 @@ class SpatialParUIOpts(FrozenParamOpts):
 
 
 type ShapeI32 = ArrayInterfaces().make_type(3, dtype=np.int32)
+type ShapeF32 = ArrayInterfaces().make_type(3, dtype=np.float32)
 type PosF32 = ArrayInterfaces().make_type(3, dtype=np.float32)
 
 
@@ -125,16 +126,28 @@ class XYZPars(SeriesModel):
 #         return self.X * self.Y * self.Z
 
 
-class FloatShape3D(XYZPars):
+class Shape3Di32(XYZPars):
     data: ShapeI32 = Field(
         default_factory=lambda: np.array([1, 1, 1], dtype=np.int32),
         repr=False)
+
+    def model_post_init(self, __context):
+        if bool(np.any(self.data <= 0)):
+            raise ValidationError(
+                f"{self.__class__.__name__}.data values must be positive")
+
+
+class Shape3Df32(Shape3Di32):
+    data: ShapeF32 = Field(
+        default_factory=lambda: np.array([1, 1, 1], dtype=np.float32),
+        repr=False)
+
     # X: PositiveFloat = Field(default=1, gt=0)
     # Y: PositiveFloat = Field(default=1, gt=0)
     # Z: PositiveFloat = Field(default=1, gt=0)
 
 
-class Segmentation3D(XYZPars):
+class Segmentation3D(Shape3Di32):
     data: ShapeI32 = Field(
         default_factory=lambda: np.array([10, 10, 10], dtype=np.int32),
         repr=False)

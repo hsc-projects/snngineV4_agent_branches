@@ -3,7 +3,7 @@ from typing import Type
 
 from pydantic import BaseModel
 from vispy.gloo import get_current_canvas
-from vispy.visuals import LineVisual, MarkersVisual, Visual
+from vispy.visuals import LineVisual, MarkersVisual, Visual, VolumeVisual
 from vispy.visuals.line.line import _GLLineVisual
 
 from snngine_v4.gui.parameter_tree.connectors.model_signals_register import \
@@ -38,6 +38,7 @@ class GLBufferTypes(IntEnum):
     IBO = auto()
     POS_VBO = auto()
     CONNECT_IBO = auto()
+    TEXTURE_3D = auto()
 
 
 class CudaVispyConnector(ParameterConnector):
@@ -86,8 +87,16 @@ class CudaVispyConnector(ParameterConnector):
                         raise NotImplementedError(
                             f"{obj.__class__.__name__}, "
                             f"{model.__class__.__name__}")
+
                 else:
                     raise NotImplementedError(f"{obj.__class__.__name__}")
+            case GLBufferTypes.TEXTURE_3D:
+                return
+                return RegisteredTexture3D(
+                    parent=self,
+                    texture_id=buffer,
+                    device=self._cuda_device,
+                    cpu_data=self._visual._last_data)
             case _:
                 raise NotImplementedError(f"{buffer_type.name}")
 
@@ -107,7 +116,11 @@ class CudaVispyConnector(ParameterConnector):
                 buffer_type=GLBufferTypes.POS_VBO,
                 device=device, obj=obj, model=model, **kwargs)
             res[GLBufferTypes.POS_VBO.name] = gl_tensor
-            # print(gl_tensor)
+        elif isinstance(obj, VolumeVisual):
+            gl_tensor = cls.to_gl_buffer(
+                buffer_type=GLBufferTypes.TEXTURE_3D,
+                device=device, obj=obj, model=model, **kwargs)
+            # res[GLBufferTypes.TEXTURE_3D.name] = gl_tensor
         # elif
         #         gl_tensor = cls.to_gl_buffer(
         #             buffer_type=GLBufferTypes.POS_VBO,

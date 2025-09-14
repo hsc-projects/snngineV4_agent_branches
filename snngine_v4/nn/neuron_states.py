@@ -1,10 +1,10 @@
 from typing import Callable, TYPE_CHECKING
 
-from snngine_v4.nn.construction.config_models.neurons.neuron_state import \
+from snngine_v4.nn.config_models.neurons.neuron_state import \
     NeuronStateModel
-from snngine_v4.nn.construction.config_models.reservoir.n_type_groups import \
+from snngine_v4.nn.config_models.reservoir.n_type_groups import \
     NeuronType
-from snngine_v4.nn.construction.engine_element import EngineElement
+from snngine_v4.construction.engine_element import EngineElement
 from snngine_v4.utils.cuda_utils.tensor_dataframe import (
     InconsistencyError,
     TensorDataFrame,

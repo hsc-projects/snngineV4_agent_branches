@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import ClassVar, Tuple, Type
+from typing import ClassVar, Tuple
 
 import torch
 from pydantic import BaseModel
 
 from snngine_v4.visualization.cuda.gl_interop import GLTensorDict
 
-from snngine_v4.nn.construction.config_models.engine_element_config import (
+from snngine_v4.construction.engine_element_config import (
     EngineElementConfig,
     EngineElementConfigMixin,
 )
@@ -119,7 +119,7 @@ class EngineElement(BuilderDict):
         self.root_element = root_element
 
         if self.root_element is not self:
-            self.update_build_kwargs(parent_element)
+            self.update_builder_class_attributes(parent_element)
         else:
             self._cuda_opengl_map = None
 
@@ -259,7 +259,7 @@ class EngineElement(BuilderDict):
         for c in self.children_elements:
             c.sync_to_cpu()
 
-    def update_build_kwargs(self, other: EngineElement):
+    def update_builder_class_attributes(self, other: EngineElement):
         self.BUILDER_OBJECT_CLASS_MAP.update(
             other.BUILDER_OBJECT_CLASS_MAP)
         self.BUILDER_OBJECT_SUPERCLASS_MAP.update(

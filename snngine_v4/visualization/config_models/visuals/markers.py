@@ -8,7 +8,7 @@ from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 
 from snngine_v4.geometry.spatial_pars import Pos3DVBO
 from snngine_v4.visualization.config_models.visuals.parameters import \
-    ColorType, RGBAColorType
+    BufferColorType, RGBAColorType
 from snngine_v4.visualization.config_models.visuals.visual_config import \
     VisualConfig
 
@@ -35,6 +35,6 @@ class MarkersVisualConfig(VisualConfig):
     edge_width: float | None = Field(default=1, ge=0, le=20)
     # edge_width_rel: NonNegativeFloat | None = Field(default=None, le=15)
     edge_color: RGBAColorType = 'green'
-    face_color: ColorType = 'white'
+    face_color: BufferColorType = 'white'
 
 

@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from pydantic import Field
 
-from snngine_v4.nn.construction.config_models.reservoir.n_type_groups \
+from snngine_v4.nn.config_models.reservoir.n_type_groups \
     import NTypeGroupList
 from snngine_v4.utils.data_utils.dataframe_config import (
     DataFrameF32, DataFrameF32D3, DataFrameI32,

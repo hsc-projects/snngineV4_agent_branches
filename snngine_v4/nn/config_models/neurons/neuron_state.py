@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from snngine_v4.nn.construction.config_models.neurons \
-    .neuron_state_elements import (
+from snngine_v4.nn.config_models.neurons.neuron_state_elements import (
         NeuronFlags, NeuronProperties,
     )
 
-from snngine_v4.nn.construction.config_models.neurons.presets \
-    .preset_base import PresetParameter
-from snngine_v4.nn.construction.config_models.engine_element_config import \
+from snngine_v4.nn.config_models.neurons.presets.preset_base import PresetParameter
+from snngine_v4.construction.engine_element_config import \
     EngineElementConfig
 
 from snngine_v4.utils.settings.config_model import ConfigModel

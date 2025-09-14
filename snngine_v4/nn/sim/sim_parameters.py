@@ -4,7 +4,7 @@ from typing import ClassVar
 
 from pydantic import Field
 
-from snngine_v4.nn.construction.config_models.engine_element_config import \
+from snngine_v4.construction.engine_element_config import \
     (EngineElementConfig, EngineElementConfigMixin)
 from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.visualization.config_models.plotting.multi_line_plot import \

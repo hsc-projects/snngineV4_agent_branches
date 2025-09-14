@@ -4,7 +4,7 @@ from typing import ClassVar
 
 from pydantic import Field
 
-from snngine_v4.geometry.grid_config import FiniteGridConfig
+from snngine_v4.geometry.grid.finite_grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import (
     Directions3DBoolPars,
 )

@@ -1,29 +1,32 @@
+from __future__ import annotations
+
+
 from functools import cached_property
 from typing import Callable, ClassVar, TYPE_CHECKING
 
 import torch
 
+from snngine_v4.chemistry.chem_models import (ChemicalConcentrationModel,
+                                              ChemicalContainerModel)
+from snngine_v4.chemistry.chem_volume import ChemicalConcentrationVolume
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
 from snngine_v4.gui.parameter_tree.cuda_connector import GLBufferTypes
-from snngine_v4.nn.construction.config_models.neurons.synapse_model import (
+from snngine_v4.nn.config_models.neurons.synapse_model import (
     SynapseCountTensors, SynapseModel,
 )
-from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
+from snngine_v4.nn.config_models.reservoir.nn_reservoir_config \
     import NetworkReservoirConfig
 
-from snngine_v4.nn.construction.engine_element import EngineElement
+from snngine_v4.construction.engine_element import EngineElement
 from snngine_v4.nn.synapses import Synapses, SynCounts
 from snngine_v4.utils.cuda_utils.tensor_dataframe import TensorDataFrame
 from snngine_v4.utils.cuda_utils.tensor_dict import TensorDict
 from snngine_v4.visualization.cuda.gl_interop.gl_tensor import GLBufferTensor
+from snngine_v4.nn.neuron_states import NeuronState
 
 
 if TYPE_CHECKING:
-    from snngine_v4.nn.neuron_states import NeuronState
     from snngine_v4.nn.spnn import SpatialNetwork
-else:
-    NeuronState = None
-    SpatialNetwork = None
 
 
 # noinspection PyPep8Naming
@@ -32,6 +35,11 @@ class NetworkReservoir(EngineElement):
     BUILDER_OBJECT_CLASS_MAP: ClassVar[dict] = {
         SynapseModel: Synapses,
         SynapseCountTensors: SynCounts,
+        ChemicalConcentrationModel: ChemicalConcentrationVolume,
+    }
+
+    BUILDER_OBJECT_SUPERCLASS_MAP: ClassVar[dict] = {
+        ChemicalContainerModel: EngineElement,
     }
 
     config_model: NetworkReservoirConfig

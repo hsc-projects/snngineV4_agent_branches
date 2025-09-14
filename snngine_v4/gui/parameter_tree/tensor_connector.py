@@ -10,8 +10,8 @@ from snngine_v4.gui.parameter_tree.parameters import (
     TensorDictParameter,
     TensorParameter,
 )
-from snngine_v4.nn.construction.engine_element import EngineElement
-from snngine_v4.nn.construction.nn_builder import NetworkBuilder
+from snngine_v4.construction.engine_element import EngineElement
+from snngine_v4.construction.nn_builder import NetworkBuilder
 from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.utils.containers.mappings import Object2ObjectMap
 

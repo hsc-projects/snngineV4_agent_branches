@@ -143,6 +143,7 @@ class ParameterBuilder:
                 if options.c_data_types == ListParameterModel:
                     heritable_opts[ParamOpts.KW.LIMITS] = options.value.limits
                     heritable_opts[ParamOpts.KW.VALUE] = options.value.value
+
                 parameter_ = Parameter.create(
                     name=options.name,
                     parent_model=parent_model, model=options.value,
@@ -151,6 +152,7 @@ class ParameterBuilder:
                     title=options.title,
                     exclude_keys=exclude_keys,
                     **heritable_opts)
+
                 if isinstance(options.value, BaseModel):
                     signal_register.parameter_map[options.value] = parameter_
 

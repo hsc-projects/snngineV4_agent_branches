@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import auto, IntEnum, unique
 from types import NoneType
-from typing import Annotated, ClassVar, TypeAliasType
+from typing import Annotated, ClassVar
 
 import numpy as np
 from pydantic import BeforeValidator, Field
@@ -21,28 +21,6 @@ from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.utils.settings.xml_converter.xml_settings_source import (
     default_xml_model_config_dict, XMLSettingsConfigDict,
 )
-
-type ColorVBO = ArrayInterfaces().vbo_array_type(4)
-
-
-type ColorTypeUnion = (
-        str | RGBAColor
-        | ColorVBO
-        | Color | None)
-
-type RGBAColorTypeUnion = (
-        str | RGBAColor
-        | Color | None)
-
-
-def validate_color(v):
-    if isinstance(v, tuple) or (isinstance(v, np.ndarray) and v.ndim == 1):
-        v = RGBAColor.from_iterable(v)
-    return v
-
-
-ColorType = Annotated[ColorTypeUnion, BeforeValidator(validate_color)]
-RGBAColorType = Annotated[RGBAColorTypeUnion, BeforeValidator(validate_color)]
 
 
 type VispyColorType = tuple
@@ -185,6 +163,29 @@ class OpenGLState(ConfigModel):
 
     attribute_key: str | None = None
     state_type: OpenGlStateType
+
+
+type ColorVBO = ArrayInterfaces().vbo_array_type(4)
+
+
+type ColorTypeUnion = (
+        str | RGBAColor
+        | ColorVBO
+        | Color | None)
+
+type RGBAColorTypeUnion = (
+        str | RGBAColor
+        | Color | None)
+
+
+def validate_color(v):
+    if isinstance(v, tuple) or (isinstance(v, np.ndarray) and v.ndim == 1):
+        v = RGBAColor.from_iterable(v)
+    return v
+
+
+BufferColorType = Annotated[ColorTypeUnion, BeforeValidator(validate_color)]
+RGBAColorType = Annotated[RGBAColorTypeUnion, BeforeValidator(validate_color)]
 
 
 if __name__ == '__main__':

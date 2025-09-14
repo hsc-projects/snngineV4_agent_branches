@@ -2,21 +2,21 @@ from functools import cached_property
 from typing import ClassVar
 
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
-from snngine_v4.geometry.grid_config import FiniteGridConfig
-from snngine_v4.nn.construction.config_models.neurons.neuron_state import \
+from snngine_v4.geometry.grid.finite_grid_config import FiniteGridConfig
+from snngine_v4.nn.config_models.neurons.neuron_state import \
     NeuronStateModel
-from snngine_v4.nn.construction.config_models.spnn_config import \
+from snngine_v4.nn.config_models.spnn_config import \
     SpatialNetworkConfig
-from snngine_v4.nn.construction.config_models.engine_element_config \
+from snngine_v4.construction.engine_element_config \
     import EngineElementConfig
-from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
+from snngine_v4.nn.config_models.reservoir.nn_reservoir_config \
     import NetworkReservoirConfig
 from snngine_v4.nn.neuron_states import NeuronState
 from snngine_v4.nn.sim.simulator import Simulator
 from snngine_v4.nn.sim.sim_parameters import SimulatorOptions
 
 from snngine_v4.nn.spnn_reservoir import NetworkReservoir
-from snngine_v4.nn.construction.engine_element import EngineElement, EngineNodes
+from snngine_v4.construction.engine_element import EngineElement, EngineNodes
 
 
 type GetNetworkElementType = (int | EngineElementConfig

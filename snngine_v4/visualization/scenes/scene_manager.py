@@ -1,8 +1,9 @@
 from typing import Callable, ClassVar
 
 from pydantic import BaseModel
-from vispy.scene import BaseCamera, PanZoomCamera, ViewBox
+from vispy.scene import ViewBox
 
+from snngine_v4.geometry.grid.finite_grid_config import FiniteGridConfig
 from snngine_v4.utils.containers.mappings import (
     Model2ObjectMap,
 )
@@ -15,13 +16,24 @@ from snngine_v4.visualization.config_models.vispy_camera_configs import (
 from snngine_v4.visualization.config_models.vispy_canvas_config import (
     VispyCanvasConfig, VispyViewBoxConfig,
 )
-from snngine_v4.visualization.config_models.visuals import VisualConfig
+from snngine_v4.visualization.config_models.visuals import (
+    LineVisualConfig, MarkersVisualConfig
+)
+
 from snngine_v4.visualization.scenes.event_camera import (
     EventPanZoomCamera, EventTurntableCamera,
 )
 from snngine_v4.visualization.scenes.main_network_scene import (
     EngineSceneCanvas)
 from snngine_v4.visualization.visual_builder import VispyVisualBuilder
+
+
+from snngine_v4.nn.config_models.spnn_config \
+    import NetworkReservoirConfig
+
+
+type VisualConfig = (FiniteGridConfig | LineVisualConfig | MarkersVisualConfig
+                     | NetworkReservoirConfig)
 
 
 class CameraBuilder(ModelObjectBuilder):

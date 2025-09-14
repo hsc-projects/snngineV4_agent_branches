@@ -8,27 +8,27 @@ from vispy.scene import (
     Box, Line, Markers, VisualNode,
     XYZAxis,
 )
-from vispy.scene.visuals import create_visual_node
+from vispy.scene.visuals import Volume, create_visual_node
 from vispy.util.event import EmitterGroup
 from vispy.visuals import (
     BaseVisual, CompoundVisual, LineVisual, MeshVisual,
-    Visual,
+    Visual, VolumeVisual,
 )
 from vispy.visuals.transforms import NullTransform, STTransform
 
-from snngine_v4.geometry.grid_config import FiniteGridConfig
+from snngine_v4.geometry.grid.finite_grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import (
-    AxDir3D, Directions3DBoolPars, EnginePos3D, FloatShape3D,
+    AxDir3D, Directions3DBoolPars, EnginePos3D, Shape3Df32,
     Segmentation3D,
 )
-from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
+from snngine_v4.geometry.volume import VolumeConfig
+from snngine_v4.nn.config_models.reservoir.nn_reservoir_config \
     import NetworkReservoirConfig
 from snngine_v4.utils.containers.configurable_dict import (
     ConfigurableDict,
     DictContainerConfig,
 )
 from snngine_v4.utils.class_mixer import ClassMixer
-from snngine_v4.utils.core_utils import filter_dict_keys
 from snngine_v4.utils.field_utils import Undefined
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 from snngine_v4.utils.settings.settings_keywords import (
@@ -51,8 +51,10 @@ from snngine_v4.visualization.config_models.visuals.boxes import (
     BoxVisualInitConfig, OuterGridVisualInitConfig,
 )
 from snngine_v4.visualization.config_models.plotting.multi_line_plot import (
-    MultiLinePlotConfig, MultiLinePlotConfig, MultiLinePlotConfigBase,
-    MultiPlotConfigMixin, MultiScatterPlotConfig, SepLineData,
+    MultiLinePlotConfig,
+    MultiPlotConfigMixin,
+    MultiScatterPlotConfig,
+    SepLineData,
 )
 from snngine_v4.visualization.scenes.setattribute_event import (
     MeshDataChangedEvent, SetAttributeEvent,
@@ -61,6 +63,12 @@ from snngine_v4.visualization.visuals.compound_markers import \
     CompoundMarkersVisual
 from snngine_v4.visualization.visuals.grid_lines import (
     FiniteGridLinesVisual, MultiBoxLinesVisual,
+)
+from snngine_v4.visualization.visuals.volumetric import (
+    CompoundR32fVolume,
+    CompoundR32fVolumeVisual,
+    R32fVolume,
+    R32fVolumeVisual
 )
 
 
@@ -105,6 +113,8 @@ class VisualMixin:
                                  VispyKeyWords.SIZE,
                                  VispyKeyWords.EDGE_WIDTH,],
 
+    SET_DATA_VolumeVisual_KWS = ['vol']
+
     SET_DATA_KWS = {
         LineVisual: SET_DATA_LineVisual_KWS,
         Line: SET_DATA_LineVisual_KWS,
@@ -120,14 +130,27 @@ class VisualMixin:
                      VispyKeyWords.FACE_COLORS,
                      'vertex_values',
                      'meshdata'],
+        Volume: SET_DATA_VolumeVisual_KWS,
+        VolumeVisual: SET_DATA_VolumeVisual_KWS,
+        R32fVolumeVisual: SET_DATA_VolumeVisual_KWS,
+        R32fVolume: SET_DATA_VolumeVisual_KWS,
+        CompoundR32fVolumeVisual: SET_DATA_VolumeVisual_KWS,
+        CompoundR32fVolume: SET_DATA_VolumeVisual_KWS,
     }
 
     attr_changed_keys: ClassVar[Set[str]] = set()
 
-    def __pre_init__(self, *args, **kwargs):
+    initial_scale: tuple | None
+    initial_move: tuple | None
+
+    def __pre_init__(self, *args, initial_scale=None,
+                     initial_move=None,
+                     **kwargs):
         object.__setattr__(self, "emitter_map", None)
         self._initialized = True
-        self._compound_post_init_called = False
+        self.initial_scale = initial_scale
+        self.initial_move = initial_move
+        # self._compound_post_init_called = False
         # self.emitter_map = None
 
     def mesh_data_changed(self: MeshVisual):
@@ -173,6 +196,18 @@ class VisualMixin:
                             print('added events:', v.__class__.__name__, id(v))
                     else:
                         pass
+        if isinstance(self.transform, NullTransform):
+            self.transform = STTransform(
+                translate=(0, 0, 0), scale=(1, 1, 1))
+            # if isinstance(self, FiniteGridLinesVisual):
+            #     self.transform.move(self.grid.shape / 2)
+            #     self.transform.changed()
+            # elif isinstance(self, CompoundR32fVolumeVisual):
+        if self.initial_scale is not None:
+            self.transform.scale = self.initial_scale
+        if self.initial_move is not None:
+            self.transform.move(self.initial_move)
+            self.transform.changed()
 
 
 class VisualMixins(ClassMixer):
@@ -192,8 +227,11 @@ class VisualMixins(ClassMixer):
             elif class_item in (Markers, CompoundMarkersVisual):
                 attr_changed_keys = (
                     ['alpha'] + MarkersVisualConfig.cls_model_keys())
+            elif issubclass(class_item, (VolumeVisual,
+                                         CompoundR32fVolumeVisual)):
+                attr_changed_keys = []
             else:
-                raise NotImplementedError()
+                raise NotImplementedError(class_item.__name__)
             if 'visible' not in attr_changed_keys:
                 if not isinstance(attr_changed_keys, dict):
                     attr_changed_keys += ['visible']
@@ -205,7 +243,10 @@ class VisualMixins(ClassMixer):
                 class_item = create_visual_node(class_item)
                 VisualMixin.SET_DATA_KWS[class_item] = set_data_kws
 
-            def init(self: VisualMixin | Visual, *args, **kwargs_):
+            def init(self: VisualMixin | Visual, *args,
+                     initial_scale=None,
+                     initial_move=None,
+                     **kwargs_):
                 subvisuals = None
                 if class_item == Line:
                     subvisuals = kwargs_.pop(
@@ -227,12 +268,16 @@ class VisualMixins(ClassMixer):
                 visible = kwargs_.pop('visible', True)
                 pos_origin = kwargs_.pop(EnginePos3D.Slots.POS_ORIGIN, True)
 
-                self.__pre_init__(*args, **kwargs_)
+                self.__pre_init__(*args,
+                                  initial_scale=initial_scale,
+                                  initial_move=initial_move,
+                                  **kwargs_)
                 class_item.__init__(self, *args, **kwargs_)
-                if subvisuals is not None:
-                    self.__post_init__(subvisuals)
-                else:
-                    self.__post_init__()
+                self.__post_init__(subvisuals=subvisuals)
+                # if subvisuals is not None:
+                #     self.__post_init__(subvisuals)
+                # else:
+                #     self.__post_init__()
 
             def set_attr(self: VisualMixin | Visual, key, value):
                 class_item.__setattr__(self, key, value)
@@ -283,6 +328,7 @@ class VispyVisualBuilder(BuilderDict):
         MultiLinePlotConfig: BUILDER_OBJECT_CLASS_MAP[MultiLinePlotConfig],
         MultiScatterPlotConfig: BUILDER_OBJECT_CLASS_MAP[
             MultiScatterPlotConfig],
+        VolumeConfig: R32fVolumeVisual
     }
 
     @classmethod
@@ -332,7 +378,7 @@ class VispyVisualBuilder(BuilderDict):
             for k, dump_value_ in dct.items():
                 if k != cls.SUBVISUALS_KW:
                     model_ = getattr(model, k)
-                    if isinstance(model_, FloatShape3D):
+                    if isinstance(model_, Shape3Df32):
                         # up_keys[k] = WDHKw.convert_dict(dump_value_)
                         up_keys[k] = WDHKw.convert_model(model_)
                     elif isinstance(model_, Segmentation3D):
@@ -346,6 +392,7 @@ class VispyVisualBuilder(BuilderDict):
                         dct[k] = tuple(vals)
 
             if isinstance(model, (SepLineData,
+                                  VolumeConfig,
                                   MultiLinePlotConfig,
                                   MultiScatterPlotConfig)):
                 dct = model.keep_object_init_kwargs(dct)
@@ -390,13 +437,6 @@ class VispyVisualBuilder(BuilderDict):
 
         if len(opengl_kwargs) > 0:
             cls.apply_open_gl_kwargs(visual, opengl_kwargs)
-
-        if isinstance(visual.transform, NullTransform):
-            visual.transform = STTransform(
-                translate=(0, 0, 0), scale=(1, 1, 1))
-            if isinstance(visual, FiniteGridLinesVisual):
-                visual.transform.move(visual.grid.shape / 2)
-                visual.transform.changed()
 
         return visual
 

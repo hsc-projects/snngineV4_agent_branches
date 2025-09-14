@@ -4,9 +4,9 @@ from typing import ClassVar
 
 from pydantic import Field
 
-from snngine_v4.nn.construction.config_models.spnn_config import \
+from snngine_v4.nn.config_models.spnn_config import \
     SpatialNetworkConfig
-from snngine_v4.nn.construction.config_models.reservoir.nn_reservoir_config \
+from snngine_v4.nn.config_models.reservoir.nn_reservoir_config \
     import NetworkReservoirConfig
 from snngine_v4.utils.settings.settings_keywords import BaseSettingsSlots
 from snngine_v4.utils.settings.xml_converter.xml_settings_source import (

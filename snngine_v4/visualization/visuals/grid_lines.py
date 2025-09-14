@@ -321,12 +321,13 @@ class FiniteGridLinesVisual(BoxVisual):
         # self.transform.move(self._grid.shape / 2)
         # self.transforms.changed()
 
+        self.initial_move = self.grid.shape / 2
+
         self.add_subvisual(self.lines_visual)
         # self.lines_visual.transform = STTransform(
         #     translate=(0, 0, 0), scale=(1, 1, 1))
         # self.lines_visual.transform.move(-self.grid.shape / 2)
         # self.lines_visual.transforms.changed()
-
 
         # noinspection PyTypeChecker,PydanticTypeChecker
         self.lines_visual.set_gl_state(

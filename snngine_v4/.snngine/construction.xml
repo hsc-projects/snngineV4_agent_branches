@@ -10,7 +10,7 @@
         <DictItem type="dict" class="TechnicalValues" key="technical">
           <DictItem type="int" key="max_z">100</DictItem>
         </DictItem>
-        <DictItem type="dict" class="FloatShape3D" key="shape">
+        <DictItem type="dict" class="Shape3Df32" key="shape">
           <DictItem type="bool" key="b_nullable">False</DictItem>
         </DictItem>
         <DictItem type="dict" class="Segmentation3D" key="seg">
@@ -129,7 +129,7 @@
             <DictItem type="dict" class="TechnicalValues" key="technical">
               <DictItem type="int" key="max_z">100</DictItem>
             </DictItem>
-            <DictItem type="dict" class="FloatShape3D" key="shape">
+            <DictItem type="dict" class="Shape3Df32" key="shape">
               <DictItem type="bool" key="b_nullable">False</DictItem>
             </DictItem>
             <DictItem type="dict" class="Segmentation3D" key="seg">
@@ -546,6 +546,32 @@
             </DictItem>
             <DictItem type="bool" key="b_nullable">False</DictItem>
             <DictItem type="NoneType" key="columns">None</DictItem>
+          </DictItem>
+          <DictItem type="dict" class="DefaultChemicals" key="chemicals">
+            <DictItem type="dict" class="ChemicalConcentrationModel" key="C0">
+              <DictItem type="dict" class="EnginePos3D" key="pos_origin">
+                <DictItem type="bool" key="b_nullable">False</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="VolumeShapeHDW" key="shape">
+                <DictItem type="bool" key="b_nullable">False</DictItem>
+              </DictItem>
+              <DictItem type="str" key="color">white</DictItem>
+              <DictItem type="float" key="k_val">0.16</DictItem>
+              <DictItem type="float" key="depreciation">0.0</DictItem>
+              <DictItem type="bool" key="b_test_init">True</DictItem>
+            </DictItem>
+            <DictItem type="dict" class="ChemicalConcentrationModel" key="C1">
+              <DictItem type="dict" class="EnginePos3D" key="pos_origin">
+                <DictItem type="bool" key="b_nullable">False</DictItem>
+              </DictItem>
+              <DictItem type="dict" class="VolumeShapeHDW" key="shape">
+                <DictItem type="bool" key="b_nullable">False</DictItem>
+              </DictItem>
+              <DictItem type="str" key="color">white</DictItem>
+              <DictItem type="float" key="k_val">0.16</DictItem>
+              <DictItem type="float" key="depreciation">0.0</DictItem>
+              <DictItem type="bool" key="b_test_init">True</DictItem>
+            </DictItem>
           </DictItem>
         </ListElementElement>
       </DictItem>

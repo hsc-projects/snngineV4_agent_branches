@@ -1,7 +1,6 @@
 from typing import ClassVar
 
-from snngine_v4.nn.construction.config_models.spnn_config import \
-    SpatialNetworkConfig
+from snngine_v4.nn.config_models.spnn_config import SpatialNetworkConfig
 from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.utils.settings.xml_settings import (
     XMLSettingsContainerModel,
