@@ -2,12 +2,16 @@ from functools import cached_property
 from typing import ClassVar
 
 import numpy as np
+import torch
 from vispy import io
 
 from snngine_v4.chemistry.chem_models import ChemicalConcentrationModel
 from snngine_v4.construction.engine_element import EngineElement
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
 from snngine_v4.geometry.volume import LinkedVolumeGridConfig
+from snngine_v4.gui.parameter_tree.cuda_connector import GLBufferTypes
+from snngine_v4.visualization.cuda.gl_interop.gl_texture3d import \
+    GLTexture3DTensor
 
 
 class ChemicalConcentrationVolume(EngineElement):
@@ -31,6 +35,15 @@ class ChemicalConcentrationVolume(EngineElement):
         self.add_build(self.config_model.linked_grid_config,
                        parent_model=self.config_model,
                        b_default_build_kwargs=False)
+
+        self.c_next = self.texture_3d.tensor
+        self.c_current = torch.clone(self.texture_3d.tensor)
+        self.c_source = torch.clone(self.texture_3d.tensor)
+        self.c_source[:] = 0
+
+    @cached_property
+    def texture_3d(self) -> GLTexture3DTensor:
+        return self.cuda_gl_dict[GLBufferTypes.TEXTURE_3D.name]
 
     @staticmethod
     def test_data(data):

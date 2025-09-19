@@ -95,7 +95,7 @@ class Simulation(EngineElement):
             simulator.plots.config_model.firings_scatter_plot]
 
         pos_vbo = element.pos_vbo
-        return
+        # return
         sim = snn_simulation_gpu.SnnSimulation(
             N=N, G=G, S=S, D=D,
             T=T,
@@ -125,7 +125,7 @@ class Simulation(EngineElement):
             N_delays=synapses.N_delays.data_ptr(),
 
             N_flags=neuron_states.N_flags.data_ptr(),
-            N_states=neuron_states.N_states.data_ptr(),
+            N_states=neuron_states.N_props.data_ptr(),
 
             N_weights=synapses.N_weights.data_ptr(),
 

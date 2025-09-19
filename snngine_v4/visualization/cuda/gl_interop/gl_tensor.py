@@ -16,10 +16,9 @@ class GLBufferTensor:
                  opengl_id: int, shape: tuple | None,
                  device: torch.device | int = 0, stream: int = 0,
                  validation_interface=None):
-        strides = (shape[1] * dtype.itemsize, dtype.itemsize)
-        self.gl_buffer = GLBuffer.from_id(
+        self.gl_buffer = self._make_buffer(
             dtype=dtype, opengl_id=opengl_id, shape=shape,
-            strides=strides, device=device, stream=stream)
+            device=device, stream=stream)
         self.validation_interface: TypedNumpyInterface = validation_interface
 
     def data_ptr(self):
@@ -35,6 +34,15 @@ class GLBufferTensor:
         return cls(opengl_id=opengl_id, shape=array.shape,
                    dtype=array.dtype, device=device,
                    stream=stream)
+
+    def _make_buffer(self, dtype: str | np.dtype | None,
+                     opengl_id: int, shape: tuple | None,
+                     device: torch.device | int = 0, stream: int = 0,):
+        strides = (shape[1] * dtype.itemsize, dtype.itemsize)
+        gl_buffer = GLBuffer.from_id(
+            dtype=dtype, opengl_id=opengl_id, shape=shape,
+            strides=strides, device=device, stream=stream)
+        return gl_buffer
 
     def numpy(self):
         return self.tensor.cpu().numpy()

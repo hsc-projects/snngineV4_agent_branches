@@ -25,6 +25,8 @@ from snngine_v4.visualization.cuda.gl_interop.gl_tensor import (
 )
 from snngine_v4.visualization.cuda.gl_interop.gl_tensor_dict import (
     GLTensorDict)
+from snngine_v4.visualization.cuda.gl_interop.gl_texture3d import \
+    GLTexture3DTensor
 from snngine_v4.visualization.scenes.main_network_scene import (
     EngineSceneCanvas)
 from snngine_v4.visualization.scenes.scene_manager import (
@@ -91,12 +93,12 @@ class CudaVispyConnector(ParameterConnector):
                 else:
                     raise NotImplementedError(f"{obj.__class__.__name__}")
             case GLBufferTypes.TEXTURE_3D:
-                return
-                return RegisteredTexture3D(
-                    parent=self,
-                    texture_id=buffer,
-                    device=self._cuda_device,
-                    cpu_data=self._visual._last_data)
+                obj: VolumeVisual
+                texture_id = cls.gl_buffer_id(obj._texture.id)
+                return GLTexture3DTensor(
+                    texture_id=texture_id,
+                    device=device,
+                    cpu_data=obj._last_data)
             case _:
                 raise NotImplementedError(f"{buffer_type.name}")
 
