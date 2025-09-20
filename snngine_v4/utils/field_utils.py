@@ -81,7 +81,10 @@ def b_is_enum_annotation(ann: AnnotationType, b_strict: bool) -> bool:
 
 
 def b_is_int_annotation(ann: AnnotationType, b_strict: bool) -> bool:
-    return b_annotation_includes_type(ann, int, b_strict=b_strict)
+    res = b_annotation_includes_type(ann, int, b_strict=b_strict)
+    if (res is False) and b_is_annotated(ann, b_strict=True):
+        return ann.__origin__ == int
+    return res
 
 
 def b_is_intenum_annotation(ann: AnnotationType, b_strict: bool) -> bool:

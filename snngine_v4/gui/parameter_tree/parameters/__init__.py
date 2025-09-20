@@ -1,5 +1,6 @@
 from enum import Enum
 from types import NoneType, UnionType
+from typing import Union
 
 from pyqtgraph.parametertree import registerParameterType
 from pyqtgraph.parametertree.parameterTypes import (
@@ -49,6 +50,7 @@ registerParameterType(InconsistentType.__name__, UndefinedTypeParameter,
                       override=True)
 
 registerParameterType(UnionType.__name__, MultiTypeParameter, override=True)
+registerParameterType(Union.__name__, MultiTypeParameter, override=True)
 registerParameterType(int.__name__, SpinBoxSliderParameter, override=True)
 registerParameterType(float.__name__, SpinBoxSliderParameter, override=True)
 

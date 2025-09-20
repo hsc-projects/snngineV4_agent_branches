@@ -58,6 +58,8 @@ class SpinBoxSliderParameterItem(NumericParameterItem,
                     pass
             else:
                 pass
+
+        self.slider = None
         super().__init__(param, depth)
         self.b_select_other = self.param.b_merge_to_parent
         self.select_other_target = None
@@ -159,8 +161,12 @@ class SpinBoxSliderParameterItem(NumericParameterItem,
     def optsChanged(self, param, opts):
         super().optsChanged(param, opts)
 
-        if hasattr(self, 'slider') and (ParamOpts.KW.SPAN in opts):
-            self.slider.set_span(opts[ParamOpts.KW.SPAN])
+        if self.slider:
+            if ParamOpts.KW.SPAN in opts:
+                self.slider.set_span(opts[ParamOpts.KW.SPAN])
+
+            if (b_readonly := opts.get(ParamOpts.KW.READONLY)) is not None:
+                self.slider.setVisible(not bool(b_readonly))
 
     def showEditor(self):
         if self.setNoneCheckbox.isChecked():

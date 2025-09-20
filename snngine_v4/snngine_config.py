@@ -18,7 +18,7 @@ from snngine_v4.utils.settings.xml_settings import XMLSettingsModel
 from snngine_v4.config.app import EngineAppSettings
 from snngine_v4.config.devices import DeviceSettings
 from snngine_v4.config.scenes import SceneSettings
-from snngine_v4.config.construction import (
+from snngine_v4.config.template import (
     EngineConstructionConfig,
 )
 
@@ -26,9 +26,9 @@ from snngine_v4.config.construction import (
 class EngineConfig(XMLSettingsModel):
 
     class Slots:
-        CONSTR: ClassVar[str] = 'construction'
+        TEMPLATE: ClassVar[str] = 'template'
         SCENES: ClassVar[str] = 'scenes'
-        NETWORK: ClassVar[str] = 'current'
+        BUILT: ClassVar[str] = 'built'
 
     model_config: ClassVar[XMLSettingsConfigDict] = (
         default_xml_model_config_dict(
@@ -41,7 +41,7 @@ class EngineConfig(XMLSettingsModel):
     devices: DeviceSettings
 
     scenes: SceneSettings
-    construction: EngineConstructionConfig = Field(
+    template: EngineConstructionConfig = Field(
         default_factory=lambda:  EngineConstructionConfig(
             network=SpatialNetworkConfig(
                 device=1,
@@ -51,7 +51,7 @@ class EngineConfig(XMLSettingsModel):
                     # EngineElementConfig(),
                 ])))
 
-    current: EngineConstructionConfig
+    built: EngineConstructionConfig
 
     @classmethod
     def _xml_file_paths(cls):

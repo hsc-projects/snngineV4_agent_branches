@@ -21,14 +21,16 @@ class SceneSettings(ConfigModel):
         Visuals=SceneVisuals(axis=XYZAxisVisualConfig()))
 
     multiplot_voltage: VispyCanvasConfig = VispyCanvasConfig(
-        Options=VispyCanvasConfigOptions(title='Potential'),
+        Options=VispyCanvasConfigOptions(title='Voltage'),
         Views=SceneViews(
-            main=VispyViewBoxConfig(),
+            main=VispyViewBoxConfig(
+                camera=PanZoomCameraParameters()
+            ),
         ),
         Visuals=SceneVisuals(axis=XYZAxisVisualConfig()))
 
-    multiplot_current: VispyCanvasConfig = VispyCanvasConfig(
-        Options=VispyCanvasConfigOptions(title='Current'),
+    multiplot_firings: VispyCanvasConfig = VispyCanvasConfig(
+        Options=VispyCanvasConfigOptions(title='Firings'),
         Views=SceneViews(
             main=VispyViewBoxConfig(
                 camera=PanZoomCameraParameters()

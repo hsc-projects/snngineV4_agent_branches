@@ -4,7 +4,7 @@ from typing import ClassVar, Type
 from pydantic import BaseModel
 
 
-from snngine_v4.config.construction import EngineConstructionConfig
+from snngine_v4.config.template import EngineConstructionConfig
 from snngine_v4.nn.config_models.spnn_config import \
     SpatialNetworkConfig
 from snngine_v4.nn.spnn import SpatialNetwork

@@ -40,8 +40,8 @@ class SettingsWindow(QtWidgets.QWidget):
         for k in self.engine_config.model_keys(
             exclude=[
                 EngineConfig.Slots.SCENES,
-                EngineConfig.Slots.CONSTR,
-                EngineConfig.Slots.NETWORK,]
+                EngineConfig.Slots.TEMPLATE,
+                EngineConfig.Slots.BUILT,]
         ):
             settings = getattr(engine_config, k)
             self.add_settings(settings, name=k)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import ClassVar
 
+from pydantic import Field, NonNegativeInt
 
 from snngine_v4.geometry.grid.finite_grid_config import FiniteGridConfig
 from snngine_v4.construction.engine_element_config import (
@@ -18,7 +19,7 @@ class SpatialNetworkConfig(EngineElementConfig):
         GRID: ClassVar[str] = "grid"
         ELEMENTS: ClassVar[str] = "elements"
 
-    device: int | str = 0
+    device: NonNegativeInt | str = Field(default=0)
 
     grid: FiniteGridConfig
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from copy import copy
 from enum import Enum
 from types import NoneType, UnionType
-from typing import get_args, TypeAliasType
+from typing import Union, _UnionGenericAlias, get_args, TypeAliasType
 
 import numpy as np
 import pandas as pd
@@ -54,7 +54,10 @@ class OptionsBuilder:
             ann = cls.convert_type_alias_type(ann)
         try:
             from torch import OptionalType
-            if isinstance(ann, UnionType) or b_is_optional(ann, b_strict=True):
+            if (isinstance(ann, (UnionType,
+                                # _UnionGenericAlias
+                                 ))
+                    or b_is_optional(ann, b_strict=True)):
                 args = get_args(ann)
                 if (len(args) == 2) and (NoneType in args):
                     if (b_float := (float in args)) or (int in args):
@@ -64,6 +67,19 @@ class OptionsBuilder:
                             if ((arg != NoneType)
                                     and (arg.__origin__ in [int, float])):
                                 return arg.__origin__
+                if isinstance(ann, _UnionGenericAlias):
+                    pass
+                return ann
+            elif isinstance(ann, _UnionGenericAlias):
+                # args = get_args(ann)
+                # new_args = []
+                # # if any([b_is_annotated(x) for x in args]):
+                # for arg in args:
+                #     if b_is_annotated(arg, b_strict=True):
+                #         new_args.append(arg.__origin__)
+                #     else:
+                #         new_args.append(arg)
+                # new_ann = Union[*new_args]
                 return ann
             elif issubclass(ann, Enum):
                 return Enum
@@ -136,7 +152,8 @@ class OptionsBuilder:
             options.c_value_interval = interval_from_field(fi)
             options.step = get_field_multiple_of(fi)
 
-        options.readonly = get_field_frozen(fi)
+        if options.readonly is False:
+            options.readonly = get_field_frozen(fi)
 
         return cls.from_annotation(ann=fi.annotation, m=options)
 
@@ -215,12 +232,11 @@ class OptionsBuilder:
                         options.c_model_field_info)
                 if options.step is None:
                     is_int = b_is_int_annotation(ann, True)
-                    if options.step is None:
-                        if is_int:
-                            options.step = 1
-                        else:
-                            options.step = .01
-                            options.decimals = 6
+                    if is_int:
+                        options.step = 1
+                    else:
+                        options.step = .01
+                        options.decimals = 6
 
             if options.c_nullable_value:
                 if options.value is None:

@@ -117,7 +117,8 @@ class EngineParameterTree(ParameterTree):
         return model
 
     def set_parameters_from_model(self, model, **kwargs):
-        self.parameters = self.add_parameters_from_model(model=model, **kwargs)
+        self.parameters = self.add_parameters_from_model(
+            model=model, **kwargs)
 
     @property
     def settings_model(self):

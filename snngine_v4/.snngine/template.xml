@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf8"?>
 <dict>
-  <construction type="dict" class="EngineConstructionConfig">
+  <template type="dict" class="EngineConstructionConfig">
     <DictItem type="dict" class="SpatialNetworkConfig" key="network">
       <DictItem type="int" key="device">1</DictItem>
       <DictItem type="dict" class="FiniteGridConfig" key="grid">
@@ -46,7 +46,7 @@
             </DictItem>
             <DictItem type="int" key="max_n_plots">1000</DictItem>
             <DictItem type="dict" class="SeriesI32" key="map">
-              <DictItem type="dict" class="IndexConfig" key="index"/>
+              <DictItem type="NoneType" key="index">None</DictItem>
               <DictItem type="bool" key="b_nullable">False</DictItem>
             </DictItem>
           </DictItem>
@@ -76,7 +76,7 @@
             </DictItem>
             <DictItem type="int" key="max_n_plots">1000</DictItem>
             <DictItem type="dict" class="SeriesI32" key="map">
-              <DictItem type="dict" class="IndexConfig" key="index"/>
+              <DictItem type="NoneType" key="index">None</DictItem>
               <DictItem type="bool" key="b_nullable">False</DictItem>
             </DictItem>
           </DictItem>
@@ -106,7 +106,7 @@
             </DictItem>
             <DictItem type="int" key="max_n_plots">1000</DictItem>
             <DictItem type="dict" class="SeriesI32" key="map">
-              <DictItem type="dict" class="IndexConfig" key="index"/>
+              <DictItem type="NoneType" key="index">None</DictItem>
               <DictItem type="bool" key="b_nullable">False</DictItem>
             </DictItem>
           </DictItem>
@@ -582,5 +582,5 @@
         <ListElementElement type="bool">True</ListElementElement>
       </DictItem>
     </DictItem>
-  </construction>
+  </template>
 </dict>

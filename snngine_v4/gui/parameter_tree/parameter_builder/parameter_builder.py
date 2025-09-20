@@ -117,6 +117,8 @@ class ParameterBuilder:
             b_not_index = not isinstance(options.value, IndexConfig)
             b_not_tdf = not isinstance(options.value, SeriesModel)
 
+            heritable_opts = ParamOpts.heritable_options(**options)
+
             if ((options.value.__class__.__name__ not in PARAM_TYPES)
                     and b_not_tdf and b_not_index):
 
@@ -124,7 +126,8 @@ class ParameterBuilder:
                     model=options.value, name=options.name,
                     parent_model=parent_model,
                     exclude_keys=exclude_keys,
-                    signal_register=signal_register, title=options.title)
+                    signal_register=signal_register, title=options.title,
+                    **heritable_opts)
             else:
                 if b_not_tdf and b_not_index:
                     type_ = options.value.__class__.__name__
@@ -139,7 +142,7 @@ class ParameterBuilder:
                     else:
                         raise TypeError(type(options.value))
 
-                heritable_opts = ParamOpts.heritable_options(**options)
+                # heritable_opts = ParamOpts.heritable_options(**options)
                 if options.c_data_types == ListParameterModel:
                     heritable_opts[ParamOpts.KW.LIMITS] = options.value.limits
                     heritable_opts[ParamOpts.KW.VALUE] = options.value.value
@@ -269,7 +272,8 @@ class ParameterBuilder:
                             g_par = cls.make_pars_from_model(
                                 model=model_value[i],
                                 name=name,
-                                signal_register=signal_register)
+                                signal_register=signal_register,
+                                **heritable_options)
                             pass
                             break
                         elif isinstance(v, t_0):
@@ -333,7 +337,8 @@ class ParameterBuilder:
         keys = model_keys(model, exclude=set(exclude_keys),
                           b_include_computed=False)
         for k in keys:
-
+            # if k == 'map':
+            #     pass
             param_model = getattr(model, k)
             par = cls.make_par_from_field(
                 parent_model=model, key=k,

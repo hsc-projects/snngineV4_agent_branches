@@ -7,11 +7,11 @@ from pydantic import Field, NonNegativeFloat, NonNegativeInt
 from snngine_v4.utils.core_utils import filter_dict_keys
 from snngine_v4.utils.data_utils.dataframe_config import SeriesI32
 from snngine_v4.utils.data_utils.validation.array_annotation import (
-    Bool1D,
+    Bool1D, i32_1D,
 )
 from snngine_v4.geometry.spatial_pars import Pos2DVBO
 from snngine_v4.utils.settings.config_model import ConfigModel
-from snngine_v4.utils.settings.ui_parameter_options import p_field
+from snngine_v4.utils.settings.ui_parameter_options import FrozenParamOpts
 from snngine_v4.visualization.config_models.visuals import (
     LineVisualConfig, MarkersVisualConfig,
 )
@@ -89,6 +89,11 @@ class PlotConfig(LinePlotConfigBase, PlotConfigMixin):
 
 class SepLineData(LineVisualConfig):
 
+    parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
+        expanded=False,
+    )
+
+
     n_sep_lines: NonNegativeInt = 10
     sep_line_offset: float = 2
     pos: Pos2DVBO = Field(
@@ -97,7 +102,7 @@ class SepLineData(LineVisualConfig):
     color: ColorVBO = Field(
         default_factory=lambda: np.array(
             [[0, 0, 0, 0]], dtype=np.float32), repr=False)
-    connect: str = p_field(default='segments',  readonly=True, repr=False)
+    connect: str = Field(default='segments', frozen=True, repr=False)
 
     def init_sep_line_data(self, size_x, n_plots, sep_line_offset=None):
         if sep_line_offset is not None:
@@ -176,10 +181,16 @@ class MultiPlotConfigMixin(PlotConfigMixin):
 class MultiLinePlotConfigBase(LinePlotConfigBase):
 
     n_plots: NonNegativeInt = 10
-    sep_lines: SepLineData | None = Field(
-        default_factory=lambda: SepLineData())
+    sep_lines: SepLineData | None = Field(default_factory=SepLineData)
     max_n_plots: int = 1000
-    map: SeriesI32
+    map: SeriesI32 = Field(
+        default_factory=lambda: np.arange(3, dtype=np.int32), repr=False)
+
+    def model_post_init(self, __context):
+        super().model_post_init(__context)
+        self.map = np.arange(self.n_plots, dtype=np.int32)
+        # self.map.index = np.arange(self.n_plots)
+        # self.map.data = np.arange(self.n_plots, dtype=np.int32)
 
 
 class MultiLinePlotConfig(MultiLinePlotConfigBase, MultiPlotConfigMixin):
@@ -211,10 +222,10 @@ class MultiScatterPlotConfigBase(MarkersVisualConfig):
     view_mode: PlotViewMode = PlotViewMode.SCENE
 
     n_plots: NonNegativeInt = 10
-    sep_lines: SepLineData | None = Field(
-        default_factory=lambda: SepLineData())
+    sep_lines: SepLineData | None = Field(default_factory=SepLineData)
     max_n_plots: int = 1000
-    map: SeriesI32
+    map: SeriesI32 = Field(
+        default_factory=lambda: np.arange(3, dtype=np.int32), repr=False)
 
     size: NonNegativeFloat | None = Field(default=3, le=50)
     edge_width: float | None = Field(default=0, ge=0, le=20)
@@ -228,6 +239,10 @@ class MultiScatterPlotConfigBase(MarkersVisualConfig):
         #     self.connect = self.make_connect()
         if self.face_color.shape != (self.data_size, 4):
             self.face_color = self.make_color()
+
+        self.map = np.arange(self.n_plots, dtype=np.int32)
+        # self.map.index = np.arange(self.n_plots)
+        # self.map.data = np.arange(self.n_plots, dtype=np.int32)
 
 
 class MultiScatterPlotConfig(MultiScatterPlotConfigBase,

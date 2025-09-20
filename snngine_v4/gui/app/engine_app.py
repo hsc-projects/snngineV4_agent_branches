@@ -17,37 +17,21 @@ class EngineApp(Application):
 
         super().__init__(backend_name=settings.app.backend_name)
 
-        # noinspection PyProtectedMember
-        native_app = self._backend._vispy_get_native_app()
-        # if not isinstance(settings, SNNgine):
-        #     engine = SNNgine(settings=settings, app=self)
-        # else:
-        #     engine = settings
-        engine = SNNgine(settings=settings,
-                         # app=self
-                         )
-
-        self.engine = engine
+        self.engine = SNNgine(settings=settings,)
 
         qdarktheme.setup_theme(
             theme=self.conf.theme.name,
             corner_shape=self.conf.corner_shape.name,
         )
 
-        self.window = MainEngineWindow(engine)
-        # self.engine.conf.export()
-
-        self.window.show()
-        # self.window.windows[WindowTypes.SETTINGS].show()
-        # self.window.extraParametersWindow.show()
+        self.window = MainEngineWindow(self.engine)
         self.engine.conf.export()
 
-        # self.engine.conf.construction.network.grid.shape.__setattr__(
-        #     self.engine.conf.construction.network.grid.shape,
+        # self.engine.conf.template.network.grid.shape.__setattr__(
+        #     self.engine.conf.template.network.grid.shape,
         #     'X', 10)
 
-        self.window.build()
-        # self.window.show()
+        self.window.construct_network()
 
     @property
     def conf(self) -> EngineAppSettings:

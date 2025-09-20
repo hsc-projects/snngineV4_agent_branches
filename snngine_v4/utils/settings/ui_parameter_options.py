@@ -261,14 +261,14 @@ class FrozenParamOpts(ParamOpts, frozen=True):
     """"""
 
 
-def p_field(default, readonly=False, **kwargs):
-    res = Field(
-        default=default,
-        json_schema_extra={
-            ParamOpts.KW.READONLY: readonly,
-        },
-        **kwargs)
-    return res
+# def read_only_field(default, **kwargs):
+#     res = Field(
+#         default=default,
+#         json_schema_extra={
+#             ParamOpts.KW.READONLY: True,
+#         },
+#         **kwargs)
+#     return res
 
 
 def update_param_opts(model: BaseModel, **kwargs):

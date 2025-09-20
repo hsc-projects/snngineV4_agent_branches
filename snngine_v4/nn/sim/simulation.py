@@ -90,12 +90,12 @@ class Simulation(EngineElement):
         T = spnn.config.simulator.T
 
         # volt_plot = self.plots.voltage_plot
-        volt_plot: PlotElement = simulator.plots[
-            simulator.plots.config.voltage_plot]
-        firings_scatter_plot: PlotElement = simulator.plots[
-            simulator.plots.config.firings_scatter_plot]
+        volt_plot: PlotElement = simulator.voltage_plot
+        firings_scatter_plot: PlotElement = simulator.firings_scatter_plot
 
-        pos_vbo = element.pos_vbo
+        # volt_plot.pos_vbo_gl.gl_buffer.map()
+        # firings_scatter_plot.pos_vbo_gl.gl_buffer.map()
+
         # return
         sim = snn_simulation_gpu.SnnSimulation(
             N=N, G=G, S=S, D=D,

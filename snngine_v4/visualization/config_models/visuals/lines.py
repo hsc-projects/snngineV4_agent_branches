@@ -11,7 +11,6 @@ from snngine_v4.utils.data_utils.validation.array_annotation import (
 from snngine_v4.geometry.spatial_pars import (
     Pos3DVBO,
 )
-from snngine_v4.utils.settings.ui_parameter_options import p_field
 
 from snngine_v4.visualization.config_models.visuals.parameters import \
     BufferColorType
@@ -25,10 +24,10 @@ class LineVisualConfig(VisualConfig):
 
     pos: Pos3DVBO = Field(default=None, repr=False)
     color: BufferColorType = Field(repr=False)
-    width: NonNegativeInt = p_field(default=1,  readonly=False, le=15)
-    connect: LineConnectType = p_field(default='strip',  readonly=True,
-                                       repr=False)
-    method: Literal['gl', 'agg'] = p_field(default='gl',  readonly=True)
+    width: NonNegativeInt = Field(default=1, le=15)
+    connect: LineConnectType = Field(default='strip', frozen=True,
+                                     repr=False)
+    method: Literal['gl', 'agg'] = Field(default='gl', frozen=True)
     antialias: bool = False
 
 
@@ -44,8 +43,9 @@ class XYZAxisVisualConfig(LineVisualConfig):
             dtype=np.float32),
         repr=False,
     )
-    connect: LineConnectType = p_field(
-        default='segments',  readonly=False,
+    connect: LineConnectType = Field(
+        default='segments',
+        # readonly=False,
         repr=False,)
     color: BufferColorType = Field(
         default_factory=lambda: np.array([

@@ -14,12 +14,17 @@ from snngine_v4.utils.cuda_utils.tensor_dataframe import TensorSeries
 from snngine_v4.visualization.config_models.plotting.multi_line_plot import (
     MultiLinePlotConfig,
 )
+from snngine_v4.visualization.cuda.gl_interop.gl_tensor import GLBufferTensor
 
 
 class PlotElement(EngineElement):
     config: MultiLinePlotConfig
 
     map: TensorSeries
+
+    @cached_property
+    def pos_vbo_gl(self) -> GLBufferTensor:
+        return self.cuda_gl_dict.str2gl[GLBufferTypes.POS_VBO.name]
 
     @cached_property
     def pos_vbo(self) -> torch.Tensor:

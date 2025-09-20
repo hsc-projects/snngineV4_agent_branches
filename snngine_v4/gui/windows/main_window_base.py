@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from copy import copy
 from enum import auto, IntEnum
 from functools import cached_property
 from typing import ClassVar, Type, TYPE_CHECKING
 
 from qtpy import QtCore, QtWidgets
 
+from snngine_v4.gui.common.docks import MainDockWidget
 from snngine_v4.gui.common.qobject_dicts import QDockWidgetDict, QWidgetDict
 from snngine_v4.gui.views.view_area import ViewArea
 
@@ -67,37 +69,58 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
         self.docks: dict[str, ButtonsDockWidget] | QDockWidgetDict = (
             QDockWidgetDict())
 
-        self.engine = engine
+        self.engine: SNNgine = engine
 
         self.setup_dock_widgets()
 
         self.scene_tree: QTree = self.get_tree(EngineConfig.Slots.SCENES)
-        self.constr_tree: QTree = self.get_tree(EngineConfig.Slots.CONSTR)
-        self.network_tree: QTree = self.get_tree(EngineConfig.Slots.NETWORK)
+        self.constr_tree: QTree = self.get_tree(EngineConfig.Slots.TEMPLATE)
+        self.network_tree: QTree = self.get_tree(EngineConfig.Slots.BUILT)
 
         self.connect_to_engine()
 
         self.centralWidget().layout().addWidget(
-            self.main_network_scene.native)
+            self.engine.main_scene.native)
+
+        self.add_secondary_views()
+
+    def add_secondary_views(self):
+
+        sec_views: ViewArea = self.windows[WindowTypes.SECONDARY_VIEWS]
+        sec_views.show()
+
+        model_list = copy(self.engine.scene_manager.refs.data)
+        model_list.remove(self.engine.conf.scenes.main)
+        model_list.reverse()
+        for model in model_list:
+            sec_views.addDock(model)
+        # sec_views.show()
+        # sec_views: ViewArea = self.windows[WindowTypes.SECONDARY_VIEWS]
+        # sec_views.addDock(self.engine.conf.scenes.multiplot_current)
+        # sec_views.addDock(self.engine.conf.scenes.multiplot_voltage)
 
     @cached_property
     def arrayEditorDockWidget(self) -> ArrayEditorDockWidget:
         # noinspection PyTypeChecker
         return self.docks[self.ARRAYS_DOCK_NAME]
 
-    def build(self):
+    @cached_property
+    def b_pycuda_available(self):
+        return self.engine.b_pycuda_available
+
+    def construct_network(self):
         raise NotImplementedError
 
     def connect_to_engine(self):
         buttons_dock = self.docks[self.ACTIONS_DOCK_NAME]
-        buttons_dock.build_button.clicked.connect(self.build)
+        buttons_dock.build_button.clicked.connect(self.construct_network)
         buttons_dock.test_button.clicked.connect(self.test_func)
 
         file_menu = self.menuBar().addMenu('&File')
 
         build_action = QtWidgets.QAction('&Build', self)
         file_menu.addAction(build_action)
-        build_action.triggered.connect(self.build)
+        build_action.triggered.connect(self.construct_network)
 
         settings_action = QtWidgets.QAction('&Settings', self)
         file_menu.addAction(settings_action)
@@ -126,16 +149,20 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
         # noinspection PyTypeChecker
         return self.docks[slot.capitalize()].widget()
 
-    @cached_property
-    def main_network_scene(self):
-        return self.engine.scene_manager[
-            self.engine.conf.scenes.main]
+    def make_settings_dock_widget(
+        self, key, tree_class: Type[QTree] | None = None,
+        b_build_parameters: bool = True
+    ) -> EngineTreeDockWidget:
 
-    def make_settings_dock_widget(self, key) -> EngineTreeDockWidget:
-        settings = getattr(self.engine.conf, key)
-        tree = self.PARAMETER_TREE_CLASS(
-            key.capitalize(), settings, showHeader=True,
-            b_verbose=self.b_verbose)
+        if b_build_parameters:
+            settings = getattr(self.engine.conf, key)
+        else:
+            settings = None
+        if tree_class is None:
+            tree_class = self.PARAMETER_TREE_CLASS
+
+        tree = tree_class(key.capitalize(), settings, showHeader=True,
+                          b_verbose=self.b_verbose)
 
         return self.SETTINGS_DOCK_CLASS(
             # pars=self.setting_trees[key].copy(),
@@ -153,6 +180,16 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
         self.docks.add_widget(widget)
         return widget
 
+    def addRightDockWidget(self, key, widget: MainDockWidget):
+        show_dock_action = QtWidgets.QAction(key, self.right_toolbar)
+        self.right_toolbar.addAction(show_dock_action)
+        self.addDockWidget(
+            QtCore.Qt.DockWidgetArea.RightDockWidgetArea, widget)
+        # noinspection PyTypeChecker,PydanticTypeChecker
+        self.docks.add_widget(widget)
+        show_dock_action.triggered.connect(widget.toggleVisibility)
+        widget.close()
+
     def setup_dock_widgets(self):
 
         options = self.dockOptions()
@@ -165,15 +202,19 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
         self.setCorner(QtCore.Qt.Corner.BottomLeftCorner,
                        QtCore.Qt.DockWidgetArea.LeftDockWidgetArea)
 
-        scenes = self.addLeftDockWidget(
+        scenes_dock = self.addLeftDockWidget(
             widget_or_key=EngineConfig.Slots.SCENES)
-        construction = self.addLeftDockWidget(
-            widget_or_key=EngineConfig.Slots.CONSTR)
-        network = self.addLeftDockWidget(
-            widget_or_key=EngineConfig.Slots.NETWORK)
+        template_dock = self.addLeftDockWidget(
+            widget_or_key=EngineConfig.Slots.TEMPLATE)
 
-        self.tabifyDockWidget(scenes, construction)
-        self.tabifyDockWidget(construction, network)
+        network_dock = self.make_settings_dock_widget(
+            key=EngineConfig.Slots.BUILT,
+            b_build_parameters=False)
+        self.addLeftDockWidget(
+            widget_or_key=network_dock)
+
+        self.tabifyDockWidget(scenes_dock, template_dock)
+        self.tabifyDockWidget(template_dock, network_dock)
 
         buttons = ButtonsDockWidget(name=self.ACTIONS_DOCK_NAME)
         # noinspection PyTypeChecker,PydanticTypeChecker
@@ -183,7 +224,7 @@ class MainEngineWindowBase(QtWidgets.QMainWindow):
     def setting_trees(self) -> dict[str, QTree]:
         return self.windows[WindowTypes.SETTINGS].setting_trees
 
-    def test_func(self):
+    def test_func(self, ):
         pass
 
     def toggleArrayEditorVisibility(self):

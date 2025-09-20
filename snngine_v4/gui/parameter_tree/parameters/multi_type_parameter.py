@@ -190,7 +190,9 @@ class MultiTypeParameter(EngineGroupParameter):
         super().__init__(b_check_set_values=False, **opts)
         self.opts[ParamOpts.KW.DEFAULT] = opts[ParamOpts.KW.C_INIT_DEFAULT]
         self.children_map = MultiTypeParameterMap()
-        self.type_parameter = ListParameter(name='Type', visible=False)
+        self.type_parameter = ListParameter(
+            name='Type', visible=False,
+            readonly=self.opts.get(ParamOpts.KW.READONLY, False),)
         self.addChild(self.type_parameter, autoIncrementName=True)
         self.type_parameter.sigValueChanged.connect(self.onTypeChange)
         self.b_flat = False
@@ -289,6 +291,7 @@ class MultiTypeParameter(EngineGroupParameter):
         opts.pop(ParamOpts.KW.TYPE)
         name = opts.pop(ParamOpts.KW.NAME)
         opts.pop(ParamOpts.KW.TITLE)
+        opts.pop(ParamOpts.KW.C_MODEL_FIELD_INFO)
 
         if ParamOpts.KW.VALUE in opts:
             value = opts.pop(ParamOpts.KW.VALUE, None)

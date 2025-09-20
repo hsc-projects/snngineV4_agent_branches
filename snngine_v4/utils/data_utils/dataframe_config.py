@@ -27,7 +27,8 @@ class SeriesModel(ConfigModel):
         SHAPE: ClassVar[str] = "shape"
         D_TYPE: ClassVar[str] = "dtype"
 
-    index: IndexConfig = Field(repr=False)
+    index: IndexConfig | i64_1D | None = Field(default=None, repr=False)
+    # index: IndexConfig = Field(default=None, repr=False)
 
     init_length: ClassVar[int] = 1
     data: i64_1D = Field(repr=False)

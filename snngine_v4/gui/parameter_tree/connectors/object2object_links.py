@@ -282,7 +282,7 @@ class Object2ObjectLinks(TypeSortedMap):
                 else:
                     setattr(self_, key, value)
                 if self_.__setattr__ != set_attr:
-                    from snngine_v4.config.construction import \
+                    from snngine_v4.config.template import \
                         EngineConstructionConfig
                     if isinstance(obj, EngineConstructionConfig):
                         self_.__setattr__ = set_attr

@@ -64,16 +64,8 @@ class SpatialNetwork(EngineElement):
         self.add_build(self.config.simulator,
                        parent_model=self.config)
 
-    # @cached_property
-    # def engine_build_kwargs(self):
-    #     return {
-    #         CudaKeywords.DEVICE: self.device,
-    #         self.NODE_TREE_KW: self.node_tree,
-    #         self.ROOT_ELEMENT_KW: self,
-    #         self.PARENT_ELEMENT_KW: self,
-    #     }
-
     def configure_simulator(self, element: GetNetworkElementType):
+        print("\n Simulator configuration")
         self.simulator.add_simulation(
             element=self.get_network_element(element))
 
