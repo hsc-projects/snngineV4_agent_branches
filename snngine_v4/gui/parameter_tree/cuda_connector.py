@@ -122,6 +122,7 @@ class CudaVispyConnector(ParameterConnector):
             gl_tensor = cls.to_gl_buffer(
                 buffer_type=GLBufferTypes.TEXTURE_3D,
                 device=device, obj=obj, model=model, **kwargs)
+            res[GLBufferTypes.TEXTURE_3D.name] = gl_tensor
             # res[GLBufferTypes.TEXTURE_3D.name] = gl_tensor
         # elif
         #         gl_tensor = cls.to_gl_buffer(

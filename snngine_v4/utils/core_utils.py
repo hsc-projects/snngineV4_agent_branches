@@ -98,7 +98,12 @@ def pop_enum_keys(dct, enum_class):
 
 def type_assertion(item, _type):
     if not isinstance(item, _type):
-        raise TypeError(f'Expected {_type}, got {item}')
+        if isinstance(_type, tuple):
+            _type_str = " or ".join([x.__name__ for x in _type])
+        else:
+            _type_str = _type.__name__
+        raise TypeError(f'Expected type {_type_str}, '
+                        f'got {type(item).__name__}')
 
 
 IntervalLeftRight = Literal["left", "right"]

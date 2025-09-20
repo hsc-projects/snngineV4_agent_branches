@@ -122,7 +122,7 @@ class TensorDictParameter(ArrayDictParameter):
                 if isinstance(value, Object2ObjectMap):
                     k = value.inv[v]
 
-                if len(v.shape) == 2:
+                if len(v.shape) in [2, 3]:
                     if isinstance(value, GLTensorDict):
                         dt = value.str2gl[k].validation_interface
                     else:

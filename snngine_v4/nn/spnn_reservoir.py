@@ -8,7 +8,8 @@ import torch
 
 from snngine_v4.chemistry.chem_models import (ChemicalConcentrationModel,
                                               ChemicalContainerModel)
-from snngine_v4.chemistry.chem_volume import ChemicalConcentrationVolume
+from snngine_v4.chemistry.chem_volume import (ChemicalConcentrationVolume,
+                                              Chemicals)
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
 from snngine_v4.gui.parameter_tree.cuda_connector import GLBufferTypes
 from snngine_v4.nn.config_models.neurons.synapse_model import (
@@ -39,10 +40,10 @@ class NetworkReservoir(EngineElement):
     }
 
     BUILDER_OBJECT_SUPERCLASS_MAP: ClassVar[dict] = {
-        ChemicalContainerModel: EngineElement,
+        ChemicalContainerModel: Chemicals,
     }
 
-    config_model: NetworkReservoirConfig
+    config: NetworkReservoirConfig
     parent_element: Callable[..., SpatialNetwork]
 
     L_Group_neuronCounts: TensorDataFrame
@@ -53,21 +54,22 @@ class NetworkReservoir(EngineElement):
 
     neuron_states: NeuronState
     synapses: Synapses
+    chemicals: Chemicals
 
     def __init__(self, model: NetworkReservoirConfig, device,
                  parent_element=None, **kwargs):
 
         super().__init__(device=device,
                          parent_element=parent_element,
-                         config_model=model, n_curand_states=model.N, **kwargs)
+                         config=model, n_curand_states=model.N, **kwargs)
 
-        G = self.config_model.G
-        D = self.config_model.D
+        G = self.config.G
+        D = self.config.D
 
         self.grid: FiniteGrid = self.add_build(
-            self.config_model.grid, b_default_build_kwargs=False)
+            self.config.grid, b_default_build_kwargs=False)
 
-        self.N_pos = torch.tensor(self.config_model.pos, device=self.device)
+        self.N_pos = torch.tensor(self.config.pos, device=self.device)
         self.G_neuron_typed_ccount = self.zeros_i32((2 * G + 1))
         self.L_Group_delay_counts = self.zeros_i32((G, D + 1))
 
@@ -79,10 +81,10 @@ class NetworkReservoir(EngineElement):
             snn_utils, snn_construction_gpu, snn_simulation_gpu
         )
 
-        S = self.config_model.S
-        G = self.config_model.G
-        D = self.config_model.D
-        model: NetworkReservoirConfig = self.config_model
+        S = self.config.S
+        G = self.config.G
+        D = self.config.D
+        model: NetworkReservoirConfig = self.config
 
         self.neuron_states.fill_tensors_and_group_neuron_type_counts()
 
@@ -90,10 +92,10 @@ class NetworkReservoir(EngineElement):
         self.G_neuron_typed_ccount[1:] = ravel_counts.ravel().cumsum(dim=0)
 
         self.neuron_states.N_flags.sync_to_df()
-        self.config_model.neuron_states.N_flags.validate_data(
+        self.config.neuron_states.N_flags.validate_data(
             data=self.neuron_states.N_flags, N_pos=self.N_pos,
             # shape=self.reservoir_config.reservoir_shape.as_tuple(),)
-            shape=self.config_model.grid.shape.as_tuple(),)
+            shape=self.config.grid.shape.as_tuple(),)
 
         b_thalamic_input_row = model.L_Group_flags.index.b_thalamic_input
         sensory_input_type_row = model.L_Group_flags.index.sensory_input_type
@@ -113,8 +115,8 @@ class NetworkReservoir(EngineElement):
         G_rep = (torch.sort(G_delay_distance, dim=1, stable=True)
                  .indices.int())
 
-        # LG2GP_idx = self.config_model.L_Group2Group_properties.index
-        # LG2GF_idx = self.config_model.L_Group2Group_flags.index
+        # LG2GP_idx = self.config.L_Group2Group_properties.index
+        # LG2GF_idx = self.config.L_Group2Group_flags.index
         #
         # self.L_Group2Group_properties[LG2GP_idx.distance][:] = G_distance
         # self.L_Group2Group_flags[LG2GF_idx.delay_distance][:] =
@@ -137,9 +139,9 @@ class NetworkReservoir(EngineElement):
             G_delay_distance=self.G2G_delay_distance.data_ptr(),
             G_neuron_counts=self.L_Group_neuronCounts.data_ptr())
 
-        self.config_model.L_Group_neuronCounts.validate_data(
+        self.config.L_Group_neuronCounts.validate_data(
             data=self.L_Group_neuronCounts.gpu_values,
-            type_groups=self.config_model.type_groups, D=D, G=G,)
+            type_groups=self.config.type_groups, D=D, G=G,)
 
         for d in range(D):
             self.L_Group_delay_counts[:, d + 1] = (
@@ -150,7 +152,7 @@ class NetworkReservoir(EngineElement):
 
         self.neuron_states.apply_preset()
 
-        # group_row = self.config_model.neuron_states.N_flags.index.L_group
+        # group_row = self.config.neuron_states.N_flags.index.L_group
         self.synapses.fill_tensors()
 
         self.sync_to_cpu()
@@ -158,7 +160,7 @@ class NetworkReservoir(EngineElement):
         return
 
     def G_neuron_counts_per_type(self, group=None):
-        counts = self.L_Group_neuronCounts[:self.config_model.n_type_groups]
+        counts = self.L_Group_neuronCounts[:self.config.n_type_groups]
         if group is not None:
             counts = counts[:, group]
         return counts
@@ -204,11 +206,11 @@ class NetworkReservoir(EngineElement):
 
     @property
     def LG2G_flags_idx(self):
-        return self.config_model.L_Group2Group_flags.index
+        return self.config.L_Group2Group_flags.index
 
     @property
     def LG2G_props_idx(self):
-        return self.config_model.L_Group2Group_properties.index
+        return self.config.L_Group2Group_properties.index
 
     @property
     def N_flags(self):

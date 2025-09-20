@@ -37,7 +37,7 @@ class SpatialNetwork(EngineElement):
         SimulatorOptions: Simulator,
     }
 
-    config_model: SpatialNetworkConfig
+    config: SpatialNetworkConfig
 
     def __init__(self, model: SpatialNetworkConfig, device, **kwargs):
 
@@ -47,22 +47,22 @@ class SpatialNetwork(EngineElement):
 
         super().__init__(build_model=model.elements,
                          device=device,
-                         config_model=model,
+                         config=model,
                          node_tree=node_tree,
                          root_element=self,
                          )
 
-        for elt_conf in self.config_model.elements:
+        for elt_conf in self.config.elements:
             elt = self[elt_conf]
             if isinstance(elt, NetworkReservoir):
                 elt.fill_tensors()
 
         p = self.get_network_element(0).neuron_states.parent_element()
-        self.add_build(self.config_model.grid,
-                       parent_model=self.config_model,
+        self.add_build(self.config.grid,
+                       parent_model=self.config,
                        b_default_build_kwargs=False)
-        self.add_build(self.config_model.simulator,
-                       parent_model=self.config_model)
+        self.add_build(self.config.simulator,
+                       parent_model=self.config)
 
     # @cached_property
     # def engine_build_kwargs(self):
@@ -80,15 +80,15 @@ class SpatialNetwork(EngineElement):
     def get_network_element(
             self, index_or_model: GetNetworkElementType) -> NetworkElementType:
         if isinstance(index_or_model, int):
-            index_or_model = self.config_model.elements[index_or_model]
+            index_or_model = self.config.elements[index_or_model]
         elif isinstance(index_or_model, EngineElement):
             return index_or_model
         return self[index_or_model]
 
     @cached_property
     def grid(self) -> FiniteGrid:
-        return self[self.config_model.grid]
+        return self[self.config.grid]
 
     @cached_property
     def simulator(self) -> Simulator:
-        return self[self.config_model.simulator]
+        return self[self.config.simulator]

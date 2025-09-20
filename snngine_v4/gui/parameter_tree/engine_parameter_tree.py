@@ -130,7 +130,7 @@ class EngineParameterTree(ParameterTree):
         type_assertion(value, BaseModel)
         self._settings_model = value
 
-    def sizeHint(self):
+    def sizeHint(self) -> QtCore.QSize:
         hint = super().sizeHint()
         return QtCore.QSize(hint.width() + 100, hint.height() + 20)
 

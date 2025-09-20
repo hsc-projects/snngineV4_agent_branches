@@ -110,8 +110,8 @@ class WidgetParameterItemMixin:
             self.widget.setMaximumWidth(width)
             self.displayLabel.setMaximumWidth(width)
 
-        sw = self.widget.sizeHint()
-        sb = self.defaultBtn.sizeHint()
+        sw: QtCore.QSize = self.widget.sizeHint()
+        sb: QtCore.QSize = self.defaultBtn.sizeHint()
         # shrink row heights a bit for more compact look
         sw.setHeight(int(sw.height() * 0.9))
         sb.setHeight(int(sb.height() * 0.9))

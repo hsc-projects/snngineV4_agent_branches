@@ -46,10 +46,10 @@ class Simulation(EngineElement):
         super().__init__(**kwargs)
 
         spnn: SpatialNetwork = element.parent_element()
-        n_neurons = element.config_model.N
-        n_groups = element.config_model.G
-        n_delays = element.config_model.D
-        t_sim_duration = spnn.config_model.simulator.T
+        n_neurons = element.config.N
+        n_groups = element.config.G
+        n_delays = element.config.D
+        t_sim_duration = spnn.config.simulator.T
 
         self.Fired = self.zeros_f32(n_neurons)
         self.last_Fired = self.zeros_i32(n_neurons) - n_delays
@@ -59,10 +59,10 @@ class Simulation(EngineElement):
 
         simulator: Simulator = spnn.simulator
         group_firings_plot = simulator.plots[
-            simulator.plots.config_model.group_firings_plot]
+            simulator.plots.config.group_firings_plot]
 
         self.G_firing_count_hist = self.zeros_i32((
-            group_firings_plot.config_model.size_x,
+            group_firings_plot.config.size_x,
             n_groups))
 
         self.backend = self._make_simulator_backend(
@@ -81,30 +81,31 @@ class Simulation(EngineElement):
         simulator: Simulator = spnn.simulator
         neuron_states = element.neuron_states
         synapses = element.synapses
+        chemicals = element.chemicals
 
-        N = element.config_model.N
-        G = element.config_model.G
-        S = element.config_model.S
-        D = element.config_model.D
-        T = spnn.config_model.simulator.T
+        N = element.config.N
+        G = element.config.G
+        S = element.config.S
+        D = element.config.D
+        T = spnn.config.simulator.T
 
         # volt_plot = self.plots.voltage_plot
         volt_plot: PlotElement = simulator.plots[
-            simulator.plots.config_model.voltage_plot]
+            simulator.plots.config.voltage_plot]
         firings_scatter_plot: PlotElement = simulator.plots[
-            simulator.plots.config_model.firings_scatter_plot]
+            simulator.plots.config.firings_scatter_plot]
 
         pos_vbo = element.pos_vbo
         # return
         sim = snn_simulation_gpu.SnnSimulation(
             N=N, G=G, S=S, D=D,
             T=T,
-            n_voltage_plots=volt_plot.config_model.n_plots,
-            voltage_plot_length=volt_plot.config_model.size_x,
+            n_voltage_plots=volt_plot.config.n_plots,
+            voltage_plot_length=volt_plot.config.size_x,
             voltage_plot_data=volt_plot.pos_vbo.data_ptr(),
             voltage_plot_map=volt_plot.map.data_ptr(),
-            n_scatter_plots=firings_scatter_plot.config_model.n_plots,
-            scatter_plot_length=firings_scatter_plot.config_model.size_x,
+            n_scatter_plots=firings_scatter_plot.config.n_plots,
+            scatter_plot_length=firings_scatter_plot.config.size_x,
             scatter_plot_data=firings_scatter_plot.pos_vbo.data_ptr(),
             scatter_plot_map=firings_scatter_plot.map.data_ptr(),
 
@@ -147,15 +148,15 @@ class Simulation(EngineElement):
             max_n_winner_take_all_layers=1,
             max_winner_take_all_layer_size=1,
 
-            C_old=self.chemical_concentrations.c0.state.c_current.data_ptr(),
-            C_new=self.chemical_concentrations.c0.state.c_next.data_ptr(),
-            C_source=self.chemical_concentrations.c0.state.c_source.data_ptr(),
+            C_old=chemicals.C0.c_current.data_ptr(),
+            C_new=chemicals.C0.c_next.data_ptr(),
+            C_source=chemicals.C0.c_source.data_ptr(),
             # debug_neuron_id=-1,
-            chem_grid_w=self.chemical_concentrations.c0.width,
-            chem_grid_h=self.chemical_concentrations.c0.height,
-            chem_grid_d=self.chemical_concentrations.c0.depth,
-            chem_k_val=self.chemical_concentrations.c0.k_val,
-            chem_depreciation=self.chemical_concentrations.c0.depreciation
+            chem_grid_w=chemicals.C0.config.shape.width,
+            chem_grid_h=chemicals.C0.config.shape.height,
+            chem_grid_d=chemicals.C0.config.shape.depth,
+            chem_k_val=chemicals.C0.config.k_val,
+            chem_depreciation=chemicals.C0.config.depreciation
         )
 
         return sim

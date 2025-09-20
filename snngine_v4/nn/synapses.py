@@ -28,14 +28,14 @@ if TYPE_CHECKING:
 
 class SynCounts(EngineElement):
 
-    config_model: SynapseCountTensors
+    config: SynapseCountTensors
     parent_element: Callable[..., Synapses]
 
     G_exp_ccsyn_per_src_type_and_delay: TensorDataFrame
     G_exp_exc_ccsyn_per_snk_type_and_delay: TensorDataFrame
 
     def __init__(self, model: SynapseModel, **kwargs):
-        super().__init__(config_model=model, **kwargs)
+        super().__init__(config=model, **kwargs)
 
         self.G = None
         self.D = None
@@ -85,7 +85,7 @@ class SynCounts(EngineElement):
 
         self.sync_to_cpu()
 
-        (self.config_model.G_exp_ccsyn_per_src_type_and_delay
+        (self.config.G_exp_ccsyn_per_src_type_and_delay
          .validate_data(
             data=self.G_exp_ccsyn_per_src_type_and_delay.gpu_values,
             type_groups=ntypes, D=D, G=G, S=S))
@@ -259,7 +259,7 @@ class SynCounts(EngineElement):
 # noinspection PyPep8Naming
 class Synapses(EngineElement):
 
-    config_model: SynapseModel
+    config: SynapseModel
 
     parent_element: Callable[..., NetworkReservoir]
 
@@ -279,7 +279,7 @@ class Synapses(EngineElement):
     parent_model: NetworkReservoir
 
     def __init__(self, model: SynapseModel, **kwargs):
-        super().__init__(config_model=model, **kwargs)
+        super().__init__(config=model, **kwargs)
         self.N_rep_buffer = self.zeros_i32((self.N_rep.shape[1],
                                             self.N_rep.shape[0]))
         self.N_rep_groups = None
@@ -292,12 +292,12 @@ class Synapses(EngineElement):
 
         reservoir = self.parent_element()
         
-        N = reservoir.config_model.N
-        G = reservoir.config_model.G
-        S = reservoir.config_model.S
-        D = reservoir.config_model.D
+        N = reservoir.config.N
+        G = reservoir.config.G
+        S = reservoir.config.S
+        D = reservoir.config.D
 
-        type_conns = reservoir.config_model.type_conns
+        type_conns = reservoir.config.type_conns
 
         save_current_allocated_memory()
 
@@ -305,7 +305,7 @@ class Synapses(EngineElement):
             S=S, D=D, G=G,
             L_Group_neuronCounts=reservoir.L_Group_neuronCounts,
             conn_probs=self.conn_probs,
-            ntypes=reservoir.config_model.type_groups,
+            ntypes=reservoir.config.type_groups,
             ntype_conns=type_conns)
 
         torch.cuda.empty_cache()
@@ -447,7 +447,7 @@ class Synapses(EngineElement):
         all_groups = reservoir.N_flags.group.type(torch.int64)
         inh_start_indices = reservoir.G_neuron_typed_ccount[all_groups]
         start_indices = reservoir.G_neuron_typed_ccount[
-            all_groups + reservoir.config_model.G]
+            all_groups + reservoir.config.G]
         inh_neurons = reservoir.N_flags.type == NeuronType.INHIBITORY.value
         start_indices[inh_neurons] = inh_start_indices[inh_neurons]
         start_indices[~inh_neurons] -= (reservoir.G_neuron_typed_ccount[
@@ -463,10 +463,10 @@ class Synapses(EngineElement):
 
         reservoir = self.parent_element()
         return snn_construction_gpu.SnnRepresentation(
-            N=reservoir.config_model.N,
-            G=reservoir.config_model.G,
-            S=reservoir.config_model.S,
-            D=reservoir.config_model.D,
+            N=reservoir.config.N,
+            G=reservoir.config.G,
+            S=reservoir.config.S,
+            D=reservoir.config.D,
             curand_states_p=reservoir.curand_states,
             N_pos=reservoir.N_pos.data_ptr(),
             G_group_delay_counts=reservoir

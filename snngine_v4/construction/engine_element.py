@@ -83,7 +83,7 @@ class EngineElement(BuilderDict):
 
     def __init__(self, device,
                  model=None,
-                 config_model: EngineElementConfig = None,
+                 config: EngineElementConfig = None,
                  build_model=None,
                  n_curand_states=0,
                  node_tree=None,
@@ -98,19 +98,19 @@ class EngineElement(BuilderDict):
         if model is not None:
             if build_model is not None:
                 raise ValueError
-            if config_model is not None:
+            if config is not None:
                 raise ValueError
-            config_model = model
+            config = model
             build_model = model
         else:
-            if config_model is None:
+            if config is None:
                 raise ValueError
             if build_model is None:
-                build_model = (config_model.tdf_values()
-                               + config_model.elt_values())
+                build_model = (config.tdf_values()
+                               + config.elt_values())
 
         self.device = device
-        self.config_model: EngineElementConfig = config_model
+        self.config: EngineElementConfig = config
         self.tensor_dict: TensorDict = TensorDict()
 
         if node_tree is None:
@@ -159,7 +159,7 @@ class EngineElement(BuilderDict):
                 if isinstance(value, (TensorSeries, TensorDict)):
                     if ((not hasattr(self, key))
                             and (value in self.inv)
-                            and (not hasattr(self.config_model, key))):
+                            and (not hasattr(self.config, key))):
                         raise PermissionError(
                             f"missing configuration for'{key}'")
                 self.tensor_dict[key] = value
@@ -182,7 +182,7 @@ class EngineElement(BuilderDict):
 
     @property
     def children_models(self):
-        return self.node_tree.children(self.config_model)
+        return self.node_tree.children(self.config)
 
     @property
     def children_elements(self):
@@ -197,7 +197,7 @@ class EngineElement(BuilderDict):
 
     @property
     def cuda_gl_dict(self) -> GLTensorDict:
-        gl_dict = self.cuda_opengl_map[self.config_model]
+        gl_dict = self.cuda_opengl_map[self.config]
         return gl_dict
 
     @cached_property
@@ -227,27 +227,29 @@ class EngineElement(BuilderDict):
 
     @cuda_opengl_map.setter
     def cuda_opengl_map(self, value):
+        if self.root_element._cuda_opengl_map is not None:
+            raise AttributeError("cuda_opengl_map already set")
         self.root_element._cuda_opengl_map = value
 
     def parent_element(self):
-        parent_model = self.node_tree.parent(self.config_model)
+        parent_model = self.node_tree.parent(self.config)
         try:
             return self.root_element[parent_model]
         except KeyError:
-            if parent_model is self.root_element.config_model:
+            if parent_model is self.root_element.config:
                 self.root_element[parent_model] = self.root_element
                 return self.root_element[parent_model]
             raise
 
     def set_tensor_attr(self):
-        if isinstance(self.config_model, EngineElementConfigMixin):
-            tdf_model_dict = self.config_model.tdf_dict()
+        if isinstance(self.config, EngineElementConfigMixin):
+            tdf_model_dict = self.config.tdf_dict()
             for k, model in tdf_model_dict.items():
                 if model in self:
                     setattr(self, k, self[model])
                 else:
                     pass
-            elt_model_dict = self.config_model.elt_dict()
+            elt_model_dict = self.config.elt_dict()
             for k, model in elt_model_dict.items():
                 if model in self:
                     setattr(self, k, self[model])

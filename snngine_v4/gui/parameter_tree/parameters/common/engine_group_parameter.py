@@ -151,12 +151,12 @@ class EngineGroupParameterItem(GroupParameterItem, ActionItemMixin):
         if self._size_set is False:
             n_widget = len(self._widgets)
             if n_widget >= len(self.param.opts[ParamOpts.KW.C_GROUP_PREFIXES]):
-                sb = self.defaultBtn.sizeHint()
+                sb: QtCore.QSize = self.defaultBtn.sizeHint()
                 sb.setHeight(int(sb.height() * 0.9))
                 h = sb.height()
                 w = sb.width()
                 for wdg in self._widgets:
-                    sw = wdg.sizeHint()
+                    sw: QtCore.QSize = wdg.sizeHint()
                     sw.setHeight(int(sw.height() * 0.9))
 
                     w += wdg.minimumWidth() + 2

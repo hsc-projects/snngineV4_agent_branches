@@ -30,8 +30,9 @@ class Simulator(EngineElement):
     }
 
     parent_element: Callable[..., SpatialNetwork]
+    root_element: SpatialNetwork
 
-    config_model: SimulatorOptions
+    config: SimulatorOptions
 
     plots: CudaBackendPlotTensors
 
@@ -45,7 +46,7 @@ class Simulator(EngineElement):
 
         simulation = self.add_build(model=SimulationModel(),
                                     element=element,
-                                    parent_model=self.config_model)
+                                    parent_model=self.config)
 
         return simulation
 

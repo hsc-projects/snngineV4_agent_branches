@@ -100,9 +100,9 @@ class GLTexture3DTensor(GLBufferTensor):
             = self.gl_buffer.shape[0]
 
         # self.cpy_tnsr2tex()
-        self.cpy_tex2tnsr(cpu_data)
+        self.copy_to_tensor(validation_data=cpu_data)
 
-    def cpy_tnsr2tex(self, cpu_data=None):
+    def copy_to_texture(self, cpu_data=None):
         """
         TODO: Restrict copying to actually modified data.
         """
@@ -115,14 +115,14 @@ class GLTexture3DTensor(GLBufferTensor):
         self._cpy_tnsr2tex()
         return
 
-    def cpy_tex2tnsr(self, cpu_data=None, validate: bool = True):
+    def copy_to_tensor(self, validation_data=None):
         self.gl_buffer.map()
         torch.cuda.synchronize()
         # noinspection PyArgumentList
         self._cpy_tex2tnsr()
-        if cpu_data is not None:
+        if validation_data is not None:
             t = self.tensor.cpu().numpy()
-            if (validate is True) and (((cpu_data - t) != 0).all()):
+            if bool(((validation_data - t) != 0).any()):
                 raise OpenglTextureDataError("((cpu_data - t) != 0).all()")
         return
 

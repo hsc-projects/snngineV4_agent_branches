@@ -4,6 +4,7 @@ from typing import ClassVar
 
 import numpy as np
 import pandas as pd
+import xarray
 from numpydantic.interface import NumpyInterface
 from pydantic_core import PydanticUndefined
 # noinspection PyProtectedMember
@@ -146,6 +147,8 @@ class QDataFrame(QtSql.QSqlTableModel):
         if isinstance(array, tuple,) or len(array.shape) == 1:
             return pd.Series(array)
             # array = array[np.newaxis]
+        if len(array.shape) > 2:
+            return xarray.DataArray(array)
         return pd.DataFrame(array)
 
     @property
@@ -172,7 +175,8 @@ class QDataFrame(QtSql.QSqlTableModel):
 
     @df.setter
     def df(self, value: pd.DataFrame):
-        type_assertion(value, (pd.DataFrame, pd.Series))
+        type_assertion(value, (pd.DataFrame, pd.Series,
+                                     xarray.DataArray))
         self.validate(value)
         self._df = deepcopy(value)
         if self.column_names is not None:

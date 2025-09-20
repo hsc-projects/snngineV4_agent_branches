@@ -21,14 +21,14 @@ class NeuronState(EngineElement):
     """
 
     """
-    config_model: NeuronStateModel
+    config: NeuronStateModel
     parent_element: Callable[..., NetworkReservoir]
 
     N_flags: TensorDataFrame
     N_props: TensorDataFrame
 
     # def __init__(self, model: NeuronStateModel, device, **kwargs):
-    #     super().__init__(device=device, config_model=model, **kwargs)
+    #     super().__init__(device=device, config=model, **kwargs)
 
     def validate_consistency(self):
         if self.n_neurons != self.N_props.shape[1]:
@@ -40,10 +40,10 @@ class NeuronState(EngineElement):
 
     def apply_preset(self):
         self.validate_consistency()
-        type_col = self.config_model.N_flags.index.N_type.name
+        type_col = self.config.N_flags.index.N_type.name
         mask_inh = self.N_flags[type_col] == NeuronType.INHIBITORY.value
         mask_exc = self.N_flags[type_col] == NeuronType.EXCITATORY.value
-        self.config_model.initializer.presets.default_init(
+        self.config.initializer.presets.default_init(
             df_props=self.N_props,
             r=self.rand_f32(self.n_neurons),
             mask_inh=mask_inh, mask_exc=mask_exc,
@@ -59,10 +59,10 @@ class NeuronState(EngineElement):
         )
 
         reservoir = self.parent_element()
-        N = reservoir.config_model.N
-        G = reservoir.config_model.G
+        N = reservoir.config.N
+        G = reservoir.config.G
 
-        for g in reservoir.config_model.type_groups:
+        for g in reservoir.config.type_groups:
             # Set Neuron Type
             # self.N_flags.type[g.start_idx:g.end_idx + 1] = g.ntype.value
             self.N_flags[self.ntype_flag_col][g.start_idx:g.end_idx + 1] = (
@@ -74,10 +74,10 @@ class NeuronState(EngineElement):
         snn_construction_gpu.fill_N_flags_group_id_and_G_neuron_count_per_type(
             N=N, G=G, N_pos=reservoir.N_pos.data_ptr(),
             # N_pos_shape=self.reservoir_config.reservoir_shape.as_tuple(),
-            N_pos_shape=reservoir.config_model.grid.shape.as_tuple(),
+            N_pos_shape=reservoir.config.grid.shape.as_tuple(),
             N_flags=self.N_flags.data_ptr(),
             # G_shape=self.reservoir_config.reservoir_segmentation.as_tuple(),
-            G_shape=reservoir.config_model.grid.seg.as_tuple(),
+            G_shape=reservoir.config.grid.seg.as_tuple(),
             G_neuron_counts=reservoir.L_Group_neuronCounts.data_ptr(),
             N_flags_row_type=self.ntype_flag_index,
             N_flags_row_group=self.group_flag_index,
@@ -86,7 +86,7 @@ class NeuronState(EngineElement):
 
     @property
     def ntype_flag_col(self):
-        return self.config_model.N_flags.index.N_type.name
+        return self.config.N_flags.index.N_type.name
 
     @property
     def ntype_flag_index(self):
@@ -94,7 +94,7 @@ class NeuronState(EngineElement):
 
     @property
     def group_flag_col(self):
-        return self.config_model.N_flags.index.L_group.name
+        return self.config.N_flags.index.L_group.name
 
     @property
     def group_flag_index(self):

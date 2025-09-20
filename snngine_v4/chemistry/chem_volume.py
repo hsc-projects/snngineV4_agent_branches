@@ -15,7 +15,7 @@ from snngine_v4.visualization.cuda.gl_interop.gl_texture3d import \
 
 
 class ChemicalConcentrationVolume(EngineElement):
-    config_model: ChemicalConcentrationModel
+    config: ChemicalConcentrationModel
 
     BUILDER_OBJECT_CLASS_MAP: ClassVar = {
         LinkedVolumeGridConfig: FiniteGrid,
@@ -25,28 +25,57 @@ class ChemicalConcentrationVolume(EngineElement):
         super().__init__(*args, **kwargs)
 
         init_data_cpu = np.zeros(
-            self.config_model.shape.shape_wdh, dtype=np.float32)
+            self.config.shape.shape_wdh, dtype=np.float32)
 
-        if self.config_model.b_test_init:
-            init_data_cpu = self.test_data(init_data_cpu)
+        if self.config.b_test_init:
+            init_data_cpu = self.init_test_data_cpu(init_data_cpu)
 
         self.init_data_cpu = init_data_cpu
 
-        self.add_build(self.config_model.linked_grid_config,
-                       parent_model=self.config_model,
+        self.add_build(self.config.linked_grid_config,
+                       parent_model=self.config,
                        b_default_build_kwargs=False)
 
-        self.c_next = self.texture_3d.tensor
-        self.c_current = torch.clone(self.texture_3d.tensor)
-        self.c_source = torch.clone(self.texture_3d.tensor)
-        self.c_source[:] = 0
+    @property
+    def c_next(self) -> torch.Tensor:
+        return self.texture_3d_tensor
+
+    @cached_property
+    def c_current(self) -> torch.Tensor:
+        return torch.clone(self.texture_3d_tensor)
+
+    @cached_property
+    def c_source(self) -> torch.Tensor:
+        t = torch.clone(self.texture_3d_tensor)
+        t[:] = 0
+
+        self.set_test_values_gpu(t)
+        return t
 
     @cached_property
     def texture_3d(self) -> GLTexture3DTensor:
+        return self.cuda_gl_dict.str2gl[GLBufferTypes.TEXTURE_3D.name]
+
+    @cached_property
+    def texture_3d_tensor(self) -> torch.Tensor:
         return self.cuda_gl_dict[GLBufferTypes.TEXTURE_3D.name]
 
+    def set_test_values_gpu(self, t):
+        t[:, :, -1] = 2000
+        t[:, :, -2] = 1800
+        t[:, :, -3] = 1800
+        self.c_current[:, :, -1] = 2000
+        self.c_current[:, :, -2] = 1800
+        self.c_current[:, :, -3] = 1800
+        self.c_next[:, :, -1] = 2000
+        self.c_next[:, :, -2] = 1800
+        self.c_next[:, :, -3] = 1800
+        self.texture_3d.copy_to_texture()
+        # mask = self.c_next >= self.c_next.max() - 200
+        # self.c_source[mask] = self.c_next[mask]
+
     @staticmethod
-    def test_data(data):
+    def init_test_data_cpu(data):
         arr = np.array(np.load(io.load_data_file('volume/stent.npz'))['arr_0'],
                        dtype=np.float32)
         if data is not None:
@@ -58,11 +87,15 @@ class ChemicalConcentrationVolume(EngineElement):
         else:
             data = arr
         assert len(data.shape) == 3
-        data[:, :, -1] = 2000
-        data[:, :, -2] = 1800
-        data[:, :, -3] = 1800
+        # data[:, :, -1] = 2000
+        # data[:, :, -2] = 1800
+        # data[:, :, -3] = 1800
         return data
 
     @cached_property
     def inner_grid(self) -> FiniteGrid:
-        return self[self.config_model.linked_grid_config]
+        return self[self.config.linked_grid_config]
+
+
+class Chemicals(EngineElement):
+    C0: ChemicalConcentrationVolume
