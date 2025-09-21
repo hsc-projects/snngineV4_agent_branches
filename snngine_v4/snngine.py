@@ -8,6 +8,7 @@ from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
     EngineParameterTree
 from snngine_v4.gui.parameter_tree.tensor_connector import TensorConnector
 from snngine_v4.gui.parameter_tree.vispy_connector import VispyConnector
+from snngine_v4.gui.selector_tree.engine_selector_tree import EngineSelectorTree
 from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.snngine_config import EngineConfig
 
@@ -76,7 +77,8 @@ class SNNgine:
         gloo.gl.use_gl(self.conf.devices.opengl.gloo_target)
 
     def build(self, scene_tree: EngineParameterTree,
-              network_tree: EngineParameterTree):
+              network_tree: EngineParameterTree,
+              selector_tree: EngineSelectorTree):
 
         self.main_scene.set_current()
         self.conf.built = self.build_network()
@@ -95,6 +97,9 @@ class SNNgine:
         self.main_scene.set_current()
 
         self.network.configure_simulator(element=0)
+
+        if selector_tree is not None:
+            selector_tree.connect_engine(self)
 
     def build_network(self):
         device = self.conf.template.network.device

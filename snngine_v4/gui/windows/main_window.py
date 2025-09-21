@@ -54,6 +54,7 @@ class MainEngineWindow(MainEngineWindowBase):
         self.engine.build(
             scene_tree=self.scene_tree,
             network_tree=self.network_tree,
+            selector_tree=self.selection_tree
         )
         # self.main_network_scene.set_current()
         # self.engine.build_network()
@@ -127,5 +128,5 @@ class MainEngineWindow(MainEngineWindowBase):
     #     return
 
     def test_func(self, ):
-        self.engine.run_sim(10)
-
+        # self.engine.run_sim(10)
+        self.selection_tree.add_selector_box_visual(None)

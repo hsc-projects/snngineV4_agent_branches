@@ -218,7 +218,7 @@ class ParamOpts(BaseModel, validate_default=True, extra='allow'):
         return getattr(self, item)
 
     @classmethod
-    def heritable_options(cls, **opts):
+    def heritable_options(cls, b_raise=True, **opts):
         res = {}
         for k in [ParamOpts.KW.READONLY,
                   ParamOpts.KW.RENAMABLE,
@@ -228,8 +228,12 @@ class ParamOpts(BaseModel, validate_default=True, extra='allow'):
                   ParamOpts.KW.C_COERCE_TO_LIMITS,
                   ParamOpts.KW.DELAY,
                   ]:
-            res[k] = opts[k]
-        if opts.get(ParamOpts.KW.C_COLLAPSED_CHILDREN, False) is True:
+            try:
+                res[k] = opts[k]
+            except KeyError as e:
+                if b_raise:
+                    raise e
+        if bool(opts.get(ParamOpts.KW.C_COLLAPSED_CHILDREN, False)):
             res[ParamOpts.KW.EXPANDED] = False
         return res
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import cached_property
 from typing import Callable, Type
 
 from pydantic import BaseModel
@@ -74,6 +73,9 @@ class ModelSignalsRegister(Model2ObjectMap):
         if res != self[res].source:
             raise RuntimeError
         return res
+
+    def get_parameter(self, model, key):
+        return self[model][key].sink
 
     def __setitem__(self, model, value):
         if isinstance(value, GroupParameter):
@@ -160,7 +162,6 @@ class ExtendedModelSignalsRegister(ModelSignalsRegister):
         self.extensions_map.clear(b_force=True)
 
     def disconnect_model(self, model):
-
         group = self.group_map[model]
         if model in self.node_tree:
             model_children = self.node_tree.children(model)

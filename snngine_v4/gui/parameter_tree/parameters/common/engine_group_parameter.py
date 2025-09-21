@@ -139,6 +139,9 @@ class EngineGroupParameterItem(GroupParameterItem, ActionItemMixin):
             elif self.widget_dict.get('apply', None) is not None:
                 self.setFirstColumnSpanned(False)
                 tree.setItemWidget(self, 1, self.layoutWidget)
+            elif len(self.param.action_map) > 0:
+                self.setFirstColumnSpanned(False)
+                tree.setItemWidget(self, 1, self.layoutWidget)
 
     # def setFocus(self):
     #     super().setFocus()

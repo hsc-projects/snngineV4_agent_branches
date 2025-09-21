@@ -117,7 +117,8 @@ class ParameterBuilder:
             b_not_index = not isinstance(options.value, IndexConfig)
             b_not_tdf = not isinstance(options.value, SeriesModel)
 
-            heritable_opts = ParamOpts.heritable_options(**options)
+            heritable_opts = ParamOpts.heritable_options(
+                b_raise=True, **options)
 
             if ((options.value.__class__.__name__ not in PARAM_TYPES)
                     and b_not_tdf and b_not_index):
@@ -226,7 +227,8 @@ class ParameterBuilder:
         options[ParamOpts.KW.C_COLLAPSED_CHILDREN] = True
         options[ParamOpts.KW.EXPANDED] = True
         group = EngineGroupParameter(**options)
-        heritable_options = ParamOpts.heritable_options(**group.opts)
+        heritable_options = ParamOpts.heritable_options(
+            b_raise=True, **group.opts)
         if parameter_type in [tuple]:
             iterable_type = parameter_type
         else:
@@ -314,6 +316,7 @@ class ParameterBuilder:
             cls, model, signal_register: ExtendedModelSignalsRegister,
             exclude_keys=None, parent_model=None,
             group=None,
+            b_raise_if_missing_heritable_opts=True,
             **options):
 
         if signal_register is not None:
@@ -323,7 +326,8 @@ class ParameterBuilder:
             group = EngineGroupParameter.from_model(
                 model=model, parent_model=parent_model,
                 **options)
-        heritable_options = ParamOpts.heritable_options(**group.opts)
+        heritable_options = ParamOpts.heritable_options(
+            b_raise=b_raise_if_missing_heritable_opts, **group.opts)
 
         exclude_keys, excl_k_dct, dft_excl_k = cls.interpret_exclude_keys(
             exclude_keys
