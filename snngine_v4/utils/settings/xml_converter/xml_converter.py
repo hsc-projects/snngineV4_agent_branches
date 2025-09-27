@@ -34,7 +34,10 @@ class CustomElementTree(ElementTree):
 
 class XMLConverter:
 
-    def __init__(self, conf: XMLConverterOptions):
+    def __init__(self, conf: XMLConverterOptions = None):
+        if conf is None:
+            conf = XMLConverterOptions()
+
         self.conf: XMLConverterOptions = conf
 
     def dict_from_xml(self, element: ElementTree | Element | PathType,

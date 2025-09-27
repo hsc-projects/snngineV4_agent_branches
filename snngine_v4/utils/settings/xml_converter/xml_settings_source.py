@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, ClassVar, Literal
+from types import NoneType
+from typing import Any, ClassVar, Literal, TYPE_CHECKING
 
 from pydantic import ConfigDict
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -15,6 +16,10 @@ from snngine_v4.utils.data_utils.validation.array_io import ArrayDictRW
 from snngine_v4.utils.settings.settings_keywords import BaseSettingsSlots
 from snngine_v4.utils.settings.xml_converter.xml_converter_options \
     import XMLConverterOptions
+
+
+if TYPE_CHECKING:
+    from snngine_v4.utils.settings.xml_converter import XMLConverter
 
 
 class XMLSettingsConfigDict(SettingsConfigDict, total=False):
@@ -38,6 +43,13 @@ def default_xml_model_config_dict(
         xml_file=xml_file)
 
 
+def make_converter(converter) -> XMLConverter:
+    if isinstance(converter, (XMLConverterOptions, NoneType)):
+        from snngine_v4.utils.settings.xml_converter import XMLConverter
+        converter = XMLConverter(converter)
+    return converter
+
+
 class XMLConfigSettingsSource(InitSettingsSource, ConfigFileSourceMixin):
     """
     A source class that loads variables from a JSON file
@@ -45,10 +57,10 @@ class XMLConfigSettingsSource(InitSettingsSource, ConfigFileSourceMixin):
 
     # noinspection PyTypedDict
     def __init__(
-        self,
-        settings_cls: type[BaseSettings],
-        xml_files: PathType | str | None = '',
-        b_verbose: bool = False,
+            self,
+            settings_cls: type[BaseSettings],
+            xml_files: PathType | str | None = '',
+            b_verbose: bool = False,
     ):
         default_path: PathType = Path('')
         if xml_files == '':
@@ -73,15 +85,29 @@ class XMLConfigSettingsSource(InitSettingsSource, ConfigFileSourceMixin):
         super().__init__(settings_cls, self.xml_data)
 
     def _read_files(self, files: PathType | None) -> dict[str, Any]:
+        xml_model = self.settings_cls.xml_model
+        from snngine_v4.utils.settings.xml_converter import XMLConverter
+        conv = XMLConverter(xml_model)
+        if self.settings_cls.xml_model is None:
+            self.settings_cls.xml_model = conv.conf
+        return self.cls_read_files(files=files, converter=conv)
+
+    @classmethod
+    def cls_read_files(cls, files: PathType | None,
+                       converter: XMLConverter = None) -> dict[str, Any]:
         if files is None:
             return {}
+
+        converter = make_converter(converter)
+
         if isinstance(files, (str, os.PathLike)):
             files = [files]
         vars_: dict[str, Any] = {}
         for file in files:
             file_path = Path(file).expanduser()
             if file_path.is_file():
-                new_vals = self._read_file(file_path)
+                new_vals = cls.cls_read_file(
+                    file_path=file_path, converter=converter)
                 for k in new_vals:
                     if k in vars_:
                         raise KeyError(k)
@@ -98,18 +124,15 @@ class XMLConfigSettingsSource(InitSettingsSource, ConfigFileSourceMixin):
         return vars_
 
     def _read_file(self, file_path: Path) -> dict[str, Any]:
-        from snngine_v4.utils.settings.xml_converter import XMLConverter
-        # noinspection PyTypeChecker
-        xml_model = self.settings_cls.xml_model
-        if xml_model is None:
-            from snngine_v4.utils.settings.xml_converter \
-                .xml_converter_options import XMLConverterOptions
-            xml_model = XMLConverterOptions()
-            self.settings_cls.xml_model = xml_model
+        conv = make_converter(self.settings_cls.xml_model)
+        if self.settings_cls.xml_model is None:
+            self.settings_cls.xml_model = conv.conf
+        return self.cls_read_file(file_path=file_path, converter=conv)
 
-        conv = XMLConverter(xml_model)
-
-        res = conv.dict_from_xml(str(file_path))
+    @classmethod
+    def cls_read_file(cls, file_path: Path, converter) -> dict[str, Any]:
+        converter = make_converter(converter)
+        res = converter.dict_from_xml(str(file_path))
         return res
 
 

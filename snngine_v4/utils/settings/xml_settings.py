@@ -26,6 +26,11 @@ class XMLSettingsModel(BaseSettings, ConfigModelMixin):
     model_config: ClassVar[XMLSettingsConfigDict] = (
         default_xml_model_config_dict(xml_file=None))
 
+    @classmethod
+    def from_xml_file_s(cls, files):
+        data = XMLConfigSettingsSource.cls_read_files(files)
+        return cls(**data)
+
     def model_dump(self, mode: str | ModelDumpTypes = 'python',
                    include=None, round_trip=False,
                    **kwargs):

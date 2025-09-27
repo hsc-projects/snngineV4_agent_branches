@@ -135,6 +135,9 @@ class SpinBoxSlider(CustomSlider):
             QtWidgets.QSizePolicy.Policy.MinimumExpanding,
         )
 
+        orientation = opts.get('widget_orientation', 'Horizontal')
+        self.setOrientation(QtCore.Qt.Orientation[orientation])
+
         self.spinbox.sigValueChanging.connect(self.setValueFromSpinBox)
         self.spinbox.sigValueChanged.connect(self.updateDisplayWidget)
         self.sliderReleased.connect(self.onSliderRelease)

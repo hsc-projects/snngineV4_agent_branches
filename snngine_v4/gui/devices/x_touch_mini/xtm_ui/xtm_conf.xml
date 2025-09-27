@@ -1,0 +1,1018 @@
+<?xml version="1.0" ?>
+<dict>
+  <midi_input_device type="dict">
+    <DictItem type="str" key="win">X-TOUCH MINI 0</DictItem>
+    <DictItem type="str" key="lin">X-TOUCH MINI:X-TOUCH MINI MIDI 1</DictItem>
+  </midi_input_device>
+  <midi_output_device type="dict">
+    <DictItem type="str" key="win">X-TOUCH MINI 1</DictItem>
+    <DictItem type="str" key="lin">X-TOUCH MINI:X-TOUCH MINI MIDI 1</DictItem>
+  </midi_output_device>
+  <info type="dict">
+    <DictItem type="int" key="device_id">0</DictItem>
+    <DictItem type="dict" key="global_channel">
+      <DictItem type="int" key="value">0</DictItem>
+    </DictItem>
+    <DictItem type="int" key="mode">0</DictItem>
+    <DictItem type="int" key="layer">1</DictItem>
+  </info>
+  <encoder_values type="dict">
+    <DictItem type="list" key="knobs">
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_1</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">1</DictItem>
+        <DictItem type="int" key="element_type">0</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_2</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">2</DictItem>
+        <DictItem type="int" key="element_type">0</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_3</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">3</DictItem>
+        <DictItem type="int" key="element_type">0</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_4</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">4</DictItem>
+        <DictItem type="int" key="element_type">0</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_5</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">5</DictItem>
+        <DictItem type="int" key="element_type">0</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_6</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">6</DictItem>
+        <DictItem type="int" key="element_type">0</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_7</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">7</DictItem>
+        <DictItem type="int" key="element_type">0</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_8</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">8</DictItem>
+        <DictItem type="int" key="element_type">0</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+      </ListElement>
+    </DictItem>
+    <DictItem type="list" key="buttons">
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_button_1</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">0</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_button_2</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">1</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_button_3</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">2</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_button_4</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">3</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_button_5</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">4</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_button_6</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">5</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_button_7</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">6</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">knob_button_8</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">7</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_1</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">8</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_2</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">9</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_3</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">10</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_4</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">11</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_5</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">12</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_6</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">13</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_7</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">14</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_8</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">15</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_9</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">16</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_10</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">17</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_11</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">18</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_12</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">19</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_13</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">20</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_14</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">21</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_15</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">22</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+      <ListElement type="dict">
+        <DictItem type="str" key="name_id">button_16</DictItem>
+        <DictItem type="dict" key="channel">
+          <DictItem type="int" key="A">11</DictItem>
+          <DictItem type="int" key="B">11</DictItem>
+          <DictItem type="int" key="MC">11</DictItem>
+        </DictItem>
+        <DictItem type="int" key="cc">-1</DictItem>
+        <DictItem type="int" key="element_type">3</DictItem>
+        <DictItem type="dict" key="min_value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="max_value">
+          <DictItem type="int" key="A">127</DictItem>
+          <DictItem type="int" key="B">127</DictItem>
+          <DictItem type="int" key="MC">127</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="value">
+          <DictItem type="int" key="A">0</DictItem>
+          <DictItem type="int" key="B">0</DictItem>
+          <DictItem type="int" key="MC">0</DictItem>
+        </DictItem>
+        <DictItem type="dict" key="b_pressed">
+          <DictItem type="bool" key="A">False</DictItem>
+          <DictItem type="bool" key="B">False</DictItem>
+          <DictItem type="bool" key="MC">False</DictItem>
+        </DictItem>
+        <DictItem type="int" key="note">23</DictItem>
+        <DictItem type="int" key="behavior">0</DictItem>
+      </ListElement>
+    </DictItem>
+    <DictItem type="dict" key="fader">
+      <DictItem type="str" key="name_id">fader</DictItem>
+      <DictItem type="dict" key="channel">
+        <DictItem type="int" key="A">11</DictItem>
+        <DictItem type="int" key="B">11</DictItem>
+        <DictItem type="int" key="MC">11</DictItem>
+      </DictItem>
+      <DictItem type="int" key="cc">9</DictItem>
+      <DictItem type="int" key="element_type">0</DictItem>
+      <DictItem type="dict" key="min_value">
+        <DictItem type="int" key="A">0</DictItem>
+        <DictItem type="int" key="B">0</DictItem>
+        <DictItem type="int" key="MC">0</DictItem>
+      </DictItem>
+      <DictItem type="dict" key="max_value">
+        <DictItem type="int" key="A">127</DictItem>
+        <DictItem type="int" key="B">127</DictItem>
+        <DictItem type="int" key="MC">127</DictItem>
+      </DictItem>
+      <DictItem type="dict" key="value">
+        <DictItem type="int" key="A">0</DictItem>
+        <DictItem type="int" key="B">0</DictItem>
+        <DictItem type="int" key="MC">0</DictItem>
+      </DictItem>
+    </DictItem>
+  </encoder_values>
+</dict>
