@@ -4,7 +4,7 @@ from qtpy import QtCore, QtWidgets
 
 
 from snngine_v4.gui.common.qobject_dicts import QWidgetDict
-
+from snngine_v4.gui.linker_tree.linker_tree import LinkerTree
 
 from snngine_v4.gui.parameter_tree.parameters.widgets.table \
     .array_editor import ArrayEditorDockWidget
@@ -63,7 +63,7 @@ class MainEngineWindow(MainEngineWindowBase):
         array_dock = ArrayEditorDockWidget(name=self.ARRAYS_DOCK_NAME)
         self.addRightDockWidget('A', array_dock)
 
-        controls_tree = EngineParameterTree(name=self.CONTROLS_DOCK_NAME)
+        controls_tree = LinkerTree(name=self.CONTROLS_DOCK_NAME)
 
         features = (
             QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable

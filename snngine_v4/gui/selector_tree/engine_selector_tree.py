@@ -188,7 +188,6 @@ class EngineSelectorTree(EngineParameterTree):
             sub_visual_super_map=sub_visual_super_map,
             signal_register=self.signal_register,)
 
-
     def add_selection(self):
         p_new_selection = SelectionParameter(
             name="Selection",
@@ -251,8 +250,6 @@ class EngineSelectorTree(EngineParameterTree):
 if __name__ == '__main__':
 
     from qtpy import QtWidgets
-
-
     app = QtWidgets.QApplication([])
 
     tree_ = EngineSelectorTree()
