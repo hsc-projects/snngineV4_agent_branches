@@ -1,5 +1,6 @@
+from pydantic import BaseModel
 from pyqtgraph.parametertree import Parameter
-from vispy.visuals import BoxVisual, MarkersVisual
+from vispy.visuals import BoxVisual, CompoundVisual, MarkersVisual
 
 from snngine_v4.geometry.spatial_pars import EnginePos3D
 from snngine_v4.gui.parameter_tree.connectors.model_signals_register import \
@@ -11,7 +12,7 @@ from snngine_v4.gui.parameter_tree.connectors.parameter_connector import \
 from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
     EngineParameterTree
 from snngine_v4.utils.containers.mappings import (
-    ObjectMapConfig, Model2ObjectMap,
+    Object2ObjectMap, ObjectMapConfig, Model2ObjectMap,
 )
 from snngine_v4.utils.field_utils import model_keys
 from snngine_v4.visualization.config_models.visuals import MarkersVisualConfig
@@ -20,9 +21,7 @@ from snngine_v4.visualization.config_models.visuals.boxes import (
 )
 from snngine_v4.visualization.config_models.visuals.parameters import \
     VispyKeyWords
-from snngine_v4.visualization.visual_builder import (
-    VispyVisualBuilder,
-)
+from snngine_v4.visualization.scenes.scene_manager import SceneManager, VispyMap
 
 
 class VispyConnector(ParameterConnector):
@@ -31,9 +30,13 @@ class VispyConnector(ParameterConnector):
         b_pop_allowed: bool = True
 
     @classmethod
-    def cls_connect_map(cls, **kwargs):
+    def cls_connect_map(cls, mapping: Object2ObjectMap, **kwargs):
 
-        container: Model2ObjectMap = super().cls_connect_map(**kwargs)
+        container: Model2ObjectMap = super().cls_connect_map(
+            mapping=mapping, **kwargs)
+
+        # Handle linked models:
+        # Replace linked model keys by the generated models
         replace_source_keys = []
         for k, v in container.items():
             if isinstance(v, VispyLinks) and (v.source != container.inv[v]):
@@ -41,88 +44,121 @@ class VispyConnector(ParameterConnector):
         for k in replace_source_keys:
             v = container.pop(k)
             container[v.source] = v
+
         return container
 
     @classmethod
     def connect_object(cls, model, obj,
                        signal_register: ExtendedModelSignalsRegister,
+                       sub_visual_super_map=None,
                        model_signals=None):
-        return VispyLinks(
+
+        if model in signal_register.model2model_map:
+            model = signal_register.model2model_map[model]
+        if isinstance(obj, CompoundVisual):
+            sub_visual_map = sub_visual_super_map[model]
+        else:
+            sub_visual_map = None
+
+        new_links = VispyLinks(
             model=model, vispy_obj=obj, signal_register=signal_register,
+            sub_visual_map=sub_visual_map,
             model_signals=model_signals)
 
+        return new_links
+
     @classmethod
-    def cls_connect_tree(cls, tree: EngineParameterTree, scene_manager,
+    def _add_linked_model_parameters(
+            cls, tree: EngineParameterTree,
+            model0: BaseModel, model1: BaseModel):
+
+        # sr: ExtendedModelSignalsRegister = tree.signal_register
+        # sr.add_linked_model(model0=model0, model1=model1)
+        if isinstance(model1, BoxVisualInitConfig):
+            if isinstance(model1, OuterGridVisualInitConfig):
+                name = 'OuterGridVisual'
+            else:
+                name = BoxVisual.__name__
+            exclude_keys = model_keys(model0)
+            exclude_keys += [VispyKeyWords.COLOR,
+                             VispyKeyWords.VERTEX_COLORS,
+                             VispyKeyWords.FACE_COLORS,
+                             VispyKeyWords.EDGE_COLOR,
+                             EnginePos3D.Slots.POS_ORIGIN]
+        elif isinstance(model1, MarkersVisualConfig):
+            name = MarkersVisual.__name__
+            exclude_keys = [VispyKeyWords.POS,
+                            EnginePos3D.Slots.POS_ORIGIN]
+        else:
+            exclude_keys = []
+            name = 'Visual'
+
+        new_pars = tree.add_parameters_from_linked_model(
+            model0=model0, model1=model1,
+            name=name, exclude_keys=exclude_keys
+        )
+
+        # visual_conf = sr.get_model(new_pars)
+        # # vispy_links: VispyLinks = container[model1]
+        #
+        #     # cls._connect_subvisuals(
+        #     #     model=model1, links=vispy_links, signal_register=sr)
+        #     # # sv: Parameter = new_pars.param(
+        #     # #     VispyVisualBuilder.SUBVISUALS_KW)
+        #     # # for i, (name, param) in enumerate(sv.names.items()):
+        #     # #     subvisual_model = sr.get_model(param)
+        #     # #     subvisual = vispy_links.sub_visual_map[subvisual_model]
+        #     # #     if subvisual == vispy_links.sink.mesh:
+        #     # #         new_names[VispyKeyWords.MESH] = param
+        #     # #     elif subvisual == vispy_links.sink.border:
+        #     # #         new_names[VispyKeyWords.BORDER] = param
+        #     # #     # elif subvisual == vispy_links.sink.border:
+        #     # #     #     new_names[VispyKeyWords.BORDER] = param
+        #     # #     new_links = VispyLinks(subvisual_model, subvisual,
+        #     # #                            signal_register=sr)
+        # elif isinstance(model1, MarkersVisualConfig):
+        #     new_pars.setName()
+        #     # visual_model = sr.get_model(new_pars)
+        #     # # visual = vispy_links.sink
+        #     # new_links = VispyLinks(
+        #     #     visual_model, visual,
+        #     #     model_signals=sr.extensions_map[visual_model],
+        #     #     signal_register=sr)
+        return new_pars
+
+    @classmethod
+    def cls_connect_tree(cls, tree: EngineParameterTree,
+                         scene_manager: SceneManager,
                          container=None, **kwargs):
         sr: ExtendedModelSignalsRegister = tree.signal_register
 
-        extra_models = list(sr.model2model_map.values())
+        # extra_models = list(sr.model2model_map.values())
         models = tree.signal_register.connected_models
-        mapping = scene_manager.get_built_objects(*models)
-        # mapping = scene_manager.get_visual_nodes()
+        mapping: VispyMap = scene_manager.get_built_objects(*models)
+
+        for m in mapping.model2model_map.refs:
+            cls._add_linked_model_parameters(
+                tree, model0=m,
+                model1=mapping.model2model_map[m])
+
         container = super().cls_connect_tree(
-            tree=tree, mapping=mapping, container=container)
+            tree=tree, mapping=mapping,
+            sub_visual_super_map=mapping.sub_visual_super_map,
+            container=container)
 
-        new_models = [x for x in sr.model2model_map.values() if x not in
-                      extra_models]
-        if len(new_models) > 0:
-            new_model_node_trees = sr.model2nodetree_map.values(
-                *new_models, b_unique=True)
+        # for m in mapping.sub_visual_super_map.refs:
+        #     if m in mapping.model2model_map.values():
+        #         cls._connect_subvisuals(
+        #             model=m, links=None, signal_register=sr)
 
-            for node_tree in new_model_node_trees:
-                # new_model = CompoundVisualNodeConfig(
-                #     initialization=node_tree.root)
-                model = node_tree.root
-                exclude_keys = []
-                if isinstance(model, BoxVisualInitConfig):
-                    exclude_keys += model_keys(sr.model2model_map.inv[model])
-                    exclude_keys += [VispyKeyWords.COLOR,
-                                     VispyKeyWords.VERTEX_COLORS,
-                                     VispyKeyWords.FACE_COLORS,
-                                     VispyKeyWords.EDGE_COLOR,
-                                     EnginePos3D.Slots.POS_ORIGIN]
-                elif isinstance(model, MarkersVisualConfig):
-                    exclude_keys += [VispyKeyWords.POS,
-                                     EnginePos3D.Slots.POS_ORIGIN
-                                     ]
-
-                new_pars = tree.add_parameters_from_model(
-                    model=model,
-                    root=sr.get_group(sr.model2model_map.inv[model]),
-                    name='Visual', signal_register=sr,
-                    exclude_keys=exclude_keys
-                )
-
-                new_names = {}
-                visual_conf = sr.get_model(new_pars)
-                vispy_links: VispyLinks = container[visual_conf]
-                if isinstance(model, BoxVisualInitConfig):
-                    if isinstance(model, OuterGridVisualInitConfig):
-                        new_pars.setName(name='Visual')
-                    else:
-                        new_pars.setName(name=BoxVisual.__name__)
-                    sv: Parameter = new_pars.param(
-                        VispyVisualBuilder.SUBVISUALS_KW)
-
-                    for i, (name, param) in enumerate(sv.names.items()):
-                        subvisual_model = sr.get_model(param)
-                        subvisual = vispy_links.sub_visual_map[subvisual_model]
-                        if subvisual == vispy_links.sink.mesh:
-                            new_names[VispyKeyWords.MESH] = param
-                        elif subvisual == vispy_links.sink.border:
-                            new_names[VispyKeyWords.BORDER] = param
-                        # elif subvisual == vispy_links.sink.border:
-                        #     new_names[VispyKeyWords.BORDER] = param
-                        new_links = VispyLinks(subvisual_model, subvisual,
-                                               signal_register=sr)
-                elif isinstance(model, MarkersVisualConfig):
-                    new_pars.setName(name=MarkersVisual.__name__)
-                    visual_model = sr.get_model(new_pars)
-                    visual = vispy_links.sink
-                    new_links = VispyLinks(
-                        visual_model, visual,
-                        model_signals=sr.extensions_map[visual_model],
-                        signal_register=sr)
-                for k, v in new_names.items():
-                    v.setName(name=k)
-            return
+        # new_models = [x for x in sr.model2model_map.values() if x not in
+        #               extra_models]
+        # if len(new_models) > 0:
+        #     new_model_node_trees = sr.model2nodetree_map.values(
+        #         *new_models, b_unique=True)
+        #
+        #     for node_tree in new_model_node_trees:
+        #         model = node_tree.root
+        #         cls._add_linked_model_parameters(tree, container, model)
+        #
+        return container

@@ -212,6 +212,8 @@ class QDataFrame(QtSql.QSqlTableModel):
             value = self.as_df(value)
         if (self._df is None) or (value.shape != self.df.shape):
             self.df = value
+        elif value.equals(self.as_df(self._df.values)):
+            return
         else:
             self.validate(value)
             self._df[:] = value
@@ -243,6 +245,12 @@ class QDataFrame(QtSql.QSqlTableModel):
                     raise RuntimeError
                 old_value = self.df.iloc[rc[0]]
             if old_value != value:
+                if type(value) is not type(old_value):
+                    if isinstance(value, str):
+                        value = value.strip('\'\"')
+                    value = np.array([value], type(old_value))[0]
+                    # except TypeError:
+                    # raise AssertionError("type(value) is not type(old_value)")
                 if self.df.ndim == 2:
                     self.df.iloc[*rc] = value
                 else:

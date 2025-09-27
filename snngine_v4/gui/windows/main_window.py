@@ -56,10 +56,6 @@ class MainEngineWindow(MainEngineWindowBase):
             network_tree=self.network_tree,
             selector_tree=self.selection_tree
         )
-        # self.main_network_scene.set_current()
-        # self.engine.build_network()
-        # self.update_connections()
-        # self.engine.post_connect_network_init()
 
     def setup_dock_widgets(self):
         super().setup_dock_widgets()
@@ -86,46 +82,6 @@ class MainEngineWindow(MainEngineWindowBase):
         self.tabifyDockWidget(
             self.docks[EngineConfig.Slots.BUILT.capitalize()],
             self.selection_tree_dock)
-
-
-    # def update_connections(self):
-    #
-    #     VispyConnector.cls_connect_tree(
-    #         tree=self.scene_tree, scene_manager=self.engine.scene_manager)
-    #
-    #     current_model = self.engine.network_manager.container_model
-    #
-    #     self.network_tree.clear()
-    #     self.network_tree.set_parameters_from_model(model=current_model,
-    #                                                 showTop=False)
-    #
-    #     network_connector = VispyConnector()
-    #     network_connector.cls_connect_tree(
-    #         tree=self.network_tree,
-    #         scene_manager=self.engine.scene_manager)
-    #     if self.engine.b_pycuda_available:
-    #         from snngine_v4.gui.parameter_tree.cuda_connector import (
-    #             CudaVispyConnector,
-    #         )
-    #         model2buffers = CudaVispyConnector.cls_connect_tree(
-    #             tree=self.network_tree, scene_manager=self.engine.scene_manager,
-    #             device=current_model.network.device)
-    #         self.engine.network.cuda_opengl_map = model2buffers
-    #         multiplot_buffers = model2buffers[
-    #             self.engine.conf.current.network.simulator.plots
-    #             .voltage_plot
-    #         ]
-    #
-    #     model2tensors = TensorConnector.cls_connect_tree(
-    #         tree=self.network_tree,
-    #         network_manager=self.engine.network_manager,)
-    #
-    #     # sec_views: ViewArea = self.windows[WindowTypes.SECONDARY_VIEWS]
-    #     # sec_views.addDock(self.engine.conf.scenes.multiplot_voltage)
-    #     # sec_views.addDock(self.engine.conf.scenes.current_voltage)
-    #     self.main_network_scene.set_current()
-    #
-    #     return
 
     def test_func(self, ):
         # self.engine.run_sim(10)

@@ -4,19 +4,19 @@ from copy import copy
 
 import numpy as np
 from pydantic import BaseModel
+from pyqtgraph.parametertree import Parameter
 from vispy.scene import Line, Markers, TurntableCamera, VisualNode, XYZAxis
 from vispy.util.event import Event
 from vispy.visuals import (
     BoxVisual, CompoundVisual, LineVisual, MarkersVisual,
     MeshVisual, Visual,
 )
-from vispy.visuals.line.line import _GLLineVisual
 from vispy.visuals.transforms import STTransform
 
 from snngine_v4.utils.core_utils import type_assertion
+from snngine_v4.utils.data_utils.dataframe_config import SeriesModel
 from snngine_v4.utils.data_utils.validation.array_annotation \
     import ArrayInterfaces
-from snngine_v4.geometry.grid.finite_grid_config import FiniteGridConfig
 from snngine_v4.geometry.spatial_pars import Ax3D, EnginePos3D
 from snngine_v4.gui.parameter_tree.connectors.model_parameter_links import (
     ModelParameterLinks, ObjectParameterLink,
@@ -26,9 +26,6 @@ from snngine_v4.gui.parameter_tree.connectors.model_signals_register import \
 from snngine_v4.gui.parameter_tree.connectors.object2object_links import (
     LinkStateType, Object2ObjectLinks,
 )
-from snngine_v4.nn.config_models.reservoir.nn_reservoir_config \
-    import NetworkReservoirConfig
-from snngine_v4.utils.containers.mappings import Model2ObjectMap
 from snngine_v4.utils.field_utils import Undefined
 # from snngine_v4.utils.settings.ui_parameter_options import update_param_opts
 from snngine_v4.visualization.buffer_utils import adapt_dim
@@ -58,7 +55,7 @@ from snngine_v4.visualization.visual_builder import (
 from snngine_v4.visualization.visuals.compound_markers import \
     CompoundMarkersVisual
 from snngine_v4.visualization.visuals.grid_lines import (
-    GSGLLineVisual, FiniteGridLinesVisual,
+    FiniteGridLinesVisual,
     MultiBoxLinesVisual,
 )
 
@@ -75,31 +72,35 @@ class VispyLinks(Object2ObjectLinks):
     def __init__(self, model, vispy_obj,
                  signal_register: ExtendedModelSignalsRegister,
                  model_signals=None,
+                 sub_visual_map=None,
                  **kwargs):
 
         self.data: dict[int | BaseModel, VispyObject] | None = None
         self.source: VispyObjectConfig | None = None
         self.sink: VispyObject | None = None
 
-        self.sub_visual_map = Model2ObjectMap()
+        # self.sub_visual_map = Model2ObjectMap()
+        self.sub_visual_map = sub_visual_map
 
-        node_tree = None
         if isinstance(vispy_obj, (BoxVisual,
                                   CompoundMarkersVisual,
                                   FiniteGridLinesVisual,
                                   MultiBoxLinesVisual,
                                   Line,
                                   MarkersVisual)):
-            exp_model = VispyVisualBuilder.get_model(model)
-            if model.__class__ != exp_model.__class__:
-                type_assertion(
-                    model, (FiniteGridConfig, NetworkReservoirConfig))
-                node_tree = signal_register.add_linked_model(
-                    model, exp_model)
-                model = exp_model
-                # model.__setattr__(model, 'seg', (1, 2, 3))
-            else:
-                node_tree = signal_register.model2nodetree_map[model]
+            # exp_model = VispyVisualBuilder.get_model(model)
+            # if model.__class__ != exp_model.__class__:
+            #     type_assertion(
+            #         model, (FiniteGridConfig, NetworkReservoirConfig))
+            #     node_tree = signal_register.add_linked_model(
+            #         model, exp_model)
+            #     model = exp_model
+            #     # model.__setattr__(model, 'seg', (1, 2, 3))
+            # else:
+            #     node_tree = signal_register.model2nodetree_map[model]
+            node_tree = signal_register.model2nodetree_map[model]
+        else:
+            node_tree = None
 
         super().__init__(source=model, sink=vispy_obj, **kwargs)
 
@@ -174,49 +175,55 @@ class VispyLinks(Object2ObjectLinks):
                         sub_visual_model = self.source.sep_lines
                         sub_visual0 = sub_visuals.pop(0)
                         sub_visual1 = sub_visuals.pop(0)
-                        type_assertion(
-                            sub_visual1,
-                            VispyVisualBuilder.find_object_class(
-                                sub_visual_model, b_ignore_default=True))
-                        self.sub_visual_map[sub_visual_model] = sub_visual1
-                        if isinstance(self.source, MultiLinePlotConfig):
-                            type_assertion(sub_visual0, _GLLineVisual)
-                        elif isinstance(self.source, MultiScatterPlotConfig):
-                            type_assertion(sub_visual0, Markers)
+                        # type_assertion(
+                        #     sub_visual1,
+                        #     VispyVisualBuilder.find_object_class(
+                        #         sub_visual_model, b_ignore_default=True))
+                        # self.sub_visual_map[sub_visual_model] = sub_visual1
+                        if (self.sub_visual_map[sub_visual_model]
+                                is not sub_visual1):
+                            raise AssertionError
 
                     if len(sub_visuals) > 0:
-                        self.source.subvisuals = []
+                        subvisual_models = self.source.subvisuals
                         # noinspection PyProtectedMember
-                        for sub_visual in self.sink._subvisuals:
-                            if isinstance(sub_visual, MeshVisual):
-                                # noinspection PyArgumentList
-                                sub_visual_model = MeshVisualConfig()
-                            elif isinstance(sub_visual, MultiBoxLinesVisual):
-                                sub_visual_model = MultiBoxLinesVisualConfig(
-                                    pos=sub_visual.pos,
-                                    connect=sub_visual.connect,
-                                    width=sub_visual.width,
-                                    color=sub_visual.color,
-                                )
-                            elif isinstance(sub_visual, GSGLLineVisual):
-                                sub_visual_model = None
-                            else:
-                                raise NotImplementedError
-                            if sub_visual_model is not None:
-                                self.sub_visual_map[sub_visual_model] = (
-                                    sub_visual)
-                                self.source.subvisuals.append(
-                                    sub_visual_model)
+                        # for sub_visual in self.sink._subvisuals:
+                        for m in subvisual_models:
+                            if (self.sub_visual_map[m]
+                                    not in self.sink._subvisuals):
+                                raise AssertionError
+                            # if isinstance(sub_visual, MeshVisual):
+                            #     # noinspection PyArgumentList
+                            #     # sub_visual_model = MeshVisualConfig()
+                            #     pass
+                            # elif isinstance(sub_visual, MultiBoxLinesVisual):
+                            #     pass
+                            #     # sub_visual_model = MultiBoxLinesVisualConfig(
+                            #     #     pos=sub_visual.pos,
+                            #     #     connect=sub_visual.connect,
+                            #     #     width=sub_visual.width,
+                            #     #     color=sub_visual.color,
+                            #     # )
+                            # elif isinstance(sub_visual, GSGLLineVisual):
+                            #     sub_visual_model = None
+                            # else:
+                            #     raise NotImplementedError
+                            # if sub_visual_model is not None:
+                            #     self.sub_visual_map[sub_visual_model] = (
+                            #         sub_visual)
+                            #     # self.source.subvisuals.append(
+                            #     #     sub_visual_model)
                 node_tree.read_model(self.source, b_ignore_existing=True)
 
             elif isinstance(self.sink, MeshVisual):
-                self.connect_mesh_visual(self.sink, self.source,
-                                         # sr=signal_register
-                                         )
+                self.connect_mesh_visual(self.sink, self.source)
                 self.add_links(self.update_object)
 
             # self.transform_signals: ModelParameterLinks | None = None
             self.connect_transform(signal_register, model_signals)
+
+            if isinstance(self.sink, CompoundVisual):
+                self.connect_subvisuals(signal_register=signal_register,)
 
             return
 
@@ -234,7 +241,12 @@ class VispyLinks(Object2ObjectLinks):
                 self[link.source_key] = link
                 new_keys.append(link.source_key)
         if b_verbose:
-            print(self.source.__class__.__name__, new_keys)
+            print(
+                'New links:',
+                self.source.__class__.__name__,
+                '->',
+                self.sink.__class__.__name__,
+                new_keys)
 
     @classmethod
     def adapt_condition(cls, arr0, arr1):
@@ -257,6 +269,45 @@ class VispyLinks(Object2ObjectLinks):
         #     model_links: list[ObjectParameterLink] = (
         #         sr[model][ObjectParameterLink].refs)
         #     self.add_links(func=self.update_object, links=model_links)
+    
+    def connect_subvisuals(
+            self, signal_register: ExtendedModelSignalsRegister):
+        return self.cls_connect_subvisuals(
+            model=self.source, links=self,
+            signal_register=signal_register)
+    
+    @classmethod
+    def cls_connect_subvisuals(
+            cls, model, links: VispyLinks | None,
+            signal_register: ExtendedModelSignalsRegister,):
+
+        if links is None:
+            links = signal_register[model]
+
+        new_names = {}
+        res = []
+        if isinstance(model, BoxVisualInitConfig):
+            gp = signal_register.get_group(model)
+            sv_par_parent: Parameter = gp.param(
+                VispyVisualBuilder.SUBVISUALS_KW)
+            for i, sv_model in enumerate(links.sub_visual_map.refs):
+                sv_par = signal_register[sv_model].sink
+                if sv_par not in sv_par_parent.children():
+                    raise AssertionError
+
+                subvisual = links.sub_visual_map[sv_model]
+                if subvisual == links.sink.mesh:
+                    new_names[VispyKeyWords.MESH] = sv_par
+                elif subvisual == links.sink.border:
+                    new_names[VispyKeyWords.BORDER] = sv_par
+                # elif subvisual == vispy_links.sink.border:
+                #     new_names[VispyKeyWords.BORDER] = sv_par
+                new_links = cls(
+                    sv_model, subvisual, signal_register=signal_register)
+                res.append(new_links)
+        for k, v in new_names.items():
+            v.setName(name=k)
+        return res
 
     def connect_transform(self, signal_register, model_signals):
         slot = EnginePos3D.Slots.POS_ORIGIN
@@ -462,8 +513,7 @@ class VispyLinks(Object2ObjectLinks):
         if func == self.update_object:
             if hasattr(self.sink, key):
                 return True
-            elif ((type(self.sink) in VisualMixin.SET_DATA_KWS)
-                    and (key in VisualMixin.SET_DATA_KWS[type(self.sink)])):
+            elif key in VisualMixin.get_set_data_kws(type(self.sink)):
                 return True
             return False
         elif func == self.update_camera_object:
@@ -484,8 +534,7 @@ class VispyLinks(Object2ObjectLinks):
             block = self.update_model
         event_block.disconnect(block)
         # new_kwargs = {}
-        if ((type(self.sink) in VisualMixin.SET_DATA_KWS)
-                and (key in VisualMixin.SET_DATA_KWS[type(self.sink)])):
+        if key in VisualMixin.get_set_data_kws(type(self.sink)):
             new_kwargs = self.handle_set_data_kwargs(self.sink, key, value)
             self.sink.set_data(**new_kwargs)
         else:
@@ -517,6 +566,10 @@ class VispyLinks(Object2ObjectLinks):
 
         arr = self.sink.transform.translate[:3]
         # arr[Ax3D[key].value] = value
+
+        if isinstance(value, dict):
+            value = value[SeriesModel.Slots.DATA]
+
         arr[:] = value
         self.sink.transform.translate = arr
 

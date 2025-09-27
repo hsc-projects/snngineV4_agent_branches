@@ -18,6 +18,7 @@ from snngine_v4.gui.parameter_tree.parameter_builder.parameter_builder import \
     ParameterBuilder
 from snngine_v4.gui.parameter_tree.parameters.common \
     .engine_group_parameter import EngineGroupParameter
+from snngine_v4.gui.parameter_tree.vispy_connector import VispyConnector
 from snngine_v4.gui.selector_tree.selector_model import (SelectorModel,
                                                          SelectorType,
                                                          SourceSinkType)
@@ -170,9 +171,23 @@ class EngineSelectorTree(EngineParameterTree):
             color=None, edge_color='blue'
         )
 
-        box_visual = self._engine.scene_manager.build_visuals(
-            [box_model], scene=self._engine.main_scene
+        box_visual = self._engine.make_visual(model=box_model)
+
+        new_pars = self.add_parameters_from_model(
+            model=box_model,
+            root=self.p_selectors,
+            name='SelectorBoxVisual',
+            # signal_register=self.signal_register,
+            # exclude_keys=exclude_keys
         )
+
+        sub_visual_super_map = self._engine.main_scene.sub_visual_super_map
+
+        VispyConnector.connect_object(
+            model=box_model, obj=box_visual,
+            sub_visual_super_map=sub_visual_super_map,
+            signal_register=self.signal_register,)
+
 
     def add_selection(self):
         p_new_selection = SelectionParameter(

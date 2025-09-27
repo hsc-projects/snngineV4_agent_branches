@@ -90,6 +90,12 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
         else:
             raise error
 
+    def get(self, item, default=None):
+        try:
+            return self[item]
+        except KeyError:
+            return default
+
     def __getitem__(self, item):
         try:
             return super().__getitem__(item)

@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from vispy.scene import BaseCamera, SceneCanvas, ViewBox, VisualNode
 
+
 from snngine_v4.utils.containers.mappings import Model2ObjectMap
 
 
@@ -18,6 +19,12 @@ class EngineSceneCanvas(SceneCanvas):
         self.visual_node_dict: dict[BaseModel, VisualNode] | Model2ObjectMap = (
             Model2ObjectMap.from_type(VisualNode))
 
+        self.sub_visual_super_map: (dict[BaseModel, Model2ObjectMap]
+                                    | Model2ObjectMap) = (
+            Model2ObjectMap.from_type(Model2ObjectMap))
+
+        self.model2model_map = Model2ObjectMap.from_type(BaseModel)
+
         self.freeze()
 
     def add_visual_node(self, node: VisualNode, view_box=None):
@@ -28,3 +35,12 @@ class EngineSceneCanvas(SceneCanvas):
             view_box = list(self.view_dict.values())[0]
         sc = view_box.scene
         return sc
+
+    def find_sub_visual_map(self, model):
+        obj = self.sub_visual_super_map.get(model)
+        if obj is not None:
+            return obj
+        alt_model = self.model2model_map.get(model)
+        if alt_model is not None:
+            return self.sub_visual_super_map.get(alt_model)
+        return None

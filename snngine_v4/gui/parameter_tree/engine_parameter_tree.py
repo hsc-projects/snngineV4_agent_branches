@@ -81,6 +81,24 @@ class EngineParameterTree(ParameterTree):
         self.addParameters(pars, root=root, depth=depth, showTop=showTop)
         return pars
 
+    def add_parameters_from_linked_model(
+        self, model0: BaseModel, model1: BaseModel,
+            signal_register=None, exclude_keys=None, **options
+    ):
+        if signal_register is None:
+            signal_register = self.signal_register
+        signal_register.add_linked_model(model0=model0, model1=model1)
+        new_pars = self.add_parameters_from_model(
+            model=model1,
+            root=signal_register.get_group(
+                signal_register.model2model_map.inv[model1]),
+            signal_register=signal_register,
+            exclude_keys=exclude_keys, **options
+        )
+        if signal_register.get_model(new_pars) is not model1:
+            raise AssertionError
+        return new_pars
+
     def clear(self):
         super().clear()
         if self._settings_model is not None:

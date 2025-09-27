@@ -1,6 +1,7 @@
 import os
 from functools import cached_property
 
+from pydantic import BaseModel
 
 from snngine_v4.construction.nn_builder import NetworkBuilder
 from snngine_v4.geometry.volume import VolumeShapeHDW
@@ -11,6 +12,8 @@ from snngine_v4.gui.parameter_tree.vispy_connector import VispyConnector
 from snngine_v4.gui.selector_tree.engine_selector_tree import EngineSelectorTree
 from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.snngine_config import EngineConfig
+from snngine_v4.utils.core_utils import type_assertion
+
 
 try:
     from snngine_v4.visualization.cuda.gl_interop.gl_buffer import GLBufferMap
@@ -101,6 +104,14 @@ class SNNgine:
         if selector_tree is not None:
             selector_tree.connect_engine(self)
 
+    def build_cuda_gl_tensors(self, network_tree):
+        from snngine_v4.gui.parameter_tree.cuda_connector import (
+            CudaVispyConnector)
+        model2buffers = CudaVispyConnector.cls_connect_tree(
+            tree=network_tree, scene_manager=self.scene_manager,
+            device=self.constructed_model.network.device)
+        return model2buffers
+
     def build_network(self):
         device = self.conf.template.network.device
         if isinstance(device, int):
@@ -113,40 +124,34 @@ class SNNgine:
 
         self.network_manager.build(self.conf.template)
         return self.network_manager.container_model
-
-    def build_cuda_gl_tensors(self, network_tree):
-        from snngine_v4.gui.parameter_tree.cuda_connector import (
-            CudaVispyConnector)
-        model2buffers = CudaVispyConnector.cls_connect_tree(
-            tree=network_tree, scene_manager=self.scene_manager,
-            device=self.constructed_model.network.device)
-        return model2buffers
-
+    
+    def make_visual(self, model: BaseModel, scene=None, **kwargs):
+        type_assertion(model, BaseModel)
+        if scene is None:
+            scene = self.main_scene
+        new_visual = self.scene_manager.build_visuals(
+            [model], scene=scene, **kwargs)[model].built
+        return new_visual
+    
     def build_visuals(self):
 
         elt_config0 = self.conf.built.network.elements[0]
         new_visuals = []
 
-        neurons_visual = self.scene_manager.build_visuals(
-            visuals=[elt_config0],
-            scene=self.conf.scenes.main)
+        neurons_visual = self.make_visual(model=elt_config0)
         new_visuals.append(neurons_visual)
 
-        grid_visual = self.scene_manager.build_visuals(
-            visuals=[elt_config0.grid],
-            scene=self.conf.scenes.main,
-            grid=self.network.grid)
+        grid_visual = self.make_visual(
+            model=elt_config0.grid, grid=self.network.grid)
         new_visuals.append(grid_visual)
 
-        plot_visual0 = self.scene_manager.build_visuals(
-            visuals=[self.conf.built.network.simulator.plots
-                     .voltage_plot],
+        plot_visual0 = self.make_visual(
+            model=self.conf.built.network.simulator.plots.voltage_plot,
             scene=self.conf.scenes.multiplot_voltage)
         new_visuals.append(plot_visual0)
 
-        plot_visual1 = self.scene_manager.build_visuals(
-            visuals=[self.conf.built.network.simulator.plots
-                     .firings_scatter_plot],
+        plot_visual1 = self.make_visual(
+            model=self.conf.built.network.simulator.plots.firings_scatter_plot,
             scene=self.conf.scenes.multiplot_firings)
         new_visuals.append(plot_visual1)
 
@@ -158,9 +163,8 @@ class SNNgine:
                          elt_shape[1] / (ref_shape[1]),
                          elt_shape[2] / (ref_shape[2]))
 
-        chem_visual0 = self.scene_manager.build_visuals(
-            visuals=[elt_config0.chemicals.C0],
-            scene=self.conf.scenes.main,
+        chem_visual0 = self.make_visual(
+            model=elt_config0.chemicals.C0,
             vol=chem_data,
             initial_scale=initial_scale,
         )

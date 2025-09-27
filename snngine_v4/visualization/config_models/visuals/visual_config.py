@@ -8,3 +8,7 @@ class VisualConfig(ConfigModel):
     visible: bool = True
     pos_origin: EnginePos3D = Field(
         default_factory=lambda: EnginePos3D.from_tuple((0, 0, 0)))
+
+
+class SubVisualConfig(VisualConfig):
+    pass

@@ -194,6 +194,7 @@ class ArrayParameter(ActionParameter, ActionParameterMixin):
                 f"change_type = BLOCK_SIGNAL_ROLE ({change_type})")
 
         if self.model is not None:
+            b_emit = True
             try:
                 match change_type:
                     case DataChangeType.CELL_UPDATED:
@@ -207,6 +208,7 @@ class ArrayParameter(ActionParameter, ActionParameterMixin):
                         raise NotImplementedError
                     case DataChangeType.SET_VALUE:
                         self._actualize_value()
+                        b_emit = False
                     case DataChangeType.UNDEFINED:
                         pass
                     case _:
@@ -226,6 +228,8 @@ class ArrayParameter(ActionParameter, ActionParameterMixin):
                         self.model.data[changes[0]] = changes[1]
                     case _:
                         raise NotImplementedError(f"{change_type}")
+            if b_emit:
+                self.sigValueChanged.emit(self, self.qdf.value())
         else:
             # if self.compare_value():
             #     self.opts[ParamOpts.KW.VALUE] = data
@@ -297,8 +301,8 @@ class ArrayParameter(ActionParameter, ActionParameterMixin):
                 raise RuntimeError
         if self.model is not None:
             return {
-                'index': self.model.index,
-                'data': self.opts[ParamOpts.KW.VALUE],
+                SeriesModel.Slots.INDEX: self.model.index,
+                SeriesModel.Slots.DATA: self.opts[ParamOpts.KW.VALUE],
             }
         return self.opts[ParamOpts.KW.VALUE]
 

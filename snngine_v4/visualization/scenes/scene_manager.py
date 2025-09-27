@@ -2,12 +2,14 @@ from typing import Callable, ClassVar
 
 from pydantic import BaseModel
 from vispy.scene import ViewBox
+from vispy.visuals import CompoundVisual
 
 from snngine_v4.geometry.grid.finite_grid_config import FiniteGridConfig
 from snngine_v4.utils.containers.mappings import (
     Model2ObjectMap,
 )
-from snngine_v4.utils.object_builder.object_builder import ModelObjectBuilder
+from snngine_v4.utils.object_builder.object_builder import (BuildResult,
+                                                            ModelObjectBuilder)
 
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 from snngine_v4.visualization.config_models.vispy_camera_configs import (
@@ -32,8 +34,9 @@ from snngine_v4.nn.config_models.spnn_config \
     import NetworkReservoirConfig
 
 
-type VisualConfig = (FiniteGridConfig | LineVisualConfig | MarkersVisualConfig
-                     | NetworkReservoirConfig)
+type VisualConfigType = (
+        FiniteGridConfig | LineVisualConfig | MarkersVisualConfig
+        | NetworkReservoirConfig)
 
 
 class CameraBuilder(ModelObjectBuilder):
@@ -51,6 +54,15 @@ class CameraBuilder(ModelObjectBuilder):
         return super().make_object(
             object_class=object_class, object_model=object_model,
             **object_kwargs)
+
+
+class VispyMap(Model2ObjectMap):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.model2model_map = Model2ObjectMap.from_type(BaseModel)
+        self.sub_visual_super_map: (dict[BaseModel, Model2ObjectMap]
+                                    | Model2ObjectMap) = (
+            Model2ObjectMap.from_type(Model2ObjectMap))
 
 
 class SceneManager(BuilderDict):
@@ -76,35 +88,67 @@ class SceneManager(BuilderDict):
     def cls_build_visuals(cls, visuals, scene, **kwargs):
         scene.set_current()
         parent = scene.new_visual_node_parent()
-        visual_dict = VispyVisualBuilder.cls_build_container(
-            visuals, parent=parent, **kwargs
-        )
-        scene.visual_node_dict.update(visual_dict.object_dict)
+        built_visuals_dict = VispyVisualBuilder.cls_build_container(
+            visuals, parent=parent,
+            sub_visual_super_map=scene.sub_visual_super_map, **kwargs)
+        scene.visual_node_dict.update(built_visuals_dict.object_dict)
+
+        for model in built_visuals_dict.refs:
+            build_res: BuildResult = built_visuals_dict[model]
+            if build_res.model != model:
+                scene.model2model_map[model] = build_res.model
+
         # scene._draw_scene()
-        return visual_dict
+        return built_visuals_dict
 
     def draw_scene(self, scene_model):
         self[scene_model]._draw_scene()
 
-    def get_built_objects(self, *models, container=None,
-                          b_assert_key_exists=True):
+    def find_object(self, model):
+
+        if isinstance(model, VisualConfigType.__value__):
+            for scene in self.values():
+                scene: EngineSceneCanvas
+                obj = scene.visual_node_dict.get(model)
+                if obj is not None:
+                    return scene, obj
+            return None
+        elif isinstance(model, VispyCanvasConfig):
+            return self[model]
+        elif isinstance(model, TurnTableCameraParameters):
+            for scene in self.values():
+                scene: EngineSceneCanvas
+                obj = scene.camera_dict.get(model)
+                if obj is not None:
+                    return scene, obj
+            return None
+        else:
+            return None
+
+    def get_built_objects(self, *models, container: VispyMap = None,
+                          b_assert_key_exists=True) -> VispyMap:
         if container is None:
-            container = Model2ObjectMap()
-        for k in models:
-            try:
-                if isinstance(k, VispyCanvasConfig):
-                    container[k] = self[k]
-                elif isinstance(k, TurnTableCameraParameters):
-                    for scene in self.values():
-                        if k in scene.camera_dict:
-                            container[k] = scene.camera_dict[k]
-                elif isinstance(k, VisualConfig.__value__):
-                    for scene in self.values():
-                        if k in scene.visual_node_dict:
-                            container[k] = scene.visual_node_dict[k]
-            except KeyError as error:
-                if b_assert_key_exists:
-                    raise error
+            container = VispyMap()
+        for m in models:
+            scene = None
+            alt_model = None
+            obj = self.find_object(m)
+            if isinstance(obj, tuple):
+                scene = obj[0]
+                obj = obj[1]
+            if obj is not None:
+                if scene is not None:
+                    alt_model = scene.model2model_map.get(m)
+                    if alt_model is not None:
+                        container.model2model_map[m] = alt_model
+                        # m = alt_model
+                container[m] = obj
+                if isinstance(obj, CompoundVisual):
+                    if alt_model is not None:
+                        m = alt_model
+                    container.sub_visual_super_map[m] = (
+                        scene.find_sub_visual_map(m))
+
         return container
 
     def get_visual_nodes(self, *models, container=None):

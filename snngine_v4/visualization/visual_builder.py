@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import copy
 from typing import Any, Callable, ClassVar, Set, Type
 
 import numpy as np
@@ -14,6 +15,7 @@ from vispy.visuals import (
     BaseVisual, CompoundVisual, LineVisual, MeshVisual,
     Visual, VolumeVisual,
 )
+from vispy.visuals.line.line import _GLLineVisual
 from vispy.visuals.transforms import NullTransform, STTransform
 
 from snngine_v4.geometry.grid.finite_grid_config import FiniteGridConfig
@@ -29,7 +31,12 @@ from snngine_v4.utils.containers.configurable_dict import (
     DictContainerConfig,
 )
 from snngine_v4.utils.class_mixer import ClassMixer
+from snngine_v4.utils.containers.mappings import Model2ObjectMap
+from snngine_v4.utils.core_utils import type_assertion
 from snngine_v4.utils.field_utils import Undefined
+from snngine_v4.utils.object_builder.object_builder import (
+    ContainerBuildResult
+)
 from snngine_v4.utils.object_builder.object_builder_dict import BuilderDict
 from snngine_v4.utils.settings.settings_keywords import (
     BaseModelSlots,
@@ -38,6 +45,7 @@ from snngine_v4.utils.settings.settings_keywords import (
 
 from snngine_v4.visualization.config_models.visuals.markers import \
     MarkersVisualConfig
+from snngine_v4.visualization.config_models.visuals.mesh import MeshVisualConfig
 
 from snngine_v4.visualization.config_models.visuals.parameters import (
     OpenGLState, OpenGlStateType,
@@ -45,7 +53,7 @@ from snngine_v4.visualization.config_models.visuals.parameters import (
     WDHSegKw,
 )
 from snngine_v4.visualization.config_models.visuals.lines import (
-    LineVisualConfig, XYZAxisVisualConfig,
+    LineVisualConfig, MultiBoxLinesVisualConfig, XYZAxisVisualConfig,
 )
 from snngine_v4.visualization.config_models.visuals.boxes import (
     BoxVisualInitConfig, OuterGridVisualInitConfig,
@@ -56,13 +64,15 @@ from snngine_v4.visualization.config_models.plotting.multi_line_plot import (
     MultiScatterPlotConfig,
     SepLineData,
 )
+from snngine_v4.visualization.config_models.visuals.visual_config import \
+    SubVisualConfig
 from snngine_v4.visualization.scenes.setattribute_event import (
     MeshDataChangedEvent, SetAttributeEvent,
 )
 from snngine_v4.visualization.visuals.compound_markers import \
     CompoundMarkersVisual
 from snngine_v4.visualization.visuals.grid_lines import (
-    FiniteGridLinesVisual, MultiBoxLinesVisual,
+    FiniteGridLinesVisual, GSGLLineVisual, MultiBoxLinesVisual,
 )
 from snngine_v4.visualization.visuals.volumetric import (
     CompoundR32fVolume,
@@ -102,34 +112,34 @@ class EmitterMap(ConfigurableDict):
 
 class VisualMixin:
 
-    SET_DATA_LineVisual_KWS = [VispyKeyWords.COLOR,
+    SET_DATA_LineVisual_KWS = {VispyKeyWords.COLOR,
                                VispyKeyWords.POS,
                                VispyKeyWords.CONNECT,
-                               'width']
+                               'width'}
 
-    SET_DATA_MarkerVisual_KWS = [VispyKeyWords.POS,
+    SET_DATA_MarkerVisual_KWS = {VispyKeyWords.POS,
                                  VispyKeyWords.EDGE_COLOR,
                                  VispyKeyWords.FACE_COLOR,
                                  VispyKeyWords.SIZE,
-                                 VispyKeyWords.EDGE_WIDTH,],
+                                 VispyKeyWords.EDGE_WIDTH, },
 
-    SET_DATA_VolumeVisual_KWS = ['vol']
+    SET_DATA_VolumeVisual_KWS = {'vol'}
 
     SET_DATA_KWS = {
         LineVisual: SET_DATA_LineVisual_KWS,
         Line: SET_DATA_LineVisual_KWS,
         XYZAxis: SET_DATA_LineVisual_KWS,
         MultiBoxLinesVisual: SET_DATA_LineVisual_KWS,
-        # FiniteGridLines: [],
-        FiniteGridLinesVisual: [],
+        # FiniteGridLines: set(),
+        FiniteGridLinesVisual: set(),
         Box: [VispyKeyWords.COLOR],
         Markers: SET_DATA_MarkerVisual_KWS,
         CompoundMarkersVisual: SET_DATA_MarkerVisual_KWS,
-        MeshVisual: ['vertices', 'faces',
+        MeshVisual: {'vertices', 'faces',
                      VispyKeyWords.VERTEX_COLORS,
                      VispyKeyWords.FACE_COLORS,
                      'vertex_values',
-                     'meshdata'],
+                     'meshdata'},
         Volume: SET_DATA_VolumeVisual_KWS,
         VolumeVisual: SET_DATA_VolumeVisual_KWS,
         R32fVolumeVisual: SET_DATA_VolumeVisual_KWS,
@@ -142,6 +152,10 @@ class VisualMixin:
 
     initial_scale: tuple | None
     initial_move: tuple | None
+
+    @classmethod
+    def get_set_data_kws(cls, value_type) -> set:
+        return cls.SET_DATA_KWS.get(value_type, set())
 
     def __pre_init__(self, *args, initial_scale=None,
                      initial_move=None,
@@ -332,7 +346,46 @@ class VispyVisualBuilder(BuilderDict):
     }
 
     @classmethod
-    def _convert_to_vispy(cls, dct, model: BaseModel):
+    def cls_build_container(
+            cls, model_container,
+            b_replace_missing_by_default_model: bool = False,
+            b_ignore_default_object_class: bool = True,
+            b_raise_if_missing_model: bool = False,
+            b_raise_if_missing_object_class: bool = False,
+            special_kwargs=None,
+            sub_visual_super_map=None,
+            **common_kwargs) -> ContainerBuildResult:
+
+        if sub_visual_super_map is None:
+            sub_visual_super_map = Model2ObjectMap()
+
+        res = super().cls_build_container(
+            model_container=model_container,
+            b_replace_missing_by_default_model=
+            b_replace_missing_by_default_model,
+            b_ignore_default_object_class=b_ignore_default_object_class,
+            b_raise_if_missing_model=b_raise_if_missing_model,
+            b_raise_if_missing_object_class=b_raise_if_missing_object_class,
+            special_kwargs=special_kwargs,
+            sub_visual_super_map=sub_visual_super_map,
+            **common_kwargs
+        )
+        # for build_res in res.values():
+        #     build_res: BuildResult
+        #     visual = build_res.built
+        #     if isinstance(visual, CompoundVisual):
+        #     # sub_visual_map = cls._make_sub_visuals(
+        #     #     visual=visual,
+        #     #     model=build_res.model,
+        #     # )
+        # for model in sub_visual_map.refs:
+        #     built_subvisual = BuildResult(
+        #         built=sub_visual_map[model], model=model, kwargs={})
+        #     res[model] = built_subvisual
+        return res
+
+    @classmethod
+    def _convert_to_vispy(cls, dct, model: BaseModel, sub_visual_super_map):
         res = ConfigurableDict(
             container_conf=DictContainerConfig(b_duplicates_allowed=True))
 
@@ -351,7 +404,8 @@ class VispyVisualBuilder(BuilderDict):
                     dct[cls.SUBVISUALS_KW] = []
                 dct.pop(MultiPlotConfigMixin.SEP_LINES_KW)
                 sub_vis = VispyVisualBuilder.cls_build_obj(
-                    model.sep_lines).built
+                    model.sep_lines, sub_visual_super_map=sub_visual_super_map
+                ).built
                 dct[cls.SUBVISUALS_KW] += [sub_vis]
 
         if isinstance(dct, dict):
@@ -409,24 +463,84 @@ class VispyVisualBuilder(BuilderDict):
     def get_model(cls, model: BaseModel | None):
         if isinstance(model, (FiniteGridConfig,
                               NetworkReservoirConfig)):
-            dump = model.model_dump(mode='python',
-                                    round_trip=True,
-                                    exclude={BaseModelSlots.CLASS__NAME})
-            if isinstance(model, FiniteGridConfig):
-                model = OuterGridVisualInitConfig(**dump)
-            elif isinstance(model, NetworkReservoirConfig):
-                model = MarkersVisualConfig(pos=dump['pos'])
+            if not isinstance(model, BoxVisualInitConfig):
+                dump = model.model_dump(mode='python',
+                                        round_trip=True,
+                                        exclude={BaseModelSlots.CLASS__NAME})
+                if isinstance(model, FiniteGridConfig):
+                    model = OuterGridVisualInitConfig(**dump)
+                elif isinstance(model, NetworkReservoirConfig):
+                    model = MarkersVisualConfig(pos=dump['pos'])
+            else:
+                pass
         return super().get_model(model=model)
 
     @classmethod
-    def make_object_kwargs(cls, object_class, model: BaseModel, **kwargs):
+    def make_object_kwargs(cls, object_class, model: BaseModel,
+                           sub_visual_super_map=None, **kwargs):
         object_kwargs = super().make_object_kwargs(object_class, model)
-        object_kwargs = cls._convert_to_vispy(object_kwargs, model=model)
-        object_kwargs.update(**kwargs)
+        object_kwargs = cls._convert_to_vispy(
+            object_kwargs, sub_visual_super_map=sub_visual_super_map, model=model)
+        object_kwargs.update(sub_visual_super_map=sub_visual_super_map, **kwargs)
         return object_kwargs
 
     @classmethod
-    def make_object(cls, object_class, object_model, **object_kwargs):
+    def _make_sub_visual_models(
+            cls, visual: CompoundVisual, model: BaseModel,
+            sub_visual_super_map: Model2ObjectMap):
+        # if sub_visual_map is None:
+        #     sub_visual_map = Model2ObjectMap()
+        sub_visuals = copy(visual._subvisuals)
+
+        sub_visual_super_map[model] = Model2ObjectMap.from_type(BaseVisual)
+        sub_visual_map = sub_visual_super_map[model]
+
+        if isinstance(model, (MultiLinePlotConfig,
+                              MultiScatterPlotConfig)):
+            if len(sub_visuals) != 2:
+                raise NotImplementedError
+            sub_visual_model1 = model.sep_lines
+            sub_visual0 = sub_visuals.pop(0)
+            sub_visual1 = sub_visuals.pop(0)
+            if isinstance(model, MultiLinePlotConfig):
+                type_assertion(sub_visual0, _GLLineVisual)
+            elif isinstance(model, MultiScatterPlotConfig):
+                type_assertion(sub_visual0, Markers)
+            object_class1 = cls.find_object_class(sub_visual_model1,
+                                                  b_ignore_default=True)
+            type_assertion(sub_visual1, object_class1)
+            sub_visual_map[SubVisualConfig()] = sub_visual0
+            sub_visual_map[sub_visual_model1] = sub_visual1
+
+        sub_visuals = visual._subvisuals
+        if (len(sub_visuals) > 0) and hasattr(model, 'subvisuals'):
+            if len(model.subvisuals) > 0:
+                raise NotImplementedError("len(model.subvisuals) > 0")
+            model.subvisuals = []
+            # noinspection PyProtectedMember
+            for sub_visual in visual._subvisuals:
+                if isinstance(sub_visual, MeshVisual):
+                    # noinspection PyArgumentList
+                    sub_visual_model = MeshVisualConfig()
+                elif isinstance(sub_visual, MultiBoxLinesVisual):
+                    sub_visual_model = MultiBoxLinesVisualConfig(
+                        pos=sub_visual.pos,
+                        connect=sub_visual.connect,
+                        width=sub_visual.width,
+                        color=sub_visual.color,
+                    )
+                elif isinstance(sub_visual, GSGLLineVisual):
+                    sub_visual_model = None
+                else:
+                    raise NotImplementedError
+                if sub_visual_model is not None:
+                    sub_visual_map[sub_visual_model] = sub_visual
+                    model.subvisuals.append(sub_visual_model)
+        return sub_visual_map
+
+    @classmethod
+    def make_object(cls, object_class, object_model,
+                    sub_visual_super_map=None, **object_kwargs):
 
         opengl_kwargs = cls._pop_opengl_kwargs(
             dct=object_kwargs, model=object_model)
@@ -437,6 +551,13 @@ class VispyVisualBuilder(BuilderDict):
 
         if len(opengl_kwargs) > 0:
             cls.apply_open_gl_kwargs(visual, opengl_kwargs)
+
+        if isinstance(visual, CompoundVisual):
+            if sub_visual_super_map is None:
+                raise AssertionError
+            cls._make_sub_visual_models(
+                model=object_model, visual=visual,
+                sub_visual_super_map=sub_visual_super_map)
 
         return visual
 

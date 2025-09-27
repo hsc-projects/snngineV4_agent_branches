@@ -125,6 +125,9 @@ class ExtendedModelSignalsRegister(ModelSignalsRegister):
         New linked model has been created but not yet additional
         parameters
         """
+
+        res = [model1]
+
         self.model2model_map[model0] = model1
 
         model1_link = ModelParameterLinks(
@@ -146,9 +149,10 @@ class ExtendedModelSignalsRegister(ModelSignalsRegister):
         for k0 in keys0:
             if isinstance(v0 := getattr(model0, k0), BaseModel):
                 if hasattr(model1, k0):
-                    self.add_linked_model(
+                    res_ = self.add_linked_model(
                         v0, getattr(model1, k0), node_tree=node_tree,)
-        return node_tree
+                    res += res_
+        return res
 
     def clear(self, b_force: bool = False, b_clear_inv: bool = True):
         model_list = list(self.keys())

@@ -126,8 +126,13 @@ class Object2ObjectLink(ConfigurableDict):
                  default_func0=None, default_func1=None,
                  signal0=None, signal1=None,
                  b_connect: bool = True,
-                 data=None, container_conf=None, **kwargs):
+                 data=None, container_conf=None,
+                 b_verbose: bool = True,
+                 **kwargs):
         super().__init__(data=data, container_conf=container_conf)
+
+        self.b_verbose = b_verbose
+
         if key1 is None:
             key1 = key0
 
@@ -248,21 +253,6 @@ class Object2ObjectLinks(TypeSortedMap):
             case LinkStateType.SINK2SOURCE:
                 return self[ObjectSignal].inv
 
-    # @staticmethod
-    # def set_object_attribute(self_, key, value, ):
-    #     try:
-    #         object.__setattr__(self_, key, value)
-    #         # setattr(self_, key, value)
-    #         if self_.__setattr__ != set_attr:
-    #             # self_.__setattr__ = set_attr
-    #             raise AssertionError
-    #         try:
-    #             link_map[key][LinkStateType.SOURCE2SINK].emit(value)
-    #         except KeyError:
-    #             pass
-    #     except debug_catch as error:
-    #         raise error
-
     def prepare_object(self, obj, link_type: LinkStateType,
                        b_allow_new: bool = False,
                        debug_catch=Exception):
@@ -282,12 +272,14 @@ class Object2ObjectLinks(TypeSortedMap):
                 else:
                     setattr(self_, key, value)
                 if self_.__setattr__ != set_attr:
+
                     from snngine_v4.config.template import \
                         EngineConstructionConfig
                     if isinstance(obj, EngineConstructionConfig):
                         self_.__setattr__ = set_attr
                     else:
-                        raise AssertionError("self_.__setattr__ != set_attr")
+                        self_.__setattr__ = set_attr
+                        # raise AssertionError("self_.__setattr__ != set_attr")
                 try:
                     link_map[key][LinkStateType.SOURCE2SINK].emit(value)
                 except KeyError:

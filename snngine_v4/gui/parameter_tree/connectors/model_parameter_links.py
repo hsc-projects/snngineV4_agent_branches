@@ -29,9 +29,9 @@ class ObjectParameterLink(Object2ObjectLink):
     sink: Parameter
 
     def __init__(self, key, obj=None, parameter=None,
-                 signal0=None, signal1=None,):
+                 signal0=None, signal1=None, b_verbose: bool = True,):
         super().__init__(obj0=obj, obj1=parameter, key0=key,
-                         signal0=signal0, signal1=signal1,)
+                         signal0=signal0, signal1=signal1, b_verbose=b_verbose)
 
     def setup(self, link_type: LinkStateType, obj, key, signal=None, **kwargs):
         if link_type == LinkStateType.SOURCE2SINK:
@@ -44,6 +44,29 @@ class ObjectParameterLink(Object2ObjectLink):
                     signal=self.get_parameter_signal(obj), obj=obj, **kwargs)
             self[link_type] = signal
 
+    def _default_print(self, value, link_type: LinkStateType):
+
+        value_str = str(value)
+        match link_type:
+            case LinkStateType.SOURCE2SINK:
+                msg = f">> parameter"
+            case LinkStateType.SINK2SOURCE:
+                value_str = str(value)
+                msg = f"<< parameter"
+            case _:
+                raise TypeError(f"Unknown link type: {link_type}")
+        if value_str != '':
+            value_str = ': ' + value_str
+
+        source_name = f"[{self.source.__class__.__name__}].{self.source_key}"
+        sink_name = self.sink.name()
+        if sink_name.lower() == self.source_key.lower():
+            sink_name = ''
+        else:
+            sink_name = " '" + sink_name + "'"
+
+        print(source_name, msg + sink_name, value_str)
+
     def _default_call(self, *args, link_type: LinkStateType, **kwargs):
 
         match link_type:
@@ -54,9 +77,6 @@ class ObjectParameterLink(Object2ObjectLink):
                 elif args[1] != self.source_key:
                     raise AssertionError
                 value = args[2]
-                msg = f">> parameter"
-                value_str = str(value)
-
                 self.sink.setValue(value)
             case LinkStateType.SINK2SOURCE:
                 if args[0] != self.sink:  # assert expected parameter
@@ -76,6 +96,10 @@ class ObjectParameterLink(Object2ObjectLink):
                 #                                 value)
                 #     else:
                 #         raise err
+                except TypeError as error:
+                    # unconnected linked model?
+                    raise
+                    self.source.__setattr__(self.source_key, value)
                 except ValidationError as err:
                     if (value is None) or pd.isna(value):
                         b_none_allowed = self.sink.opts.get(
@@ -89,26 +113,12 @@ class ObjectParameterLink(Object2ObjectLink):
                         self.source.__setattr__(
                             self.source, self.source_key, value)
                         raise err
-                value_str = str(getattr(self.source, self.source_key))
-                msg = f"<< parameter"
-            case _:
-                raise TypeError(f"{link_type.name}")
-
-        source_name = f"[{self.source.__class__.__name__}].{self.source_key}"
 
         if self.source_key == 'pos_origin':
             pass
 
-        if value_str != '':
-            value_str = ': ' + value_str
-        sink_name = self.sink.name()
-        if sink_name.lower() == self.source_key.lower():
-            sink_name = ''
-        else:
-            sink_name = " '" + sink_name + "'"
-
-        print(source_name, msg + sink_name, value_str)
-        # print(f"[{id(self.source)}]", f"({id(self.sink)})")
+        if self.b_verbose:
+            self._default_print(value, link_type=link_type)
 
     @staticmethod
     def get_parameter_signal(parameter) -> QtCore.Signal:
