@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from pyqtgraph.dockarea import Dock, DockArea
 
 from snngine_v4.gui.common.docks import CustomPgDock, CustomPgDockArea
-from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
+from snngine_v4.gui.parameter_trees.engine_parameter_tree import \
     EngineParameterTree
 
 from snngine_v4.utils.containers.mappings import (

@@ -1,0 +1,72 @@
+from types import NoneType
+from typing import get_args
+
+from snngine_v4.utils.data_utils.validation \
+    .array_annotation import ArrayInterfaces
+from snngine_v4.gui.parameters.multi_type_parameter import \
+    MultiTypeParameter
+from snngine_v4.utils.field_utils import Undefined
+from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
+from snngine_v4.visualization.config_models.visuals.parameters import (
+    ColorVBO, RGBAColor, RGBAColorTypeUnion
+)
+
+
+class ColorTypeParameter(MultiTypeParameter):
+
+    def __init__(self, **opts):
+        super().__init__(**opts)
+
+    def build(self, signal_register):
+        built_pars = super().build(signal_register)
+        if self.opts['type'] != RGBAColorTypeUnion.__name__:
+            if self.children_map[ColorVBO] not in built_pars:
+                raise AssertionError
+            if ArrayInterfaces()[ColorVBO].b_is_valid(
+                    self.opts.get(ParamOpts.KW.VALUE)):
+                name = self.children_map[ColorVBO].name()
+                self.type_parameter.setValue(name)
+
+    @property
+    def data_types(self):
+        return get_args(self.opts[ParamOpts.KW.C_DATA_TYPES].__value__)
+
+    @classmethod
+    def make_value(cls, value, type_, default_value):
+        b_is_og = False
+        if type_ == NoneType:
+            return None, value is None, None
+        elif (value is None) or (isinstance(value, str) and (type_ != str)):
+            value = ArrayInterfaces()[ColorVBO].array([[0, 0, 0, 0]])
+
+        default = Undefined
+
+        if type_ == RGBAColor:
+            if ArrayInterfaces()[ColorVBO].b_is_valid(value):
+                value_ = RGBAColor()
+            else:
+                value_ = value
+                b_is_og = True
+            if value_ is None:
+                value_ = RGBAColor()
+                # raise ValueError
+        elif isinstance(value, str) and (type_ == str):
+            value_ = value
+            b_is_og = True
+        else:
+            if ArrayInterfaces()[ColorVBO].b_is_valid(value):
+                if type_ == ColorVBO:
+                    value_ = value
+                    b_is_og = True
+                    default = None
+                else:
+                    value_ = RGBAColor().as_type(type_)
+            elif isinstance(value, RGBAColor):
+                value_ = value.as_type(type_)
+            else:
+                raise TypeError(type(value))
+
+        if default is Undefined:
+            default = value_
+
+        return value_, b_is_og, default

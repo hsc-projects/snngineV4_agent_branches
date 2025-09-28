@@ -154,4 +154,5 @@ class ConfigurableList(ConfigurableContainerBase, UserList):
 
 class ConfigurableModelListConfig(ConfigurableListConfig, frozen=True):
     allowed_types: Type[BaseModel] = BaseModel
-    b_duplicate_check_by_id: bool = True
+    # b_duplicate_key_check_by_id: bool = True
+    b_duplicate_value_check_by_id: bool = True

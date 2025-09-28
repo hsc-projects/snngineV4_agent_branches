@@ -37,7 +37,8 @@ class ContainerConfig(ConfigModel, frozen=True):
     forbidden_types: ValidValueType = None
     allowed_key_types: ValidKeyType = NoneType
     b_duplicates_allowed: bool = False
-    b_duplicate_check_by_id: bool = False
+    # b_duplicate_key_check_by_id: bool = False
+    b_duplicate_value_check_by_id: bool = False
     b_replace_allowed: bool = False
     b_pop_allowed: bool = True
     b_clear_allowed: bool = False
@@ -104,14 +105,14 @@ class ContainerConfig(ConfigModel, frozen=True):
         data = self
         if (b_int_allowed := self.b_int_allowed(
                 data.allowed_types, data.forbidden_types)
-            and (data.b_duplicate_check_by_id
+            and (data.b_duplicate_value_check_by_id
                  or data.b_remove_by_id_allowed)):
             # noinspection PyUnboundLocalVariable
             raise ConfigurationError(
                 f"b_int_allowed={b_int_allowed} "
                 f"and "
-                f"\ndata.b_duplicate_check_by_id"
-                f"={data.b_duplicate_check_by_id}"
+                f"\ndata.b_duplicate_value_check_by_id"
+                f"={data.b_duplicate_value_check_by_id}"
                 f"\ndata.b_remove_by_id_allowed"
                 f"={data.b_remove_by_id_allowed}"
             )
@@ -182,7 +183,7 @@ class ConfigurableContainerBase:
 
     def __contains__(self, item):
         if ((not isinstance(item, int)) and
-                self._container_conf.b_duplicate_check_by_id):
+                self._container_conf.b_duplicate_value_check_by_id):
             return id(item) in self.data_ids
         return item in self.data
 

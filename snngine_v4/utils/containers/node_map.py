@@ -258,7 +258,8 @@ class Object2NodeTreeMap(Many2OneObjectMap):
         b_get_inv_allowed: bool = True
         allowed_types: Type = NodeTree
         # b_duplicates_allowed: bool = True
-        b_duplicate_check_by_id: bool = True
+        b_duplicate_key_check_by_id: bool = True
+        b_duplicate_value_check_by_id: bool = True
 
     class InvertedConfigClass(Many2OneObjectMap.InvertedConfigClass):
         allowed_types: Type = BaseModel

@@ -20,10 +20,10 @@ from snngine_v4.snngine_config import EngineConfig
 
 if TYPE_CHECKING:
     from snngine_v4.snngine import SNNgine
-    from snngine_v4.gui.parameter_tree.engine_parameter_tree import (
+    from snngine_v4.gui.parameter_trees.engine_parameter_tree import (
         EngineParameterTree, QTree, EngineTreeDockWidget)
-    from snngine_v4.gui.parameter_tree.parameters.widgets.table \
-        .array_editor import ArrayEditorDockWidget
+    from snngine_v4.gui.parameters.widgets.table.array_editor import (
+        ArrayEditorDockWidget)
     from snngine_v4.gui.windows.extra_parameters import ParameterArea
 
 

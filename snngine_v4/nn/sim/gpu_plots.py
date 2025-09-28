@@ -5,7 +5,7 @@ from typing import ClassVar
 
 import torch
 
-from snngine_v4.gui.parameter_tree.cuda_connector import GLBufferTypes
+from snngine_v4.gui.parameter_trees.cuda_connector import GLBufferTypes
 from snngine_v4.construction.engine_element import EngineElement
 from snngine_v4.nn.sim.sim_parameters import (CudaBackendPlotConfig,
                                               EngineMultiLinePlotConfig,

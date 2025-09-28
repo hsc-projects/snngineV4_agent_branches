@@ -4,11 +4,14 @@ from qtpy import QtCore, QtWidgets
 
 
 from snngine_v4.gui.common.qobject_dicts import QWidgetDict
-from snngine_v4.gui.linker_tree.linker_tree import LinkerTree
+from snngine_v4.gui.parameter_trees.linker_tree.engine_linker_tree import \
+    EngineLinkerTree
+from snngine_v4.gui.parameter_trees.selector_tree.engine_selector_tree import \
+    EngineSelectorTree
 
-from snngine_v4.gui.parameter_tree.parameters.widgets.table \
-    .array_editor import ArrayEditorDockWidget
-from snngine_v4.gui.selector_tree.engine_selector_tree import EngineSelectorTree
+from snngine_v4.gui.parameters.widgets.table.array_editor import (
+    ArrayEditorDockWidget)
+
 from snngine_v4.gui.views.view_area import ViewArea
 from snngine_v4.gui.windows.extra_parameters import ParameterArea
 from snngine_v4.gui.windows.settings_window import SettingsWindow
@@ -18,7 +21,7 @@ from snngine_v4.gui.windows.main_window_base import (
     MainEngineWindowBase,
     WindowTypes,
 )
-from snngine_v4.gui.parameter_tree.engine_parameter_tree import (
+from snngine_v4.gui.parameter_trees.engine_parameter_tree import (
     EngineParameterTree, EngineTreeDockWidget,
 )
 from snngine_v4.snngine_config import EngineConfig
@@ -63,7 +66,7 @@ class MainEngineWindow(MainEngineWindowBase):
         array_dock = ArrayEditorDockWidget(name=self.ARRAYS_DOCK_NAME)
         self.addRightDockWidget('A', array_dock)
 
-        controls_tree = LinkerTree(name=self.CONTROLS_DOCK_NAME)
+        controls_tree = EngineLinkerTree(name=self.CONTROLS_DOCK_NAME)
 
         features = (
             QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable

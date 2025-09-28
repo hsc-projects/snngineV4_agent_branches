@@ -9,7 +9,7 @@ from snngine_v4.chemistry.chem_models import ChemicalConcentrationModel
 from snngine_v4.construction.engine_element import EngineElement
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
 from snngine_v4.geometry.volume import LinkedVolumeGridConfig
-from snngine_v4.gui.parameter_tree.cuda_connector import GLBufferTypes
+from snngine_v4.gui.parameter_trees.cuda_connector import GLBufferTypes
 from snngine_v4.visualization.cuda.gl_interop.gl_texture3d import \
     GLTexture3DTensor
 

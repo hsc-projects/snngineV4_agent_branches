@@ -88,6 +88,7 @@ class ParamOpts(BaseModel, validate_default=True, extra='allow'):
         EXPANDED: ClassVar[str] = 'expanded'
         SYNC_EXPANDED: ClassVar[str] = 'syncExpanded'
         TITLE: ClassVar[str] = 'title'
+        CONTEXT: ClassVar[str] = 'context'
 
         STEP: ClassVar[str] = 'step'
         SPAN: ClassVar[str] = 'span'

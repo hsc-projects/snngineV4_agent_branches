@@ -23,7 +23,8 @@ class UniqueObjectListConfig(ConfigurableListConfig, frozen=True):
     forbidden_types: Type[int] = int
     b_append_allowed: bool = True
     b_duplicates_allowed: bool = False
-    b_duplicate_check_by_id: bool = True
+    b_duplicate_key_check_by_id: bool = True
+    b_duplicate_value_check_by_id: bool = True
     b_replace_allowed: bool = False
     b_pop_allowed: bool = False
     b_clear_allowed: bool = False
@@ -37,7 +38,8 @@ class ObjectMapConfig(DictContainerConfig, frozen=True):
     allowed_key_types: Type[int] = int
     forbidden_types: Type[int] = int
     allowed_types: ValidValueType = Any
-    b_duplicate_check_by_id: bool = True
+    b_duplicate_key_check_by_id: bool = True
+    b_duplicate_value_check_by_id: bool = True
     b_duplicates_allowed: bool = False
     b_replace_allowed: bool = False
     b_pop_allowed: bool = False
@@ -161,8 +163,8 @@ class Object2ObjectMap(ConfigurableDict):
                 ConfigurableList.class_from_type(
                     type_=kwargs['allowed_types'],
                     b_remove_allowed=kwargs['b_pop_allowed'],
-                    b_duplicate_check_by_id=default_kwargs_source
-                    .b_duplicate_check_by_id,
+                    b_duplicate_value_check_by_id=default_kwargs_source
+                    .b_duplicate_value_check_by_id,
                     forbidden_types=default_kwargs_source.forbidden_types,
                     b_remove_by_id_allowed=default_kwargs_source
                     .b_remove_by_id_allowed
@@ -398,7 +400,7 @@ class Many2OneObjectMap(Object2ObjectMap):
         b_remove_by_id_allowed: bool = True
 
     class InvertedConfigClass(ObjectMapConfig):
-        b_duplicate_check_by_id: bool = True
+        b_duplicate_value_check_by_id: bool = True
         b_remove_by_id_allowed: bool = True
 
 

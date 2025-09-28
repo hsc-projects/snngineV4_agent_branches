@@ -5,11 +5,12 @@ from pydantic import BaseModel
 
 from snngine_v4.construction.nn_builder import NetworkBuilder
 from snngine_v4.geometry.volume import VolumeShapeHDW
-from snngine_v4.gui.parameter_tree.engine_parameter_tree import \
+from snngine_v4.gui.parameter_trees.engine_parameter_tree import \
     EngineParameterTree
-from snngine_v4.gui.parameter_tree.tensor_connector import TensorConnector
-from snngine_v4.gui.parameter_tree.vispy_connector import VispyConnector
-from snngine_v4.gui.selector_tree.engine_selector_tree import EngineSelectorTree
+from snngine_v4.gui.parameter_trees.selector_tree.engine_selector_tree import \
+    EngineSelectorTree
+from snngine_v4.gui.parameter_trees.tensor_connector import TensorConnector
+from snngine_v4.gui.parameter_trees.vispy_connector import VispyConnector
 from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.snngine_config import EngineConfig
 from snngine_v4.utils.core_utils import type_assertion
@@ -105,7 +106,7 @@ class SNNgine:
             selector_tree.connect_engine(self)
 
     def build_cuda_gl_tensors(self, network_tree):
-        from snngine_v4.gui.parameter_tree.cuda_connector import (
+        from snngine_v4.gui.parameter_trees.cuda_connector import (
             CudaVispyConnector)
         model2buffers = CudaVispyConnector.cls_connect_tree(
             tree=network_tree, scene_manager=self.scene_manager,

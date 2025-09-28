@@ -23,6 +23,7 @@ class DictContainerConfig(ContainerConfig,
     b_pop_allowed: bool = True  # Keep True
     b_enum_to_str_key: bool = True  # Keep True
     default_value: KeepUndefinedType = Undefined
+    b_duplicate_key_check_by_id: bool = False
 
 
 class ConfigurableDict(ConfigurableContainerBase, UserDict):
@@ -54,11 +55,15 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
         super().clear()
 
     def __contains__(self, item):
-        contains = super().__contains__(item)
+        if ((not isinstance(item, int)) and
+                self._container_conf.b_duplicate_key_check_by_id):
+            contains = id(item) in self.data_ids
+        else:
+            contains = item in self.data
         if ((contains is False)
                 and (self._container_conf.b_enum_to_str_key
                      and isinstance(item, Enum))):
-            contains = super().__contains__(item.name)
+            contains = self.__contains__(item.name)
         return contains
 
     @classmethod
@@ -193,7 +198,7 @@ class ConfigurableDict(ConfigurableContainerBase, UserDict):
 
     def values_contain(self, item):
         if (not isinstance(item, int) and
-                self._container_conf.b_duplicate_check_by_id):
+                self._container_conf.b_duplicate_value_check_by_id):
             return id(item) in self.value_ids
         return item in self.values()
 

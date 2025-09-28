@@ -1,6 +1,5 @@
 import mido
 import pandas as pd
-from mido.backends.rtmidi import get_api_names
 from qtpy import QtWidgets, QtCore
 
 from snngine_v4.gui.devices.x_touch_mini.x_touch_mini_device import \
@@ -17,7 +16,7 @@ from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_knob_wdg import \
     XTMKnobWidget
 from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_ui_config import (UIConfig,
                                                                       XTMLabel)
-from snngine_v4.gui.parameter_tree.parameters import SpinBoxSliderParameter
+from snngine_v4.gui.parameters import SpinBoxSliderParameter
 
 
 class XTMFaderWidget(QtWidgets.QWidget):
