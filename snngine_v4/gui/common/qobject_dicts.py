@@ -41,17 +41,23 @@ class QObjectDict(ConfigurableDict):
 
     def __init__(self, *arg, emitter=None, **kwargs):
         self.emitter = emitter
+        self._b_action_map_initialized = False
         super().__init__(*arg, **kwargs)
 
     @cached_property
     def action_map(self) -> Many2OneObjectMap:
+        self._b_action_map_initialized = True
         return Many2OneObjectMap().from_types(
             type0=QtWidgets.QAction,
-            type1=QtWidgets.QWidget,
-        )
+            type1=QtWidgets.QWidget,)
 
     def get_actions(self, key):
         return self.action_map[self[key]]
+
+    def clear(self, b_force: bool = False) -> None:
+        if self._b_action_map_initialized:
+            self.action_map.clear(b_force=b_force, b_clear_inv=True)
+        super().clear(b_force=b_force)
 
 
 class QWidgetDictConfig(DictContainerConfig, frozen=True):

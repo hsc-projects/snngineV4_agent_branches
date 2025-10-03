@@ -1,4 +1,6 @@
 from decimal import Decimal
+from functools import cached_property
+from linecache import cache
 
 import numpy as np
 import pandas as pd
@@ -123,6 +125,7 @@ class SpinBoxSlider(CustomSlider):
         super().__init__(orientation=orientation, parent=parent)
 
         self._display_widget = None
+        self._conversion = None
 
         self.spinbox = spinbox
         self.span = None
@@ -149,10 +152,9 @@ class SpinBoxSlider(CustomSlider):
 
         self._layout_widget = None
 
-    def display_widget(self, conversion=None):
-        if self._display_widget is None:
-            self._display_widget = ClickableLabel(conversion=conversion)
-        return self._display_widget
+    @cached_property
+    def display_widget(self):
+        return ClickableLabel(conversion=self._conversion)
 
     def updateDisplayWidget(self, ev=None):
         if self._display_widget is not None:

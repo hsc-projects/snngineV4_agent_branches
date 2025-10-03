@@ -69,6 +69,7 @@ class PresetGroupParameter(EngineGroupParameter):
         new_p = link_parameter_class(**opts)
         # new_idx = max(0, len(self.children()) - 1)
         self.insertChild(self.add_link_action_par, new_p)
+        return new_p
 
     def increment_name(self, name, names=None):
         if names is None:

@@ -9,6 +9,7 @@ from snngine_v4.gui.parameter_trees.engine_parameter_tree import \
     EngineParameterTree
 from snngine_v4.gui.parameter_trees.linker_tree.linker_window import \
     ShortCutWindow
+from snngine_v4.gui.parameter_trees.linker_tree.controls_map import ControlsMap
 from snngine_v4.gui.parameters.common.engine_group_parameter import (
     EngineGroupParameter)
 from snngine_v4.gui.parameters.preset_parameter import \
@@ -31,6 +32,12 @@ class LinkerTree(EngineParameterTree):
                  **kwargs):
         if parameter_type_dict is None:
             parameter_type_dict = {}
+
+        self.controls_map: ControlsMap = ControlsMap()
+
+        self.controls_map.map_signals.sigAdded.connect(self.add_controller)
+        self.controls_map.map_signals.sigRemoved.connect(self.remove_controller)
+
         self.parameter_type_dict = parameter_type_dict
 
         self.preset_types = preset_types
@@ -57,18 +64,37 @@ class LinkerTree(EngineParameterTree):
 
         self.all_params = None
 
-    def add_preset_group(self, preset_type: IntEnum):
+    def add_controller(self, dct, key, value):
+        pass
+
+    def add_preset_group(
+            self, preset_type: IntEnum) -> PresetGroupParameter:
 
         if preset_type not in self.parameter_dict:
-            name = preset_type.name.title() + str(self.counts[preset_type])
-            par_class = self.parameter_type_dict.get(
-                preset_type, PresetGroupParameter)
-            p_presets = par_class(name=name, preset_type=preset_type, )
-            self.p_presets.addChild(p_presets)
-            self.parameter_dict[preset_type] = p_presets
+            return self._make_preset_group(preset_type=preset_type)
         else:
             self.parameter_dict[preset_type].add_preset_variant()
+            self.resize_header_sections_to_content()
+            return self.parameter_dict[preset_type]
+
+    def remove_controller(self, dct, key, value):
+        pass
+
+    def _make_preset_group(
+            self, preset_type: IntEnum) -> PresetGroupParameter:
+        name = preset_type.name.title() + str(self.counts[preset_type])
+        par_class = self.parameter_type_dict.get(
+            preset_type, PresetGroupParameter)
+        p_presets = par_class(name=name, preset_type=preset_type, )
+        self.p_presets.addChild(p_presets)
+        self.parameter_dict[preset_type] = p_presets
         self.resize_header_sections_to_content()
+        return p_presets
+
+    def get_preset_group(self, preset_type: IntEnum) -> PresetGroupParameter:
+        if preset_type not in self.parameter_dict:
+            self._make_preset_group(preset_type=preset_type)
+        return self.parameter_dict[preset_type]
 
     def append_add_preset_type_action(self, preset_type: IntEnum):
 
@@ -92,7 +118,7 @@ class LinkerTree(EngineParameterTree):
 
     @cached_property
     def short_cut_window(self):
-        return ShortCutWindow()
+        return ShortCutWindow(linker_tree=self)
 
     def on_sig_context_menu_changed(self, param, data):
         match data:
@@ -128,4 +154,3 @@ class LinkerTree(EngineParameterTree):
         # for param in my_param:
         #     if isinstance(param, LinkerParameter):
         #         param.setLimits(all_params)
-

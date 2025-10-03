@@ -2,9 +2,12 @@ from enum import IntEnum, auto
 from functools import cached_property
 from typing import ClassVar
 
+from PySide6.QtGui import QKeySequence
 from pydantic import BaseModel
 from pyqtgraph.parametertree.parameterTypes import ActionParameter
 
+from snngine_v4.gui.parameter_trees.linker_tree.controls_map import \
+    ControllerAction
 from snngine_v4.gui.parameter_trees.linker_tree.linker_tree import LinkerTree
 from snngine_v4.gui.parameter_trees.linker_tree.linker_window import \
     ShortCutWindow
@@ -69,6 +72,18 @@ class EngineLinkerTree(LinkerTree):
         self.update_action_p.sigActivated.connect(update)
         self.addParameters(self.update_action_p)
 
+    def add_controller(self, dct, key, value: ControllerAction):
+        if isinstance(value.input_obj, QKeySequence):
+            p_presets = self.get_preset_group(
+                preset_type=DeviceTypes.KEYBOARD)
+            new_p = p_presets.add_link_action()
+            new_p.setValue(value)
+        else:
+            raise NotImplementedError
+
+    def remove_controller(self, dct, key, value):
+        pass
+
     @cached_property
     def x_touch_mini_window(self):
         return ShortCutWindow()
@@ -94,7 +109,6 @@ if __name__ == '__main__':
     wdg.setLayout(QtWidgets.QVBoxLayout())
     splitter = QtWidgets.QSplitter()
     wdg.layout().addWidget(splitter)
-
 
     model0_ = SpatialNetworkConfig()
 
