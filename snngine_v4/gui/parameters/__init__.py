@@ -7,7 +7,7 @@ from pyqtgraph.parametertree.parameterTypes import (
     QtEnumParameter,
 )
 
-from snngine_v4.gui.parameters.linker_paremeter import LinkerParameter
+from snngine_v4.gui.parameters.linker_parameter import LinkerParameter
 from snngine_v4.gui.parameters.none_type_parameter import (
     NoneTypeParameter, UndefinedTypeParameter,
 )

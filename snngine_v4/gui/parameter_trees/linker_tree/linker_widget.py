@@ -4,11 +4,13 @@ from typing import Callable, TYPE_CHECKING
 
 from pyqtgraph import ComboBox
 from pyqtgraph.parametertree import Parameter
-from qtpy import QtWidgets, QtGui
+from qtpy import QtCore, QtWidgets, QtGui
 from qtpy.QtWidgets import QSizePolicy
 
-from snngine_v4.gui.parameter_trees.linker_tree.controls_map import \
-    (ControllerAction, ControllerActionType, ParameterControls)
+from snngine_v4.gui.parameter_trees.linker_tree.controls_map import (
+    ControllerAction,
+    ControllerActionType
+)
 
 
 if TYPE_CHECKING:
@@ -84,18 +86,22 @@ class LinkerWidget(QtWidgets.QWidget):
 
     layout: Callable[..., QtWidgets.QFormLayout]
 
+    sigLinkSaved = QtCore.Signal(object, object)
+    sigLinkDeleted = QtCore.Signal(object, object)
+    sigWidgetDelete = QtCore.Signal(object)
+
     def __init__(self,
                  parameter: Parameter,
                  linker_tree: LinkerTree,
                  exists_text_prefix='Controller already linked',
-                 input_label='Short Cut: ',
+                 input_label='Shortcut: ',
                  b_verbose: bool = False,
                  **kwargs):
         super().__init__(**kwargs)
 
         self.b_verbose = b_verbose
-        self._controller = None
-        self.linker_tree = linker_tree
+        self._controller: ControllerAction | None = None
+        self.linker_tree: LinkerTree | None = linker_tree
         self._parameter = parameter
 
         self.setLayout(QtWidgets.QFormLayout())
@@ -110,19 +116,30 @@ class LinkerWidget(QtWidgets.QWidget):
         self.binding_exists_label.setVisible(False)
 
         self.clear_btn = QtWidgets.QPushButton('Clear')
-        self.save_button = QtWidgets.QPushButton('Save')
-        self.delete_button = QtWidgets.QPushButton('X')
-        self.delete_button.setStyleSheet(
+        self.save_btn = QtWidgets.QPushButton('Save')
+        self.delete_btn = QtWidgets.QPushButton('X')
+        self.delete_btn.setStyleSheet(
             f"background-color: rgb(200,25,25);")
-        self.save_button.setSizePolicy(QSizePolicy.Policy.Expanding,
-                                       QSizePolicy.Policy.Expanding,)
-        self.save_button.setEnabled(False)
+        self.save_btn.setSizePolicy(QSizePolicy.Policy.Expanding,
+                                    QSizePolicy.Policy.Expanding, )
+        self.save_btn.setEnabled(False)
 
         self.input_widget = self.make_input_widget()
+        
+        # def reconnect():
+        #     if self._controller is not None:
+        #         if self._controller.func is None:
+        #             self._controller.connect_parameter()
+        #         else:
+        #             self._controller.disconnect_parameter()
+        #
+        # self.reconnect_btn = QtWidgets.QPushButton('Reconnect')
+        # self.reconnect_btn.clicked.connect(reconnect)
 
         h_layout = QtWidgets.QHBoxLayout()
-        h_layout.addWidget(self.save_button)
-        h_layout.addWidget(self.delete_button)
+        h_layout.addWidget(self.save_btn)
+        h_layout.addWidget(self.delete_btn)
+        # h_layout.addWidget(self.reconnect_btn)
 
         self.layout().addRow('Type: ', self.type_combo)
         self.layout().addRow(input_label, self.input_widget)
@@ -133,8 +150,22 @@ class LinkerWidget(QtWidgets.QWidget):
                            QSizePolicy.Policy.Fixed,)
 
         self.connect_inputs()
-        self.clear_btn.clicked.connect(self.disconnect_parameter)
-        self.save_button.clicked.connect(self.save_controller)
+
+        def disconnect_parameter():
+            self.disconnect_parameter(b_block_signal=False)
+
+        self.clear_btn.clicked.connect(disconnect_parameter)
+
+        def save_controller():
+            self.save_controller(b_block_signal=False)
+
+        self.save_btn.clicked.connect(save_controller)
+
+        def emit_delete_widget():
+            self.disconnect_parameter(b_block_signal=False)
+            self.sigWidgetDelete.emit(self)
+
+        self.delete_btn.clicked.connect(emit_delete_widget)
 
     @property
     def action_id(self):
@@ -148,27 +179,38 @@ class LinkerWidget(QtWidgets.QWidget):
         self.type_combo.currentTextChanged.connect(self.on_input_change)
         self.sig_input_changed.connect(self.on_input_change)
 
+    @property
+    def controller(self):
+        return self._controller
+
     def disconnect_inputs(self):
         self.type_combo.currentTextChanged.disconnect(self.on_input_change)
         self.sig_input_changed.disconnect(self.on_input_change)
 
-    def disconnect_parameter(self):
+    def disconnect_parameter(self, b_block_signal: bool,
+                             b_raise=True):
+        prev_controller = None
         if self._controller is not None:
             prev_controller = self._controller
             self._controller = None
-            controls: ParameterControls = self.linker_tree.controls_map[
-                self._parameter]
-            ctrl: ControllerAction = controls.pop(self.action_id)
-            self.linker_tree.controls_map.all_actions.pop(self.action_id)
-            if ctrl is not prev_controller:
-                raise AssertionError
-            ctrl.disconnect_parameter()
-        self._parameter = None
+            try:
+                self.linker_tree.controls_map.remove_controller(
+                    prev_controller, b_block_signal=False)
+            except KeyError:
+                if b_raise:
+                    raise
+        # self._parameter = None
 
         self.clear()
 
+        if (prev_controller is not None) and (not b_block_signal):
+            self.sigLinkDeleted.emit(self, prev_controller)
+
+    def clear_input_widget(self):
+        raise NotImplementedError()
+
     def clear(self):
-        self.input_widget.clear()
+        self.clear_input_widget()
         self.input_widget.setEnabled(True)
         self.type_combo.setEnabled(True)
 
@@ -176,22 +218,40 @@ class LinkerWidget(QtWidgets.QWidget):
     def input_object(self):
         raise NotImplementedError()
 
-    def load_controller(self, controller: ControllerAction):
-        # if self._controller is not None:
+    @property
+    def input_object_string(self) -> str:
+        raise NotImplementedError()
+
+    def _update_input_widget(self, controller):
+        raise NotImplementedError()
+
+    def reset(self, parameter=None):
         self.disconnect_inputs()
+        self.type_combo.setItems(self.all_types_items)
+        self.clear()
+        self._controller = None
+        self._parameter = parameter
+        self.save_btn.setEnabled(False)
+        self.connect_inputs()
+
+    def load_controller(self, controller: ControllerAction):
+
+        self.disconnect_inputs()
+
+        self._update_input_widget(controller=controller)
         self.type_combo.setValue(controller.action_type)
-        self.input_widget.setKeySequence(controller.input_obj)
-        self.save_button.setEnabled(False)
         self.input_widget.setEnabled(False)
         self.type_combo.setEnabled(False)
         self._controller = controller
         self._parameter = self._controller.parameter
+        self.save_btn.setEnabled(False)
+
         self.connect_inputs()
 
     def make_binding_exists_label(self):
         return BindingExistsLabel(self.binding_exists_label_text_base)
 
-    def make_input_widget(self):
+    def make_input_widget(self) -> QtWidgets.QWidget:
         raise NotImplementedError()
 
     def make_controller(self) -> ControllerAction:
@@ -210,7 +270,8 @@ class LinkerWidget(QtWidgets.QWidget):
 
         if b_has_input:
             b_action_exists = (
-                self.linker_tree.controls_map.b_action_exists(
+                (self.linker_tree is not None)
+                and self.linker_tree.controls_map.b_action_exists(
                     self.input_object))
             if b_action_exists and (self._controller is not None):
                 potential_action = self.make_controller()
@@ -226,9 +287,9 @@ class LinkerWidget(QtWidgets.QWidget):
             b_bind_label_visible=b_bind_label_visible
         )
 
-        self.save_button.setEnabled(b_has_input
-                                    and (not b_action_exists)
-                                    and (not b_action_is_self))
+        self.save_btn.setEnabled(b_has_input
+                                 and (not b_action_exists)
+                                 and (not b_action_is_self))
 
     @property
     def parameter(self):
@@ -253,13 +314,15 @@ class LinkerWidget(QtWidgets.QWidget):
             parent = parent.parent()
         return text
 
-    def save_controller(self):
+    def save_controller(self, b_block_signal: bool):
         new_action = self.make_controller()
         self._controller = self.linker_tree.controls_map.add_controller(
             ctrl_or_parameter=new_action, )
-        self.save_button.setEnabled(False)
+        self.save_btn.setEnabled(False)
         self.input_widget.setEnabled(False)
         self.type_combo.setEnabled(False)
+        if not b_block_signal:
+            self.sigLinkSaved.emit(self, self._controller)
 
     def update_binding_exists_label(self, b_bind_label_visible):
         self.binding_exists_label.setVisible(b_bind_label_visible)
@@ -268,7 +331,7 @@ class LinkerWidget(QtWidgets.QWidget):
                 parameter=None,
                 obj=self.input_object)
             binding_txt = (
-                self.input_object.toString(),
+                self.input_object_string,
                 self.binding_exists_label_text_base,
                 self.parameter_label_text(ctrl.parameter),
                 f"{ctrl.action_type.name}",)
@@ -284,7 +347,7 @@ class ShortCutWidget(LinkerWidget):
     def __init__(self,
                  parameter: Parameter,
                  linker_tree: LinkerTree,
-                 input_label='Short Cut: ',
+                 input_label='Shortcut: ',
                  exists_text_prefix=' already set to ',
                  max_sequence_length=1,
                  **kwargs):
@@ -298,9 +361,16 @@ class ShortCutWidget(LinkerWidget):
     def b_has_input(self):
         return not self.input_object.isEmpty()
 
+    def clear_input_widget(self):
+        self.input_widget.clear()
+
     @property
-    def sig_input_changed(self):
-        return self.input_widget.keySequenceChanged
+    def input_object(self) -> QtGui.QKeySequence:
+        return self.input_widget.keySequence()
+
+    @property
+    def input_object_string(self):
+        return self.input_object.toString()
 
     def make_input_widget(self):
         shortcut_edit = QtWidgets.QKeySequenceEdit()
@@ -308,7 +378,14 @@ class ShortCutWidget(LinkerWidget):
         return shortcut_edit
 
     @property
-    def input_object(self) -> QtGui.QKeySequence:
-        return self.input_widget.keySequence()
+    def sig_input_changed(self):
+        return self.input_widget.keySequenceChanged
+
+    def _update_input_widget(self, controller):
+        # if controller is None:
+        #     self.input_widget.clear()
+        # else:
+        #     self.input_widget.setKeySequence(controller.input_obj)
+        self.input_widget.setKeySequence(controller.input_obj)
 
 

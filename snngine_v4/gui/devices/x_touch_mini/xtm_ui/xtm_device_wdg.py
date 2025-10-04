@@ -49,7 +49,8 @@ class XTMFaderWidget(QtWidgets.QWidget):
 class XTMDeviceWidget(QtWidgets.QWidget):
 
     def __init__(self, xtm_device=None, title=None, parent=None,
-                 b_verbose: bool = True):
+                 b_verbose: bool = True,
+                 b_health_check: bool = True):
 
         self.b_verbose = b_verbose
 
@@ -166,7 +167,9 @@ class XTMDeviceWidget(QtWidgets.QWidget):
         self.apply_device_config()
         self.health_check_timer = QtCore.QTimer(self)
         self.health_check_timer.timeout.connect(self.health_check)
-        self.health_check_timer.start(2000)
+
+        if b_health_check:
+            self.health_check_timer.start(2000)
 
     def apply_device_config(self):
 

@@ -190,7 +190,9 @@ class Object2ObjectMap(ConfigurableDict):
 
     @classmethod
     def from_types(cls, type0=None, type1=None,
-                   b_pop_allowed=Undefined, **kwargs):
+                   b_pop_allowed=Undefined,
+                   b_clear_allowed=Undefined,
+                   **kwargs):
 
         if type0 is None:
             type0 = cls.InvertedConfigClass.default_allowed_types()
@@ -202,9 +204,15 @@ class Object2ObjectMap(ConfigurableDict):
                 cls.ContainerConfigClass,
                 ContainerConfig.Slots.B_POP_ALLOWED,))
 
+        if b_clear_allowed == Undefined:
+            b_clear_allowed = extract_field_default((
+                cls.ContainerConfigClass,
+                ContainerConfig.Slots.B_CLEAR_ALLOWED,))
+
         container_conf = cls.ContainerConfigClass(
             allowed_types=type1,
-            b_pop_allowed=b_pop_allowed)
+            b_pop_allowed=b_pop_allowed,
+            b_clear_allowed=b_clear_allowed)
         inv_conf = cls.cls_make_inv_conf(
             container_conf=container_conf,
             allowed_types=type0,

@@ -141,7 +141,7 @@ class EngineParameterTree(ParameterTree):
             del group
         return model
 
-    def resize_header_sections_to_content(self,):
+    def resize_sections(self, ):
         self.header().resizeSections(
             QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
 

@@ -9,8 +9,8 @@ from pyqtgraph.parametertree.parameterTypes import ActionParameter
 from snngine_v4.gui.parameter_trees.linker_tree.controls_map import \
     ControllerAction
 from snngine_v4.gui.parameter_trees.linker_tree.linker_tree import LinkerTree
-from snngine_v4.gui.parameter_trees.linker_tree.linker_window import \
-    ShortCutWindow
+from snngine_v4.gui.parameter_trees.linker_tree.xtm_linker_widgets import \
+    XTMLinkerWindow
 from snngine_v4.gui.parameters.preset_parameter import PresetGroupParameter
 from snngine_v4.snngine import SNNgine
 
@@ -78,20 +78,21 @@ class EngineLinkerTree(LinkerTree):
                 preset_type=DeviceTypes.KEYBOARD)
             new_p = p_presets.add_link_action()
             new_p.setValue(value)
+            self.controls_map.tree_parameters[value] = new_p
         else:
             raise NotImplementedError
 
-    def remove_controller(self, dct, key, value):
-        pass
+        self.resize_sections()
 
     @cached_property
     def x_touch_mini_window(self):
-        return ShortCutWindow()
+        return XTMLinkerWindow(linker_tree=self)
 
     def on_sig_context_menu_changed(self, param, data):
         match data:
             case self.X_TOUCH_MINI_KW:
-                pass
+                self.x_touch_mini_window.parameter = param
+                self.x_touch_mini_window.show()
             case _:
                 super().on_sig_context_menu_changed(param, data)
 
@@ -114,6 +115,7 @@ if __name__ == '__main__':
 
     tree2_ = EngineParameterTree(model=model0_)
     tree_ = EngineLinkerTree(trees=[tree2_])
+    # tree_.win()
     splitter.addWidget(tree_)
     splitter.addWidget(tree2_)
 

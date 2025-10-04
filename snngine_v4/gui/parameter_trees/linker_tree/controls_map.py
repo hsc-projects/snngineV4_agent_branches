@@ -2,18 +2,18 @@ from dataclasses import dataclass, field
 from enum import IntEnum, auto
 from typing import Any, Callable, ClassVar
 
-from qtpy.QtCore import QObject
 from qtpy.QtGui import QKeySequence, QShortcut
 from qtpy.QtWidgets import QWidget
 from pyqtgraph.parametertree import Parameter
 
-from snngine_v4.gui.common.qobject_dicts import QObjectDictSignals, QWidgetDict
+from snngine_v4.gui.common.qobject_dicts import QObjectDictSignals
+from snngine_v4.gui.parameter_trees.linker_tree.xtm_linker_widgets import \
+    XTMLinkerInputWidget
 from snngine_v4.utils.containers.configurable_dict import (ConfigurableDict,
                                                            DictContainerConfig)
-from snngine_v4.utils.containers.mappings import (Model2ObjectMap,
-                                                  Object2ObjectMap)
+from snngine_v4.utils.containers.mappings import (Object2ObjectMap,
+                                                  ObjectMapConfig)
 from snngine_v4.utils.core_utils import type_assertion
-from snngine_v4.utils.field_utils import Undefined
 
 
 class ControllerActionType(IntEnum):
@@ -26,6 +26,7 @@ class ControllerActionType(IntEnum):
 
 @dataclass(kw_only=True)
 class ControllerAction:
+
     action_type: ControllerActionType
     input_obj: QKeySequence | Any
     parameter: Parameter
@@ -33,20 +34,22 @@ class ControllerAction:
     controller_obj: QShortcut | Any = field(init=False, default=None)
     func: Callable | None = field(init=False, default=None)
 
-    def toggle_parameter(self):
-        value = not self.parameter.value()
-        self.parameter.setValue(value)
+    @property
+    def action_id(self):
+        return self.cls_action_id(self.input_obj)
 
     def connect_parameter(self):
 
-        if isinstance(self.input_obj, QKeySequence):
-            self.controller_obj = QShortcut(self.input_obj, self.window)
+        if self.controller_obj is None:
+            if isinstance(self.input_obj, QKeySequence):
+                self.controller_obj = QShortcut(self.input_obj, self.window)
+
         match self.action_type:
             case ControllerActionType.TOGGLE:
                 self.func = self.toggle_parameter
             case _:
                 def print_():
-                    print(f"NotImplementedError({self.action_type.name}")
+                    print(f"Not implemented: {self.action_type.name}")
                 self.func = print_
                 # raise NotImplementedError(f"{self.action_type.name}")
 
@@ -55,26 +58,19 @@ class ControllerAction:
         else:
             pass
 
-    def disconnect_parameter(self):
-        if isinstance(self.controller_obj, QShortcut):
-            self.controller_obj.activated.disconnect(self.func)
-        else:
-            pass
-
     @staticmethod
     def cls_action_id(input_obj):
         if isinstance(input_obj, QKeySequence):
             return input_obj.toString()
+        elif isinstance(input_obj, XTMLinkerInputWidget):
+            return input_obj.to_label_string()
         elif isinstance(input_obj, ControllerAction):
             return input_obj.action_id
         else:
             # noinspection PyInconsistentReturns
             type_assertion(input_obj, (QKeySequence,
+                                       XTMLinkerInputWidget,
                                        ControllerAction))
-
-    @property
-    def action_id(self):
-        return self.cls_action_id(self.input_obj)
 
     def compare_fields(self, other):
 
@@ -82,29 +78,44 @@ class ControllerAction:
             if fi.init is True:
                 v0 = getattr(self, k)
                 v1 = getattr(other, k)
-                if type(v0) != type(v1):
+                if not isinstance(v0, type(v1)):
                     return False
                 if isinstance(v0, QKeySequence):
                     res = v0.toString() == getattr(other, k).toString()
-                # elif isinstance(v0, QWidget):
-                #     res = v0 is v1
                 else:
                     res = v0 == v1
                 if res is False:
                     return False
         return True
 
+    def disconnect_parameter(self):
+        if isinstance(self.controller_obj, QShortcut):
+            self.controller_obj.activated.disconnect(self.func)
+            self.func = None
+        else:
+            pass
 
-# class ParameterShortCuts(ConfigurableDict):
+    @property
+    def input_object_string(self) -> str:
+        if isinstance(self.input_obj, QKeySequence):
+            return self.input_obj.toString()
+        else:
+            raise NotImplementedError
+
+    def toggle_parameter(self):
+        value = not self.parameter.value()
+        self.parameter.setValue(value)
+
+
 class ParameterControls(ConfigurableDict):
     ContainerConfigClass: ClassVar = (DictContainerConfig, ControllerAction)
 
 
-# class ControlMapSignals(QWidgetDict):
-#     sig
-
-
 class ControlsMap(Object2ObjectMap, ):
+
+    class ContainerConfigClass(ObjectMapConfig, frozen=True):
+        b_pop_allowed: bool = True
+        b_clear_allowed: bool = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -112,6 +123,8 @@ class ControlsMap(Object2ObjectMap, ):
             ParameterControls())
 
         self.map_signals = QObjectDictSignals(None)
+        self.tree_parameters = Object2ObjectMap.from_types(
+            ControllerAction, Parameter, b_pop_allowed=True)
 
     @classmethod
     def to_controller(
@@ -132,7 +145,9 @@ class ControlsMap(Object2ObjectMap, ):
 
     def add_controller(
             self, ctrl_or_parameter: Parameter | ControllerAction,
-            obj=None, action_type=None, window=None):
+            obj=None, action_type=None, window=None,
+            set_connect: bool | None = True,
+            b_block_signal: bool = False) -> ControllerAction:
 
         action = self.to_controller(
             ctrl_or_parameter=ctrl_or_parameter, input_obj=obj,
@@ -149,10 +164,13 @@ class ControlsMap(Object2ObjectMap, ):
 
         self.all_actions[action.action_id] = action
 
-        action.connect_parameter()
+        if set_connect is True:
+            action.connect_parameter()
+        elif set_connect is False:
+            action.disconnect_parameter()
 
-        self.map_signals.sigAdded.emit(
-            self, action.action_id, action)
+        if b_block_signal is False:
+            self.map_signals.sigAdded.emit(self, action.action_id, action)
 
         return action
 
@@ -161,6 +179,7 @@ class ControlsMap(Object2ObjectMap, ):
 
     def clear(self, b_force: bool = False, b_clear_inv: bool = True):
         self.all_actions.clear(b_force=b_force, )
+        self.tree_parameters.clear(b_force=b_force, )
         super().clear(b_force=b_force, b_clear_inv=b_clear_inv)
 
     def compare_controller(self, ctrl_or_parameter0,
@@ -197,6 +216,20 @@ class ControlsMap(Object2ObjectMap, ):
     # def __setitem__(self, key, value):
     #     super().__setitem__(key, value)
 
-    def pop(self, item, default=Undefined):
-        super().pop(item, default=default)
-        self.map_signals.sigRemoved.emit(self, item)
+    def remove_controller(
+            self, ctrl: ControllerAction, b_block_signal: bool):
+        controls: ParameterControls = self[ctrl.parameter]
+        found_ctrl: ControllerAction = controls.pop(ctrl.action_id)
+        self.all_actions.pop(ctrl.action_id)
+
+        if found_ctrl is not ctrl:
+            raise AssertionError
+        ctrl.disconnect_parameter()
+        if not b_block_signal:
+            self.map_signals.sigRemoved.emit(self, ctrl.action_id, ctrl)
+        else:
+            self.tree_parameters.pop(ctrl)
+
+    # def pop(self, item, default=Undefined):
+    #     super().pop(item, default=default)
+    #     self.map_signals.sigRemoved.emit(self, item)

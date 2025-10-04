@@ -99,6 +99,10 @@ class XTMNoteButton(XTMLedButton):
         self._led_control_note = self._button_index
 
     @property
+    def button_index(self):
+        return self._button_index
+
+    @property
     def receive_data_note(self):
         return self._receive_data_note
 

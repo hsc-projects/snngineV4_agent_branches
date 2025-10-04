@@ -47,6 +47,7 @@ class ContainerConfig(ConfigModel, frozen=True):
     class Slots:
         ALLOWED_TYPES: ClassVar[str] = 'allowed_types'
         B_POP_ALLOWED: ClassVar[str] = 'b_pop_allowed'
+        B_CLEAR_ALLOWED: ClassVar[str] = 'b_clear_allowed'
 
     @classmethod
     def b_int_allowed(cls, type_, forbidden_types=None):

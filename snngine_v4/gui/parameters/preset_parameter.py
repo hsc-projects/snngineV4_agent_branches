@@ -4,10 +4,13 @@ from enum import IntEnum
 from typing import ClassVar
 
 from pyqtgraph.parametertree.parameterTypes import ActionParameter
+from qtpy import QtCore
 
+from snngine_v4.gui.parameter_trees.linker_tree.controls_map import \
+    ControllerAction
 from snngine_v4.gui.parameters.common.engine_group_parameter import \
     EngineGroupParameter
-from snngine_v4.gui.parameters.linker_paremeter import (
+from snngine_v4.gui.parameters.linker_parameter import (
     AddLinkerActionParameter,
     LinkerParameter)
 from snngine_v4.utils.containers.configurable_dict import ConfigurableDict
@@ -17,6 +20,8 @@ class PresetGroupParameter(EngineGroupParameter):
 
     PRESET_LIST_KW: ClassVar[str] = "preset_list"
 
+    sigPresetLoaded = QtCore.Signal(object)
+
     # noinspection PyPep8Naming
     def __init__(self,
                  name=None,
@@ -24,6 +29,7 @@ class PresetGroupParameter(EngineGroupParameter):
                  preset_type=None,
                  autoIncrementName=True,
                  link_parameter_class: type[LinkerParameter] = LinkerParameter,
+                 b_add_single_visible: bool = False,
                  **kwargs):
 
         if name is None:
@@ -34,6 +40,10 @@ class PresetGroupParameter(EngineGroupParameter):
 
         self.preset_states = ConfigurableDict.from_type(
             dict, b_duplicate_value_check_by_id=True)
+
+        self.preset_controls = ConfigurableDict.from_type(
+            list, b_duplicate_value_check_by_id=True)
+        self.previous_name = None
 
         self.link_parameter_class = link_parameter_class
 
@@ -52,11 +62,15 @@ class PresetGroupParameter(EngineGroupParameter):
             # f"+ {self.preset_type.name.upper()}")
             '  +  ')
 
-        self.add_link_action_par = self.make_add_link_action_par()
+        self.add_link_action_par = self.make_add_link_action_par(
+            visible=b_add_single_visible
+        )
         self.init_state = self.saveState()
 
-    def make_add_link_action_par(self, name=" New links "):
-        add_link_action_par = AddLinkerActionParameter(name=name)
+    def make_add_link_action_par(self, name=" New links ",
+                                 visible=True):
+        add_link_action_par = AddLinkerActionParameter(
+            name=name, visible=visible)
         # add_link_action_par.sigActivated.connect(self.add_link_action)
         add_link_action_par.add_action(
             name=' ADD ', func=self.add_link_action,)
@@ -95,26 +109,44 @@ class PresetGroupParameter(EngineGroupParameter):
         # Keep order (1/2)
         if new_name not in self.preset_states:
             self.preset_states[new_name] = deepcopy(self.init_state)
+            self.preset_controls[new_name] = []
         else:
             self.preset_states[new_name].clear()
             self.preset_states[new_name].update(self.init_state)
+            self.preset_controls[new_name].clear()
 
         # Keep order (2/2)
         self.extend_list_action_limits(self.PRESET_LIST_KW, [new_name])
 
         self.list_map.list_parameters[self.PRESET_LIST_KW].setValue(new_name)
 
+    @property
+    def controls_list(self):
+        return [x.value() for x in self.children()
+                if (isinstance(x, LinkerParameter)
+                    and isinstance(x.value(), ControllerAction))]
+
+    @property
+    def previous_controls(self):
+        return self.preset_controls[self.previous_name]
+
     def set_preset_state(self, par, value):
-        dict_ = self.saveState()
-        last_value = self.name()
-        if last_value not in self.preset_states:
-            self.preset_states[last_value] = dict_
+
+        self.previous_name = self.name()
+        prev_state = self.saveState()
+        previous_controls = self.controls_list
+
+        if self.previous_name not in self.preset_states:
+            self.preset_states[self.previous_name] = prev_state
+            self.preset_controls[self.previous_name] = previous_controls
         else:
-            self.preset_states[last_value].clear()
-            self.preset_states[last_value].update(dict_)
+            self.preset_states[self.previous_name].clear()
+            self.preset_states[self.previous_name].update(prev_state)
+            self.preset_controls[self.previous_name].clear()
+            self.preset_controls[self.previous_name].extend(previous_controls)
 
         if value in self.preset_states:
             new_dict_ = self.preset_states[value]
             self.restoreState(new_dict_)
-
         self.setName(value)
+        self.sigPresetLoaded.emit(self)

@@ -1,7 +1,9 @@
+from copy import copy
 from enum import IntEnum
 from functools import cached_property
 from typing import ClassVar
 
+from qtpy.QtGui import QKeySequence
 from pydantic import BaseModel
 from pyqtgraph.parametertree import Parameter
 
@@ -9,7 +11,9 @@ from snngine_v4.gui.parameter_trees.engine_parameter_tree import \
     EngineParameterTree
 from snngine_v4.gui.parameter_trees.linker_tree.linker_window import \
     ShortCutWindow
-from snngine_v4.gui.parameter_trees.linker_tree.controls_map import ControlsMap
+from snngine_v4.gui.parameter_trees.linker_tree.controls_map import \
+    (ControllerAction, ControlsMap)
+from snngine_v4.gui.parameters import LinkerParameter
 from snngine_v4.gui.parameters.common.engine_group_parameter import (
     EngineGroupParameter)
 from snngine_v4.gui.parameters.preset_parameter import \
@@ -34,6 +38,7 @@ class LinkerTree(EngineParameterTree):
             parameter_type_dict = {}
 
         self.controls_map: ControlsMap = ControlsMap()
+        self.saved_controls: dict[str, ControlsMap] = {}
 
         self.controls_map.map_signals.sigAdded.connect(self.add_controller)
         self.controls_map.map_signals.sigRemoved.connect(self.remove_controller)
@@ -71,14 +76,20 @@ class LinkerTree(EngineParameterTree):
             self, preset_type: IntEnum) -> PresetGroupParameter:
 
         if preset_type not in self.parameter_dict:
-            return self._make_preset_group(preset_type=preset_type)
+            preset_group = self._make_preset_group(preset_type=preset_type)
         else:
             self.parameter_dict[preset_type].add_preset_variant()
-            self.resize_header_sections_to_content()
-            return self.parameter_dict[preset_type]
+            self.resize_sections()
+            preset_group = self.parameter_dict[preset_type]
+
+        return preset_group
 
     def remove_controller(self, dct, key, value):
-        pass
+        par: Parameter = self.controls_map.tree_parameters[value]
+        parent: PresetGroupParameter = par.parent()
+        parent.removeChild(par)
+        self.controls_map.tree_parameters.pop(value)
+        del par
 
     def _make_preset_group(
             self, preset_type: IntEnum) -> PresetGroupParameter:
@@ -88,7 +99,9 @@ class LinkerTree(EngineParameterTree):
         p_presets = par_class(name=name, preset_type=preset_type, )
         self.p_presets.addChild(p_presets)
         self.parameter_dict[preset_type] = p_presets
-        self.resize_header_sections_to_content()
+        self.resize_sections()
+
+        p_presets.sigPresetLoaded.connect(self.on_preset_loaded)
         return p_presets
 
     def get_preset_group(self, preset_type: IntEnum) -> PresetGroupParameter:
@@ -117,8 +130,23 @@ class LinkerTree(EngineParameterTree):
         param.sigContextMenu.connect(self.on_sig_context_menu_changed)
 
     @cached_property
-    def short_cut_window(self):
+    def short_cut_window(self) -> ShortCutWindow:
         return ShortCutWindow(linker_tree=self)
+
+    def on_preset_loaded(self, preset_group: PresetGroupParameter):
+        lost_controls = preset_group.previous_controls
+        for ctrl in lost_controls:
+            self.controls_map.remove_controller(ctrl, b_block_signal=True)
+
+        for par in preset_group.children():
+            if (isinstance(par, LinkerParameter)
+                    and isinstance(ctrl := par.value(), ControllerAction)):
+                self.controls_map.add_controller(ctrl, b_block_signal=True)
+                self.controls_map.tree_parameters[ctrl] = par
+
+        self.short_cut_window.parameter = self.short_cut_window.parameter
+        self.short_cut_window.set_window_title(
+            suffix=f" ({preset_group.name()})")
 
     def on_sig_context_menu_changed(self, param, data):
         match data:

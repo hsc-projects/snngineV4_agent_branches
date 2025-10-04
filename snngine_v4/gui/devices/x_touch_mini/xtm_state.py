@@ -53,10 +53,10 @@ class XTMIntValue(XMLSettingsModel):
                         return self.A
                     case XTMLayer.B:
                         return self.B
-                    case _:
-                        raise ValueError(f"Unknown layer '{layer}'")
-            case _:
-                raise ValueError(f"Unknown mode '{mode}'")
+                    # case _:
+                    #     raise ValueError(f"Unknown layer '{layer.name}'")
+            # case _:
+            #     raise ValueError(f"Unknown mode '{mode.name}'")
 
     def set_all_values(self, value: int):
         self.A = value
@@ -80,9 +80,9 @@ class XTMIntValue(XMLSettingsModel):
                     case XTMLayer.B:
                         self.B = value
                     case _:
-                        raise ValueError(f"Unknown layer '{layer}'")
+                        raise ValueError(f"Unknown layer '{layer.name}'")
             case _:
-                raise ValueError(f"Unknown mode '{mode}'")
+                raise ValueError(f"Unknown mode '{mode.name}'")
 
 
 class XTMChannelValue(XTMIntValue):
