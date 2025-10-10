@@ -7,7 +7,6 @@ from pyqtgraph.parametertree.parameterTypes import (
     QtEnumParameter,
 )
 
-from snngine_v4.gui.parameters.linker_parameter import LinkerParameter
 from snngine_v4.gui.parameters.none_type_parameter import (
     NoneTypeParameter, UndefinedTypeParameter,
 )
@@ -43,6 +42,7 @@ from snngine_v4.visualization.config_models.visuals.parameters import (
     ColorTypeUnion, RGBAColorTypeUnion
 )
 from snngine_v4.utils.list_parameter_model import ListParameterModel
+from snngine_v4.gui.parameters.linker_parameter import LinkerParameter
 
 # noinspection DuplicatedCode
 registerParameterType(Enum.__name__, QtEnumParameter, override=True)

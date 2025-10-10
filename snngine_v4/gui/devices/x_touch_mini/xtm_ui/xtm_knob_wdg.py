@@ -65,8 +65,10 @@ class XTMKnobWidget(PowerBar):
 
         self.label = QtWidgets.QLabel(str(self.cc))
         if sys.platform != 'win32':
-            self.label.setContentsMargins(-5, 10, -5, 0)
-            self.label.setMinimumWidth(14)
+            # self.label.setContentsMargins(-5, 10, -5, 0)
+            # self.label.setMinimumWidth(14)
+            self.label.setContentsMargins(-5, 5, -5, 0)
+            self.label.setMaximumWidth(10)
         else:
             self.label.setContentsMargins(-2, 10, -2, 0)
             self.label.setMaximumWidth(10)

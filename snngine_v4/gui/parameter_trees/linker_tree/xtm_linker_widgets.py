@@ -1,26 +1,34 @@
 from __future__ import annotations
 
 from enum import IntEnum, auto
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 
 from pyqtgraph import ComboBox
 from pyqtgraph.parametertree import Parameter
-from qtpy import QtCore, QtGui, QtWidgets
+from qtpy import QtWidgets
 
 from snngine_v4.gui.devices.x_touch_mini.xtm_data_types import XTMLayer
 from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_button_wdgs import \
     XTMNoteButton
-from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_device_wdg import \
-    (XTMDeviceWidget, XTMFaderWidget)
+from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_device_wdg import (
+    XTMDeviceWidget,
+    XTMFaderWidget
+)
 from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_knob_wdg import \
     XTMKnobWidget
-from snngine_v4.gui.parameter_trees.linker_tree.controls_map import \
-    ControllerAction
-from snngine_v4.gui.parameter_trees.linker_tree.linker_tree import LinkerTree
+from snngine_v4.gui.parameter_trees.linker_tree.device_input_widget import \
+    (DeviceController, DeviceInputSelectorWidget)
 from snngine_v4.gui.parameter_trees.linker_tree.linker_widget import \
     LinkerWidget
 from snngine_v4.gui.parameter_trees.linker_tree.linker_window import \
     LinkerWindow
+
+
+if TYPE_CHECKING:
+    from snngine_v4.gui.parameter_trees.linker_tree.controls_map import (
+        ControllerAction)
+    from snngine_v4.gui.parameter_trees.linker_tree.linker_tree import (
+        LinkerTree)
 
 
 class XTMElementType(IntEnum):
@@ -30,9 +38,7 @@ class XTMElementType(IntEnum):
     FADER = auto()
 
 
-class XTMLinkerInputWidget(QtWidgets.QWidget):
-
-    sigValueSet = QtCore.Signal(object)
+class XTMLinkerInputWidget(DeviceInputSelectorWidget):
 
     layout: Callable[..., QtWidgets.QHBoxLayout]
 
@@ -44,34 +50,41 @@ class XTMLinkerInputWidget(QtWidgets.QWidget):
 
         self.type_combobox = ComboBox(
             items={x.name.title(): x for x in XTMElementType})
-
+        self.type_combobox.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Fixed,
+            QtWidgets.QSizePolicy.Policy.Fixed,
+        )
         self.choices = {
             XTMElementType.BUTTON: {
-                str(k): v for (k, v) in self.xtm_device_wdg.buttons.items()},
+                "Nr. " + str(k): v for (k, v)
+                in self.xtm_device_wdg.buttons.items()},
             XTMElementType.KNOB: {
-                str(k): v for (k, v) in self.xtm_device_wdg.knobs.items()},
-            # XTMElementType.FADER: {
-            #     'FADER': self.xtm_device_wdg.fader_widget},
+                "Nr. " + str(k): v for (k, v) in
+                self.xtm_device_wdg.knobs.items()},
         }
 
         self.element_combobox = ComboBox()
-        self.layer_combobox = ComboBox(items={'A': XTMLayer.A,
-                                              'B': XTMLayer.B})
-
-        self.confirm_btn = QtWidgets.QPushButton("Confirm")
-        self._confirmed = False
+        self.layer_combobox = ComboBox(items={' Layer: A ': XTMLayer.A,
+                                              ' Layer: B ': XTMLayer.B})
+        self.layer_combobox.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Fixed,
+            QtWidgets.QSizePolicy.Policy.Fixed,
+        )
+        self.stretch_item = None
 
         self.setLayout(QtWidgets.QHBoxLayout())
         self.layout().setSpacing(1)
         self.layout().setContentsMargins(0, 0, 0, 0)
 
         self.layout().addWidget(self.type_combobox)
+        self.layout().addStretch()
         self.layout().addWidget(self.element_combobox)
         self.layout().addWidget(self.layer_combobox)
-        self.layout().addWidget(self.confirm_btn)
 
+        self._has_stretch = True
+
+        self.update_choices()
         self.connect_comboboxes()
-        self.confirm_btn.clicked.connect(self.on_confirm)
 
     def connect_comboboxes(self):
         self.type_combobox.currentTextChanged.connect(self.update_choices)
@@ -83,15 +96,8 @@ class XTMLinkerInputWidget(QtWidgets.QWidget):
         self.element_combobox.currentTextChanged.disconnect(self.on_change)
         self.layer_combobox.currentTextChanged.disconnect(self.on_change)
 
-    def on_confirm(self):
-        self._confirmed = True
-        self.sigValueSet.emit(self)
-        self.confirm_btn.setEnabled(False)
-        self.sigValueSet.emit(self.element_combobox.value())
-
     def on_change(self):
-        self._confirmed = False
-        self.confirm_btn.setEnabled(True)
+        self.sigValueSet.emit(self)
 
     def clear(self):
         self.type_combobox.setValue(XTMElementType.NONE)
@@ -123,7 +129,11 @@ class XTMLinkerInputWidget(QtWidgets.QWidget):
 
         self.connect_comboboxes()
 
-    def to_label_string(self):
+    @property
+    def action_id_str(self):
+        return self.as_label_string()
+
+    def as_label_string(self):
         return (
             f"{self.type_combobox.currentText()}"
             f"{self.element_combobox.currentText()}"
@@ -137,13 +147,51 @@ class XTMLinkerInputWidget(QtWidgets.QWidget):
                  | XTMElementType.FADER:
                 self.element_combobox.setItems({})
                 self.element_combobox.setVisible(False)
+                is_fader = elt_type == XTMElementType.FADER
+                self.layer_combobox.setVisible(is_fader)
+
+                # if is_fader:
+                #     if self.stretch_item is None:
+                #         self.stretch_item = self.layout().itemAt(1)
+                #         self.layout().takeAt(1)
+                # else:
+                if self.stretch_item is not None:
+                    self.layout().insertItem(1, self.stretch_item)
+                    self.stretch_item = None
             case _:
                 values = self.choices[elt_type]
                 self.element_combobox.setItems(values)
                 self.element_combobox.setVisible(True)
+                self.layer_combobox.setVisible(True)
+                if self.stretch_item is None:
+                    self.stretch_item = self.layout().itemAt(1)
+                    self.layout().takeAt(1)
+        self.on_change()
 
-    def value(self):
-        return self.element_combobox.value()
+    def value(self) -> XTMKnobWidget | XTMNoteButton | XTMFaderWidget:
+        elt_type: XTMElementType = self.type_combobox.value()
+        match elt_type:
+            case XTMElementType.NONE:
+                raise ValueError
+            case XTMElementType.FADER:
+                return self.xtm_device_wdg.fader_widget
+            case _:
+                return self.element_combobox.value()
+
+    def make_device_controller(self) -> DeviceController:
+        element = self.value()
+        # controller = DeviceController(self)
+        if isinstance(element, XTMKnobWidget):
+            signal = element.spinbox.valueChanged
+        elif isinstance(element, XTMNoteButton):
+            signal = element.sigDeviceInput
+        elif isinstance(element, XTMFaderWidget):
+            signal = element.fader_item.widget.valueChanged
+        else:
+            raise TypeError(
+                f"Unknown element type: {element} ({type(element)})")
+        # signal.connect(controller.emit_device_input)
+        return signal
 
 
 class XTMLinkerWidget(LinkerWidget):
@@ -164,20 +212,25 @@ class XTMLinkerWidget(LinkerWidget):
                          parameter=parameter,
                          input_label=input_label, **kwargs)
 
+        self.range_map_wdg.set_range0(
+            0, 128, 0, 128,
+            step=1, int=True)
+
     @property
     def b_has_input(self):
-        return self.input_widget.b_is_empty()
+        return not self.input_widget.b_is_empty()
 
     def clear_input_widget(self):
         self.input_widget.clear()
 
     @property
     def input_object(self):
-        return self.input_widget.element_combobox.value()
+        # return self.input_widget.element_combobox.value()
+        return self.input_widget
 
     @property
     def input_object_string(self):
-        return self.input_object.to_label_string()
+        return self.input_object.action_id_str
 
     def make_input_widget(self):
         return XTMLinkerInputWidget(xtm_device_wdg=self.xtm_device_wdg,)
@@ -187,7 +240,7 @@ class XTMLinkerWidget(LinkerWidget):
         return self.input_widget.sigValueSet
 
     def _update_input_widget(self, controller: ControllerAction):
-        self.input_widget.load_element(controller.input_obj)
+        self.input_widget.load_element(controller.input_obj.value())
 
 
 class XTMLinkerWindow(LinkerWindow):

@@ -2,13 +2,14 @@ from dataclasses import dataclass, field
 from enum import IntEnum, auto
 from typing import Any, Callable, ClassVar
 
+from qtpy import QtCore
 from qtpy.QtGui import QKeySequence, QShortcut
 from qtpy.QtWidgets import QWidget
 from pyqtgraph.parametertree import Parameter
 
 from snngine_v4.gui.common.qobject_dicts import QObjectDictSignals
-from snngine_v4.gui.parameter_trees.linker_tree.xtm_linker_widgets import \
-    XTMLinkerInputWidget
+from snngine_v4.gui.parameter_trees.linker_tree.device_input_widget import \
+    (DeviceController, DeviceInputSelectorWidget)
 from snngine_v4.utils.containers.configurable_dict import (ConfigurableDict,
                                                            DictContainerConfig)
 from snngine_v4.utils.containers.mappings import (Object2ObjectMap,
@@ -18,20 +19,22 @@ from snngine_v4.utils.core_utils import type_assertion
 
 class ControllerActionType(IntEnum):
     TOGGLE = 0
+    VALUE = auto()
     INCREASE = auto()
     DECREASE = auto()
-    EDIT = auto()
-    FOCUS = auto()
+    # EDIT = auto()
+    # FOCUS = auto()
 
 
 @dataclass(kw_only=True)
 class ControllerAction:
 
     action_type: ControllerActionType
-    input_obj: QKeySequence | Any
+    input_obj: QKeySequence | DeviceInputSelectorWidget
     parameter: Parameter
     window: QWidget
-    controller_obj: QShortcut | Any = field(init=False, default=None)
+    controller_obj: QShortcut | DeviceController = field(
+        init=False, default=None)
     func: Callable | None = field(init=False, default=None)
 
     @property
@@ -43,6 +46,8 @@ class ControllerAction:
         if self.controller_obj is None:
             if isinstance(self.input_obj, QKeySequence):
                 self.controller_obj = QShortcut(self.input_obj, self.window)
+            elif isinstance(self.input_obj, DeviceInputSelectorWidget):
+                self.controller_obj = self.input_obj.make_device_controller()
 
         match self.action_type:
             case ControllerActionType.TOGGLE:
@@ -55,21 +60,21 @@ class ControllerAction:
 
         if isinstance(self.controller_obj, QShortcut):
             self.controller_obj.activated.connect(self.func)
-        else:
-            pass
+        elif isinstance(self.controller_obj, QtCore.Signal):
+            self.controller_obj.connect(self.func)
 
     @staticmethod
     def cls_action_id(input_obj):
         if isinstance(input_obj, QKeySequence):
             return input_obj.toString()
-        elif isinstance(input_obj, XTMLinkerInputWidget):
-            return input_obj.to_label_string()
+        elif isinstance(input_obj, DeviceInputSelectorWidget):
+            return input_obj.action_id_str
         elif isinstance(input_obj, ControllerAction):
             return input_obj.action_id
         else:
             # noinspection PyInconsistentReturns
             type_assertion(input_obj, (QKeySequence,
-                                       XTMLinkerInputWidget,
+                                       DeviceInputSelectorWidget,
                                        ControllerAction))
 
     def compare_fields(self, other):
@@ -89,21 +94,29 @@ class ControllerAction:
         return True
 
     def disconnect_parameter(self):
+
         if isinstance(self.controller_obj, QShortcut):
             self.controller_obj.activated.disconnect(self.func)
-            self.func = None
-        else:
-            pass
+        elif isinstance(self.controller_obj, DeviceController):
+            self.controller_obj.disconnect(self.func)
+
+        self.func = None
 
     @property
     def input_object_string(self) -> str:
         if isinstance(self.input_obj, QKeySequence):
             return self.input_obj.toString()
+        elif isinstance(self.input_obj, DeviceInputSelectorWidget):
+            return self.input_obj.as_label_string()
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                f"type({type(self.input_obj)})")
 
     def toggle_parameter(self):
         value = not self.parameter.value()
+        self.parameter.setValue(value)
+
+    def set_parameter_value(self, value):
         self.parameter.setValue(value)
 
 

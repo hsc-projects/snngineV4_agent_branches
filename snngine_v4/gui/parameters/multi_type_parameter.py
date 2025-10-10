@@ -189,7 +189,7 @@ class MultiTypeParameter(EngineGroupParameter):
         super().__init__(b_check_set_values=False, **opts)
         self.opts[ParamOpts.KW.DEFAULT] = opts[ParamOpts.KW.C_INIT_DEFAULT]
         self.children_map = MultiTypeParameterMap()
-        self.type_parameter = ListParameter(
+        self.type_parameter: ListParameter = ListParameter(
             name='Type', visible=False,
             readonly=self.opts.get(ParamOpts.KW.READONLY, False),)
         self.addChild(self.type_parameter, autoIncrementName=True)
@@ -329,7 +329,7 @@ class MultiTypeParameter(EngineGroupParameter):
     def data_types(self):
         return get_args(self.opts[ParamOpts.KW.C_DATA_TYPES])
 
-    def onTypeChange(self, p, value):
+    def onTypeChange(self, p: Parameter, value):
         for c in self.childs:
             if c != p:
                 if c.name() != value:
@@ -366,7 +366,7 @@ class MultiTypeParameter(EngineGroupParameter):
             key = NoneType
         if key != '':
             try:
-                par = self.children_map[key]
+                par: Parameter = self.children_map[key]
                 value_ = par.value()
             except KeyError:
                 raise

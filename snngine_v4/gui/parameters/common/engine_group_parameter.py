@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import Callable, ClassVar
 
 from pyqtgraph.parametertree import Parameter, ParameterItem
 from pyqtgraph.parametertree.parameterTypes import (
@@ -194,7 +194,7 @@ class EngineGroupParameter(GroupParameter, ActionParameterMixin):
 
     itemClass = EngineGroupParameterItem
 
-    # children: Callable[[], list[Parameter]]
+    children: Callable[[], list[Parameter]]
 
     sigApply = QtCore.Signal(object)
     sigSelected = QtCore.Signal(object, bool)

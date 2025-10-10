@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, TYPE_CHECKING, Union
 
-from pyqtgraph.parametertree import Parameter
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtWidgets import QSizePolicy
 
 from snngine_v4.gui.parameter_trees.linker_tree.controls_map import \
@@ -24,6 +23,7 @@ class LinkerWindowHeader(QtWidgets.QWidget):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
         self.setLayout(QtWidgets.QFormLayout())
         self.param_label = QtWidgets.QLabel()
         self.layout().addRow('Parameter: ', self.param_label)
@@ -31,7 +31,8 @@ class LinkerWindowHeader(QtWidgets.QWidget):
                            QSizePolicy.Policy.Fixed,)
 
 
-type CtrlWidgetMap = Union[Object2ObjectMap, dict[ControllerAction, LinkerWidget]]
+type CtrlWidgetMap = Union[Object2ObjectMap,
+                           dict[ControllerAction, LinkerWidget]]
 
 
 class LinkerWindow(QtWidgets.QScrollArea):
@@ -40,6 +41,11 @@ class LinkerWindow(QtWidgets.QScrollArea):
 
     def __init__(self, linker_tree, window_title, **kwargs):
         super().__init__(**kwargs)
+        
+        self.setWindowTitle(window_title)
+        self.setWindowModality(
+            QtCore.Qt.WindowModality.ApplicationModal)
+
         self.base_title = window_title
         self.linker_tree: LinkerTree = linker_tree
 
@@ -50,33 +56,28 @@ class LinkerWindow(QtWidgets.QScrollArea):
                 type0=ControllerAction, type1=QtWidgets.QWidget,
                 b_pop_allowed=True, b_clear_allowed=True))
         self.widgets: list[LinkerWidget] = []
+        self._parameter = None
 
-        self.setWindowTitle(window_title)
-        wdg = QtWidgets.QWidget()
-        # self.setLayout(QtWidgets.QVBoxLayout())
-        wdg.setLayout(QtWidgets.QVBoxLayout())
-        self.setWidget(wdg)
+        self.header = LinkerWindowHeader()
+        self.header_qline = QtWidgets.QFrame()
+        self.header_qline.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+        self.add_btn = QtWidgets.QPushButton("  ADD  ")
+        self.add_btn.clicked.connect(self.add_widget)
+        self.add_btn.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Fixed,
+            QtWidgets.QSizePolicy.Policy.Fixed,
+        )
+
+        self.setWidget(QtWidgets.QWidget())
+        self.setWidgetResizable(True)
+        self.widget().setLayout(QtWidgets.QVBoxLayout())
 
         # noinspection PyTypeChecker
         layout: QtWidgets.QVBoxLayout = self.widget().layout()
-
-        alignment = QtCore.Qt.AlignmentFlag.AlignTop
-        layout.setAlignment(alignment)
-
-        self._parameter = None
-        self.header = LinkerWindowHeader()
         layout.addWidget(self.header)
-
-        self.header_qline = QtWidgets.QFrame()
-        self.header_qline.setFrameShape(QtWidgets.QFrame.Shape.HLine)
-
         layout.addWidget(self.header_qline)
-
-        self.add_btn = QtWidgets.QPushButton('ADD')
         layout.addWidget(self.add_btn)
-        self.add_btn.clicked.connect(self.add_widget)
-        self.setWidgetResizable(True)
-        # self.setFixedHeight(200)
+        layout.setAlignment(QtGui.Qt.AlignmentFlag.AlignTop)
         self.add_widget()
 
     def make_widget(self):

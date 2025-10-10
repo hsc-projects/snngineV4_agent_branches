@@ -10,7 +10,7 @@ from snngine_v4.gui.parameter_trees.linker_tree.controls_map import \
     ControllerAction
 from snngine_v4.gui.parameter_trees.linker_tree.linker_tree import LinkerTree
 from snngine_v4.gui.parameter_trees.linker_tree.xtm_linker_widgets import \
-    XTMLinkerWindow
+    (XTMLinkerInputWidget, XTMLinkerWindow)
 from snngine_v4.gui.parameters.preset_parameter import PresetGroupParameter
 from snngine_v4.snngine import SNNgine
 
@@ -30,6 +30,10 @@ class XTouchMiniLinks(PresetGroupParameter):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # self.addChild(SimpleParameter(name='B0', type='bool'))
+
+    # def add_link_action(self, **opts):
+    #     opts.setdefault('name', '')
+    #     return super().add_link_action(**opts)
 
 
 class EngineLinkerTree(LinkerTree):
@@ -76,12 +80,14 @@ class EngineLinkerTree(LinkerTree):
         if isinstance(value.input_obj, QKeySequence):
             p_presets = self.get_preset_group(
                 preset_type=DeviceTypes.KEYBOARD)
-            new_p = p_presets.add_link_action()
-            new_p.setValue(value)
-            self.controls_map.tree_parameters[value] = new_p
+        elif isinstance(value.input_obj, XTMLinkerInputWidget):
+            p_presets = self.get_preset_group(
+                preset_type=DeviceTypes.X_TOUCH_MINI)
         else:
-            raise NotImplementedError
-
+            raise NotImplementedError(f"{type(value.input_obj)}")
+        new_p = p_presets.add_link_action(value=value)
+        # new_p.setValue(value)
+        self.controls_map.tree_parameters[value] = new_p
         self.resize_sections()
 
     @cached_property

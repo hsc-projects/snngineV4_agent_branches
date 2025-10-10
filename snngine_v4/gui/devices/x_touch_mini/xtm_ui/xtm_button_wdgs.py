@@ -1,3 +1,4 @@
+from qtpy import QtCore
 from qtpy.QtWidgets import QPushButton
 
 from snngine_v4.gui.devices.x_touch_mini.x_touch_mini_device import \
@@ -8,6 +9,10 @@ from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_ui_config import \
 
 
 class XTMButton(XTMUIElementMixin, QPushButton):
+
+    sigDeviceInput = QtCore.Signal(object)
+    sigHostInput = QtCore.Signal(object)
+
     def __init__(self, *args, xtm_device=None,
                  width_divider=1,
                  **kwargs):
@@ -125,6 +130,7 @@ class XTMNoteButton(XTMLedButton):
         b_pressed = self._xtm_device.device_config.b_is_button_pressed(
             button_idx=self._button_index)
         self.set_color(b_pressed)
+        self.sigDeviceInput.emit(b_pressed)
 
 
 class XTMLayerButton(XTMLedButton):

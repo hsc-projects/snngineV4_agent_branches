@@ -3,7 +3,6 @@ from copy import deepcopy
 from enum import IntEnum
 from typing import ClassVar
 
-from pyqtgraph.parametertree.parameterTypes import ActionParameter
 from qtpy import QtCore
 
 from snngine_v4.gui.parameter_trees.linker_tree.controls_map import \
@@ -63,8 +62,7 @@ class PresetGroupParameter(EngineGroupParameter):
             '  +  ')
 
         self.add_link_action_par = self.make_add_link_action_par(
-            visible=b_add_single_visible
-        )
+            visible=b_add_single_visible)
         self.init_state = self.saveState()
 
     def make_add_link_action_par(self, name=" New links ",
@@ -77,8 +75,7 @@ class PresetGroupParameter(EngineGroupParameter):
         self.addChild(add_link_action_par)
         return add_link_action_par
 
-    # noinspection PyPep8Naming
-    def add_link_action(self, **opts):
+    def add_link_action(self, **opts) -> LinkerParameter:
         link_parameter_class: type[LinkerParameter] = self.link_parameter_class
         new_p = link_parameter_class(**opts)
         # new_idx = max(0, len(self.children()) - 1)

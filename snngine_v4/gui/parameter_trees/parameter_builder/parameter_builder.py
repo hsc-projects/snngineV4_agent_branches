@@ -20,7 +20,8 @@ from pyqtgraph.parametertree.parameterTypes import (
 from snngine_v4.gui.parameter_trees.parameter_builder.options_builder import \
     OptionsBuilder
 
-from snngine_v4.gui.parameters.common.engine_group_parameter import EngineGroupParameter
+from snngine_v4.gui.parameters.common.engine_group_parameter import (
+    EngineGroupParameter)
 from snngine_v4.gui.parameters import \
     MultiTypeParameter
 from snngine_v4.gui.parameters.reference_parameter import \

@@ -64,6 +64,8 @@ class SpinBoxSliderParameterItem(NumericParameterItem,
         self.select_other_target = None
 
         self.slider = SpinBoxSlider(spinbox=self.widget, **self.param.opts)
+        self.slider.sigSliderSpanChanged.connect(self._set_parameter_span)
+
         self.slider_layout_widget = self.slider.layout_widget()
         self.slider.sliderPressed.connect(self.valueWidgetClicked)
 
@@ -85,6 +87,9 @@ class SpinBoxSliderParameterItem(NumericParameterItem,
         if isinstance(self.setNoneCheckbox, QtWidgets.QCheckBox):
             self.setNoneCheckbox.clicked.connect(self.checkBoxClicked)
             self.updateCheckBoxUI(self.param.value())
+
+    def _set_parameter_span(self, value, ):
+        self.param.setSpan(value, blockSignal=self.optsChanged)
 
     def checkBoxClicked(self, value):
         b_set_to_none = not bool(value)
@@ -162,8 +167,11 @@ class SpinBoxSliderParameterItem(NumericParameterItem,
 
         if self.slider:
             if ParamOpts.KW.SPAN in opts:
+                self.slider.sigSliderSpanChanged.disconnect(
+                    self._set_parameter_span)
                 self.slider.set_span(opts[ParamOpts.KW.SPAN])
-
+                self.slider.sigSliderSpanChanged.connect(
+                    self._set_parameter_span)
             if (b_readonly := opts.get(ParamOpts.KW.READONLY)) is not None:
                 self.slider.setVisible(not bool(b_readonly))
 
@@ -247,7 +255,6 @@ class SpinBoxSliderParameter(Parameter):
         super().__init__(**options)
         self.b_merge_to_parent = b_merge_to_parent
 
-
     def hasDefault(self):
         if self.opts.get(ParamOpts.KW.C_NULLABLE_VALUE, False):
             s = super().hasDefault()
@@ -274,6 +281,13 @@ class SpinBoxSliderParameter(Parameter):
 
     def setValue(self, value, blockSignal=None):
         return super().setValue(value, blockSignal)
+
+    def setSpan(self, span, blockSignal=None):
+        if blockSignal is not None:
+            self.sigOptionsChanged.disconnect(blockSignal)
+        self.setOpts(**{ParamOpts.KW.SPAN: span})
+        if blockSignal is not None:
+            self.sigOptionsChanged.connect(blockSignal)
 
 
 @dataclass

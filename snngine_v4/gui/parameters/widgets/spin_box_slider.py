@@ -1,6 +1,5 @@
 from decimal import Decimal
 from functools import cached_property
-from linecache import cache
 
 import numpy as np
 import pandas as pd
@@ -106,6 +105,8 @@ class CustomSlider(QtWidgets.QSlider):
 # noinspection PyPep8Naming
 class SpinBoxSlider(CustomSlider):
 
+    sigSliderSpanChanged = QtCore.Signal(object)
+
     def __init__(self,
                  spinbox: SpinBox = None,
                  orientation=QtCore.Qt.Orientation.Horizontal,
@@ -198,6 +199,7 @@ class SpinBoxSlider(CustomSlider):
         self.charSpan = np.char.array(span)
         self.setMinimum(0)
         self.setMaximum(len(span) - 1)
+        self.sigSliderSpanChanged.emit(self.span)
 
     def _reset_span(self, value):
         lims = self.bounds

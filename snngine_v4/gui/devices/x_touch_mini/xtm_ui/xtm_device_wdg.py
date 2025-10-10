@@ -1,22 +1,35 @@
+from __future__ import annotations
+
+from functools import cached_property
+from typing import Callable
+
 import mido
 import pandas as pd
-from qtpy import QtWidgets, QtCore
+from qtpy import QtGui, QtWidgets, QtCore
 
 from snngine_v4.gui.devices.x_touch_mini.x_touch_mini_device import \
     XTouchMiniDevice
-from snngine_v4.gui.devices.x_touch_mini.xtm_data_types import (XTMLayer,
-                                                                XTMMessageType)
+from snngine_v4.gui.devices.x_touch_mini.xtm_data_types import (
+    XTMLayer,
+    XTMMessageType
+)
 from snngine_v4.gui.devices.x_touch_mini.xtm_state import XTMMessageModel
-from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_button_wdgs import \
-    (XTMButton, XTMConnectedButton, XTMLayerButton, XTMLedButton, XTMModeButton,
-     XTMNoteButton)
+from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_button_wdgs import (
+    XTMButton,
+    XTMConnectedButton,
+    XTMLayerButton,
+    XTMLedButton,
+    XTMModeButton,
+    XTMNoteButton
+)
 from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_cb_wdgs import \
     (XTMDeviceIdCb, XTMGlobalChannelCb)
 from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_knob_wdg import \
     XTMKnobWidget
-from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_ui_config import (UIConfig,
-                                                                      XTMLabel)
-from snngine_v4.gui.parameters import SpinBoxSliderParameter
+from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_ui_config import (
+    UIConfig,
+    XTMLabel
+)
 
 
 class XTMFaderWidget(QtWidgets.QWidget):
@@ -24,6 +37,10 @@ class XTMFaderWidget(QtWidgets.QWidget):
     def __init__(self, xtm_device, **kwargs):
         super().__init__(**kwargs)
         self._xtm_device = xtm_device
+
+        from snngine_v4.gui.parameters.spin_box_slider_parameter import (
+            SpinBoxSliderParameter)
+
         self.fader_par = SpinBoxSliderParameter(
             default=0,
             name='Fader',
@@ -33,6 +50,11 @@ class XTMFaderWidget(QtWidgets.QWidget):
             widget_orientation='Vertical')
 
         self.fader_item = self.fader_par.makeTreeItem(depth=0)
+        self.fader_item.widget.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.MinimumExpanding,
+            QtWidgets.QSizePolicy.Policy.Minimum,
+        )
+
         self.setLayout(QtWidgets.QVBoxLayout())
         self.layout().addWidget(self.fader_item.slider)
         self.layout().addWidget(self.fader_item.widget)
@@ -44,6 +66,47 @@ class XTMFaderWidget(QtWidgets.QWidget):
         print('fader value (widget):', value)
         self.fader_item.slider.setValue(value)
         # self._xtm_device.save_fader_state()
+
+
+class XTMDeviceOptionsWindow(QtWidgets.QWidget):
+
+    layout: Callable[..., QtWidgets.QFormLayout]
+
+    def __init__(self,
+                 window_title,
+                 *args,
+                 device_widget: XTMDeviceWidget, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.setWindowTitle(window_title)
+        self.setWindowModality(
+            QtCore.Qt.WindowModality.ApplicationModal)
+
+        self.device_widget: XTMDeviceWidget = device_widget
+
+        self.display_group = QtWidgets.QGroupBox("Display")
+        self.show_button_numbers_checkbox = QtWidgets.QCheckBox(
+            "Button numbers")
+
+        self.show_button_numbers_checkbox.clicked.connect(
+            self.show_button_numbers)
+
+        self.setLayout(QtWidgets.QFormLayout())
+        display_group_layout = QtWidgets.QHBoxLayout()
+        self.display_group.setLayout(display_group_layout)
+        display_group_layout.addWidget(self.show_button_numbers_checkbox)
+        self.layout().addRow(self.display_group)
+
+    def closeEvent(self, event: QtGui.QCloseEvent):
+        self.device_widget.options_btn.setChecked(False)
+        super().closeEvent(event)
+    
+    def show_button_numbers(self, value):
+        for btn in self.device_widget.buttons.values():
+            if value is True:
+                btn.setText(str(btn.button_index))
+            else:
+                btn.setText("")
 
 
 class XTMDeviceWidget(QtWidgets.QWidget):
@@ -113,9 +176,13 @@ class XTMDeviceWidget(QtWidgets.QWidget):
         connected_widget.layout().setContentsMargins(0, 0, 0, 0)
         connected_widget.setContentsMargins(0, 0, 0, 0)
 
-        self.read_info_button = XTMButton('Read Info')
+        self.read_info_button = XTMButton("Read Info")
         self.read_info_button.clicked.connect(
             self.xtm_device.send_read_device_info_command)
+
+        self.options_btn = XTMButton("Options")
+        self.options_btn.setCheckable(True)
+        self.options_btn.clicked.connect(self.show_options)
 
         self.save_btn = XTMButton('Save', width_divider=2.08)
         self.save_btn.clicked.connect(self.save_device_config)
@@ -154,6 +221,7 @@ class XTMDeviceWidget(QtWidgets.QWidget):
         right_widget.layout().addWidget(connected_widget)
         right_widget.layout().addWidget(save_load_widget)
         right_widget.layout().addWidget(self.read_info_button)
+        right_widget.layout().addWidget(self.options_btn)
         right_widget.layout().addWidget(XTMLabel('Global Channel:'))
         right_widget.layout().addWidget(self.global_channel_cb)
         right_widget.layout().addWidget(device_id_widget)
@@ -232,6 +300,20 @@ class XTMDeviceWidget(QtWidgets.QWidget):
     def save_device_config(self, a0):
         self.xtm_device.save_config()
 
+    @cached_property
+    def options_window(self) -> XTMDeviceOptionsWindow:
+        wdg = XTMDeviceOptionsWindow(
+            window_title=self.windowTitle() + " - Options",
+            device_widget=self)
+        return wdg
+
+    def show_options(self):
+        value = self.options_btn.isChecked()
+        self.options_window.setVisible(value)
+        # if value:
+            # self.setFocusProxy(self.options_window)
+
+
     def closeEvent(self, event):
         self.xtm_device.save_config()
         event.accept()
@@ -243,6 +325,8 @@ if __name__ == "__main__":
     app_ = QtWidgets.QApplication([''])
     qdarktheme.setup_theme('dark')
     device_ = XTouchMiniDevice()
+    # window_ = QtWidgets.QMainWindow()
     x_wdg_ = XTMDeviceWidget(xtm_device=device_)
+    # window_.setCentralWidget(x_wdg_)
     x_wdg_.show()
     app_.exec()

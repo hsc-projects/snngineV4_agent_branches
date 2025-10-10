@@ -156,19 +156,6 @@ class LinkerTree(EngineParameterTree):
 
     def read_tree(self, tree: EngineParameterTree, item=None):
 
-        # if item is None:
-        #     item = tree.invisibleRootItem()
-        #     items = []
-        #     for i in range(item.childCount()):
-        #         items.append(item.child(i))
-        #
-        #     params = [x.param for x in items if hasattr(x, 'param')]
-        #     all_param_names = [x.name() for x in params]
-        #     all_params = dict(zip(all_param_names, params))
-        # else:
-        #     param: Parameter = item.param
-        #     all_params = param.names()
-
         all_params = tree.list_all_parameters()
         all_param_names = [x.name() for x in all_params]
         all_params_dict = dict(zip(all_param_names, all_params))
@@ -176,9 +163,3 @@ class LinkerTree(EngineParameterTree):
 
         for p in all_params:
             self.update_parameter(p)
-
-        # my_param = self.list_all_parameters()
-        #
-        # for param in my_param:
-        #     if isinstance(param, LinkerParameter):
-        #         param.setLimits(all_params)

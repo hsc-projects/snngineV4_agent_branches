@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import time
 from typing import Callable, ClassVar, Union
 
@@ -85,7 +84,7 @@ class XTouchMiniDevice:
             self.send_read_device_info_command()
             # self.input_port._rt.ignore_types(timing=False)
         except OSError as e:
-            print('Error:', e)
+            print(f"[{self.__class__.__name__}] Error:", e)
 
     @property
     def connected(self):
@@ -105,7 +104,7 @@ class XTouchMiniDevice:
         rtmidi_in.cancel_callback()
         # noinspection PyProtectedMember
         rtmidi_out = self.output_port._rt
-        device_info = 'f0 40 41 42 51 00 00 00 00 00 00 00 00 f7'
+        device_info = "f0 40 41 42 51 00 00 00 00 00 00 00 00 f7"
         sending_data = bytearray.fromhex(device_info)
         rtmidi_out.send_message(sending_data)
         timeout = 2
@@ -114,8 +113,7 @@ class XTouchMiniDevice:
             receiving_data = rtmidi_in.get_message()
             timeout_actual = time.time()
             if (timeout_actual - timeout_start) > timeout:
-                print(
-                    'No answering from device')
+                print(f"[{self.__class__.__name__}] Timeout")
                 break
             if receiving_data is not None and isinstance(receiving_data, tuple):
                 break
@@ -142,7 +140,7 @@ class XTouchMiniDevice:
         self.device_config = conf
         self.apply_config()
 
-    def save_config(self, fn=None, **kwargs):
+    def save_config(self, fn=None):
         if fn is None:
             fn = self.config_file_path
         self._device_config.export(fn)
@@ -151,11 +149,12 @@ class XTouchMiniDevice:
         #     content = XMLConverter.to_xml_str(nodel_dict, **kwargs)
         #     file.write(content)
 
-    def save_fader_state(self, fn=None, **kwargs):
+    def save_fader_state(self, fn=None):
         if fn is None:
             fn = self.fader_state_file_path
         self._device_config.encoder_values.fader.value.export(fn)
-        # nodel_dict = self._device_config.encoder_values.fader.value.model_dump(
+        # nodel_dict = self._device_config.encoder_values.fader
+        # .value.model_dump(
         #     mode='json')
         # with open(fn, 'w') as file:
         #     content = XMLConverter.to_xml_str(nodel_dict, **kwargs)
@@ -220,10 +219,9 @@ class XTouchMiniDevice:
         self.write(msg)
 
     def write(self, msg: mido.Message | XTMMessageModel):
-        if self._connected is False:
+        if not self._connected:
             self.connect_to_device()
-        if self._connected is True:
+        if self._connected:
             if self.b_verbose:
                 print('output:', msg)
             self.output_port.send(msg)
-

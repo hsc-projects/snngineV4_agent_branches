@@ -95,7 +95,8 @@ class IndexParameter(EngineGroupParameter):
             pass
         else:
             model = self.signal_register.group_map.inv[param]
-            value = param.child(RowOrColumn.Slots.SCALAR_VALUE).value()
+            p_child: Parameter = param.child(RowOrColumn.Slots.SCALAR_VALUE)
+            value = p_child.value()
             if pd.notna(value) or self.parent_model.b_nullable:
                 if isinstance(model, Row):
                     self.array_parameter.qdf.setRowValue(

@@ -10,10 +10,14 @@ from pyqtgraph.parametertree.parameterTypes import (
 
 from snngine_v4.gui.parameter_trees.linker_tree.controls_map import \
     ControllerAction
-from snngine_v4.gui.parameter_trees.linker_tree.linker_widget import \
-    (LinkerWidget, ShortCutWidget)
+from snngine_v4.gui.parameter_trees.linker_tree.linker_widget import (
+    LinkerWidget,
+    ShortCutWidget
+)
 from snngine_v4.gui.parameter_trees.linker_tree.linker_window import \
     LinkerWindow
+from snngine_v4.gui.parameter_trees.linker_tree.xtm_linker_widgets import \
+    (XTMLinkerInputWidget, XTMLinkerWidget)
 from snngine_v4.gui.parameters.common.action_mixins import (
     ActionItemMixin,
     ActionParameterMixin
@@ -37,6 +41,7 @@ class AddLinkerActionParameter(EngineGroupParameter):
 # class LinkerParameterItem(ListParameterItem, ActionItemMixin):
 class LinkerParameterItem(WidgetParameterItem, ActionItemMixin):
 
+    param: LinkerParameter
     widget: ShortCutWidget
 
     def __init__(self, param, depth):
@@ -47,21 +52,34 @@ class LinkerParameterItem(WidgetParameterItem, ActionItemMixin):
         linker_tree: LinkerTree = self.treeWidget()
         self.asSubItem = True
         self.hideWidget = False
-        wdg = ShortCutWidget(
-            parameter=None,
-            linker_tree=linker_tree,
-        )
+
+        action: ControllerAction = self.param.value()
+        if isinstance(action.input_obj, QKeySequence):
+            wdg = ShortCutWidget(
+                parameter=None,
+                linker_tree=linker_tree,
+            )
+        elif isinstance(action.input_obj, XTMLinkerInputWidget):
+            wdg = XTMLinkerWidget(
+                parameter=None,
+                linker_tree=linker_tree,
+                xtm_device_wdg=action.input_obj.xtm_device_wdg,
+            )
+        else:
+            raise NotImplementedError(f"{type(action)}")
         wdg.sigChanged = None
 
         def setValue(value):
-            if wdg.linker_tree is None:
-                wdg.linker_tree = self.treeWidget()
+            # if wdg.linker_tree is None:
+            #     wdg.linker_tree = self.treeWidget()
             if value not in [None, '']:
                 wdg.load_controller(value)
             else:
                 wdg.disconnect_parameter(b_block_signal=False)
 
         def value():
+            # if wdg.linker_tree is None:
+            #     wdg.linker_tree = self.treeWidget()
             return wdg.controller
 
         wdg.setValue = setValue
@@ -115,6 +133,12 @@ class LinkerParameterItem(WidgetParameterItem, ActionItemMixin):
     def requestRemove(self):
         self.widget.disconnect_parameter(b_block_signal=False)
 
+    def treeWidgetChanged(self):
+        super().treeWidgetChanged()
+        # if self.widget.linker_tree is None:
+        tree = self.treeWidget()
+        self.widget.linker_tree = tree
+
 
 class LinkerParameter(ListParameter, ActionParameterMixin):
 
@@ -150,3 +174,6 @@ class LinkerParameter(ListParameter, ActionParameterMixin):
             self.setName(new_name)
         else:
             self.setName(self.init_name)
+
+# class XTMLinkerParameter(LinkerParameter):
+#     itemClass = LinkerParameterItem

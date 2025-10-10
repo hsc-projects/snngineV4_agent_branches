@@ -122,7 +122,7 @@ class PowerBar(QtWidgets.QWidget):
 
         # Create the QDial widget and set up defaults.
         # - we provide accessors on this class to override.
-        self._dial = QtWidgets.QDial()
+        self._dial: QtWidgets.QDial = QtWidgets.QDial()
         self._dial.setNotchesVisible(True)
         self._dial.setWrapping(False)
         # noinspection PyProtectedMember

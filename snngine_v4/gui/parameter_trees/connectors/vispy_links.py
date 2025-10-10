@@ -360,6 +360,7 @@ class VispyLinks(Object2ObjectLinks):
         if isinstance(event, Set3DAttributeEvent):
             for ax in Ax3D:
                 try:
+                    ax: Ax3D
                     link = model_signals[str][ax.name]
                     cls.cls_update_model_attribute(
                         link, ax.name, event.value[ax.value], block)

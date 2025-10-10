@@ -18,7 +18,6 @@ from snngine_v4.utils.data_utils.validation.dtype_annotation import (
 from snngine_v4.utils.settings.config_model import ConfigModel
 
 
-@unique
 class NeuronType(IntEnum):
     INHIBITORY = 1
     EXCITATORY = auto()

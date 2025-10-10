@@ -45,6 +45,8 @@ class ReferenceParameterItem(WidgetParameterItem, WidgetParameterItemMixin):
     treeWidget: Callable[[], ParameterTree | EngineParameterTree]
     widget: ReferenceLineEdit
 
+    param: Parameter
+
     def __init__(self, param, depth):
         self.makeWidget = ReferenceLineEdit
         super().__init__(param, depth)
