@@ -28,7 +28,7 @@ class XTouchMiniDevice:
         if io_device_config is None:
             io_device_config = XTMConfig()
 
-        self.device_config = io_device_config
+        self.device_config: XTMConfig = io_device_config
 
         config_file_path = XTMConfig._xml_file_paths()
         self.config_file_path = config_file_path
@@ -85,6 +85,7 @@ class XTouchMiniDevice:
             # self.input_port._rt.ignore_types(timing=False)
         except OSError as e:
             print(f"[{self.__class__.__name__}] Error:", e)
+            self._connected = False
 
     @property
     def connected(self):
@@ -127,7 +128,8 @@ class XTouchMiniDevice:
     @input_callback.setter
     def input_callback(self, value):
         self._input_callback = value
-        self.input_port.callback = value
+        if self.connected:
+            self.input_port.callback = value
 
     def load_config(self, fn=None):
         if fn is None:

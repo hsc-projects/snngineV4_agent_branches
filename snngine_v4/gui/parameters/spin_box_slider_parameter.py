@@ -66,7 +66,7 @@ class SpinBoxSliderParameterItem(NumericParameterItem,
         self.slider = SpinBoxSlider(spinbox=self.widget, **self.param.opts)
         self.slider.sigSliderSpanChanged.connect(self._set_parameter_span)
 
-        self.slider_layout_widget = self.slider.layout_widget()
+        self.slider_layout_widget = self.slider.layout_widget
         self.slider.sliderPressed.connect(self.valueWidgetClicked)
 
         self._remove_spacer_item(idx=2)

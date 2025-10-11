@@ -8,13 +8,15 @@ from qtpy.QtWidgets import QWidget
 from pyqtgraph.parametertree import Parameter
 
 from snngine_v4.gui.common.qobject_dicts import QObjectDictSignals
-from snngine_v4.gui.parameter_trees.linker_tree.device_input_widget import \
-    (DeviceController, DeviceInputSelectorWidget)
+from snngine_v4.gui.parameter_trees.linker_tree.device_input_widget import (
+    DeviceInputSelectorWidget
+)
 from snngine_v4.utils.containers.configurable_dict import (ConfigurableDict,
                                                            DictContainerConfig)
 from snngine_v4.utils.containers.mappings import (Object2ObjectMap,
                                                   ObjectMapConfig)
 from snngine_v4.utils.core_utils import type_assertion
+from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 
 class ControllerActionType(IntEnum):
@@ -33,7 +35,7 @@ class ControllerAction:
     input_obj: QKeySequence | DeviceInputSelectorWidget
     parameter: Parameter
     window: QWidget
-    controller_obj: QShortcut | DeviceController = field(
+    controller_obj: QShortcut | QtCore.Signal = field(
         init=False, default=None)
     func: Callable | None = field(init=False, default=None)
 
@@ -47,11 +49,14 @@ class ControllerAction:
             if isinstance(self.input_obj, QKeySequence):
                 self.controller_obj = QShortcut(self.input_obj, self.window)
             elif isinstance(self.input_obj, DeviceInputSelectorWidget):
+                self.input_obj.update_target()
                 self.controller_obj = self.input_obj.make_device_controller()
 
         match self.action_type:
             case ControllerActionType.TOGGLE:
                 self.func = self.toggle_parameter
+            case ControllerActionType.VALUE:
+                self.func = self.set_parameter_value
             case _:
                 def print_():
                     print(f"Not implemented: {self.action_type.name}")
@@ -97,7 +102,7 @@ class ControllerAction:
 
         if isinstance(self.controller_obj, QShortcut):
             self.controller_obj.activated.disconnect(self.func)
-        elif isinstance(self.controller_obj, DeviceController):
+        elif isinstance(self.controller_obj, QtCore.Signal):
             self.controller_obj.disconnect(self.func)
 
         self.func = None
@@ -117,6 +122,8 @@ class ControllerAction:
         self.parameter.setValue(value)
 
     def set_parameter_value(self, value):
+        if self.parameter.opts[ParamOpts.KW.TYPE] == 'int':
+            value = int(value)
         self.parameter.setValue(value)
 
 

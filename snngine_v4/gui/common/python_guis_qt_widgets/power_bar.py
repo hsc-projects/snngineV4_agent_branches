@@ -95,10 +95,12 @@ class _Bar(QtWidgets.QWidget):
         self.clickedValue.emit(value)
 
     def mouseMoveEvent(self, e):
+        # if e.button() == QtCore.Qt.MouseButton.LeftButton:
         self._calculate_clicked_value(e)
 
     def mousePressEvent(self, e):
-        self._calculate_clicked_value(e)
+        if e.button() == QtCore.Qt.MouseButton.LeftButton:
+            self._calculate_clicked_value(e)
 
 
 # noinspection PyPep8Naming

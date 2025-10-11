@@ -154,7 +154,7 @@ class LinkerWindow(QtWidgets.QScrollArea):
             else:
                 widget = self.add_widget()
 
-            widget.parameter = parameter
+            # widget.parameter = parameter
             if i < controller_count:
                 self.ctrl_widget_map[controllers[i]] = widget
                 widget.load_controller(controllers[i])

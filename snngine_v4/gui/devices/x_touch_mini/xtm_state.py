@@ -106,7 +106,8 @@ class XTMValueType(IntEnum):
 class XTMElementModel(BaseModel):
 
     name_id: str
-    channel: XTMChannelValue = XTMChannelValue.from_value(11)
+    channel: XTMChannelValue = Field(
+        default_factory=lambda: XTMChannelValue.from_value(11))
     # cc: XTMIntValue = XTMIntValue.from_value(-1)
     cc: int = -1
     element_type: MoveEncoderType | PushEncoderType
@@ -166,10 +167,24 @@ class XTMFaderModel(XTMElementModel):
 
 class XTMKnobModel(XTMElementModel):
     element_type: MoveEncoderType = MoveEncoderType.CC
+    auto_value_reset: XTMBooleanValue = Field(
+        default_factory=lambda: XTMBooleanValue.from_value(False))
+
+    def get_auto_value_reset_value(
+            self, mode: XTMMode, layer: XTMLayer | None = None,):
+        return self.auto_value_reset.get_value(mode=mode, layer=layer)
+
+    def set_auto_value_reset_value(
+            self, value: int, mode: XTMMode,
+            layer: XTMLayer | None = None,
+            b_verbose: bool = False):
+        self.auto_value_reset.set_value(
+            value=value, mode=mode, layer=layer, b_verbose=b_verbose)
 
 
 class XTMButtonModel(XTMElementModel):
-    b_pressed: XTMBooleanValue = XTMBooleanValue.from_value(False)
+    b_pressed: XTMBooleanValue = Field(
+        default_factory=lambda: XTMBooleanValue.from_value(False))
     note: int
     behavior: XTMButtonBehavior = XTMButtonBehavior.TOGGLE
     element_type: PushEncoderType = PushEncoderType.NOTE
@@ -290,6 +305,11 @@ class XTMConfig(XMLSettingsModel):
         return self.encoder_values.fader.get_value(
             mode=self.info.mode, layer=self.info.layer)
 
+    def get_knob_auto_value_reset(self, knob_idx: int):
+        knob = self.encoder_values.knobs[knob_idx]
+        return knob.get_auto_value_reset_value(
+            mode=self.info.mode, layer=self.info.layer)
+
     def get_knob_value(self, knob_idx: int):
         knob = self.encoder_values.knobs[knob_idx]
         return knob.get_value(mode=self.info.mode, layer=self.info.layer)
@@ -304,6 +324,11 @@ class XTMConfig(XMLSettingsModel):
 
     def set_fader_value(self, value: int):
         self.encoder_values.fader.value.set_all_values(value=value)
+
+    def set_knob_auto_value_reset(self, knob_idx: int, value: bool):
+        knob = self.encoder_values.knobs[knob_idx]
+        return knob.set_auto_value_reset_value(
+            value=value, mode=self.info.mode, layer=self.info.layer)
 
     def set_knob_value(self, knob_idx: int, value: int):
         # print(f"set_knob_value: {knob_idx} {value}")

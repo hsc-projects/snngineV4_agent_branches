@@ -12,13 +12,15 @@ from qtpy import QtWidgets
 
 from snngine_v4.gui.parameter_trees.parameter_builder.options_builder import \
     OptionsBuilder
-from snngine_v4.gui.parameters.common.action_mixins import \
-    (
+from snngine_v4.gui.parameters.common.action_mixins import (
     ActionItemMixin, ActionParameterMixin,
 )
-from snngine_v4.gui.parameters.common.engine_group_parameter import EngineGroupParameter
-from snngine_v4.gui.parameters.widgets.table.array_editor import ArrayEditorArea
-from snngine_v4.gui.parameters.widgets.table.df_table_widget import QDataFrameTableWidget
+from snngine_v4.gui.parameters.common.engine_group_parameter import (
+    EngineGroupParameter)
+from snngine_v4.gui.parameters.widgets.table.array_editor import (
+    ArrayEditorArea)
+from snngine_v4.gui.parameters.widgets.table.df_table_widget import (
+    QDataFrameTableWidget)
 from snngine_v4.gui.parameters.widgets.table.df_table_widget_dock import (
         TableDock
     )
@@ -30,8 +32,8 @@ from snngine_v4.utils.data_utils.dataframe_config import (
     TypedDataFrameBase3D,
 )
 from snngine_v4.utils.data_utils.index_config import IndexConfig
-from snngine_v4.utils.data_utils.validation.array_annotation \
-    import ArrayInterfaces
+from snngine_v4.utils.data_utils.validation.array_annotation import (
+    ArrayInterfaces)
 
 
 from snngine_v4.gui.parameters.widgets.table.q_dataframe import (

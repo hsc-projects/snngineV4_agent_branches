@@ -142,6 +142,12 @@ class SpinBoxSlider(CustomSlider):
         orientation = opts.get('widget_orientation', 'Horizontal')
         self.setOrientation(QtCore.Qt.Orientation[orientation])
 
+        if self.spinbox.opts[ParamOpts.KW.BOUNDS][0] is None:
+            self.spinbox.setMinimum(self.bounds[0])
+
+        if self.spinbox.opts[ParamOpts.KW.BOUNDS][1] is None:
+            self.spinbox.setMaximum(self.bounds[1])
+
         self.spinbox.sigValueChanging.connect(self.setValueFromSpinBox)
         self.spinbox.sigValueChanged.connect(self.updateDisplayWidget)
         self.sliderReleased.connect(self.onSliderRelease)
@@ -150,8 +156,6 @@ class SpinBoxSlider(CustomSlider):
         self.setValue(slider_value)
 
         self.valueChanged.connect(self.setValueFromSlider)
-
-        self._layout_widget = None
 
     @cached_property
     def display_widget(self):
@@ -162,18 +166,18 @@ class SpinBoxSlider(CustomSlider):
             txt = self.spinbox.lineEdit().text()
             self._display_widget.setText(txt)
 
+    @cached_property
     def layout_widget(self,):
-        if self._layout_widget is None:
-            widget = QtWidgets.QWidget()
-            widget.setLayout(QtWidgets.QHBoxLayout())
-            widget.layout().addWidget(self)
-            widget.layout().setContentsMargins(13, 0, 13, 0)
-            widget.setMinimumWidth(50)
-            self._layout_widget = widget
-        return self._layout_widget
+        widget = QtWidgets.QWidget()
+        widget.setLayout(QtWidgets.QHBoxLayout())
+        widget.layout().addWidget(self)
+        widget.layout().setContentsMargins(13, 0, 13, 0)
+        widget.setMinimumWidth(50)
+        return widget
 
     @property
-    def bounds(self):
+    def bounds(self) -> np.ndarray:
+        # noinspection PyTypeChecker
         return np.float64(np.array(self.opts[ParamOpts.KW.BOUNDS]))
 
     @property
@@ -238,3 +242,8 @@ class SpinBoxSlider(CustomSlider):
 
     def spanToSliderValue(self, v):
         return int(np.argmin(np.abs(self.span - v)))
+
+    # def setMaximum(self, value):
+    #     self.opts[ParamOpts.KW.BOUNDS][1] = value
+    #     super().setMaximum(value)
+    #     self._reset_span(value)

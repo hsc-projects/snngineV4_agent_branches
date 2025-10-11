@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, TYPE_CHECKING
 
-from pyqtgraph import ComboBox, SpinBox
+from pyqtgraph import ComboBox
 from pyqtgraph.parametertree import Parameter
 from qtpy import QtCore, QtWidgets, QtGui
 from qtpy.QtWidgets import QSizePolicy
@@ -12,6 +12,8 @@ from snngine_v4.gui.parameter_trees.linker_tree.controls_map import (
     ControllerAction,
     ControllerActionType
 )
+from snngine_v4.gui.parameter_trees.linker_tree.range_map_widget import \
+    RangeMapWidget
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 
@@ -84,79 +86,6 @@ class BindingExistsLabel(QtWidgets.QGroupBox):
             self.action_type_label.setText(text[3])
 
 
-class RangeMapWidget(QtWidgets.QGroupBox):
-    layout: Callable[..., QtWidgets.QHBoxLayout]
-
-    def __init__(self,
-                 label0: str,
-                 label1: str,
-                 title="Range Map",
-                 **kwargs):
-        super().__init__(title=title, **kwargs)
-        self.setLayout(QtWidgets.QHBoxLayout())
-
-        self.label0 = QtWidgets.QLabel(label0)
-        self.max0 = SpinBox()
-        self.min0 = SpinBox()
-
-        self.label1 = QtWidgets.QLabel(label1)
-        self.max1 = SpinBox()
-        self.min1 = SpinBox()
-
-        v_layout0 = QtWidgets.QVBoxLayout()
-        v_layout0.addWidget(self.label0)
-        v_layout0.addWidget(self.max0)
-        v_layout0.addWidget(self.min0)
-
-        v_layout1 = QtWidgets.QVBoxLayout()
-        v_layout1.addWidget(self.label1)
-        v_layout1.addWidget(self.max1)
-        v_layout1.addWidget(self.min1)
-
-        self.layout().addLayout(v_layout0)
-        self.layout().addLayout(v_layout1)
-
-    def _set_range(self,
-                   min_spinbox: SpinBox,
-                   max_spinbox: SpinBox,
-                   minimum, maximum,
-                   minimum_allowed=None,
-                   maximum_allowed=None,
-                   **opts):
-        if maximum is not None:
-            max_spinbox.setValue(maximum)
-        if minimum is not None:
-            min_spinbox.setValue(minimum)
-        if minimum_allowed is not None:
-            max_spinbox.setMinimum(minimum_allowed)
-            min_spinbox.setMinimum(minimum_allowed)
-        if maximum_allowed is not None:
-            self.max0.setMaximum(maximum_allowed)
-            self.min0.setMaximum(maximum_allowed)
-        if len(opts) > 0:
-            max_spinbox.setOpts(**opts)
-            min_spinbox.setOpts(**opts)
-
-    def set_range0(self, minimum, maximum,
-                   minimum_allowed=None, maximum_allowed=None,
-                   **opts):
-        self._set_range(
-            min_spinbox=self.min0, max_spinbox=self.max0,
-            minimum_allowed=minimum_allowed,
-            maximum_allowed=maximum_allowed,
-            minimum=minimum, maximum=maximum, **opts)
-
-    def set_range1(self, minimum, maximum,
-                   minimum_allowed=None,
-                   maximum_allowed=None,
-                   **opts):
-        self._set_range(
-            min_spinbox=self.min1, max_spinbox=self.max1,
-            minimum_allowed=minimum_allowed,
-            maximum_allowed=maximum_allowed,
-            minimum=minimum, maximum=maximum, **opts)
-
-
 class LinkerWidget(QtWidgets.QWidget):
 
     layout: Callable[..., QtWidgets.QFormLayout]
@@ -206,21 +135,10 @@ class LinkerWidget(QtWidgets.QWidget):
         self.save_btn.setEnabled(False)
 
         self.input_widget = self.make_input_widget()
-        
-        # def reconnect():
-        #     if self._controller is not None:
-        #         if self._controller.func is None:
-        #             self._controller.connect_parameter()
-        #         else:
-        #             self._controller.disconnect_parameter()
-        #
-        # self.reconnect_btn = QtWidgets.QPushButton('Reconnect')
-        # self.reconnect_btn.clicked.connect(reconnect)
 
         h_layout = QtWidgets.QHBoxLayout()
         h_layout.addWidget(self.save_btn)
         h_layout.addWidget(self.delete_btn)
-        # h_layout.addWidget(self.reconnect_btn)
 
         self.layout().addRow('Type: ', self.type_combo)
 
@@ -269,13 +187,6 @@ class LinkerWidget(QtWidgets.QWidget):
         self.clear_input_widget()
         self.input_widget.setEnabled(True)
         self.type_combo.setEnabled(True)
-        if (self._parameter is not None) and self.has_range_map_wdg:
-            if ParamOpts.KW.SPAN is self._parameter.opts:
-                minimum = maximum = None
-            else:
-                minimum = maximum = None
-
-            self.range_map_wdg.set_range1()
 
     def clear_input_widget(self):
         raise NotImplementedError()
@@ -315,12 +226,13 @@ class LinkerWidget(QtWidgets.QWidget):
 
         self.disconnect_inputs()
 
+        self._controller = controller
+        self._parameter = controller.parameter
+        self.reset_range()
         self._update_input_widget(controller=controller)
         self.type_combo.setValue(controller.action_type)
         self.input_widget.setEnabled(False)
         self.type_combo.setEnabled(False)
-        self._controller = controller
-        self._parameter = self._controller.parameter
         self.save_btn.setEnabled(False)
 
         self.connect_inputs()
@@ -377,6 +289,15 @@ class LinkerWidget(QtWidgets.QWidget):
                                  and (not b_action_exists)
                                  and (not b_action_is_self))
 
+    @staticmethod
+    def parameter_label_text(par: Parameter):
+        text = par.name()
+        parent = par.parent()
+        while parent:
+            text = parent.name() + '.' + text
+            parent = parent.parent()
+        return text
+
     @cached_property
     def range_map_wdg(self) -> RangeMapWidget:
         self.has_range_map_wdg = True
@@ -389,30 +310,32 @@ class LinkerWidget(QtWidgets.QWidget):
     def reset(self, parameter=None):
         self.disconnect_inputs()
         self.type_combo.setItems(self.all_types_items)
-        self.clear()
         self._controller = None
         self._parameter = parameter
+        self.reset_range()
+        self.clear()
         self.save_btn.setEnabled(False)
         self.connect_inputs()
 
-    @property
-    def parameter(self):
-        return self._parameter
+    def reset_range(self):
+        if (self._parameter is not None) and self.has_range_map_wdg:
+            par_opts = self._parameter.opts
+            opts = {}
+            if (span := par_opts.get(ParamOpts.KW.SPAN)) is not None:
+                minimum = min(span)
+                maximum = max(span)
+                minimum_allowed = minimum
+                maximum_allowed = maximum
 
-    @parameter.setter
-    def parameter(self, value):
-        self._controller = None
-        self._parameter = value
-        self.clear()
+            else:
+                minimum = maximum = minimum_allowed = maximum_allowed = None
 
-    @staticmethod
-    def parameter_label_text(par: Parameter):
-        text = par.name()
-        parent = par.parent()
-        while parent:
-            text = parent.name() + '.' + text
-            parent = parent.parent()
-        return text
+            self.range_map_wdg.set_range1(
+                minimum=minimum, maximum=maximum,
+                minimum_allowed=minimum_allowed,
+                maximum_allowed=maximum_allowed,
+                **opts
+            )
 
     def save_controller(self, b_block_signal: bool):
         new_action = self.make_controller()
@@ -494,10 +417,6 @@ class ShortCutWidget(LinkerWidget):
         return self.input_widget.keySequenceChanged
 
     def _update_input_widget(self, controller):
-        # if controller is None:
-        #     self.input_widget.clear()
-        # else:
-        #     self.input_widget.setKeySequence(controller.input_obj)
         self.input_widget.setKeySequence(controller.input_obj)
 
 

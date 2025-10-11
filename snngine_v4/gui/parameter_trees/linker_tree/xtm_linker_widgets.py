@@ -1,27 +1,34 @@
 from __future__ import annotations
 
+from copy import copy
 from enum import IntEnum, auto
+from functools import cached_property
 from typing import Callable, TYPE_CHECKING
 
 from pyqtgraph import ComboBox
 from pyqtgraph.parametertree import Parameter
-from qtpy import QtWidgets
+from qtpy import QtCore, QtWidgets
 
 from snngine_v4.gui.devices.x_touch_mini.xtm_data_types import XTMLayer
 from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_button_wdgs import \
     XTMNoteButton
 from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_device_wdg import (
-    XTMDeviceWidget,
-    XTMFaderWidget
+    XTMDeviceWidget
 )
+from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_fader_wdg import \
+    XTMFaderWidget
 from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_knob_wdg import \
     XTMKnobWidget
-from snngine_v4.gui.parameter_trees.linker_tree.device_input_widget import \
-    (DeviceController, DeviceInputSelectorWidget)
+from snngine_v4.gui.devices.x_touch_mini.xtm_ui.xtm_ui_config import \
+    XTMRangeMapWidget
+from snngine_v4.gui.parameter_trees.linker_tree.device_input_widget import (
+    DeviceInputSelectorWidget)
 from snngine_v4.gui.parameter_trees.linker_tree.linker_widget import \
     LinkerWidget
 from snngine_v4.gui.parameter_trees.linker_tree.linker_window import \
     LinkerWindow
+from snngine_v4.gui.parameter_trees.linker_tree.range_map_widget import \
+    (RangeMap, RangeMapWidget)
 
 
 if TYPE_CHECKING:
@@ -86,6 +93,35 @@ class XTMLinkerInputWidget(DeviceInputSelectorWidget):
         self.update_choices()
         self.connect_comboboxes()
 
+        self.range_map: RangeMap | None = None
+
+    @property
+    def action_id_str(self):
+        return self.as_label_string()
+
+    def update_target(self):
+        element = self.value()
+        if isinstance(element, (XTMKnobWidget, XTMFaderWidget)):
+            element.range_map_widget.min1.setValue(
+                self.range_map.min1)
+            element.range_map_widget.max1.setValue(
+                self.range_map.max1)
+        else:
+            pass
+
+    def as_label_string(self):
+        return (
+            f"{self.type_combobox.currentText()}"
+            f"{self.element_combobox.currentText()}"
+            f" (Layer{self.layer_combobox.currentText()})"
+        )
+
+    def b_is_empty(self):
+        return self.type_combobox.value() == XTMElementType.NONE
+
+    def clear(self):
+        self.type_combobox.setValue(XTMElementType.NONE)
+
     def connect_comboboxes(self):
         self.type_combobox.currentTextChanged.connect(self.update_choices)
         self.element_combobox.currentTextChanged.connect(self.on_change)
@@ -95,15 +131,6 @@ class XTMLinkerInputWidget(DeviceInputSelectorWidget):
         self.type_combobox.currentTextChanged.disconnect(self.update_choices)
         self.element_combobox.currentTextChanged.disconnect(self.on_change)
         self.layer_combobox.currentTextChanged.disconnect(self.on_change)
-
-    def on_change(self):
-        self.sigValueSet.emit(self)
-
-    def clear(self):
-        self.type_combobox.setValue(XTMElementType.NONE)
-
-    def b_is_empty(self):
-        return self.type_combobox.value() == XTMElementType.NONE
 
     def load_element(self, element):
 
@@ -129,16 +156,22 @@ class XTMLinkerInputWidget(DeviceInputSelectorWidget):
 
         self.connect_comboboxes()
 
-    @property
-    def action_id_str(self):
-        return self.as_label_string()
+    def make_device_controller(self) -> QtCore.Signal:
+        element = self.value()
+        # controller = DeviceController(self)
+        if isinstance(element, XTMKnobWidget):
+            signal = element.spinbox.valueChanged
+        elif isinstance(element, XTMNoteButton):
+            signal = element.sigDeviceInput
+        elif isinstance(element, XTMFaderWidget):
+            signal = element.fader_item.widget.valueChanged
+        else:
+            raise TypeError(
+                f"Unknown element type: {element} ({type(element)})")
+        return signal
 
-    def as_label_string(self):
-        return (
-            f"{self.type_combobox.currentText()}"
-            f"{self.element_combobox.currentText()}"
-            f" (Layer{self.layer_combobox.currentText()})"
-        )
+    def on_change(self):
+        self.sigValueSet.emit(self)
 
     def update_choices(self):
         elt_type: XTMElementType = self.type_combobox.value()
@@ -150,11 +183,6 @@ class XTMLinkerInputWidget(DeviceInputSelectorWidget):
                 is_fader = elt_type == XTMElementType.FADER
                 self.layer_combobox.setVisible(is_fader)
 
-                # if is_fader:
-                #     if self.stretch_item is None:
-                #         self.stretch_item = self.layout().itemAt(1)
-                #         self.layout().takeAt(1)
-                # else:
                 if self.stretch_item is not None:
                     self.layout().insertItem(1, self.stretch_item)
                     self.stretch_item = None
@@ -177,21 +205,6 @@ class XTMLinkerInputWidget(DeviceInputSelectorWidget):
                 return self.xtm_device_wdg.fader_widget
             case _:
                 return self.element_combobox.value()
-
-    def make_device_controller(self) -> DeviceController:
-        element = self.value()
-        # controller = DeviceController(self)
-        if isinstance(element, XTMKnobWidget):
-            signal = element.spinbox.valueChanged
-        elif isinstance(element, XTMNoteButton):
-            signal = element.sigDeviceInput
-        elif isinstance(element, XTMFaderWidget):
-            signal = element.fader_item.widget.valueChanged
-        else:
-            raise TypeError(
-                f"Unknown element type: {element} ({type(element)})")
-        # signal.connect(controller.emit_device_input)
-        return signal
 
 
 class XTMLinkerWidget(LinkerWidget):
@@ -235,6 +248,18 @@ class XTMLinkerWidget(LinkerWidget):
     def make_input_widget(self):
         return XTMLinkerInputWidget(xtm_device_wdg=self.xtm_device_wdg,)
 
+    def save_controller(self, b_block_signal: bool):
+        self.input_object.range_map = copy(self.range_map_wdg.range_map)
+        super().save_controller(b_block_signal=b_block_signal)
+
+    @cached_property
+    def range_map_wdg(self) -> XTMRangeMapWidget:
+        self.has_range_map_wdg = True
+        range_map_wdg = XTMRangeMapWidget(label1="Parameter",)
+        range_map_wdg.setVisible(False)
+        self.layout().insertRow(2, range_map_wdg)
+        return range_map_wdg
+
     @property
     def sig_input_changed(self):
         return self.input_widget.sigValueSet
@@ -251,6 +276,7 @@ class XTMLinkerWindow(LinkerWindow):
                  **kwargs):
 
         self.xtm_device_widget = XTMDeviceWidget(
+            b_verbose=False,
             b_health_check=False
         )
         self.xtm_device_widget.setVisible(False)

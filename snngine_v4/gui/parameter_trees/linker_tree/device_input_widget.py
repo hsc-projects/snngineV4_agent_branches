@@ -17,6 +17,9 @@ class DeviceInputSelectorWidget(QtWidgets.QWidget):
     def action_id_str(self):
         raise NotImplementedError
 
+    def update_target(self):
+        raise NotImplementedError
+
     def as_label_string(self):
         return str(self)
 
@@ -26,5 +29,5 @@ class DeviceInputSelectorWidget(QtWidgets.QWidget):
     def value(self):
         raise NotImplementedError
 
-    def make_device_controller(self) -> DeviceController:
+    def make_device_controller(self) -> QtCore.Signal:
         raise NotImplementedError
