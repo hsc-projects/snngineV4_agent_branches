@@ -5,6 +5,7 @@ from enum import IntEnum, auto
 from functools import cached_property
 from typing import Callable, TYPE_CHECKING
 
+import numpy as np
 from pyqtgraph import ComboBox
 from pyqtgraph.parametertree import Parameter
 from qtpy import QtCore, QtWidgets
@@ -27,8 +28,11 @@ from snngine_v4.gui.parameter_trees.linker_tree.linker_widget import \
     LinkerWidget
 from snngine_v4.gui.parameter_trees.linker_tree.linker_window import \
     LinkerWindow
-from snngine_v4.gui.parameter_trees.linker_tree.range_map_widget import \
-    (RangeMap, RangeMapWidget)
+from snngine_v4.gui.parameter_trees.linker_tree.range_map_widget import (
+    RangeMap,
+    RangeMapWidget
+)
+from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 
 if TYPE_CHECKING:
@@ -55,6 +59,10 @@ class XTMLinkerInputWidget(DeviceInputSelectorWidget):
 
         self.xtm_device_wdg = xtm_device_wdg
 
+        self.number_prefix = "Nr. "
+        self.layer_a_str = " Layer: A "
+        self.layer_b_str = " Layer: B "
+
         self.type_combobox = ComboBox(
             items={x.name.title(): x for x in XTMElementType})
         self.type_combobox.setSizePolicy(
@@ -63,16 +71,18 @@ class XTMLinkerInputWidget(DeviceInputSelectorWidget):
         )
         self.choices = {
             XTMElementType.BUTTON: {
-                "Nr. " + str(k): v for (k, v)
+                self.number_prefix + str(k): v for (k, v)
                 in self.xtm_device_wdg.buttons.items()},
             XTMElementType.KNOB: {
-                "Nr. " + str(k): v for (k, v) in
+                self.number_prefix + str(k): v for (k, v) in
                 self.xtm_device_wdg.knobs.items()},
         }
 
         self.element_combobox = ComboBox()
-        self.layer_combobox = ComboBox(items={' Layer: A ': XTMLayer.A,
-                                              ' Layer: B ': XTMLayer.B})
+        self.layer_combobox = ComboBox(items={
+            self.layer_a_str: XTMLayer.A,
+            self.layer_b_str: XTMLayer.B
+        })
         self.layer_combobox.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Fixed,
             QtWidgets.QSizePolicy.Policy.Fixed,
@@ -99,22 +109,52 @@ class XTMLinkerInputWidget(DeviceInputSelectorWidget):
     def action_id_str(self):
         return self.as_label_string()
 
+    def as_label_string(self):
+        second_text = self.element_combobox.currentText()
+        if second_text != '':
+            second_text = f"({second_text.replace(self.number_prefix, '')})"
+        return (
+            f"{self.type_combobox.currentText()};"
+            f"{second_text};"
+            f"({self.layer_combobox.currentText()})"
+        )
+
     def update_target(self):
         element = self.value()
         if isinstance(element, (XTMKnobWidget, XTMFaderWidget)):
-            element.range_map_widget.min1.setValue(
-                self.range_map.min1)
-            element.range_map_widget.max1.setValue(
-                self.range_map.max1)
+            element.range_map_widget.set_range1(
+                self.range_map.min1, self.range_map.max1,
+                self.range_map.hard_min1, self.range_map.hard_max1,
+            )
         else:
             pass
 
-    def as_label_string(self):
-        return (
-            f"{self.type_combobox.currentText()}"
-            f"{self.element_combobox.currentText()}"
-            f" (Layer{self.layer_combobox.currentText()})"
-        )
+    def interpret_label_string(self, label_str: str):
+
+        self.disconnect_comboboxes()
+
+        parts = label_str.split(';')
+        type_str = parts[0]
+        element_str = parts[1].strip('()') if len(parts) > 1 else ''
+        layer_str = parts[2].strip('()') if len(parts) > 2 else ''
+
+        self.type_combobox.setValue(XTMElementType[type_str.upper()])
+
+        self.update_choices()
+
+        if element_str != '':
+            self.element_combobox.setCurrentText(
+                self.number_prefix + element_str)
+
+        match layer_str:
+            case self.layer_a_str:
+                self.layer_combobox.setValue(XTMLayer.A)
+            case self.layer_b_str:
+                self.layer_combobox.setValue(XTMLayer.B)
+            case _:
+                raise ValueError(f"Unknown layer string: {layer_str}")
+
+        self.connect_comboboxes()
 
     def b_is_empty(self):
         return self.type_combobox.value() == XTMElementType.NONE
@@ -173,6 +213,22 @@ class XTMLinkerInputWidget(DeviceInputSelectorWidget):
     def on_change(self):
         self.sigValueSet.emit(self)
 
+    @classmethod
+    def range_map_values(cls, parameter: Parameter):
+        par_opts = parameter.opts
+        if (((span := par_opts.get(ParamOpts.KW.SPAN)) is not None)
+                and len(span) > 128):
+            value_idx = np.argmin(np.abs(
+                span - par_opts.get(ParamOpts.KW.VALUE, span[0])))
+            idx_factor = value_idx // 128
+            minimum = span[idx_factor * 128]
+            maximum = span[min(len(span), (idx_factor + 1) * 128)]
+            minimum_allowed = span[0]
+            maximum_allowed = span[-1]
+            return minimum, maximum, minimum_allowed, maximum_allowed
+        else:
+            return super().range_map_values(parameter)
+
     def update_choices(self):
         elt_type: XTMElementType = self.type_combobox.value()
         match elt_type:
@@ -200,7 +256,7 @@ class XTMLinkerInputWidget(DeviceInputSelectorWidget):
         elt_type: XTMElementType = self.type_combobox.value()
         match elt_type:
             case XTMElementType.NONE:
-                raise ValueError
+                raise ValueError(" No element selected ")
             case XTMElementType.FADER:
                 return self.xtm_device_wdg.fader_widget
             case _:
@@ -226,7 +282,7 @@ class XTMLinkerWidget(LinkerWidget):
                          input_label=input_label, **kwargs)
 
         self.range_map_wdg.set_range0(
-            0, 128, 0, 128,
+            0, 127, 0, 127,
             step=1, int=True)
 
     @property
@@ -235,6 +291,20 @@ class XTMLinkerWidget(LinkerWidget):
 
     def clear_input_widget(self):
         self.input_widget.clear()
+
+    def connect_inputs(self):
+        super().connect_inputs()
+        self.input_widget.type_combobox.currentTextChanged.connect(
+            self.reset_type_combobox)
+        self.input_widget.type_combobox.currentTextChanged.connect(
+            self.on_input_change)
+
+    def disconnect_inputs(self):
+        super().disconnect_inputs()
+        self.input_widget.type_combobox.currentTextChanged.disconnect(
+            self.reset_type_combobox)
+        self.input_widget.type_combobox.currentTextChanged.disconnect(
+            self.on_input_change)
 
     @property
     def input_object(self):
@@ -248,10 +318,6 @@ class XTMLinkerWidget(LinkerWidget):
     def make_input_widget(self):
         return XTMLinkerInputWidget(xtm_device_wdg=self.xtm_device_wdg,)
 
-    def save_controller(self, b_block_signal: bool):
-        self.input_object.range_map = copy(self.range_map_wdg.range_map)
-        super().save_controller(b_block_signal=b_block_signal)
-
     @cached_property
     def range_map_wdg(self) -> XTMRangeMapWidget:
         self.has_range_map_wdg = True
@@ -259,6 +325,22 @@ class XTMLinkerWidget(LinkerWidget):
         range_map_wdg.setVisible(False)
         self.layout().insertRow(2, range_map_wdg)
         return range_map_wdg
+
+    @classmethod
+    def range_map_values(cls, parameter: Parameter):
+        return XTMLinkerInputWidget.range_map_values(parameter)
+
+    def reset_type_combobox(self):
+        if self.input_widget.type_combobox.value() in [
+                XTMElementType.BUTTON, XTMElementType.NONE]:
+            super().reset_type_combobox()
+        else:
+            items = self.parameter_type_combo_value_items
+            self.type_combo.setItems(items)
+
+    def save_controller(self, b_block_signal: bool):
+        self.input_object.range_map = copy(self.range_map_wdg.range_map)
+        super().save_controller(b_block_signal=b_block_signal)
 
     @property
     def sig_input_changed(self):

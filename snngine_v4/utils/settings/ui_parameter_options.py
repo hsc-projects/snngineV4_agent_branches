@@ -142,6 +142,8 @@ class ParamOpts(BaseModel, validate_default=True, extra='allow'):
 
         C_INIT_VALUE: ClassVar[str] = 'c_init_value'
         C_INIT_DEFAULT: ClassVar[str] = 'c_init_default'
+        C_B_LINKER_TREE_CONTEXT_MENU_CONNECTED: ClassVar[str] = \
+            'c_b_linker_tree_context_menu_connected'
 
         # C_B_GROUP_EMIT_VALUE_CHANGED: ClassVar[str] = \
         #     'c_b_group_emit_value_changed'

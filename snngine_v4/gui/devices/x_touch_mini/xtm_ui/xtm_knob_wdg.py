@@ -100,6 +100,7 @@ class XTMKnobWidget(PowerBar):
         self.setMinimum(0)
         self.setMaximum(127)
         self.max_count = 0
+        self.min_count = 0
         self.b_max_prev = False
         self.b_min_prev = False
 
@@ -128,6 +129,14 @@ class XTMKnobWidget(PowerBar):
         self.valueChanged.connect(self.update_spinbox)
 
     @cached_property
+    def auto_increment_range_map_action(self):
+        action = QtGui.QAction("Auto Range Increment")
+        action.setCheckable(True)
+        action.triggered.connect(self.set_auto_increment_range_map)
+        action.setChecked(self.get_auto_value_reset())
+        return action
+
+    @cached_property
     def auto_value_reset_action(self):
         action = QtGui.QAction("Auto Value Reset")
         action.setCheckable(True)
@@ -142,10 +151,12 @@ class XTMKnobWidget(PowerBar):
         action.triggered.connect(self.show_range_map_widget)
         return action
 
+    # noinspection PyPep8Naming
     @cached_property
     def contextMenu(self):
         menu = QtWidgets.QMenu()
         menu.addAction(self.auto_value_reset_action)
+        menu.addAction(self.auto_increment_range_map_action)
         menu.addAction(self.show_range_map_action)
         return menu
 
@@ -167,6 +178,14 @@ class XTMKnobWidget(PowerBar):
         wdg.setVisible(False)
         wdg.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
         return wdg
+
+    def set_auto_increment_range_map(self, value):
+        self.xtm_device.device_config.set_knob_auto_increment_range_map(
+            self.cc - 1, value=value)
+
+    def get_auto_increment_range_map(self):
+        return self.xtm_device.device_config.get_knob_auto_increment_range_map(
+            self.cc - 1)
 
     def set_auto_value_reset(self, value):
         self.xtm_device.device_config.set_knob_auto_value_reset(
@@ -190,16 +209,27 @@ class XTMKnobWidget(PowerBar):
     def update_from_device(self):
         self.disconnect_from_device_led()
 
-        b_reset = False
+        b_update_span = False
+        threshold = 3
 
         value = self.xtm_device.device_config.get_knob_value(self.cc - 1)
+
+        b_reset_allowed = self.get_auto_value_reset()
+        b_increment_allowed = self.get_auto_increment_range_map()
+        b_check_span = b_reset_allowed or b_increment_allowed
+        if not b_check_span:
+            self.setValue(value)
+            self.connect_to_device_led()
+            return
+
         if value == self._dial.maximum():
+
             if not self.b_max_prev:
                 self.b_max_prev = True
-            elif self.get_auto_value_reset():
+            elif b_check_span:
                 self.max_count += 1
-                print(self.max_count)
-                b_reset = self.max_count > 3
+                # print(self.max_count)
+                b_update_span = self.max_count > threshold
         else:
             self.b_max_prev = False
             self.max_count = 0
@@ -207,21 +237,44 @@ class XTMKnobWidget(PowerBar):
             if value == self._dial.minimum():
                 if not self.b_min_prev:
                     self.b_min_prev = True
-                elif self.get_auto_value_reset():
-                    self.b_min_prev += 1
-                    print(self.max_count)
-                    b_reset = self.max_count > 3
+                elif b_check_span:
+                    self.min_count += 1
+                    # print(self.min_count)
+                    b_update_span = self.min_count > threshold
             else:
-                self.b_max_prev = False
-                self.max_count = 0
+                self.min_count = 0
+                self.b_min_prev = False
 
-        if not b_reset:
+        if not b_update_span:
             self.setValue(value)
             self.connect_to_device_led()
         else:
-            self.max_count = 0
             self.connect_to_device_led()
-            self.setValue(self._dial.minimum())
+            hard_max_reached = False
+            hard_min_reached = False
+            offset = 0
+            if b_increment_allowed:
+                (offset,
+                 hard_min_reached,
+                 hard_max_reached) = self._range_map.increment_range1(
+                    dir_sign=1 if (self.max_count > threshold) else -1)
+
+                self.range_map_widget.update_widgets()
+
+            if hard_min_reached or hard_max_reached:
+                print(offset)
+                if hard_min_reached:
+                    self.setValue(self._dial.minimum() - offset)
+                elif hard_max_reached:
+                    self.setValue(self._dial.maximum() - offset + 1)
+
+            else:
+                if self.max_count > threshold:
+                    self.setValue(self._dial.minimum())
+                else:
+                    self.setValue(self._dial.maximum())
+            self.min_count = 0
+            self.max_count = 0
 
     def update_from_spinbox(self):
         self.disconnect_from_spinbox()

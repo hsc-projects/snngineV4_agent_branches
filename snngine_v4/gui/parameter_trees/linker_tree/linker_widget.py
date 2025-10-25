@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import Callable, TYPE_CHECKING
 
 from pyqtgraph import ComboBox
@@ -12,6 +13,8 @@ from snngine_v4.gui.parameter_trees.linker_tree.controls_map import (
     ControllerAction,
     ControllerActionType
 )
+from snngine_v4.gui.parameter_trees.linker_tree.device_input_widget import \
+    DeviceInputSelectorWidget
 from snngine_v4.gui.parameter_trees.linker_tree.range_map_widget import \
     RangeMapWidget
 from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
@@ -257,9 +260,14 @@ class LinkerWidget(QtWidgets.QWidget):
             input_type = self.type_combo.value()
             match input_type:
                 case ControllerActionType.VALUE:
-                    self.range_map_wdg.setVisible(True)
+                    if not self.range_map_wdg.isVisible():
+                        self.range_map_wdg.setVisible(True)
+                    self.range_map_wdg.setEnabled(True)
                 case _:
-                    self.range_map_wdg.setVisible(False)
+                    if self.range_map_wdg.isVisible():
+                        self.range_map_wdg.setEnabled(False)
+                    else:
+                        self.range_map_wdg.setVisible(False)
 
         b_has_input = self.b_has_input
 
@@ -289,14 +297,29 @@ class LinkerWidget(QtWidgets.QWidget):
                                  and (not b_action_exists)
                                  and (not b_action_is_self))
 
-    @staticmethod
-    def parameter_label_text(par: Parameter):
-        text = par.name()
-        parent = par.parent()
-        while parent:
-            text = parent.name() + '.' + text
-            parent = parent.parent()
-        return text
+    @cached_property
+    def parameter_type_combo_items(self):
+        num_dict = {
+            # ControllerActionType.VALUE.name.title():
+            #     ControllerActionType.VALUE,
+            ControllerActionType.INCREASE.name.title():
+                ControllerActionType.INCREASE,
+            ControllerActionType.DECREASE.name.title():
+                ControllerActionType.DECREASE,
+        }
+        toggle_dict = {ControllerActionType.TOGGLE.name.title():
+                       ControllerActionType.TOGGLE}
+        return {
+            'bool': toggle_dict,
+            'int': num_dict,
+            'float': num_dict,
+            Enum.__name__: num_dict,
+        }
+
+    @cached_property
+    def parameter_type_combo_value_items(self):
+        return {ControllerActionType.VALUE.name.title():
+                ControllerActionType.VALUE}
 
     @cached_property
     def range_map_wdg(self) -> RangeMapWidget:
@@ -307,28 +330,36 @@ class LinkerWidget(QtWidgets.QWidget):
         self.layout().addRow(range_map_wdg)
         return range_map_wdg
 
+    def reset_type_combobox(self):
+        if self._parameter is None:
+            parameter_type = ''
+        else:
+            parameter_type = self._parameter.opts[ParamOpts.KW.TYPE]
+        items = self.parameter_type_combo_items.get(
+            parameter_type, self.all_types_items)
+        self.type_combo.setItems(items)
+
     def reset(self, parameter=None):
         self.disconnect_inputs()
-        self.type_combo.setItems(self.all_types_items)
         self._controller = None
         self._parameter = parameter
+        self.reset_type_combobox()
         self.reset_range()
         self.clear()
         self.save_btn.setEnabled(False)
         self.connect_inputs()
 
+    @classmethod
+    def range_map_values(cls, parameter: Parameter):
+        return DeviceInputSelectorWidget.range_map_values(parameter)
+
     def reset_range(self):
         if (self._parameter is not None) and self.has_range_map_wdg:
-            par_opts = self._parameter.opts
             opts = {}
-            if (span := par_opts.get(ParamOpts.KW.SPAN)) is not None:
-                minimum = min(span)
-                maximum = max(span)
-                minimum_allowed = minimum
-                maximum_allowed = maximum
-
-            else:
-                minimum = maximum = minimum_allowed = maximum_allowed = None
+            (minimum, maximum,
+             minimum_allowed,
+             maximum_allowed) = self.range_map_values(
+                self._parameter)
 
             self.range_map_wdg.set_range1(
                 minimum=minimum, maximum=maximum,
@@ -360,7 +391,7 @@ class LinkerWidget(QtWidgets.QWidget):
             binding_txt = (
                 self.input_object_string,
                 self.binding_exists_label_text_base,
-                self.parameter_label_text(ctrl.parameter),
+                ctrl.parameter_label,
                 f"{ctrl.action_type.name}",)
         else:
             binding_txt = ''

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import time
 from functools import cached_property
 
 import mido
@@ -220,6 +219,8 @@ class XTMDeviceWidget(QtWidgets.QWidget):
             knob.update_from_device()
             knob.auto_value_reset_action.setChecked(
                 conf.get_knob_auto_value_reset(knob_conf.cc - 1))
+            knob.auto_increment_range_map_action.setChecked(
+                conf.get_knob_auto_increment_range_map(knob_conf.cc - 1))
 
         self.fader_widget.update_from_device()
 

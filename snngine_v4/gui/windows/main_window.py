@@ -45,8 +45,9 @@ class MainEngineWindow(MainEngineWindowBase):
 
         sec_views.resize(QtCore.QSize(640, 480))
 
-        self.selection_tree = EngineSelectorTree()
+        self.selection_tree: EngineSelectorTree = EngineSelectorTree()
         self.selection_tree_dock: EngineTreeDockWidget | None = None
+        self.controls_tree: EngineLinkerTree | None = None
 
         super().__init__(windows, engine=engine)
 
@@ -60,20 +61,33 @@ class MainEngineWindow(MainEngineWindowBase):
             selector_tree=self.selection_tree
         )
 
+        self.controls_tree.reset_tree_controls(
+            trees=[
+                self.network_tree,
+                self.scene_tree,
+                self.selection_tree
+            ]
+        )
+
     def setup_dock_widgets(self):
         super().setup_dock_widgets()
 
-        array_dock = ArrayEditorDockWidget(name=self.ARRAYS_DOCK_NAME)
+        array_dock = ArrayEditorDockWidget(
+            name=self.ARRAYS_DOCK_NAME,)
         self.addRightDockWidget('A', array_dock)
 
-        controls_tree = EngineLinkerTree(name=self.CONTROLS_DOCK_NAME)
+        dn = self.engine.conf.settings_directory()
+        fn = "controls_tree.xml"
+        self.controls_tree = EngineLinkerTree(
+            name=self.CONTROLS_DOCK_NAME,
+            export_file_path=dn + '/' + fn,)
 
         features = (
             QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetFloatable
             | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetMovable
             | QtWidgets.QDockWidget.DockWidgetFeature.DockWidgetClosable)
         controls_dock = EngineTreeDockWidget(
-            pars=controls_tree,
+            pars=self.controls_tree,
             features=features)
         self.addRightDockWidget('C', controls_dock)
 

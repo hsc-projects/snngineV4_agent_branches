@@ -4,15 +4,16 @@ from typing import ClassVar
 
 from PySide6.QtGui import QKeySequence
 from pydantic import BaseModel
+from pyqtgraph.parametertree import Parameter
 from pyqtgraph.parametertree.parameterTypes import ActionParameter
 
 from snngine_v4.gui.parameter_trees.linker_tree.controls_map import \
     ControllerAction
 from snngine_v4.gui.parameter_trees.linker_tree.linker_tree import LinkerTree
-from snngine_v4.gui.parameter_trees.linker_tree.xtm_linker_widgets import \
-    (XTMLinkerInputWidget, XTMLinkerWindow)
+from snngine_v4.gui.parameter_trees.linker_tree.range_map_widget import RangeMap
+from snngine_v4.gui.parameter_trees.linker_tree.xtm_linker_widgets import (
+    XTMLinkerInputWidget, XTMLinkerWindow)
 from snngine_v4.gui.parameters.preset_parameter import PresetGroupParameter
-from snngine_v4.snngine import SNNgine
 
 
 class DeviceTypes(IntEnum):
@@ -23,17 +24,11 @@ class DeviceTypes(IntEnum):
 class KeyBoardLinks(PresetGroupParameter):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # self.addChild(SimpleParameter(name='K0', type='bool'))
 
 
 class XTouchMiniLinks(PresetGroupParameter):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # self.addChild(SimpleParameter(name='B0', type='bool'))
-
-    # def add_link_action(self, **opts):
-    #     opts.setdefault('name', '')
-    #     return super().add_link_action(**opts)
 
 
 class EngineLinkerTree(LinkerTree):
@@ -42,10 +37,11 @@ class EngineLinkerTree(LinkerTree):
 
     def __init__(self, name: str = 'Selections',
                  model: BaseModel = None,
-                 engine: SNNgine = None,
+                 # engine: SNNgine = None,
                  parameter_type_dict=None,
                  default_context=None,
                  trees=None,
+                 export_file_path: str = "./controls_export.xml",
                  **kwargs):
         if parameter_type_dict is None:
             parameter_type_dict = {
@@ -53,8 +49,6 @@ class EngineLinkerTree(LinkerTree):
                 DeviceTypes.X_TOUCH_MINI: XTouchMiniLinks,
             }
         self.parameter_type_dict = parameter_type_dict
-
-        self.trees = trees
 
         if default_context is None:
             default_context = {
@@ -66,15 +60,25 @@ class EngineLinkerTree(LinkerTree):
                          preset_types=DeviceTypes,
                          presets_name='Devices',
                          parameter_type_dict=parameter_type_dict,
+                         export_file_path=export_file_path,
+                         trees=trees,
                          **kwargs)
 
-        def update():
-            for tree in self.trees:
-                self.read_tree(tree)
+        self.update_action_p = ActionParameter(name="  Update  ")
 
-        self.update_action_p = ActionParameter(name='update',)
-        self.update_action_p.sigActivated.connect(update)
+        def reset_tree_controls():
+            self.reset_tree_controls()
+
+        self.update_action_p.sigActivated.connect(reset_tree_controls)
         self.addParameters(self.update_action_p)
+
+        self.save_action_p = ActionParameter(name="  Save  ")
+        self.save_action_p.sigActivated.connect(self.save_controls)
+        self.addParameters(self.save_action_p)
+
+        self.load_action_p = ActionParameter(name="  Load  ")
+        self.load_action_p.sigActivated.connect(self.load_controls)
+        self.addParameters(self.load_action_p)
 
     def add_controller(self, dct, key, value: ControllerAction):
         if isinstance(value.input_obj, QKeySequence):
@@ -90,9 +94,39 @@ class EngineLinkerTree(LinkerTree):
         self.controls_map.tree_parameters[value] = new_p
         self.resize_sections()
 
-    @cached_property
-    def x_touch_mini_window(self):
-        return XTMLinkerWindow(linker_tree=self)
+    def get_linker_window(self, ctrl: ControllerAction):
+        if isinstance(ctrl.input_obj, XTMLinkerInputWidget):
+            return self.x_touch_mini_window
+        else:
+            return super().get_linker_window(ctrl=ctrl)
+
+    def make_ctrl_input_obj(self, ctrl: ControllerAction):
+
+        if isinstance(ctrl.input_obj, str):
+            input_object_str = ctrl.input_obj.split(';', 1)
+            input_object_type = input_object_str[0]
+            input_object_content_str = input_object_str[1]
+            if input_object_type == XTMLinkerInputWidget.__name__:
+                input_obj = XTMLinkerInputWidget(
+                    xtm_device_wdg=self.x_touch_mini_window.xtm_device_widget)
+                input_obj.interpret_label_string(
+                    label_str=input_object_content_str)
+                return input_obj
+            else:
+                return super().make_ctrl_input_obj(ctrl=ctrl)
+        else:
+            return super().make_ctrl_input_obj(ctrl=ctrl)
+
+    @classmethod
+    def make_range_map(cls, parameter: Parameter):
+        (minimum, maximum,
+         minimum_allowed,
+         maximum_allowed) = XTMLinkerInputWidget.range_map_values(
+            parameter)
+        return RangeMap(
+            min0=0, max0=127, min1=minimum, max1=maximum, _step0=1,
+            hard_min1=minimum_allowed,
+            hard_max1=maximum_allowed,)
 
     def on_sig_context_menu_changed(self, param, data):
         match data:
@@ -101,7 +135,11 @@ class EngineLinkerTree(LinkerTree):
                 self.x_touch_mini_window.show()
             case _:
                 super().on_sig_context_menu_changed(param, data)
-
+    
+    @cached_property
+    def x_touch_mini_window(self):
+        return XTMLinkerWindow(linker_tree=self)
+    
 
 if __name__ == '__main__':
 

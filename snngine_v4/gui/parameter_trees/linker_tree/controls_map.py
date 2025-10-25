@@ -117,6 +117,47 @@ class ControllerAction:
             raise NotImplementedError(
                 f"type({type(self.input_obj)})")
 
+    @staticmethod
+    def make_parameter_label_text(par: Parameter | None):
+        if par is None:
+            return 'None'
+        text = par.name()
+        parent = par.parent()
+        while parent:
+            text = parent.name() + '.' + text
+            parent = parent.parent()
+        return text
+
+    def export_version(self) -> dict[str, str]:
+        return {
+            'action_type': self.action_type.name,
+            'input_object': self.input_object_string,
+            'input_object_type': self.input_obj.__class__.__name__,
+            'parameter': self.parameter_label,
+        }
+
+    @classmethod
+    def from_export_version(cls, data: dict[str, Any], window):
+        action_type = ControllerActionType[data['action_type']]
+        input_object_type = data['input_object_type']
+        if input_object_type == QKeySequence.__name__:
+            input_obj = QKeySequence(data['input_object'])
+        else:
+            input_obj = input_object_type + ';' + data['input_object']
+            # raise NotImplementedError(
+            #     f"Input object type {input_object_type} not supported")
+        parameter = data['parameter']
+        return cls(
+            action_type=action_type,
+            input_obj=input_obj,
+            parameter=parameter,
+            window=window  # To be set after creation
+        )
+
+    @property
+    def parameter_label(self):
+        return self.make_parameter_label_text(self.parameter)
+
     def toggle_parameter(self):
         value = not self.parameter.value()
         self.parameter.setValue(value)
@@ -128,10 +169,12 @@ class ControllerAction:
 
 
 class ParameterControls(ConfigurableDict):
-    ContainerConfigClass: ClassVar = (DictContainerConfig, ControllerAction)
+    class ContainerConfigClass(DictContainerConfig, frozen=True):
+        allowed_types: type[ControllerAction] = ControllerAction
+        b_clear_allowed: bool = True
 
 
-class ControlsMap(Object2ObjectMap, ):
+class ControlsMap(Object2ObjectMap):
 
     class ContainerConfigClass(ObjectMapConfig, frozen=True):
         b_pop_allowed: bool = True
@@ -144,7 +187,9 @@ class ControlsMap(Object2ObjectMap, ):
 
         self.map_signals = QObjectDictSignals(None)
         self.tree_parameters = Object2ObjectMap.from_types(
-            ControllerAction, Parameter, b_pop_allowed=True)
+            ControllerAction, Parameter,
+            b_clear_allowed=True,
+            b_pop_allowed=True)
 
     @classmethod
     def to_controller(
@@ -198,8 +243,13 @@ class ControlsMap(Object2ObjectMap, ):
         return ControllerAction.cls_action_id(obj) in self.all_actions
 
     def clear(self, b_force: bool = False, b_clear_inv: bool = True):
+
+        for ctrl in self.all_actions.values():
+            self.remove_controller(ctrl, b_block_signal=False)
+
         self.all_actions.clear(b_force=b_force, )
         self.tree_parameters.clear(b_force=b_force, )
+
         super().clear(b_force=b_force, b_clear_inv=b_clear_inv)
 
     def compare_controller(self, ctrl_or_parameter0,

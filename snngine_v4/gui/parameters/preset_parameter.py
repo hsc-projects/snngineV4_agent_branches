@@ -127,20 +127,26 @@ class PresetGroupParameter(EngineGroupParameter):
     def previous_controls(self):
         return self.preset_controls[self.previous_name]
 
-    def set_preset_state(self, par, value):
+    def save_preset_state(self, name=None):
+        if name is None:
+            name = self.name()
 
-        self.previous_name = self.name()
         prev_state = self.saveState()
         previous_controls = self.controls_list
 
-        if self.previous_name not in self.preset_states:
-            self.preset_states[self.previous_name] = prev_state
-            self.preset_controls[self.previous_name] = previous_controls
+        if name not in self.preset_states:
+            self.preset_states[name] = prev_state
+            self.preset_controls[name] = previous_controls
         else:
-            self.preset_states[self.previous_name].clear()
-            self.preset_states[self.previous_name].update(prev_state)
-            self.preset_controls[self.previous_name].clear()
-            self.preset_controls[self.previous_name].extend(previous_controls)
+            self.preset_states[name].clear()
+            self.preset_states[name].update(prev_state)
+            self.preset_controls[name].clear()
+            self.preset_controls[name].extend(previous_controls)
+
+    def set_preset_state(self, par, value):
+
+        self.previous_name = self.name()
+        self.save_preset_state(name=self.previous_name)
 
         if value in self.preset_states:
             new_dict_ = self.preset_states[value]

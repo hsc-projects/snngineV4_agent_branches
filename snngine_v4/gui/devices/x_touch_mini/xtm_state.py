@@ -169,10 +169,23 @@ class XTMKnobModel(XTMElementModel):
     element_type: MoveEncoderType = MoveEncoderType.CC
     auto_value_reset: XTMBooleanValue = Field(
         default_factory=lambda: XTMBooleanValue.from_value(False))
+    auto_increment_range_map: XTMBooleanValue = Field(
+        default_factory=lambda: XTMBooleanValue.from_value(False))
+
+    def get_auto_increment_range_map(
+            self, mode: XTMMode, layer: XTMLayer | None = None,):
+        return self.auto_increment_range_map.get_value(mode=mode, layer=layer)
 
     def get_auto_value_reset_value(
             self, mode: XTMMode, layer: XTMLayer | None = None,):
         return self.auto_value_reset.get_value(mode=mode, layer=layer)
+
+    def set_auto_increment_range_map(
+            self, value: int, mode: XTMMode,
+            layer: XTMLayer | None = None,
+            b_verbose: bool = False):
+        self.auto_increment_range_map.set_value(
+            value=value, mode=mode, layer=layer, b_verbose=b_verbose)
 
     def set_auto_value_reset_value(
             self, value: int, mode: XTMMode,
@@ -305,6 +318,11 @@ class XTMConfig(XMLSettingsModel):
         return self.encoder_values.fader.get_value(
             mode=self.info.mode, layer=self.info.layer)
 
+    def get_knob_auto_increment_range_map(self, knob_idx: int):
+        knob = self.encoder_values.knobs[knob_idx]
+        return knob.get_auto_increment_range_map(
+            mode=self.info.mode, layer=self.info.layer)
+
     def get_knob_auto_value_reset(self, knob_idx: int):
         knob = self.encoder_values.knobs[knob_idx]
         return knob.get_auto_value_reset_value(
@@ -324,6 +342,11 @@ class XTMConfig(XMLSettingsModel):
 
     def set_fader_value(self, value: int):
         self.encoder_values.fader.value.set_all_values(value=value)
+
+    def set_knob_auto_increment_range_map(self, knob_idx: int, value: bool):
+        knob = self.encoder_values.knobs[knob_idx]
+        return knob.set_auto_increment_range_map(
+            value=value, mode=self.info.mode, layer=self.info.layer)
 
     def set_knob_auto_value_reset(self, knob_idx: int, value: bool):
         knob = self.encoder_values.knobs[knob_idx]

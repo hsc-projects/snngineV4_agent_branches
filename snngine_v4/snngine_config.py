@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os.path
 from typing import ClassVar
 
 from pydantic import Field
@@ -52,6 +53,12 @@ class EngineConfig(XMLSettingsModel):
                 ])))
 
     built: EngineConstructionConfig
+
+    def settings_directory(self) -> str | None:
+        # noinspection PyTypedDict
+        fn = self.model_config[BaseSettingsSlots.XML_FILE]
+        dn = os.path.dirname(fn)
+        return dn
 
     @classmethod
     def _xml_file_paths(cls):

@@ -17,6 +17,8 @@ class RangeMap:
     max0: int | float = 1
     min1: int | float = 0
     max1: int | float = 1
+    hard_min1: int | float | None = None
+    hard_max1: int | float | None = None
     _step0: int | float = 1
     _step1: int | float = field(init=False, default=None)
 
@@ -50,6 +52,46 @@ class RangeMap:
                 self._step1 = np.nan
         else:
             self._step1 = np.nan
+
+    def increment_range1(self, dir_sign: int):
+
+        init_min1 = self.min1
+        init_max1 = self.max1
+
+        diff = self.max1 - self.min1
+        self.min1 += dir_sign * diff
+        self.max1 += dir_sign * diff
+
+        hard_max_reached = False
+        hard_min_reached = False
+        if self.hard_min1 is not None:
+            if self.min1 < self.hard_min1:
+                self.min1 = self.hard_min1
+                self.max1 = self.min1 + diff
+                hard_min_reached = True
+        if self.hard_max1 is not None:
+            if self.max1 > self.hard_max1:
+                if hard_min_reached:
+                    raise NotImplementedError(
+                        "RangeMap: hard min and max reached simultaneously.")
+                self.max1 = self.hard_max1
+                self.min1 = self.max1 - diff
+                hard_max_reached = True
+        offset = self.get_post_increment_value_offset(
+            hard_min_reached, hard_max_reached,
+            init_min1, init_max1)
+        return offset, hard_min_reached, hard_max_reached
+
+    def get_post_increment_value_offset(
+            self, hard_min_reached, hard_max_reached,
+            init_min1, init_max1):
+        if hard_min_reached:
+            offset = self.min1 - init_min1
+        elif hard_max_reached:
+            offset = self.max1 - init_max1
+        else:
+            offset = 0
+        return offset
 
 
 class RangeMapWidget(QtWidgets.QGroupBox):
@@ -90,9 +132,9 @@ class RangeMapWidget(QtWidgets.QGroupBox):
 
         if range_map is None:
             range_map = RangeMap()
-            self.range_map = range_map
+            self.range_map: RangeMap = range_map
         else:
-            self.range_map = range_map
+            self.range_map: RangeMap = range_map
             self.update_widgets()
 
         self.connect_range_map()
@@ -130,8 +172,8 @@ class RangeMapWidget(QtWidgets.QGroupBox):
         def set_min(spinbox_):
             spinbox.setMinimum(spinbox_.value())
 
-        new.min1.sigValueChanged.connect(set_min)
-        new.max1.sigValueChanged.connect(set_max)
+        new.min1.sigValueChanging.connect(set_min)
+        new.max1.sigValueChanging.connect(set_max)
         return new
 
     def update_range_map(self):
@@ -187,3 +229,7 @@ class RangeMapWidget(QtWidgets.QGroupBox):
             minimum_allowed=minimum_allowed,
             maximum_allowed=maximum_allowed,
             minimum=minimum, maximum=maximum, **opts)
+        if minimum_allowed is not None:
+            self.range_map.hard_min1 = minimum_allowed
+        if maximum_allowed is not None:
+            self.range_map.hard_max1 = maximum_allowed

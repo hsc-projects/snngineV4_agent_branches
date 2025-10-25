@@ -1,4 +1,7 @@
+from pyqtgraph.parametertree import Parameter
 from qtpy import QtCore, QtWidgets
+
+from snngine_v4.utils.settings.ui_parameter_options import ParamOpts
 
 
 class DeviceController(QtCore.QObject):
@@ -17,17 +20,29 @@ class DeviceInputSelectorWidget(QtWidgets.QWidget):
     def action_id_str(self):
         raise NotImplementedError
 
-    def update_target(self):
-        raise NotImplementedError
-
     def as_label_string(self):
         return str(self)
 
     def clear(self):
         raise NotImplementedError
 
-    def value(self):
+    def make_device_controller(self) -> QtCore.Signal:
         raise NotImplementedError
 
-    def make_device_controller(self) -> QtCore.Signal:
+    @classmethod
+    def range_map_values(cls, parameter: Parameter):
+        par_opts = parameter.opts
+        if (span := par_opts.get(ParamOpts.KW.SPAN)) is not None:
+            minimum = span[0]
+            maximum = span[-1]
+            minimum_allowed = minimum
+            maximum_allowed = maximum
+        else:
+            minimum = maximum = minimum_allowed = maximum_allowed = None
+        return minimum, maximum, minimum_allowed, maximum_allowed
+
+    def update_target(self):
+        raise NotImplementedError
+
+    def value(self):
         raise NotImplementedError

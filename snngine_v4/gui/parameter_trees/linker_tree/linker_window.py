@@ -134,7 +134,8 @@ class LinkerWindow(QtWidgets.QScrollArea):
     @parameter.setter
     def parameter(self, parameter):
         self._parameter = parameter
-        text = LinkerWidget.parameter_label_text(self._parameter)
+
+        text = ControllerAction.make_parameter_label_text(self._parameter)
         self.header.param_label.setText(text)
 
         self.ctrl_widget_map.clear()

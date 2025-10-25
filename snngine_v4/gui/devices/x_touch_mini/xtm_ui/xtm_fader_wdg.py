@@ -72,8 +72,6 @@ class XTMFaderWidget(QtWidgets.QWidget):
             self.fader_item.slider.set_span(span)
             self.fader_item.slider.setValueFromSlider(
                 self.fader_item.slider.value()
-                # self.fader_item.slider.spanToSliderValue(
-                #     self.fader_item.widget.value())
             )
 
         def set_min(spinbox_):
@@ -82,8 +80,6 @@ class XTMFaderWidget(QtWidgets.QWidget):
             self.fader_item.slider.set_span(span)
             self.fader_item.slider.setValueFromSlider(
                 self.fader_item.slider.value()
-                # self.fader_item.slider.spanToSliderValue(
-                #     self.fader_item.widget.value())
             )
 
         wdg.min1.sigValueChanged.connect(set_min)
@@ -92,15 +88,6 @@ class XTMFaderWidget(QtWidgets.QWidget):
 
     def update_from_device(self):
         value = self._xtm_device.device_config.get_fader_value()
-
-        # if self._range_map is not None:
-        #     new_value = self._range_map.convert_to_target(value)
-        #     if self.b_verbose:
-        #         print('fader value (widget):', value, f"({new_value})")
-        #     self.fader_item.slider.setValue(new_value)
-        # else:
-        # if self.b_verbose:
-        #     self.
         self.fader_item.slider.setValue(value)
 
     def show_range_map_widget(self, value):

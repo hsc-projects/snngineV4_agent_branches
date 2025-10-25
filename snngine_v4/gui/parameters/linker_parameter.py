@@ -42,7 +42,7 @@ class AddLinkerActionParameter(EngineGroupParameter):
 class LinkerParameterItem(WidgetParameterItem, ActionItemMixin):
 
     param: LinkerParameter
-    widget: ShortCutWidget
+    widget: ShortCutWidget | XTMLinkerWidget
 
     def __init__(self, param, depth):
         super().__init__(param=param, depth=depth)
@@ -101,10 +101,7 @@ class LinkerParameterItem(WidgetParameterItem, ActionItemMixin):
             # noinspection PyTypeChecker
             tree: LinkerTree = self.widget.linker_tree
             if tree is not None:
-                if isinstance(ctrl.input_obj, QKeySequence):
-                    window = tree.short_cut_window
-                else:
-                    raise NotImplementedError
+                window = tree.get_linker_window(ctrl=ctrl)
                 if window.parameter is ctrl.parameter:
                     try:
                         window_widget: LinkerWidget = (
@@ -167,7 +164,7 @@ class LinkerParameter(ListParameter, ActionParameterMixin):
         new_value = super().setValue(value, blockSignal=blockSignal)
         if isinstance(new_value, ControllerAction):
             new_name = (
-                LinkerWidget.parameter_label_text(new_value.parameter)
+                new_value.parameter_label
                 + f" ({new_value.input_object_string}"
                 + f": {new_value.action_type.name}) "
             )
