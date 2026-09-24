@@ -130,6 +130,13 @@ class ExtendedModelSignalsRegister(ModelSignalsRegister):
 
         self.model2model_map[model0] = model1
 
+        # Phase 4 Option A: if this model instance was previously registered
+        # (e.g. from an earlier build cycle or a replaced sub-visual), clear
+        # the old links so its patched __setattr__ is restored and the
+        # replaced_method_map entry is not orphaned.
+        if model1 in self:
+            self[model1].clear(b_force=True)
+
         model1_link = ModelParameterLinks(
             allowed_keys=model_keys(
                 model1, exclude=BaseModelSlots.CLASS__NAME),

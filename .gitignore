@@ -383,3 +383,4 @@ cython_debug/
 /snngine_v4/archive/*
 /snngine_v4/scratch.py
 *.h5
+.aider*

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import ClassVar, Literal
 
 import numpy as np
 from pydantic import Field, NonNegativeInt
@@ -21,6 +21,17 @@ type LineConnectType = Literal['strip', 'segments'] | None
 
 
 class LineVisualConfig(VisualConfig):
+
+    # --- Ownership policy (Phase 3) ---
+    # Shared-runtime resource (in-place mutation only, no reassignment):
+    #   pos         — VBO-backed float32 array; canonical owner is the
+    #                 source model or simulation backend.
+    # Visual-canonical (locally owned, writable via param tree):
+    #   color, width, antialias
+    # Source-canonical / build-time only:
+    #   connect, method  (frozen)
+
+    SHARED_RUNTIME_FIELDS: ClassVar[frozenset[str]] = frozenset({'pos'})
 
     pos: Pos3DVBO = Field(default=None, repr=False)
     color: BufferColorType = Field(repr=False)
@@ -60,6 +71,13 @@ class XYZAxisVisualConfig(LineVisualConfig):
 
 
 class MultiBoxLinesVisualConfig(LineVisualConfig):
+    # --- Ownership policy (Phase 3) ---
+    # Inherits SHARED_RUNTIME_FIELDS from LineVisualConfig (pos).
+    # Visual-canonical (locally owned, writable via param tree):
+    #   color, width, antialias
+    # Build-time only (drives geometry at construction):
+    #   connect  — index array defining box edge topology
+
     connect: ArrayInterfaces().make_type(
         '* x', 2, dtype=np.uint32) = Field(repr=False)
     subvisuals: None = None

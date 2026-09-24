@@ -263,6 +263,13 @@ class Object2ObjectLinks(TypeSortedMap):
 
             if (b_allow_new is False) and (not hasattr(self_, key)):
                 raise KeyError(key)
+            shared_fields = getattr(type(self_), 'SHARED_RUNTIME_FIELDS', frozenset())
+            if key in shared_fields:
+                existing = getattr(self_, key, None)
+                if existing is not None and existing is not value:
+                    raise RuntimeError(
+                        f"'{key}' is a shared runtime resource. "
+                        f"Use in-place mutation (arr[:] = ...) instead of reassignment.")
             try:
                 # skip validation for BaseModels
                 # object.__setattr__(self_, key, value)

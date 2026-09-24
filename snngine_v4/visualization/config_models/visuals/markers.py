@@ -15,6 +15,16 @@ from snngine_v4.visualization.config_models.visuals.visual_config import \
 
 class MarkersVisualConfig(VisualConfig):
 
+    # --- Ownership policy (Phase 3) ---
+    # Source-canonical (read-only proxy, do NOT write here):
+    #   pos_origin  — canonical owner: NetworkReservoirConfig
+    # Shared-runtime resource (in-place mutation only, no reassignment):
+    #   pos         — canonical owner: NetworkReservoirConfig.pos
+    # Visual-canonical (locally owned, writable via param tree):
+    #   size, edge_width, edge_color, face_color
+
+    SHARED_RUNTIME_FIELDS: ClassVar[frozenset[str]] = frozenset({'pos'})
+
     parameter_ui_opts: ClassVar[FrozenParamOpts] = FrozenParamOpts(
         expanded=False,
         c_auto_collapse=True,
@@ -36,5 +46,3 @@ class MarkersVisualConfig(VisualConfig):
     # edge_width_rel: NonNegativeFloat | None = Field(default=None, le=15)
     edge_color: RGBAColorType = 'green'
     face_color: BufferColorType = 'white'
-
-

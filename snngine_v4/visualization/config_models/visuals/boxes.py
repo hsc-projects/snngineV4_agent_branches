@@ -50,6 +50,12 @@ class BoxVisualInitConfig(FiniteGridConfig):
 # noinspection PyArgumentList
 class OuterGridVisualInitConfig(BoxVisualInitConfig):
 
+    # --- Ownership policy (Phase 3) ---
+    # Source-canonical (inherited from FiniteGridConfig, read-only proxy):
+    #   pos_origin, shape, seg, technical
+    # Visual-canonical (locally owned, writable via param tree):
+    #   planes, color, edge_color, vertex_colors, face_colors, subvisuals, mesh_opengl
+
     color: RGBAColorType = None
     edge_color: RGBAColorType = 'white'
 
