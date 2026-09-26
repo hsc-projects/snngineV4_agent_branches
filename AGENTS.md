@@ -45,4 +45,6 @@ See `agents/install-snngine_v4.md` for install/build commands and key deps.
 ## Architecture
 
 See `agents/architecture-snngine_v4.md` for the subpackage breakdown,
-orchestration flow, and confirmed GPU-interop implementation details.
+orchestration flow, and confirmed GPU-interop implementation details, and
+`agents/mapping/README.md` for the per-subpackage mapping pass (more
+detailed write-ups gradually migrating out of `architecture-snngine_v4.md`).
