@@ -69,3 +69,75 @@ itself — actually driving the step loop — is not currently wired into the
 running application. This directly informs the paused migration question
 in `agents/paused-migration-feature-simulation-stepping.md` and the
 Backlog in `agents/feature-todos.md`.
+
+## Case study: `N_pos` as a multiplexed CUDA↔VisPy channel
+
+A concrete, verified example of how the Python/PyCUDA/VisPy/CUDA chain
+actually behaves in practice, not just how it's wired. It serves as a
+reference pattern for reading the rest of the CUDA↔visual interop, since
+the same trick recurs (see `scatter_plot_data` below).
+
+`N_pos` (passed into `SnnSimulation`, `nn/sim/simulation.py`) looks like a
+plain xyz position buffer from its name and from the Python-side pointer
+plumbing alone. It isn't: the kernel (`update_N_state_`,
+`nn/cuda_backend/src/simulation/snn_simulation.cu`) treats it as a
+stride-14-floats-per-marker buffer (`#define VISPY_MARKER_STRIDE 14`,
+same file line 4). That stride is not arbitrary: it matches
+`vispy==0.14.3`'s (the version pinned in `requirements.txt`) own internal
+`MarkersVisual` vertex dtype exactly: `a_position`[3], `a_fg_color`[4],
+`a_bg_color`[4], `a_size`[1], `a_edgewidth`[1], `a_symbol`[1] (confirmed
+by reading the installed `vispy/visuals/markers.py:637-642` directly, not
+inferred from docs). So the buffer VisPy expects for rendering *is* the
+buffer CUDA writes into, with no translation layer in between. This is
+the zero-copy interop pattern from `agents/common.md` applied at the
+per-vertex level, not just the whole-buffer level.
+
+Float index 10 in that layout is the alpha channel of `a_bg_color` (face
+color). The kernel writes it directly: reset to `0.3` every step (line
+41), bumped to `1.0` on the step a neuron fires (line 112). No color
+pointer, no RGB write, no separate color buffer exists anywhere in
+`cuda_backend/src` for this. The only other "color" mentions in the
+entire backend are two dead, commented-out lines
+(`renderer->neurons_bodies.pos_colors.map_buffer()`/`unmap_buffer()`)
+referencing a class that doesn't exist in this codebase, left over from
+the V2/SNNgine3D C++ renderer. "Firing" is rendered as a pure opacity
+pulse against a static, config-set `face_color`
+(`visualization/config_models/visuals/markers.py`'s
+`face_color: BufferColorType`), not a color change.
+
+The identical pattern appears a second time in the same kernel for a
+different visual: `scatter_plot_data` (the voltage/firing scatter plot
+buffer) uses the same `VISPY_MARKER_STRIDE` and the same offset-10 slot
+(`scatter_plot_data[start_idx + VISPY_MARKER_STRIDE * t + 10] =
+fired[n]`, lines 185-189), so this offset-10-is-alpha convention is a
+project-wide assumption baked into multiple kernels, not a one-off.
+
+**Reading pattern this suggests for the rest of the CUDA/visual interop:**
+a Python-side buffer name (`N_pos`, `pos_vbo`, etc.) does not reliably
+describe what the kernel actually writes into it: check the kernel's own
+indexing arithmetic and any `#define ..._STRIDE` constants before assuming
+a buffer's shape or purpose from its Python name or docstring alone.
+
+Not yet traced: what `face_color` is actually configured to (RGB values)
+in this project, and which specific visual instance(s) bind to `N_pos`
+(i.e. confirm this is actually the 3D neuron-body marker visual and not
+some other consumer).
+
+Additional remarks (partial answers found after the above was written,
+worth a closer confirmed pass later rather than re-opening the case study
+above): `MarkersVisualConfig.face_color` (`markers.py:48`) defaults to
+`'white'`, consistent with the low-alpha state genuinely reading as
+white, not just plausible in theory. It is not confirmed whether this
+default is overridden per-instance anywhere. Independent corroboration
+of the
+`a_bg_color`/`a_fg_color` field mapping (i.e. not just from reading VisPy's
+source) turned up in `gui/parameter_trees/connectors/vispy_links.py:444-448`,
+which maps this project's own config field names to VisPy attribute names:
+`'face_color': 'a_bg_color'`, `'edge_color': 'a_fg_color'`, plus `pos`,
+`size`, `edge_width`. This is a second, independent source, and it agrees
+with the first. `visual_builder.py:333` maps `NetworkReservoirConfig` to the
+`Markers` visual class, consistent with `N_pos` being the 3D neuron-body
+marker visual's position buffer, but the full instance-binding chain
+(`NetworkReservoirConfig` → specific `NetworkReservoir` element →
+`pos_vbo` → the actual `N_pos` pointer) hasn't been walked step by step
+yet.

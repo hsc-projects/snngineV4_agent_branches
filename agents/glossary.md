@@ -75,3 +75,33 @@ Sources:
 [Wikipedia — Reservoir computing](https://en.wikipedia.org/wiki/Reservoir_computing),
 [ScienceDirect — Reservoir Computing overview](https://www.sciencedirect.com/topics/computer-science/reservoir-computing),
 [Scholarpedia — Echo state network](http://www.scholarpedia.org/article/Echo_state_network)
+
+## Scientific prose style
+
+A distinct writing register (Klimova, 2013) whose function is to provide
+factual, precise information: clear, concise, unambiguous, and explicit,
+with no redundant or repetitive content. The tone is formal, impersonal,
+and objective, and the text is predominantly written in third person; the
+only place the author's own opinion appears is the conclusion. Text is
+organized hierarchically (chapters, sections, subsections), and every
+substantive claim is supported by a reference.
+
+Sentences are mostly declarative. Citing corpus data (Cechova, 2008),
+scientific sentences average 19.97 words with clauses averaging 9.3
+words each, longer than in any other style, and typically contain four
+or more clauses, reflecting the development of an argument rather than
+short, isolated statements. Sentences are held together by "sentence
+condensers" (participles, infinitives, gerunds) and relative clauses,
+which make information dense and economical rather than by simply
+stacking independent clauses.
+
+Word choice is highly nominal: nouns, adjectives, and prepositions
+dominate over verbs, the present tense is used for timeless validity,
+and the same exact term is repeated rather than varied with synonyms,
+since precision is prioritized over stylistic variety. Tentative or
+hedging language ("seem," "appear," "may," "might") is used specifically
+when a claim is not fully established, to remain objective, rather than
+as a general default.
+
+Sources:
+[Klimova, B. (2013). Scientific Prose Style and Its Specifics. *Procedia - Social and Behavioral Sciences*, 83, 52-55.](https://www.researchgate.net/publication/275537459_Scientific_Prose_Style_and_Its_Specifics)
