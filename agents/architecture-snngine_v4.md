@@ -25,8 +25,8 @@ Top-level subpackages under `snngine_v4/`:
   holds pydantic config schemas for network construction; `nn/NDKNV/` references
   the CUDA SNN algorithm paper this is based on (Nageswaran et al., "Efficient
   simulation of large-scale spiking Neural networks using cuda Graphics processors").
-- **construction/** — `nn_builder.py` (`NetworkBuilder`) builds a network from a
-  config/template into runtime objects (`engine_element.py`, `engine_element_config.py`).
+- **construction/** — see `agents/mapping/construction.md` (migrated out
+  of this file).
 - **config/** — engine-level pydantic settings: `app.py`, `devices.py`
   (CUDA/OpenGL device selection), `scenes.py`, `template.py`; `snngine_config.py`
   at package root ties these into `EngineConfig`.
