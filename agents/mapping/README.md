@@ -27,10 +27,15 @@ config/build architecture note). Suggested reading order:
    per-class-grounded against `config-build-pattern.md`'s conceptual
    description; notes a class-level shared-mutable-state pattern and two
    separate ownership-enforcement mechanisms as open questions.
+6. **`config.md`** — the `config/` subpackage (plus the root-level
+   `snngine_config.py`): engine-level pydantic settings (`app`, `devices`,
+   `scenes`, `template`/`built`) assembled into `EngineConfig`; notes a
+   likely incomplete field rename and an unconfirmed-intentional default
+   network topology as open questions.
 
-Remaining subpackages (`config/`, `nn/`, `visualization/`, `utils/`,
-`gui/`) are planned but not yet written; see the plan for the horizontal
-mapping pass for the intended order and reasoning.
+Remaining subpackages (`nn/`, `visualization/`, `utils/`, `gui/`) are
+planned but not yet written; see the plan for the horizontal mapping pass
+for the intended order and reasoning.
 
 `architecture-snngine_v4.md` is being migrated into this directory
 subpackage by subpackage (each migrated bullet is replaced there with a
