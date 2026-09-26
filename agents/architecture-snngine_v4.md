@@ -32,8 +32,8 @@ Top-level subpackages under `snngine_v4/`:
   at package root ties these into `EngineConfig`.
 - **chemistry/** — see `agents/mapping/chemistry.md` (migrated out of this
   file).
-- **geometry/** — spatial parameters, volume shapes (`VolumeShapeHDW`), and a
-  `grid/` submodule — spatial layout for neurons/elements.
+- **geometry/** — see `agents/mapping/geometry.md` (migrated out of this
+  file).
 - **visualization/** — Vispy-based rendering: `visual_builder.py`,
   `scenes/scene_manager.py` (`SceneManager`, central registry mapping config
   models to scenes/visuals), `visuals/`, `plotting/`, `cuda/gl_interop/`

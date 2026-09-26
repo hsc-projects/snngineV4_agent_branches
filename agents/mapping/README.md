@@ -17,8 +17,13 @@ config/build architecture note). Suggested reading order:
    diffusion fields, their config/build split, and the 3D-texture
    CUDA/OpenGL interop boundary (contrasted with the zero-copy path in
    `vertical-trace.md`).
+4. **`geometry.md`** — the `geometry/` subpackage: spatial parameter
+   vocabulary, the finite-grid config/build split, and its VisPy-rendering
+   workaround; also notes some found dead code and internal
+   inconsistencies (direction-ordering mismatch, an unimported-`torch`
+   branch) not yet confirmed as bugs.
 
-Remaining subpackages (`geometry/`, `construction/`, `config/`, `nn/`,
+Remaining subpackages (`construction/`, `config/`, `nn/`,
 `visualization/`, `utils/`, `gui/`) are planned but not yet written; see
 the plan for the horizontal mapping pass for the intended order and
 reasoning.
