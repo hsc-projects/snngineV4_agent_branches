@@ -30,8 +30,8 @@ Top-level subpackages under `snngine_v4/`:
 - **config/** — engine-level pydantic settings: `app.py`, `devices.py`
   (CUDA/OpenGL device selection), `scenes.py`, `template.py`; `snngine_config.py`
   at package root ties these into `EngineConfig`.
-- **chemistry/** — `chem_models.py`, `chem_volume.py`: volumetric "chemical"
-  diffusion fields associated with network elements (visualized as 3D textures).
+- **chemistry/** — see `agents/mapping/chemistry.md` (migrated out of this
+  file).
 - **geometry/** — spatial parameters, volume shapes (`VolumeShapeHDW`), and a
   `grid/` submodule — spatial layout for neurons/elements.
 - **visualization/** — Vispy-based rendering: `visual_builder.py`,
