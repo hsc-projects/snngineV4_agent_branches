@@ -111,6 +111,13 @@ sake of smoother prose. When the uncertainty is about something checkable,
 proactively offer to verify it (read the code, do a web search) rather
 than just recording the hedge and moving on.
 
+This isn't limited to uncertainty the user flags with a hedge. When *you*
+are about to state or act on something you're not confident about, be it
+how a piece of code behaves, an equation, or a claimed fact, verify it
+against the primary source (the actual code, the paper) first, rather
+than generalizing from a plausible-sounding guess. Guessing here has caused
+real problems before.
+
 When the user gives several sentences elaborating, hedging, or giving
 examples around a point, treat that as raw material to help formulate one
 concise, accurate statement, not as dictation to transcribe verbatim or
@@ -158,6 +165,18 @@ existing tag if one fits rather than creating a near-duplicate.
 Features/work items and to-dos are tracked in `agents/feature-todos.md`
 (Now / Backlog / Paused / Questions, each entry tagged with a priority —
 high, mid, or low). Confirm entries with the user before adding/moving them.
+
+If you notice yourself blending two distinct tasks the
+user gave separately (doing both, merging their outputs, or deciding on
+your own where a later one's output should live relative to an earlier
+one's), stop and ask, rather than deciding it yourself, even if the tasks
+came up in the same conversation about the same topic. Being asked to do
+one is not permission to also do the other, or to decide how they
+relate. This has actually gone wrong before: documenting what this
+project's own code/architecture currently does, and researching how that
+compares to other existing software/patterns, got folded into the same
+write-up on the writer's own judgment instead of being kept as separate
+asked-for tasks.
 
 Most of the code/ideas here are not sourced from external research — this
 project grew out of self-taught exploration of a visual idea, not scientific
