@@ -51,9 +51,74 @@ copy (`pycuda.driver.Memcpy3D`, confirmed in `gl_texture3d.py`) between a
 separately-allocated PyTorch tensor and the OpenGL texture, each time data
 needs to move between them.
 
+The CUDA simulation code is based on Nageswaran et al., "Efficient
+simulation of large-scale spiking Neural networks using cuda Graphics
+processors" (referenced in snngineV4's `nn/NDKNV/`; full entry in
+`agents/references.md`) — the basic/foundational algorithm. It was
+implemented first as a direct translation of that paper, then
+progressively optimized (simplifications, matrix-operation tricks) to
+accelerate it further. Understanding kernel-level detail is deferred (see
+Workflow) until the user provides source material on the algorithm and its
+optimizations.
+
+See `agents/glossary.md` for term definitions (e.g. what "CUDA/OpenGL
+interoperability" and "zero-copy" mean precisely).
+
+The network is a fixed-size block of neurons in 3D space, called a
+"reservoir" in the codebase (`NetworkReservoir`; see the glossary for why
+this term may not strictly apply here).
+
+Synapse count per neuron is fixed to avoid warp divergence (see glossary):
+the synapse array has shape N × S, where N is the neuron count and S is
+the fixed synapse count per neuron.
+
+Connection probability is computed in CUDA construction code
+(`snn_representation.cu`, function `sigmoidal_connection_probability`) as
+a function of the discretized group-to-group delay, separately for
+inhibitory and excitatory connections. Probability decreases with delay,
+so nearby groups are favored over distant ones.
+
+Generating this connectivity on every network build is currently
+considered closed, but has been a source of past bugs and may require
+revisiting.
+
+During network construction, the connectivity search is delay-dependent
+and uses randomness to find a valid neuron to connect to. This causes
+strong warp divergence in practice: many threads finish early and sit
+idle while others keep searching for their next valid connection.
+
 ## Workflow
 
 Do not commit or push without explicit approval from the user.
+
+When the user dictates an explanation that needs organizing, clean it up
+into sensible prose — that's expected. Don't invent claims, comparisons,
+or framing that weren't actually said. Before turning it into prose,
+identify any vague or underspecified parts and ask about them first, as
+questions — don't fill the gap yourself and ask "is this OK?" afterward.
+
+Never write an edit based on inferred or implicit confirmation (the
+conversation moving on, an unrelated reply, silence). Only an explicit yes
+tied to that specific content authorizes writing it.
+
+Preserve the user's stated confidence level when writing something down.
+"Cleaning up" dictation means making it more precise and factual, not more
+polished-sounding — if they say "I think," "maybe," "probably," or express
+uncertainty, keep that uncertainty visible in the written text (e.g.
+"unconfirmed," "the user believes," "not verified against the code")
+rather than flattening it into a confident declarative statement for the
+sake of smoother prose. When the uncertainty is about something checkable,
+proactively offer to verify it (read the code, do a web search) rather
+than just recording the hedge and moving on.
+
+When the user gives several sentences elaborating, hedging, or giving
+examples around a point, treat that as raw material to help formulate one
+concise, accurate statement, not as dictation to transcribe verbatim or
+preserve sentence-by-sentence. Distill to the essential point. This
+doesn't override the confidence-level rule above: real uncertainty about a
+fact still stays visible in the final text, but throwaway hedges from the
+process of recalling/describing something don't each need their own
+clause.
 
 Any markdown files you create (notes, extracted write-ups, etc.) land under
 `agents/` in snngineV4 (the new repo).
@@ -75,6 +140,20 @@ this environment.
 Documentation is sparse/missing in places. When intent is unclear, ask the
 user — but do not expect real technical documentation to be provided; infer
 from code where possible.
+
+During code mapping (vertical and horizontal passes), don't dig into CUDA
+kernel implementation details. Treat the CUDA/kernel layer as accelerated
+compute understood by its *intent*, as inferred from the surrounding
+Python code — not by reading kernel internals. Deep understanding of the
+simulation algorithm itself is deferred until the user provides the
+underlying source material (see `agents/references.md`). Avoid cluttering
+context with kernel-level detail not needed for the current pass.
+
+When documenting code in `agents/mapping/`, favor tagging over restating
+what's easily inferable from the code itself (avoid re-describing what a
+directory listing or grep would already show). Propose new tags to the
+user before introducing them, and check `agents/tags.md` first — reuse an
+existing tag if one fits rather than creating a near-duplicate.
 
 Features/work items and to-dos are tracked in `agents/feature-todos.md`
 (Now / Backlog / Paused / Questions, each entry tagged with a priority —

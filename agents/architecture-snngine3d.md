@@ -7,6 +7,11 @@ accurate than newer content in `agents/`. The Data model and Inheritance
 sections below predate this session entirely (pre-existing in the repo's
 own `AGENTS.md`) and haven't been independently re-verified either.
 
+The source of truth is the C++/CUDA kernel (`SnnSimulation::update`).
+Python only allocates tensors once, passes raw pointers to the C++
+object, and calls `.update()` per frame. All state mutation happens on
+GPU inside the kernel.
+
 ## Architecture
 
 - `cli.py` — Typer CLI, single `run` command, entry point.

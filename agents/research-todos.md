@@ -6,4 +6,12 @@ sourced/verified — to confirm with the user later. Most of this codebase was
 built without scientific grounding (see AGENTS.md → History), so anything
 suspicious should land here rather than being assumed correct.
 
-(empty for now)
+- Nageswaran, Dutt, Krichmar, Nicolau, Veidenbaum. "A configurable
+  simulation environment for the efficient simulation of large-scale
+  spiking neural networks on graphics processors." *Neural Networks*,
+  2009. ([ScienceDirect](https://www.sciencedirect.com/science/article/abs/pii/S0893608009001373))
+  Likely the extended journal version of the Nageswaran et al. IJCNN 2009
+  paper already in `agents/references.md`, by the same authors. Confirmed
+  by the user to be in their personal library, but not confirmed as
+  actually used/read for this project. Worth reviewing later for anything
+  applicable.

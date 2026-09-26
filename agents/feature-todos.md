@@ -8,7 +8,27 @@ Each entry gets a priority: **high**, **mid**, or **low**.
 
 ## Now
 
-(nothing yet)
+- [high] Fetch and read the three reference papers (`agents/references.md`)
+  into context, not equally weighted:
+  1. Nageswaran et al., 2009 (highest value). The codebase's CUDA
+     implementation is a variant of this paper: same algorithmic base,
+     with some self-written kernels later replaced by standard CUDA
+     matrix operations. Read this first and in full. The paper also
+     establishes the vocabulary/terminology used for this domain, useful
+     beyond just understanding the code itself. Public code from the same
+     research group exists as CARLsim
+     (github.com/UCI-CARL/CARLsim6), useful to cross-check or confirm
+     details if the paper alone is unclear.
+  2. Izhikevich, 2003 (secondary). Needed mainly for the neuron model's
+     equation and parameters, largely to confirm those are being
+     interpreted correctly; that content likely already appears within
+     paper 1 too. Lower priority than paper 1; could also just be checked
+     against a web source rather than fully read.
+  3. The "shared memory" paper (currently the provisional Fidjeland &
+     Shanahan match, unconfirmed). Lowest priority. Purpose in this
+     codebase is not remembered: possibly STDP, possibly the simulation
+     loop, possibly the chemical diffusion computation. Good to have in
+     mind, not confirmed relevant to a specific subsystem.
 
 ## Backlog
 

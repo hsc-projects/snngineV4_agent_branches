@@ -1,5 +1,13 @@
 # snngine_v4
 
+**IMPORTANT:** The user's dictation may sound garbled, repetitive, or
+confusing, since it's spoken, not written. That is not a baseline to match
+or accept. You are the professional responsible for turning it into clear,
+precise, scientific-level technical prose: raise the level, don't mirror
+it. Use the single correct/standard term, not a synonym pair (e.g.
+"synapses," not "synapse slots"). This applies regardless of how casually
+or confusingly the user phrased something out loud.
+
 See `agents/common.md` for the Goal and shared Workflow rules.
 
 ## History
