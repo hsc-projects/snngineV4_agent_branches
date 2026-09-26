@@ -22,11 +22,15 @@ config/build architecture note). Suggested reading order:
    workaround; also notes some found dead code and internal
    inconsistencies (direction-ordering mismatch, an unimported-`torch`
    branch) not yet confirmed as bugs.
+5. **`construction.md`** — the `construction/` subpackage: the
+   `EngineElement`/`NetworkBuilder` generic builder machinery,
+   per-class-grounded against `config-build-pattern.md`'s conceptual
+   description; notes a class-level shared-mutable-state pattern and two
+   separate ownership-enforcement mechanisms as open questions.
 
-Remaining subpackages (`construction/`, `config/`, `nn/`,
-`visualization/`, `utils/`, `gui/`) are planned but not yet written; see
-the plan for the horizontal mapping pass for the intended order and
-reasoning.
+Remaining subpackages (`config/`, `nn/`, `visualization/`, `utils/`,
+`gui/`) are planned but not yet written; see the plan for the horizontal
+mapping pass for the intended order and reasoning.
 
 `architecture-snngine_v4.md` is being migrated into this directory
 subpackage by subpackage (each migrated bullet is replaced there with a
