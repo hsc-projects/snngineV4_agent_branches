@@ -183,27 +183,76 @@ particular, one-off solution).
 
 ## Open questions
 
-- `Shape3Di32.model_post_init` calls `raise ValidationError(f"...")`
+Indexed centrally in [`README.md` → Consolidated open questions](README.md#geometry):
+
+- [SOLVED] `Shape3Di32.model_post_init` calls `raise ValidationError(f"...")`
   with a single string argument. Not confirmed whether this actually
   raises pydantic's intended validation error or a `TypeError` from a
   malformed constructor call — no test or call site exercising a
   non-positive shape value was found to confirm behavior empirically.
-- `GridDirectionsObject.coord`'s direction ordering (X and Z axes appear
+  - **Resolution**: Empirically verified as a bug. In Pydantic v2, `ValidationError`
+    cannot be instantiated with a single string argument; its constructor requires
+    `title` and `line_errors` (or creation via `ValidationError.from_exception_data`).
+    Instantiating `Shape3Di32(data=np.array([0, 1, 1], dtype=np.int32))` raises:
+    `TypeError: ValidationError.__new__() missing 1 required positional argument: 'line_errors'`.
+    In Pydantic v2, custom validation logic inside `model_post_init` or field validators
+    should raise `ValueError`, which Pydantic either catches and wraps into a proper
+    `ValidationError` or propagates cleanly.
+    See [`README.md#geometry`](README.md#geometry).
+- [SOLVED] `grid_mask_maker.extend_mask`'s `torch.Tensor` branch references an
+  unimported `torch`. Not confirmed whether this is simply unreachable
+  dead code (all real callers pass numpy arrays) or a latent bug waiting
+  on a torch-based caller.
+  - **Resolution**: Verified as a latent bug and migration relic.
+    `# import torch` is commented out at `snngine_v4/geometry/grid/grid_mask_maker.py:5`.
+    Passing a PyTorch tensor to `extend_mask` immediately crashes with
+    `NameError: name 'torch' is not defined` at line 37.
+    Its only torch-oriented downstream caller is `FiniteGrid.get_hull_mask`
+    (`snngine_v4/geometry/grid/finite_grid.py:92-106`), which locally imports `torch`
+    and passes `count_array=torch.zeros_like(tensor)` to `n_neighbours`
+    (`grid_mask_maker.py:189-211`), which in turn calls `extend_mask`.
+    However, `get_hull_mask` is currently uncalled across the codebase, and all active
+    production callers pass `np.ndarray`.
+    See [`README.md#geometry`](README.md#geometry).
+- [SOLVED] `GridDirectionsObject.coord`'s direction ordering (X and Z axes appear
   swapped relative to `AxDir3D`) is unused dead code today, but not
   confirmed whether it was ever live, or whether some other part of the
   codebase (outside this subpackage) still relies on `AxDir3D`'s literal
   integer values matching a similar convention.
-- `grid_mask_maker.extend_mask`'s `torch.Tensor` branch references an
-  unimported `torch`. Not confirmed whether this is simply unreachable
-  dead code (all real callers pass numpy arrays) or a latent bug waiting
-  on a torch-based caller.
-- `Directions3DBoolPars` and `Pos2DVBO`/`Pos3DVBO` have no consumer
+  - **Resolution**: Verified as dead legacy code.
+    `GridDirectionsObject.coord` (`snngine_v4/geometry/grid/finite_grid_elements.py:12-19`)
+    defines row offsets where the negative and positive directions for X and Z are swapped
+    relative to `AxDir3D` (`XP=0`, `XM=1`, `YP=2`, `YM=3`, `ZP=4`, `ZM=5` in `spatial_pars.py:36-43`).
+    A codebase-wide search confirms that `GridDirectionsObject.coord` is never referenced anywhere
+    in `snngine_v4`. Its subclass `GridStep` (`finite_grid_elements.py:35-54`) completely overrides
+    `self._obj` with vectors matching `AxDir3D` order, and `GridDirectionsObject.__getitem__`
+    directly indexes `self._obj` via `AxDir3D[item]`. `coord` is an unreferenced relic from SNNgine3D.
+    See [`README.md#geometry`](README.md#geometry).
+- [SOLVED] `Directions3DBoolPars` and `Pos2DVBO`/`Pos3DVBO` have no consumer
   within `geometry/` itself. Not confirmed whether they're used from
   another subpackage (e.g. `visualization/` or `nn/`) or are unused
   leftovers.
-- Per the user's earlier note on `chemistry/`: this subpackage's
+  - **Resolution**: Confirmed to be central cross-subpackage domain types, not dead leftovers.
+    `spatial_pars.py` serves as the foundational spatial and buffer type registry for the whole engine:
+    1. `Directions3DBoolPars` (`snngine_v4/geometry/spatial_pars.py:177-190`) is consumed by
+       `BoxFacesVisualInitConfig.planes` (`snngine_v4/visualization/config_models/visuals/boxes.py:30`)
+       and parsed by `VispyVisualBuilder.get_model` (`snngine_v4/visualization/visual_builder.py:443`).
+    2. `Pos2DVBO` and `Pos3DVBO` (`snngine_v4/geometry/spatial_pars.py:192-193`) define GPU VBO buffer
+       type aliases consumed by `NetworkReservoirConfig.pos` (`snngine_v4/nn/config_models/reservoir/nn_reservoir_config.py:116`),
+       `MarkerVisualConfig.pos` (`snngine_v4/visualization/config_models/visuals/markers.py:34`),
+       `GridLinesVisualInitConfig.pos` (`snngine_v4/visualization/config_models/visuals/lines.py:36,46`),
+       `MultiLinePlotSubVisualInitConfig.pos` (`snngine_v4/visualization/config_models/plotting/multi_line_plot.py:65,99,213`),
+       and `OptionsBuilder` (`snngine_v4/gui/parameter_trees/parameter_builder/options_builder.py:173,175`).
+    See [`README.md#geometry`](README.md#geometry).
+- [SOLVED] Per the user's earlier note on `chemistry/`: this subpackage's
   migration completeness from SNNgine3D is likewise not confirmed one
   way or the other; the dead/commented-out code found here (the
   alternate `XYZPars` implementation, `FiniteGrid`'s legacy constructor
   block, the unused `GridDirectionsObject.coord`) is consistent with
   that same caveat, not necessarily its own separate issue.
+  - **Resolution**: Confirmed through systematic audit. `geometry/` contains
+    several unpruned legacy artifacts from SNNgine3D (e.g. commented-out `# import torch`
+    in `grid_mask_maker.py:5`, unused `GridDirectionsObject.coord`, commented-out
+    `XYZPars` property implementations in `spatial_pars.py:115-127`, and uncalled
+    `FiniteGrid.get_hull_mask`), while core runtime classes (`FiniteGrid`, `VolumeConfig`,
+    `Shape3Di32`, `AxDir3D`) are fully functional and integrated with downstream subsystems.

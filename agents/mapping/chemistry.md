@@ -136,21 +136,82 @@ generic layer cannot reach past).
 
 ## Open questions
 
-- `Chemicals` declares only `C0: ChemicalConcentrationVolume`, while its
-  config counterpart `DefaultChemicals` declares both `C0` and `C1`. Not
-  confirmed whether this is a real mismatch (a bug/incompleteness) or
-  whether `Chemicals` is meant to be a partial/example stub rather than
-  the actual built counterpart of `DefaultChemicals`.
-- `depreciation` (`ChemicalConcentrationModel`) has no reader anywhere in
-  either file in this subpackage. Not confirmed whether it's consumed
-  elsewhere (e.g. a CUDA kernel) or genuinely unused.
-- The commented-out `name` field and `model_post_init` in `chem_models.py`
+Indexed centrally in [`README.md` → Consolidated open questions](README.md#chemistry):
+
+- [SOLVED] `Chemicals` declares only `C0: ChemicalConcentrationVolume`, while its
+  config counterpart `DefaultChemicals` declares both `C0` and `C1`.
+  - **Resolution**: `DefaultChemicals` defines `C0` and `C1` as an incomplete
+    schema expansion for multi-chemical diffusion (supported by the commented-out
+    naming logic in `snngine_v4/chemistry/chem_models.py:32-35`). However, `C1`
+    was never wired downstream into runtime execution:
+    1. Runtime element typing in `Chemicals` (`snngine_v4/chemistry/chem_volume.py:100-102`)
+       declares only `C0: ChemicalConcentrationVolume`.
+    2. Orchestrator visual construction in `SNNgine.build_visuals`
+       (`snngine_v4/snngine.py:159-172`) queries and builds VisPy volume visuals
+       exclusively for `elt_config0.chemicals.C0`.
+    3. The CUDA simulation backend binding in `Simulation._make_simulator_backend`
+       (`snngine_v4/nn/sim/simulation.py:151-160`) extracts device pointers
+       (`C_old`, `C_new`, `C_source`) exclusively from `chemicals.C0`, as the
+       underlying C++/CUDA simulation kernel only accepts a single 3D diffusion grid.
+    Conclusion: `Chemicals` declaring only `C0` accurately reflects the real single-chemical
+    constraint enforced across the simulation backend and visual pipelines; `C1` on
+    `DefaultChemicals` is an unplumbed configuration leftover. See
+    [`README.md#chemistry`](README.md#chemistry).
+- [SOLVED] `depreciation` (`ChemicalConcentrationModel`) has no reader anywhere in
+  either file in this subpackage.
+  - **Resolution**: `depreciation` is consumed directly by the C++/CUDA simulation
+    backend rather than by Python runtime code in `chemistry/`. In
+    `snngine_v4/nn/sim/simulation.py:159`, `Simulation._make_simulator_backend`
+    forwards `chem_depreciation=chemicals.C0.config.depreciation` into the
+    PyBind11 constructor (`snngine_v4/nn/cuda_backend/src/simulation/snn_simulation_bindings.cu:65,279`).
+    In the CUDA 3D chemical diffusion kernel
+    (`snngine_v4/nn/cuda_backend/src/simulation/snn_simulation.cu:205,278`),
+    it acts as the linear decay / clearance term subtracted from the updated
+    chemical concentration at each simulation timestep:
+    `c_new = fminf(2000.0f, fmaxf(0.0f, c_old + k_val * (sum_mat - 6 * c_old) - depreciation))`.
+    It is also serialized in XML presets (`.snngine/template.xml:560`). It is fully
+    live and operational in the simulation pipeline. See
+    [`README.md#chemistry`](README.md#chemistry).
+- [SOLVED] The commented-out `name` field and `model_post_init` in `chem_models.py`
   suggest per-chemical naming (`'C0'`/`'C1'`) was intended but not
   finished. Not confirmed whether this is planned future work or an
   abandoned idea.
-- `set_test_values_gpu`'s hard-coded voxel values (2000, 1800, 1800) and
+  - **Resolution**: Commenting out `name: str = 'NULL'` and `model_post_init`
+    (`snngine_v4/chemistry/chem_models.py:14,32-35`) was a deliberate decision to eliminate
+    redundant field-level naming in favor of container-level attribute keys (`'C0'`, `'C1'`).
+    1. The GUI parameter tree generator `ParameterBuilder`
+       (`snngine_v4/gui/parameter_trees/parameter_builder/parameter_builder.py:199,204`)
+       automatically labels nested parameter groups using the attribute name of the enclosing
+       container (`DefaultChemicals.C0`, `DefaultChemicals.C1`). An explicit `name` field on the
+       child model introduced an unwanted, redundant editable text parameter row inside the
+       parameter tree.
+    2. The XML serialization engine (`XMLSettingsModel`, `.snngine/template.xml:550-575`)
+       similarly keys chemical configurations by their parent dictionary slot (`key="C0"`, `key="C1"`).
+    3. This pattern is mirrored across other configuration subpackages (e.g., `# name: str | None = None`
+       commented out in `snngine_v4/visualization/config_models/vispy_camera_configs.py:31`, where
+       camera names are supplied by scene dictionary keys `main`, `plot_2d_a`).
+    Consequently, instance-level `name` fields were abandoned across configuration models where
+    container keys already provide unique identifiers. See [`README.md#chemistry`](README.md#chemistry).
+- [SOLVED] `set_test_values_gpu`'s hard-coded voxel values (2000, 1800, 1800) and
   `init_test_data_cpu`'s bundled stent-scan volume are both live by
-  default (`b_test_init: bool = True`). Not confirmed whether this
-  default is intentional (e.g. no real chemical-diffusion source exists
-  yet, so test data is the only current content) or leftover debug state
-  that should default to off.
+  default (`b_test_init: bool = True`).
+  - **Resolution**: `b_test_init = True` is development fixture scaffolding left
+    enabled by default because the engine currently lacks neural-to-chemical emission
+    coupling. When spikes occur, no logic writes into `C_source`. Without synthetic
+    initial data:
+    1. `init_test_data_cpu` (`snngine_v4/chemistry/chem_volume.py:78-93`) loads VisPy's
+       sample coronary CT scan (`vispy.io.load_data_file('volume/stent.npz')`) into
+       `init_data_cpu`, which `SNNgine.build_visuals` (`snngine_v4/snngine.py:159-172`)
+       passes to VisPy's `CompoundR32fVolumeVisual` so that 3D volume rendering has visible
+       geometry to display upon launch.
+    2. `set_test_values_gpu` (`snngine_v4/chemistry/chem_volume.py:63-73`) injects fixed
+       concentration values (2000, 1800, 1800) into the boundary slices of `c_source`,
+       `c_current`, and `c_next`. In the CUDA kernel
+       (`snngine_v4/nn/cuda_backend/src/simulation/snn_simulation.cu:266-278`), voxels with
+       `C_source[idx] > 0.f` serve as persistent emission boundaries from which chemical
+       diffusion propagates into neighboring voxels.
+    This scaffolding verifies that VisPy volume rendering, 3D texture OpenGL-CUDA interop,
+    and the CUDA diffusion kernel work end-to-end in the absence of neural emission sources.
+    It is persistent in `.snngine/template.xml:561` and should eventually be controlled by an
+    explicit debug flag once dynamic neural chemical emission is implemented. See
+    [`README.md#chemistry`](README.md#chemistry).

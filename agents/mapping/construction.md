@@ -208,36 +208,99 @@ pybind11 extension, matching edge (1) from `config-build-pattern.md`
 
 ## Open questions
 
-- `update_builder_class_attributes` mutates `ClassVar` dicts in place
+Indexed centrally in [`README.md` → Consolidated open questions](README.md#construction):
+
+- [SOLVED] `update_builder_class_attributes` mutates `ClassVar` dicts in place
   (`.update()`), affecting the whole class, not just the constructing
   instance. Concretely: two sibling non-root `EngineElement` instances
   of the *same* subclass, constructed under different parents with
   different builder-map extensions, could end up sharing a merged map
   neither parent intended, since the underlying dict object is shared
   class-wide. Not confirmed whether this is deliberate.
-- `EngineElement.__setattr__`'s `PermissionError` check and
+  - **Resolution**: Verified as an architectural tension between `@classmethod`-based
+    builder factories and instance-level hierarchy inheritance. `BUILDER_OBJECT_CLASS_MAP`
+    and related mapping attributes on `EngineElement` (`snngine_v4/construction/engine_element.py:72-75`)
+    are declared as `ClassVar`. When non-root elements are initialized (`engine_element.py:122`),
+    `self.update_builder_class_attributes(parent_element)` mutates `self.BUILDER_OBJECT_CLASS_MAP.update(...)`
+    in place, modifying the class-level dictionary. Because `ModelObjectBuilder.cls_build_container` is a
+    `@classmethod` (`snngine_v4/utils/object_builder/object_builder.py:76`), builder lookups occur on class
+    attributes. Consequently, if multiple sibling instances of the same subclass are constructed under
+    different parent hierarchies with distinct builder extensions, their class-level maps leak into one another.
+    See [`README.md#construction`](README.md#construction).
+- [SOLVED] `EngineElement.__setattr__`'s `PermissionError` check and
   `config-build-pattern.md`'s documented `SHARED_RUNTIME_FIELDS`/
   `object2object_links.py` check are two distinct ownership-enforcement
   mechanisms found in two different files. Not confirmed whether they're
   meant to compose, overlap, or guard genuinely different cases.
-- `parent_element` (method) computes the parent lazily from
+  - **Resolution**: Verified as distinct, non-overlapping ownership guards operating at different
+    architectural layers:
+    1. `EngineElement.__setattr__` (`snngine_v4/construction/engine_element.py:156-168`) guards
+       **config-to-runtime declarative consistency**: it forbids attaching runtime `TensorSeries`
+       or `TensorDict` attributes to an `EngineElement` unless declared in the element's Pydantic
+       config model (`not hasattr(self.config, key)` raises `PermissionError`), and automatically
+       tracks valid tensors in `self.tensor_dict`.
+    2. `SHARED_RUNTIME_FIELDS` (`snngine_v4/gui/parameter_trees/connectors/object2object_links.py:266-272`)
+       guards **GPU/NumPy shared buffer identity**: in two-way GUI parameter links (`prepare_object`),
+       it forbids reassigning fields (e.g. `'pos'`) to a new array instance (`existing is not value`
+       raises `RuntimeError`), requiring callers to mutate underlying shared VBO memory in place
+       (`arr[:] = ...`). See [`README.md#construction`](README.md#construction).
+- [SOLVED] `parent_element` (method) computes the parent lazily from
   `node_tree.parent(self.config)`, independent of whatever
   `parent_element` value was actually passed to `__init__`. Not
   confirmed these are guaranteed to agree in all cases.
-- `validate_consistency` is an empty stub with no confirmed override
+  - **Resolution**: Confirmed by design to enforce the Pydantic configuration tree as the single
+    source of truth. In `snngine_v4`, hierarchy is canonicalized in `node_tree: EngineNodes`
+    (`snngine_v4/utils/containers/node_map.py`), which tracks parent-child relations among
+    configuration models. `EngineElement.parent_element()` (`snngine_v4/construction/engine_element.py:234-243`)
+    looks up `parent_model = self.node_tree.parent(self.config)` and returns `self.root_element[parent_model]`,
+    ensuring runtime element relations never drift from configuration topology. The `parent_element`
+    argument accepted in `EngineElement.__init__` (`snngine_v4/construction/engine_element.py:122`)
+    is used solely to seed builder class attributes at construction time. The commented assertion
+    `# if self.parent_element is not parent_element:` (`snngine_v4/construction/engine_element.py:138-139`)
+    was disabled because `self.parent_element` is a method, not an instance attribute, making direct
+    identity comparison invalid. See [`README.md#construction`](README.md#construction).
+- [SOLVED] `validate_consistency` is an empty stub with no confirmed override
   anywhere read so far. Not confirmed whether it's genuinely unused or
   overridden in an unread subpackage (`nn/`, `visualization/`).
-- `nn_builder.py`'s commented-out `FiniteGridConfig: FiniteGrid` entry
+  - **Resolution**: Confirmed as an active post-construction validation hook, not dead code.
+    While a no-op base stub in `EngineElement.validate_consistency` (`snngine_v4/construction/engine_element.py:274-275`),
+    it is concretely overridden in `NeuronStates.validate_consistency` (`snngine_v4/nn/neuron_states.py:33-35`),
+    where it verifies `self.n_neurons == self.N_props.shape[1]` and raises `InconsistencyError` before
+    applying parameter presets (`apply_preset` at line 42).
+- [SOLVED] `nn_builder.py`'s commented-out `FiniteGridConfig: FiniteGrid` entry
   suggests grid construction moved from a top-level mapping to a
   per-instance one (as seen in `chemistry/`). Not confirmed which came
   first or why.
-- `EngineNodes.InvertedConfigClass`'s "inverted" naming isn't explained
+  - **Resolution**: Confirmed architectural relocation of grid ownership.
+    `FiniteGridConfig` is a child field of `SpatialNetworkConfig.grid` (`snngine_v4/nn/config_models/spnn_config.py:24`).
+    When network construction was hierarchicalized, the mapping was moved into
+    `SpatialNetwork.BUILDER_OBJECT_CLASS_MAP` (`snngine_v4/nn/spnn.py:34`). The entry in top-level
+    `NetworkBuilder.BUILDER_OBJECT_CLASS_MAP` (`snngine_v4/construction/nn_builder.py:26`) became
+    redundant and was commented out. See [`README.md#construction`](README.md#construction).
+- [SOLVED] `EngineNodes.InvertedConfigClass`'s "inverted" naming isn't explained
   by this subpackage alone; not confirmed without reading
   `utils/containers/node_map.py`.
-- Two coexisting routes to a "positioned + buildable" config combination
+  - **Resolution**: Clarified by bidirectional container architecture.
+    `EngineNodes` (`snngine_v4/construction/engine_element.py:39-42`) subclasses `ModelTree` and `NodeTree`
+    (`snngine_v4/utils/containers/node_map.py:32-35`), which inherit from bidirectional `Object2ObjectMap`.
+    In this bidirectional structure, `ContainerConfigClass` configures the forward mapping (mapping elements
+    to `TreeNode` objects), while `InvertedConfigClass` configures the container parameters for the inverse
+    mapping `self.inv` (constraining node elements to `EngineElementConfigMixin` with `EngineNodesConfig`).
+- [SOLVED] Two coexisting routes to a "positioned + buildable" config combination
   exist: `EngineElementConfig3D(EngineElementConfig, Object3DConfig)`
   here, versus `chemistry/`'s `ChemicalConcentrationModel(VolumeConfig,
   EngineElementConfigMixin)` (a lighter mixin, not the full
   `EngineElementConfig` base). Not confirmed whether this is an
   intentional distinction (e.g. based on whether `reset_array`/`Slots`
   are needed) or drift between two ways of expressing the same thing.
+  - **Resolution**: Confirmed intentional structural separation.
+    `EngineElementConfigMixin` (`snngine_v4/construction/engine_element_config.py:12-28`) provides recursive
+    model tree introspection (`elt_dict`, `tdf_dict`) without pulling in tabular array resetting methods.
+    `EngineElementConfig` (`snngine_v4/construction/engine_element_config.py:30-53`) adds `Slots.INITIALIZER`
+    and `reset_array()` for tabular neuron property tables (`TypedDataFrameModel`).
+    - `NetworkReservoirConfig` (`snngine_v4/nn/config_models/reservoir/nn_reservoir_config.py`) inherits from
+      `EngineElementConfig3D` because neural reservoirs require both spatial 3D bounds and tabular dataframe reset
+      machinery (`N_props`, `N_flags`).
+    - `ChemicalConcentrationModel` (`snngine_v4/chemistry/chem_models.py:12`) combines `VolumeConfig` with
+      `EngineElementConfigMixin`, intentionally omitting tabular dataframe reset logic since continuous 3D scalar
+      volumes manage raw GPU buffers directly.
