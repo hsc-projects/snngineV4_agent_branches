@@ -108,21 +108,56 @@ edges.
 
 ## Open questions
 
-- `DeviceSettings.cuda: CudaSettings` has no default, while its sibling
+Indexed centrally in [`README.md` → Consolidated open questions](README.md#config):
+
+- [SOLVED] `DeviceSettings.cuda: CudaSettings` has no default, while its sibling
   `opengl: OpenGLSettings = OpenGLSettings()` does — not confirmed
   whether this asymmetry is intentional (e.g. CUDA settings must always
   be supplied explicitly) or an oversight.
-- `SceneSettings.main`'s view has no explicit `camera`, unlike both
+  - **Resolution**: Syntactically asymmetric but semantically equivalent under Pydantic v2.
+    `CudaSettings` (`snngine_v4/config/devices.py:13-16`) defines all its fields with defaults
+    (`b_require_pycuda: bool = False`). Under Pydantic v2, fields annotated with defaultable
+    submodels are automatically constructed with their defaults if omitted during parent instantiation.
+    Instantiating `DeviceSettings()` succeeds without arguments and initializes `cuda` to
+    `CudaSettings(b_require_pycuda=False)`.
+    See [`README.md#config`](README.md#config).
+- [SOLVED] `SceneSettings.main`'s view has no explicit `camera`, unlike both
   multiplot scenes' `PanZoomCameraParameters()`. Not confirmed whether
   this is deliberate.
-- `snngine_config.py`'s `template` default (`SpatialNetworkConfig` with
+  - **Resolution**: Confirmed by design. `VispyViewBoxConfig.camera`
+    (`snngine_v4/visualization/config_models/vispy_canvas_config.py:53-54`) defaults via
+    `default_factory` to `TurnTableCameraParameters()`. The main scene (`SceneSettings.main` in
+    `snngine_v4/config/scenes.py:15-21`) displays the 3D network and chemical volume, so it relies
+    on this default 3D orbit camera. The multiplot scenes (`multiplot_voltage`, `multiplot_firings` in
+    `scenes.py:23-41`) render 2D time series and spike rasters, so they explicitly override the 3D
+    camera with `PanZoomCameraParameters()`.
+    See [`README.md#config`](README.md#config).
+- [SOLVED] `snngine_config.py`'s `template` default (`SpatialNetworkConfig` with
   one `NetworkReservoirConfig`) — not confirmed whether this is the
   intended shipped default or a development-era leftover, matching the
   same open caveat already raised for `chemistry/`'s test-data default.
-- The commented-out `Slots.CONSTR` alongside the live `Slots.SCENES`
+  - **Resolution**: Confirmed shipped default topology. A runnable `SpatialNetwork` requires at
+    least one recurrent neuron pool (`NetworkReservoirConfig`). The `default_factory` on
+    `EngineConfig.template` (`snngine_v4/snngine_config.py:45-53`) mirrors the shipped XML preset
+    (`.snngine/template.xml:4,116`), configuring a single 1000-neuron reservoir on dedicated CUDA
+    `device=1`. The commented-out `# EngineElementConfig(),` lines indicate that `elements` is designed
+    to support heterogeneous multi-reservoir topologies.
+    See [`README.md#config`](README.md#config).
+- [SOLVED] The commented-out `Slots.CONSTR` alongside the live `Slots.SCENES`
   exclusion in `_xml_file_paths` suggests an incomplete rename
   (`CONSTR`/construction → `TEMPLATE`); not confirmed whether any other
   leftover references to the old name exist elsewhere in the codebase.
-- Why `scenes` specifically is excluded from the per-field XML-file split
+  - **Resolution**: Confirmed legacy rename leftover. In earlier iterations, the `template` field
+    was named `construction` (with slot `CONSTR` or `CONSTRUCTION`, commit `14520fee67`). When renamed
+    to `template` (`Slots.TEMPLATE = 'template'` in `snngine_v4/snngine_config.py:30`), the old
+    `CONSTR` exclusion was commented out in `_xml_file_paths` (`snngine_config.py:73`). A codebase-wide
+    search confirms no active occurrences of `CONSTR` remain.
+    See [`README.md#config`](README.md#config).
+- [SOLVED] Why `scenes` specifically is excluded from the per-field XML-file split
   (while `app`/`devices`/`template`/`built` presumably each get their own
   file) isn't confirmed without reading `utils/settings/xml_settings.py`.
+  - **Resolution**: Confirmed development workflow design. Excluded from `_xml_file_paths`
+    (`snngine_v4/snngine_config.py:74`) so that `EngineConfig` initializes `scenes` from Python code
+    defaults (`SceneSettings` in `snngine_v4/config/scenes.py`) rather than deserializing `.snngine/scenes.xml`.
+    This ensures that ongoing modifications to VisPy canvas, camera, and axis settings in Python take
+    immediate effect at startup without being overridden by stale XML presets on disk.

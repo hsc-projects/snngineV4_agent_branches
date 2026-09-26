@@ -16,15 +16,7 @@ cached property).
 
 Top-level subpackages under `snngine_v4/`:
 
-- **nn/** — simulation core. `spnn.py` (`SpatialNetwork`) and `spnn_reservoir.py`
-  (`NetworkReservoir`) are the main network/element classes; `neuron_states.py`
-  and `synapses.py` hold neuron/synapse state; `nn/sim/` has `simulator.py`,
-  `simulation.py`, `sim_parameters.py`, `gpu_plots.py` (the sim loop and
-  GPU-backed plotting of voltage/firing data); `nn/cuda_backend/` (CMakeLists.txt
-  + `src/`) is CUDA kernel source, compiled separately from Python; `nn/config_models/`
-  holds pydantic config schemas for network construction; `nn/NDKNV/` references
-  the CUDA SNN algorithm paper this is based on (Nageswaran et al., "Efficient
-  simulation of large-scale spiking Neural networks using cuda Graphics processors").
+- **nn/** — see `agents/mapping/nn.md` (migrated out of this file).
 - **construction/** — see `agents/mapping/construction.md` (migrated out
   of this file).
 - **config/** — see `agents/mapping/config.md` (migrated out of this
@@ -33,22 +25,9 @@ Top-level subpackages under `snngine_v4/`:
   file).
 - **geometry/** — see `agents/mapping/geometry.md` (migrated out of this
   file).
-- **visualization/** — Vispy-based rendering: `visual_builder.py`,
-  `scenes/scene_manager.py` (`SceneManager`, central registry mapping config
-  models to scenes/visuals), `visuals/`, `plotting/`, `cuda/gl_interop/`
-  (CUDA-OpenGL interop buffer mapping, `gl_buffer.py`/`GLBufferMap`, for
-  zero-copy GPU sim-to-render — see `agents/common.md` → Core technical
-  facts for the interop chain and its 3D-texture exception).
-- **gui/** — PySide6 application shell: `app/engine_app.py` (`EngineApp`) and
-  `app/debug_app.py`; `parameter_trees/` (pyqtgraph-based parameter trees
-  connecting config models to UI — `EngineParameterTree`, `EngineSelectorTree`,
-  plus connector classes `TensorConnector`, `VispyConnector`, `CudaVispyConnector`);
-  `devices/` (hardware controllers, e.g. X-Touch-Mini MIDI); `windows/`, `views/`,
-  `common/`, `icons/`.
-- **utils/** — cross-cutting helpers: `object_builder/` (the generic
-  build-from-config pattern), `containers/`, `cuda_utils/`, `data_utils/`,
-  `settings/`, `class_mixer.py`, `core_utils.py` (e.g. `type_assertion`),
-  `field_utils.py`.
+- **visualization/** — see `agents/mapping/visualization.md` (migrated out of this file).
+- **gui/** — see `agents/mapping/gui.md` (migrated out of this file).
+- **utils/** — see `agents/mapping/utils.md` (migrated out of this file).
 - **.snngine/** — stored XML config presets (`app.xml`, `built.xml`,
   `devices.xml`, `scenes.xml`, `template.xml`) — serialized state/config
   snapshots, not code.
