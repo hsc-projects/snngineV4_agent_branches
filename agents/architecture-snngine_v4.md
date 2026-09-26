@@ -27,9 +27,8 @@ Top-level subpackages under `snngine_v4/`:
   simulation of large-scale spiking Neural networks using cuda Graphics processors").
 - **construction/** — see `agents/mapping/construction.md` (migrated out
   of this file).
-- **config/** — engine-level pydantic settings: `app.py`, `devices.py`
-  (CUDA/OpenGL device selection), `scenes.py`, `template.py`; `snngine_config.py`
-  at package root ties these into `EngineConfig`.
+- **config/** — see `agents/mapping/config.md` (migrated out of this
+  file).
 - **chemistry/** — see `agents/mapping/chemistry.md` (migrated out of this
   file).
 - **geometry/** — see `agents/mapping/geometry.md` (migrated out of this
