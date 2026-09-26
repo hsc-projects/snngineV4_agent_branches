@@ -45,7 +45,7 @@ describe the doc change; there is nothing else to name.
 - `git add` and `git commit` go in **one** `Bash` call
   (`git add <files> && git commit -m "..."`), so there is a single
   confirmation prompt.
-- **When Claude suggests a commit** (e.g. after finishing a piece of
+- **When the agent suggests a commit** (e.g. after finishing a piece of
   work): end that reply with the preview — `committing:` plus the file
   list as markdown bullets, each filename in backticks (renders in a
   distinct color), then the exact commit message, alone, on its own line.
