@@ -91,7 +91,7 @@ The container must execute and validate the 5-link zero-copy chain (see `agents/
 
 ---
 
-## Goal — two phases, work through both autonomously
+## Goal — three phases, work through them autonomously
 
 ### Phase 1: Automated Headless EGL in Docker (Priority 1 — Top Pick)
 Build a minimal, modern container and run the automated headless test inside it.
@@ -126,23 +126,55 @@ Build a minimal, modern container and run the automated headless test inside it.
 ---
 
 ### Phase 2: Visual Confirmation from Docker (Priority 2)
-Once headless EGL passes, explore visual confirmation. Do not try to resurrect monolithic NoMachine desktop sessions. Instead, evaluate the options ranked below:
+Once headless EGL passes, verify visual rendering offscreen without requiring an X server or desktop display:
 
-1. **Option A: Offscreen EGL Render to Image File (Recommended)**:
-   - Add a test mode that initializes an EGL framebuffer, renders several frames of the VisPy marker visual, reads the framebuffer pixels (`glReadPixels`), and saves an image (`rendered_frame.png`) to an output directory mounted from the host.
-   - The maintainer can inspect the image on the host to visually confirm 3D marker geometry and alpha modulation without running an X server or remote desktop.
-2. **Option B: VirtualGL + TurboVNC (Optional interactive path)**:
-   - If interactive live viewing inside the container is required, use VirtualGL + TurboVNC (lightweight, purpose-built for 3D OpenGL streaming), rather than a full heavyweight desktop.
-3. **Option C: Guarded X11 Socket Passthrough**:
-   - Pass the host X11 socket (`-v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=:1`) only with the extension safety guard (`gnome-extensions disable tiling-assistant@ubuntu.com`) active on the host and with maintainer confirmation.
+1. **Offscreen EGL Framebuffer Snapshot**:
+   - Initialize an EGL pbuffer/framebuffer surface.
+   - Render the VBO markers and circle geometry using OpenGL 3.3 Core Profile shaders.
+   - Read pixels via `glReadPixels(..., GL_RGBA, GL_UNSIGNED_BYTE)`.
+   - Serialize pixels to a standard PNG (`rendered_frame.png`) using pure Python standard library (`struct` + `zlib`) without third-party imaging dependencies.
+   - Mount host output directory so the image is immediately accessible on the host for inspection.
+2. **Document Phase 2**: Record snapshot verification metrics (pixel counts, resolution, foreground marker appearance) in `gpu-smoke-test-report-docker.md`.
+
+---
+
+### Phase 3: Interactive GUI from Docker (Priority 3 — Interactive User Verification)
+Run the full PyQt + VisPy interactive GUI (`interop_smoke_test_standalone_gui.py`) from inside the container, enabling live interactive manipulation (rotating camera, pausing simulation, single-stepping, toggling between self-compiled CUDA simulation code and PyTorch fallback) in real time.
+
+1. **Two Supported Interactive Paths**:
+   - **Path A: Guarded Host X11 Passthrough (Local Host Iteration)**:
+     - Direct X11 socket sharing (`-v /tmp/.X11-unix:/tmp/.X11-unix:rw -e DISPLAY=${DISPLAY:-:1}`).
+     - **Safety Guard (Mandatory)**: To prevent the Mutter assertion failure in `tiling-assistant@ubuntu.com` from crashing the host GNOME Shell session, the host launcher script must automatically disable `tiling-assistant@ubuntu.com` before container window mapping and re-enable it via shell `trap` on exit:
+       ```bash
+       gnome-extensions disable tiling-assistant@ubuntu.com
+       trap 'gnome-extensions enable tiling-assistant@ubuntu.com' EXIT INT TERM
+       xhost +local:root >/dev/null 2>&1 || true
+       ```
+   - **Path B: Cloud-Portable Web Streaming (RunPod Preparation)**:
+     - Uses VirtualGL / lightweight Xvfb with `websockify` + `noVNC` exposing an HTTP port (e.g. `6080`).
+     - Allows interactive GUI manipulation from any web browser without relying on the host's X11 server, providing the exact blueprint needed for RunPod pods.
+
+2. **Container Stack Requirements**:
+   - Add GUI dependencies to the container:
+     - Python packages: `vispy`, `PyQt6` (or `PyQt5`).
+     - System libraries: `libxkbcommon-x11-0`, `libglib2.0-0`, `libfontconfig1`, `libxcb-icccm4`, `libxcb-image0`, `libxcb-keysyms1`, `libxcb-randr0`, `libxcb-render-util0`, `libxcb-shape0`, `libxcb-xfixes0`, `libxcb-xinerama0`, `libxcb-cursor0`.
+     - Qt platform plugin configured (`ENV QT_QPA_PLATFORM=xcb`).
+
+3. **Execution & Interaction**:
+   - Host launcher executes `interop_smoke_test_standalone_gui.py` inside the container.
+   - Maintainer observes and verifies:
+     1. 64 3D markers rotating in a double torus with live pulse animation driven by `update_N_state_kernel`.
+     2. Interactive buttons respond cleanly ("Pause Simulation", "Step", "Switch to PyTorch Fallback").
+     3. Window closes cleanly on "Exit" or window close with exit code 0 and host desktop intact.
+4. **Document Phase 3**: Record container build additions, launcher command, and verification outcome in `gpu-smoke-test-report-docker.md`.
 
 ---
 
 ## Deliverables (all in this same `setups/gpu-smoke-test/` directory)
 
 - `gpu-smoke-test-task-docker.md` — this task write-up.
-- `Dockerfile.docker-smoke` — minimal, reproducible Dockerfile for containerized interop testing.
-- `interop_smoke_test_docker_launcher.sh` — host launcher script following the repo's naming pattern; inspects if the Docker image exists, builds it automatically from `Dockerfile.docker-smoke` if missing, mounts volumes, configures `--gpus all`, and executes the test inside the container.
+- `Dockerfile.docker-smoke` — minimal, reproducible Dockerfile for containerized interop testing (supports both headless EGL and interactive GUI execution).
+- `interop_smoke_test_docker_launcher.sh` — host launcher script following the repo's naming pattern; inspects if the Docker image exists, builds it automatically from `Dockerfile.docker-smoke` if missing, mounts volumes, configures `--gpus all`, and supports both automated headless execution (default, includes offscreen snapshot) and interactive GUI execution (`--gui`) with automatic GNOME extension safety guards.
 - `gpu-smoke-test-report-docker.md` — a comprehensive report following `setups/report-format.md`, documenting build steps, image sizes, test execution outputs, hiccups hit, and resolutions.
 
 ---
