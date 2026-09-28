@@ -9,7 +9,8 @@
 | `Dockerfile-SNNgine3D-nomachine` | NoMachine remote-desktop image for SNNgine3D — outdated, not functional, kept as a starting point |
 | `Dockerfile-SNNgine3D-nomachine-base` | Base image for the above — outdated, not functional, kept as a starting point |
 | `windows/notes.md` | Windows-specific setup notes: parked research on ways to test Windows-side steps, not the primary path (see below) |
-| `gpu-smoke-test/task.md` | Task write-up for the local GPU/CUDA-OpenGL-interop smoke test (feeds `runpod-rationale.md`'s open item 0), delegated to `agy` |
+| `gpu-smoke-test/gpu-smoke-test-task.md` | Task write-up for the local GPU/CUDA-OpenGL-interop smoke test (feeds `runpod-rationale.md`'s open item 0), delegated to `agy` |
+| `pi-smoke-test/task.md` | Task write-up for the Pi flash + SSH smoke test (two phases: write/flash the SD card, then SSH once the maintainer boots and connects the Pi) — not yet run |
 | `report-format.md` | Shared report structure (summary + detail subsections) for findings/status reports across this project's cloud-setup work |
 
 Each `-technical.md`/`-rationale.md` pair follows this project's
