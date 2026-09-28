@@ -59,6 +59,17 @@ broader-host framing above — may be worth revisiting once the Pi's full
 job list is clearer. The maintainer has an independent, unrelated
 Oracle Cloud account in progress that could be revisited if a fallback
 host is ever needed — not adopted here, not vetted for this purpose.
+Two free-tier alternatives noted the same day, for occasional
+browser-only admin access rather than an always-on host role (not a
+substitute for the Oracle VM idea, a different use case): **GitHub
+Codespaces** (free tier, ~60 core-hours/month on a free GitHub account —
+full browser-based VS Code + terminal) and **Google Cloud Shell** (free,
+browser-based terminal, generous quota, no billing account required).
+Either could run a Tailscale client for a one-off SSH hop from a
+browser-only device — largely superseded for that specific purpose by
+Tailscale SSH Console (see `runpod-rationale.md`'s resolved admin/jump-pod
+item), which needs no separate service at all, but still worth knowing
+about as fallbacks.
 
 ## Open items
 
@@ -82,6 +93,17 @@ it, it isn't guaranteed complete.
    further specified. Related: whether the Pi ends up running a second
    full instance of this repo's sandbox stack, or just the specific
    services it turns out to need.
+   **Candidate added 2026-09-28 (maintainer): a Claude Code instance on
+   the Pi itself, for debugging/dev.** Not decided. Open sub-question:
+   sandboxed vs. bare/host-level — the maintainer's initial lean is that
+   running a full instance of this repo's own stack on the Pi ("host-pi-claude")
+   would be the easiest path, since it gives that instance the sandbox
+   project's containment and context in one move rather than a bare
+   Claude Code install needing its own separate credential/containment
+   design. Also touches the login-expiry open item below (a subscription
+   login on the Pi would hit the same OAuth-expiry problem as the
+   sandbox container unless `claude setup-token`'s one-year token proves
+   out).
 4. Decide dedicated vs. shared egress-proxy instance (a new instance on
    the Pi vs. reusing the local sandbox's existing `egress-proxy`) — the
    trade-off (blast radius if the RunPod-side agent is compromised, vs.

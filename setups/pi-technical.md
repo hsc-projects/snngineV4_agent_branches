@@ -11,8 +11,13 @@ at all (the RunPod-side egress problem that triggered it):
 ## Hardware
 
 Already owned, capable enough that hardware is not expected to be a
-limiting factor — not a purchase decision. Exact model, RAM/storage,
-and PoE hat/injector not yet recorded here.
+limiting factor — not a purchase decision.
+
+- **Model:** Raspberry Pi 4 Model B, 8GB RAM.
+- **CPU:** 1.5GHz 64-bit quad-core.
+- **Storage:** the SD card at `/media/htm/9C33-6BBD` (size not yet
+  recorded); no other storage confirmed.
+- **PoE hat/injector:** not yet recorded (maintainer, 2026-09-28).
 
 ## Network
 

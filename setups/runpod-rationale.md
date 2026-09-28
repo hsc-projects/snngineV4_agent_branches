@@ -216,6 +216,25 @@ Standalone, not blocking anything above:
   — raised, not yet done.
 - RunPod Serverless as an MCP-server host: not pursued past the initial
   "shape doesn't fit cleanly" observation.
+- **RESOLVED 2026-09-28 — admin/jump pod for Pi login access: not
+  needed.** Raised the same day as a candidate (a separate throwaway
+  RunPod pod + dedicated volume, isolated from the CPU/GPU agent pods,
+  for completing `claude /login` on a future Pi-hosted Claude Code
+  instance — "host-pi-claude", see `pi-rationale.md` item 3 — without
+  folding that privileged action into the agent's own untrusted
+  execution environment). Superseded by **Tailscale SSH Console**: a
+  browser-based SSH session built into the Tailscale admin console
+  itself (WebAssembly — Tailscale client, WireGuard, and an SSH client
+  all run in the browser tab, which becomes an ephemeral tailnet node
+  for the session's duration only). No RunPod pod, no volume, no client
+  software of any kind — just a browser and the tailnet owner's login,
+  from any device, including a phone. Verified against Tailscale's own
+  docs (`tailscale.com/docs/features/tailscale-ssh/tailscale-ssh-console`),
+  currently in beta. Requires two things on the Pi side once it's set
+  up: **Tailscale SSH enabled** (`tailscale up --ssh`, not just plain
+  Tailscale networking) and **a Tailscale ACL policy rule** permitting
+  SSH access to that node on port 22 — both still to do once the Pi is
+  actually on the tailnet (`pi-rationale.md` item 5).
 
 Pi-side items (host setup, bridge-server expansion design): tracked in
 `pi-rationale.md`, not duplicated here.
