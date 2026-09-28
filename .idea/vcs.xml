@@ -1,13 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="GitSharedSettings">
-    <option name="FORCE_PUSH_PROHIBITED_PATTERNS">
-      <list />
-    </option>
-  </component>
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/../snn_engine3D" vcs="" />
-    <mapping directory="$PROJECT_DIR$/../snn_engine3D/snngine3d/nn/cuda_backend/src/include/pybind11" vcs="Git" />
   </component>
 </project>
