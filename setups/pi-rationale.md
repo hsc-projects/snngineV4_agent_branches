@@ -12,6 +12,14 @@ on it) are structured: separable pieces, not one monolith.
 
 ## Decisions
 
+**2026-09-28 — Pi helper scripts live in this repo's `setups/`, alongside
+these docs.** Flashing the SD card, finding the Pi on the local network,
+and running commands on it over SSH will all need repeatable tooling
+(same reasoning as the sandbox project's own scripted-command convention)
+rather than fleshing out each command from scratch every time. Not yet
+scoped or built — needs its own explicit proposal before any script is
+written, per this repo's rule against unprompted workaround scripts.
+
 **2026-09-28 — Use a dedicated, always-on separate machine (a PoE
 Raspberry Pi), not a same-pod process or a second RunPod pod.** The
 RunPod agent pod has no equivalent to the local sandbox's `egress-proxy`
