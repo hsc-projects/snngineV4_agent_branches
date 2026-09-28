@@ -48,3 +48,12 @@ See `agents/architecture-snngine_v4.md` for the subpackage breakdown,
 orchestration flow, and confirmed GPU-interop implementation details, and
 `agents/mapping/README.md` for the per-subpackage mapping pass (more
 detailed write-ups gradually migrating out of `architecture-snngine_v4.md`).
+
+## Cloud/infra setup
+
+This project also has RunPod/Pi cloud-deployment work, tracked separately
+from the engine mapping/development above: `setups/README.md` indexes it
+(`setups/runpod-rationale.md`, `setups/pi-rationale.md`, and their
+`-technical.md` counterparts). Ask the user which of the two areas —
+engine mapping/development, or cloud setup — to focus on before starting
+work, rather than assuming.
