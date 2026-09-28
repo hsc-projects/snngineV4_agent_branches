@@ -141,9 +141,9 @@ Once headless EGL passes, explore visual confirmation. Do not try to resurrect m
 ## Deliverables (all in this same `setups/gpu-smoke-test/` directory)
 
 - `gpu-smoke-test-task-docker.md` — this task write-up.
-- `Dockerfile.docker-smoke` (or `Dockerfile`) — minimal, reproducible Dockerfile for containerized interop testing.
+- `Dockerfile.docker-smoke` — minimal, reproducible Dockerfile for containerized interop testing.
+- `interop_smoke_test_docker_launcher.sh` — host launcher script following the repo's naming pattern; inspects if the Docker image exists, builds it automatically from `Dockerfile.docker-smoke` if missing, mounts volumes, configures `--gpus all`, and executes the test inside the container.
 - `gpu-smoke-test-report-docker.md` — a comprehensive report following `setups/report-format.md`, documenting build steps, image sizes, test execution outputs, hiccups hit, and resolutions.
-- Any helper run/build scripts created to facilitate container execution (e.g. `run_docker_smoke.sh`).
 
 ---
 

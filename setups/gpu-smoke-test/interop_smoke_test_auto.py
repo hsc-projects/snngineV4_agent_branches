@@ -16,17 +16,45 @@ Usage:
 import ctypes
 import os
 import sys
+
+os.environ['PYOPENGL_PLATFORM'] = 'egl'
 from pathlib import Path
 
 import numpy as np
 
 # Ensure project root is in sys.path
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+parents = Path(__file__).resolve().parents
+PROJECT_ROOT = parents[2] if len(parents) > 2 else parents[0]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
-def create_egl_headless_context(width=64, height=64):
+import struct
+import zlib
+
+
+def write_png(filename, width, height, rgba_data):
+    """Write raw RGBA bytes to a valid PNG file using pure Python standard library."""
+    def chunk(chunk_type, data):
+        return struct.pack('>I', len(data)) + chunk_type + data + struct.pack('>I', zlib.crc32(chunk_type + data) & 0xffffffff)
+
+    # Flip vertically to convert OpenGL bottom-up coordinates to PNG top-down
+    raw_rows = []
+    row_stride = width * 4
+    for y in range(height - 1, -1, -1):
+        raw_rows.append(b'\x00' + rgba_data[y * row_stride:(y + 1) * row_stride])
+    raw_data = b"".join(raw_rows)
+
+    png = b'\x89PNG\r\n\x1a\n'
+    png += chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 6, 0, 0, 0))
+    png += chunk(b'IDAT', zlib.compress(raw_data, 9))
+    png += chunk(b'IEND', b'')
+
+    with open(filename, 'wb') as f:
+        f.write(png)
+
+
+def create_egl_headless_context(width=256, height=256):
     """Create a headless OpenGL context and pbuffer surface via EGL."""
     try:
         from OpenGL import EGL as egl
@@ -99,6 +127,8 @@ def create_egl_headless_context(width=64, height=64):
         'vendor': vendor,
         'renderer': renderer,
         'gl_version': gl_version,
+        'width': width,
+        'height': height,
     }
 
 
@@ -124,7 +154,7 @@ class ExternalMemory:
         self._cuda_memsize_ = size
 
 
-def run_automated_smoke_test():
+def run_automated_smoke_test(snapshot_path=None):
     print("=" * 70)
     print("SNNgineV4 - Phase 2: Automated Headless Interop Smoke Test")
     print("=" * 70)
@@ -301,8 +331,22 @@ def run_automated_smoke_test():
             sys.modules['IPython'] = ipython
             sys.modules['IPython.display'] = ipython_display
 
-        sister_dir = Path(__file__).resolve().parents[3] / 'SNNgine3D_agent_branches/notebooks/simulation_demo'
-        if str(sister_dir) not in sys.path:
+        if 'pandas' not in sys.modules:
+            pandas = types.ModuleType('pandas')
+            pandas.DataFrame = lambda *a, **k: None
+            sys.modules['pandas'] = pandas
+
+        sister_dir = None
+        if len(parents) > 3:
+            candidate = parents[3] / 'SNNgine3D_agent_branches/notebooks/simulation_demo'
+            if candidate.exists():
+                sister_dir = candidate
+        if sister_dir is None:
+            for p in sys.path:
+                if (Path(p) / 'sim_demo_utils.py').exists():
+                    sister_dir = Path(p)
+                    break
+        if sister_dir and str(sister_dir) not in sys.path:
             sys.path.insert(0, str(sister_dir))
 
         import sim_demo_utils
@@ -327,6 +371,54 @@ def run_automated_smoke_test():
         assert not torch.all(N_states.tensor[2] == -65.0)
         print("  ✓ Sister repo self-compiled simulation kernel (update_N_state) executed and verified.")
 
+        if snapshot_path:
+            print(f"\n[Visual Check] Rendering offscreen frame to: {snapshot_path}")
+            w, h = egl_info['width'], egl_info['height']
+            gl.glViewport(0, 0, w, h)
+            gl.glClearColor(0.08, 0.08, 0.12, 1.0)
+            gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+
+            from OpenGL.GL import shaders
+            VERTEX_SHADER = """#version 330 core
+            layout (location = 0) in vec3 aPos;
+            void main() {
+                // Circle in [-0.7, 0.7] NDC
+                gl_Position = vec4(aPos.x * 0.7, aPos.y * 0.7, 0.0, 1.0);
+                gl_PointSize = 10.0;
+            }
+            """
+            FRAGMENT_SHADER = """#version 330 core
+            out vec4 FragColor;
+            void main() {
+                FragColor = vec4(0.2, 0.8, 1.0, 1.0);
+            }
+            """
+            shader = shaders.compileProgram(
+                shaders.compileShader(VERTEX_SHADER, gl.GL_VERTEX_SHADER),
+                shaders.compileShader(FRAGMENT_SHADER, gl.GL_FRAGMENT_SHADER)
+            )
+            gl.glUseProgram(shader)
+            vao = gl.glGenVertexArrays(1)
+            gl.glBindVertexArray(vao)
+            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, vbo)
+            gl.glEnableVertexAttribArray(0)
+            gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 14 * 4, ctypes.c_void_p(0))
+            gl.glEnable(gl.GL_PROGRAM_POINT_SIZE)
+            gl.glLineWidth(3.0)
+            gl.glDrawArrays(gl.GL_LINE_LOOP, 0, num_elements)
+            gl.glDrawArrays(gl.GL_POINTS, 0, num_elements)
+
+            gl.glBindVertexArray(0)
+            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0)
+            gl.glUseProgram(0)
+            gl.glDeleteVertexArrays(1, [vao])
+            gl.glDeleteProgram(shader)
+            gl.glFinish()
+
+            pixels = gl.glReadPixels(0, 0, w, h, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE)
+            write_png(snapshot_path, w, h, pixels)
+            print(f"  ✓ Offscreen frame rendered and saved ({w}x{h} PNG).")
+
         # Cleanup
         reg.unregister()
         gl.glDeleteBuffers(1, [vbo])
@@ -341,8 +433,13 @@ def run_automated_smoke_test():
 
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description="SNNgineV4 Automated Headless Interop Smoke Test")
+    parser.add_argument("--snapshot", type=str, default=None, help="Optional output PNG path for offscreen rendered frame")
+    args = parser.parse_args()
+
     try:
-        success = run_automated_smoke_test()
+        success = run_automated_smoke_test(snapshot_path=args.snapshot)
         sys.exit(0 if success else 1)
     except Exception as exc:
         print(f"\nFATAL: Automated smoke test failed with exception: {exc}")
