@@ -1,5 +1,3 @@
-# Nvidia driver 560 <- 555 (last working driver on Ubuntu 22)
-
 annotated-types~=0.7.0
 
 darkdetect~=0.8.0

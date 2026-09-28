@@ -384,3 +384,8 @@ cython_debug/
 /snngine_v4/scratch.py
 *.h5
 .aider*
+
+# Windows-specific setup files: downloaded ISOs/disk images must never be
+# committed (several GB each); keep notes markdown tracked.
+setups/windows/*
+!setups/windows/*.md
