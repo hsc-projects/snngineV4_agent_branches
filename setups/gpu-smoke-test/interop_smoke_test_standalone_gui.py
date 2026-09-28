@@ -26,7 +26,8 @@ import time
 from pathlib import Path
 
 # Ensure project root is in sys.path
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+parents = Path(__file__).resolve().parents
+PROJECT_ROOT = parents[2] if len(parents) > 2 else parents[0]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -224,7 +225,7 @@ class StandaloneInteropWindow(QtWidgets.QMainWindow):
         import torch
         import pycuda.driver as cuda
 
-        # Stub IPython.display if not installed so sim_demo_utils can import cleanly
+        # Stub IPython.display and pandas if not installed so sim_demo_utils can import cleanly
         if 'IPython' not in sys.modules:
             ipython = types.ModuleType('IPython')
             ipython_display = types.ModuleType('IPython.display')
@@ -233,8 +234,22 @@ class StandaloneInteropWindow(QtWidgets.QMainWindow):
             sys.modules['IPython'] = ipython
             sys.modules['IPython.display'] = ipython_display
 
-        sister_dir = Path(__file__).resolve().parents[3] / 'SNNgine3D_agent_branches/notebooks/simulation_demo'
-        if str(sister_dir) not in sys.path:
+        if 'pandas' not in sys.modules:
+            pandas = types.ModuleType('pandas')
+            pandas.DataFrame = lambda *a, **k: None
+            sys.modules['pandas'] = pandas
+
+        sister_dir = None
+        if len(parents) > 3:
+            candidate = parents[3] / 'SNNgine3D_agent_branches/notebooks/simulation_demo'
+            if candidate.exists():
+                sister_dir = candidate
+        if sister_dir is None:
+            for p in sys.path:
+                if (Path(p) / 'sim_demo_utils.py').exists():
+                    sister_dir = Path(p)
+                    break
+        if sister_dir and str(sister_dir) not in sys.path:
             sys.path.insert(0, str(sister_dir))
 
         try:
@@ -394,6 +409,12 @@ class StandaloneInteropWindow(QtWidgets.QMainWindow):
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="SNNgineV4 Standalone Interop Smoke Test GUI")
+    parser.add_argument("--timeout", type=float, default=None, help="Auto-close window after N seconds (for testing)")
+    parser.add_argument("--markers", type=int, default=64, help="Number of markers")
+    args, unknown = parser.parse_known_args()
+
     print("=" * 70)
     print("Launching SNNgineV4 Standalone Interop Smoke Test (Phase 1 Visual Check)")
     print("=" * 70)
@@ -401,12 +422,16 @@ def main():
     if app is None:
         app = QtWidgets.QApplication(sys.argv)
 
-    window = StandaloneInteropWindow(n_markers=64)
+    window = StandaloneInteropWindow(n_markers=args.markers)
     window.show()
     app.processEvents()
 
     # Initialize CUDA-OpenGL interop after surface/window is shown and mapped
     QtCore.QTimer.singleShot(100, window.setup_interop_chain)
+
+    if args.timeout is not None and args.timeout > 0:
+        print(f"Scheduled auto-close after {args.timeout} seconds...")
+        QtCore.QTimer.singleShot(int(args.timeout * 1000), window.close)
 
     print("\nApplication window is open.")
     print("Visual verification instructions for maintainer:")
