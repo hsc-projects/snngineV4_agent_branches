@@ -389,3 +389,13 @@ cython_debug/
 # committed (several GB each); keep notes markdown tracked.
 setups/windows/*
 !setups/windows/*.md
+
+# Pi smoke test: the task-local SSH keypair is a throwaway credential,
+# but must never be committed anyway.
+setups/pi-smoke-test/pi_smoke_test_key
+setups/pi-smoke-test/pi_smoke_test_key.pub
+
+# Pi smoke test: the downloaded OS image (~540MB) must never be
+# committed; kept locally so the flash script doesn't depend on a
+# session-specific temp path or a re-download.
+setups/pi-smoke-test/*.img.xz
