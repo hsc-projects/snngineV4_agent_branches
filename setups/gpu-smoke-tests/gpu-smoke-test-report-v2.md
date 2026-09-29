@@ -11,7 +11,7 @@ The complete 5-link zero-copy interop pipeline is **100% verified operational** 
 
 ### Frontier Discovery vs Previous Baselines
 
-| Component | Workstation Baseline (`snngine`) | Docker Cloud (`Dockerfile.docker-smoke`) | Modern Frontier (`snngine-frontier`) | Status |
+| Component | Workstation Baseline (`snngine`) | Docker Cloud (`Dockerfile.docker-smoke`) | Modern Frontier (`snngine-env-v2`) | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | **Python Runtime** | 3.12.3 | 3.12.3 | **3.14.7** (conda-forge) | **Max Frontier (+2 major)** |
 | **Host Driver** | 595.91.07 (Static Invariant) | 595.91.07 (Container Passthrough) | **595.91.07 (Static Invariant)** | **Preserved (Userspace Only)** |
@@ -49,23 +49,23 @@ In accordance with the core directive (**"FIND THE LIMITS, NOT INVENT THEM — N
 
 ## Phase 1: Environment Provisioning & Diagnostics
 
-The isolated environment was provisioned at `/home/htm/anaconda3/envs/snngine-frontier`:
+The isolated environment was provisioned at `/home/htm/anaconda3/envs/snngine-env-v2`:
 
 ```bash
 # Provisioning sequence
-conda create -n snngine-frontier python=3.14 pip setuptools wheel -c conda-forge -y
-conda install -n snngine-frontier numba "cuda-toolkit=13.2*" vispy -c conda-forge -y
-/home/htm/anaconda3/envs/snngine-frontier/bin/pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu132
-/home/htm/anaconda3/envs/snngine-frontier/bin/pip install pyside6 pillow websockets scipy pyopengl qtpy
+conda create -n snngine-env-v2 python=3.14 pip setuptools wheel -c conda-forge -y
+conda install -n snngine-env-v2 numba "cuda-toolkit=13.2*" vispy -c conda-forge -y
+/home/htm/anaconda3/envs/snngine-env-v2/bin/pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu132
+/home/htm/anaconda3/envs/snngine-env-v2/bin/pip install pyside6 pillow websockets scipy pyopengl qtpy
 ```
 
 PyCUDA was compiled and installed via:
 ```bash
 python ./configure.py \
-  --cuda-root=/home/htm/anaconda3/envs/snngine-frontier/targets/x86_64-linux \
-  --cuda-inc-dir=/home/htm/anaconda3/envs/snngine-frontier/targets/x86_64-linux/include \
+  --cuda-root=/home/htm/anaconda3/envs/snngine-env-v2/targets/x86_64-linux \
+  --cuda-inc-dir=/home/htm/anaconda3/envs/snngine-env-v2/targets/x86_64-linux/include \
   --cudadrv-lib-dir=/usr/lib/x86_64-linux-gnu \
-  --cudart-lib-dir=/home/htm/anaconda3/envs/snngine-frontier/targets/x86_64-linux/lib \
+  --cudart-lib-dir=/home/htm/anaconda3/envs/snngine-env-v2/targets/x86_64-linux/lib \
   --cuda-enable-gl
 pip install . --no-build-isolation
 ```
@@ -77,7 +77,7 @@ PyTorch: 2.15.0.dev20260929+cu132 (CUDA 13.2)
 PyCUDA:  2026.1
 VisPy:   0.17.0
 Numba:   0.67.0
-PySide6: /home/htm/anaconda3/envs/snngine-frontier/lib/python3.14/site-packages/PySide6/__init__.py (v6.11.2)
+PySide6: /home/htm/anaconda3/envs/snngine-env-v2/lib/python3.14/site-packages/PySide6/__init__.py (v6.11.2)
 pycuda.gl RegisteredBuffer: True
 Numba CUDA available: True (NVIDIA GeForce RTX 3090)
 VisPy EGL backend: egl
@@ -91,7 +91,7 @@ QtPy API: PySide6 6.11.2
 
 Command executed:
 ```bash
-/home/htm/anaconda3/envs/snngine-frontier/bin/python setups/gpu-smoke-tests/interop_smoke_test_auto.py \
+/home/htm/anaconda3/envs/snngine-env-v2/bin/python setups/gpu-smoke-tests/interop_smoke_test_auto.py \
   --snapshot setups/gpu-smoke-tests/rendered_frame_frontier.png
 ```
 
@@ -119,7 +119,7 @@ Command executed (with automated tiling assistant crash safety trap):
 ```bash
 trap 'gnome-extensions enable tiling-assistant@ubuntu.com' EXIT INT TERM
 gnome-extensions disable tiling-assistant@ubuntu.com
-DISPLAY=:1 QT_XCB_GL_INTEGRATION=glx /home/htm/anaconda3/envs/snngine-frontier/bin/python \
+DISPLAY=:1 QT_XCB_GL_INTEGRATION=glx /home/htm/anaconda3/envs/snngine-env-v2/bin/python \
   setups/gpu-smoke-tests/interop_smoke_test_standalone_gui.py --timeout 6
 gnome-extensions enable tiling-assistant@ubuntu.com
 ```
@@ -141,7 +141,7 @@ gnome-extensions enable tiling-assistant@ubuntu.com
 
 Command executed:
 ```bash
-/home/htm/anaconda3/envs/snngine-frontier/bin/python setups/gpu-smoke-tests/interop_smoke_test_web_gui.py \
+/home/htm/anaconda3/envs/snngine-env-v2/bin/python setups/gpu-smoke-tests/interop_smoke_test_web_gui.py \
   --port 6085 --timeout 6
 ```
 
@@ -154,6 +154,56 @@ Command executed:
    - Stable render rate: **29.2 – 29.3 FPS**.
    - GPU render latency: **3.8 – 5.0 ms** per frame.
    - Clean shutdown and resource release on timeout.
+
+---
+
+## Phase 5: Containerized Docker Smoke Test (v2 Frontier)
+
+The v2 frontier environment was packaged into an independent, self-contained Docker image (`snngine-gpu-smoke:v2`) built from scratch using [`Dockerfile.docker-smoke-v2`](file:///home/htm/snngine/snngineV4_cloud/snngineV4_agent_branches/setups/gpu-smoke-tests/Dockerfile.docker-smoke-v2).
+
+Launcher script: [`setups/gpu-smoke-tests/interop_smoke_test_docker_launcher_v2.sh`](file:///home/htm/snngine/snngineV4_cloud/snngineV4_agent_branches/setups/gpu-smoke-tests/interop_smoke_test_docker_launcher_v2.sh).
+
+### Verification Results Across All 3 Modes
+
+#### 1. Mode 1: Automated Headless EGL Smoke Test (Default)
+Command executed:
+```bash
+./setups/gpu-smoke-tests/interop_smoke_test_docker_launcher_v2.sh
+```
+- **Execution Mode**: Unattended headless EGL without display or X11 socket mounts.
+- **User Mapping**: Executed with `--user $(id -u):$(id -g)` and `HOME=/tmp` to guarantee user ownership on outputs.
+- **Zero-Copy Chain**:
+  - Allocated OpenGL VBO (ID 1, 1,792 bytes).
+  - PyCUDA RegisteredBuffer mapped at pointer `0x720a6e3ff800`.
+  - PyTorch tensor view verified identical pointer `0x720a6e3ff800` (**zero-copy pointer identity confirmed**).
+  - Direct PyTorch write-through (Test A): Byte-for-byte readback match via `glGetBufferSubData`.
+  - CUDA kernel execution (Test B & C): Live VRAM mutation confirmed.
+  - Sister repo simulation code (Test D): `update_N_state` executed across 32 neurons.
+- **Snapshot Artifact**: Saved offscreen rasterized frame to [`setups/gpu-smoke-tests/rendered_frame_docker_v2.png`](file:///home/htm/snngine/snngineV4_cloud/snngineV4_agent_branches/setups/gpu-smoke-tests/rendered_frame_docker_v2.png) (owned by `htm:htm`, 664).
+- **Result**: **`ALL INTEROP ASSERTIONS PASSED (5/5 LINKS VERIFIED ZERO-COPY)`** (exit code `0`).
+
+#### 2. Mode 2: Interactive Desktop GUI Smoke Test (`--gui`)
+Command executed:
+```bash
+./setups/gpu-smoke-tests/interop_smoke_test_docker_launcher_v2.sh --gui --timeout 3
+```
+- **Display Integration**: Container forwarded `DISPLAY=:1` and mounted `/tmp/.X11-unix` with `QT_XCB_GL_INTEGRATION=glx`.
+- **Safety Trap**: Automatically disabled `tiling-assistant@ubuntu.com` during window creation and restored it cleanly on exit.
+- **Zero-Copy Chain**: PyCUDA mapped VRAM ptr `0x7868343ff000`, PyTorch tensor view `0x7868343ff000`.
+- **Rendering**: PySide6 standalone window rendered 64 rotating double torus markers live in VRAM with zero `set_data()` calls.
+- **Result**: **PASSED** (exit code `0`).
+
+#### 3. Mode 3: Interactive Web Bridge (`--web`)
+Command executed:
+```bash
+./setups/gpu-smoke-tests/interop_smoke_test_docker_launcher_v2.sh --web --timeout 3
+```
+- **Server Execution**: Embedded asyncio HTTP/WebSocket streaming server on port `6080`.
+- **Zero-Copy Chain**: VisPy EGL offscreen context with PyCUDA mapped VRAM ptr `0x7403443ff000`.
+- **Performance**:
+  - Stable render rate: **29.2 FPS**.
+  - GPU render latency: **2.9 ms** per frame.
+- **Result**: **PASSED** (clean shutdown after timeout, exit code `0`).
 
 ---
 
@@ -175,6 +225,14 @@ Command executed:
    - *Problem*: Rapid window creation during heavy GPU initialization can trigger `assertion 'window->stack_position >= 0' failed` in Ubuntu 24.04's `tiling-assistant@ubuntu.com`.
    - *Resolution*: Wrapped execution in a bash script with a `trap` handler that temporarily disables the extension and guarantees restoration on exit or interruption.
 
+5. **`GL/gl.h` Header Missing During Container PyCUDA Compilation**:
+   - *Problem*: Conda's GCC compiler wrapper in Ubuntu 24.04 restricts header lookup to the Conda sysroot, failing to find system OpenGL headers in `/usr/include/GL/gl.h`.
+   - *Resolution*: Installed `libgl-dev` in the container base layer and passed `--cxxflags="-I/usr/include"` to PyCUDA's `configure.py`.
+
+6. **Build-Time vs Runtime GPU Driver Injection in Docker**:
+   - *Problem*: `import pycuda.driver` inside `RUN` commands failed during `docker build` (`ImportError: libcuda.so.1: cannot open shared object file`).
+   - *Resolution*: Understood that NVIDIA Container Toolkit injects `libcuda.so.1` into container userspace at container run-time (`docker run --gpus all`), not at build time. Adjusted build-time diagnostics to test pure userspace imports (`torch`, `vispy`, `PySide6`, `numba`) and reserved CUDA driver verification for container runtime.
+
 ---
 
 ## Reproducibility Helper
@@ -184,23 +242,33 @@ A self-contained environment bootstrap script has been created at [`setups/gpu-s
 To recreate the entire frontier environment:
 ```bash
 cd snngineV4_agent_branches
-./setups/gpu-smoke-tests/create_v2_env.sh snngine-frontier
+./setups/gpu-smoke-tests/create_v2_env.sh snngine-env-v2
 ```
 
 To run all 3 smoke test categories:
 ```bash
 # 1. Category 1: Headless EGL Smoke Test
-/home/htm/anaconda3/envs/snngine-frontier/bin/python setups/gpu-smoke-tests/interop_smoke_test_auto.py \
+/home/htm/anaconda3/envs/snngine-env-v2/bin/python setups/gpu-smoke-tests/interop_smoke_test_auto.py \
   --snapshot setups/gpu-smoke-tests/rendered_frame_frontier.png
 
 # 2. Category 2: Desktop GUI Smoke Test (with GNOME tiling safety trap)
 trap 'gnome-extensions enable tiling-assistant@ubuntu.com' EXIT INT TERM
 gnome-extensions disable tiling-assistant@ubuntu.com
-DISPLAY=:1 QT_XCB_GL_INTEGRATION=glx /home/htm/anaconda3/envs/snngine-frontier/bin/python \
+DISPLAY=:1 QT_XCB_GL_INTEGRATION=glx /home/htm/anaconda3/envs/snngine-env-v2/bin/python \
   setups/gpu-smoke-tests/interop_smoke_test_standalone_gui.py --timeout 6
 gnome-extensions enable tiling-assistant@ubuntu.com
 
 # 3. Category 3: Web Bridge Smoke Test
-/home/htm/anaconda3/envs/snngine-frontier/bin/python setups/gpu-smoke-tests/interop_smoke_test_web_gui.py \
+/home/htm/anaconda3/envs/snngine-env-v2/bin/python setups/gpu-smoke-tests/interop_smoke_test_web_gui.py \
   --port 6080
+
+# 4. Category 4: Containerized Docker Smoke Test (v2 Frontier)
+# Mode 1: Automated Headless EGL Test
+./setups/gpu-smoke-tests/interop_smoke_test_docker_launcher_v2.sh
+
+# Mode 2: Interactive Desktop GUI Test (host display :1 with Mutter safety trap)
+./setups/gpu-smoke-tests/interop_smoke_test_docker_launcher_v2.sh --gui --timeout 6
+
+# Mode 3: Interactive Web Bridge (port 6080)
+./setups/gpu-smoke-tests/interop_smoke_test_docker_launcher_v2.sh --web
 ```

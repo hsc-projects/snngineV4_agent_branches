@@ -1,0 +1,97 @@
+# Dockerfile for SNNgineV4 GPU CUDA-OpenGL Zero-Copy Interop Smoke Test v2 (Frontier)
+# Operational Categories:
+#   Category 1: Automated Headless EGL Check + Offscreen Snapshot
+#   Category 2: Interactive Desktop GUI (PySide6 + VisPy)
+#   Category 3: Interactive Web Bridge (EGL + WebSocket:6080)
+# Base: Ubuntu 24.04 LTS (Noble) with CUDA 12.6 devel
+FROM nvidia/cuda:12.6.2-devel-ubuntu24.04
+
+# Enable NVIDIA driver capabilities for CUDA compute and OpenGL/EGL graphics
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,display
+ENV DEBIAN_FRONTEND=noninteractive
+ENV QT_QPA_PLATFORM=xcb
+ENV QT_XCB_GL_INTEGRATION=glx
+ENV CONDA_DIR=/opt/conda
+ENV PATH="/opt/conda/envs/snngine-env-v2/bin:/opt/conda/bin:$PATH"
+
+# Install system dependencies (including Qt XCB / X11 runtime libraries on Ubuntu 24.04)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    git \
+    wget \
+    curl \
+    ca-certificates \
+    libgl1-mesa-dev \
+    libegl1-mesa-dev \
+    libgles2-mesa-dev \
+    libglvnd-dev \
+    libgl-dev \
+    pkg-config \
+    libxkbcommon-x11-0 \
+    libglib2.0-0t64 \
+    libfontconfig1 \
+    libdbus-1-3 \
+    libxcb-icccm4 \
+    libxcb-image0 \
+    libxcb-keysyms1 \
+    libxcb-randr0 \
+    libxcb-render-util0 \
+    libxcb-shape0 \
+    libxcb-xfixes0 \
+    libxcb-xinerama0 \
+    libxcb-cursor0 \
+    libxcb-xkb1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Miniforge for independent conda environment provisioning
+RUN wget --quiet https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -O /tmp/miniforge.sh && \
+    bash /tmp/miniforge.sh -b -p /opt/conda && \
+    rm /tmp/miniforge.sh && \
+    /opt/conda/bin/conda clean -afy
+
+# Create isolated Conda environment snngine-env-v2 with Python 3.14 + CUDA 13.2 + Numba + VisPy
+RUN /opt/conda/bin/conda create -n snngine-env-v2 python=3.14 pip setuptools wheel -c conda-forge -y && \
+    /opt/conda/bin/conda install -n snngine-env-v2 numba "cuda-toolkit=13.2*" vispy -c conda-forge -y && \
+    ln -s /opt/conda/envs/snngine-env-v2 /opt/conda/envs/snngine-frontier && \
+    /opt/conda/bin/conda clean -afy
+
+# Install Bleeding-Edge PyTorch (CUDA 13.2 / cu132 Nightly)
+RUN /opt/conda/envs/snngine-env-v2/bin/pip install --no-cache-dir \
+    --pre torch --index-url https://download.pytorch.org/whl/nightly/cu132
+
+# Install Supporting Libraries (PySide6, PyOpenGL, QtPy, WebSockets, SciPy, Pillow)
+RUN /opt/conda/envs/snngine-env-v2/bin/pip install --no-cache-dir \
+    pyside6 \
+    pillow \
+    websockets \
+    scipy \
+    pyopengl \
+    qtpy
+
+# Build and install PyCUDA with OpenGL interop enabled (--cuda-enable-gl)
+RUN git clone --recursive --depth 1 https://github.com/inducer/pycuda.git /tmp/pycuda && \
+    cd /tmp/pycuda && \
+    CUDA_ROOT=/opt/conda/envs/snngine-env-v2/targets/x86_64-linux && \
+    /opt/conda/envs/snngine-env-v2/bin/python ./configure.py \
+        --cuda-root="$CUDA_ROOT" \
+        --cuda-inc-dir="$CUDA_ROOT/include" \
+        --cudadrv-lib-dir="$CUDA_ROOT/lib/stubs" \
+        --cudart-lib-dir="$CUDA_ROOT/lib" \
+        --cxxflags="-I/usr/include" \
+        --cuda-enable-gl && \
+    /opt/conda/envs/snngine-env-v2/bin/pip install --no-cache-dir --no-build-isolation . && \
+    cd / && rm -rf /tmp/pycuda
+
+# Diagnostic verification at build time (userspace libraries only; CUDA driver is injected at runtime via --gpus)
+RUN /opt/conda/envs/snngine-env-v2/bin/python -c " \
+    import sys, torch, numba, vispy, PySide6; \
+    print(f'Build Check - Python:  {sys.version.split()[0]}'); \
+    print(f'Build Check - PyTorch: {torch.__version__}'); \
+    print(f'Build Check - VisPy:   {vispy.__version__}'); \
+    print(f'Build Check - Numba:   {numba.__version__}'); \
+    print(f'Build Check - PySide6: {PySide6.__version__}'); \
+"
+
+WORKDIR /workspace
