@@ -6,7 +6,7 @@
 - **Only touch this task's containers and images**: Never inspect, stop, modify, or remove other containers or images on this host (e.g. `docker-agent-sandbox`, `blender-agent`, `web-fetch-*`, etc.). Name all containers and images for this task with a clear task prefix: `snngine-gpu-smoke:*` or `gpu-smoke-docker:*`.
 - **No sensitive host mounts**: Never mount the host root `/`, `/home/htm/.ssh`, or host system configuration into a container. Mount only the required workspace directory or specific test scripts as read-only or scoped volumes (e.g. `-v $(pwd):/workspace:ro`).
 - **No unconfined or privileged execution without need**: Use standard `--gpus all` with default container security options. Do not add `--privileged` or drop host capabilities unless specifically diagnosed and justified.
-- **Rule against unprompted workarounds**: Never create unprompted custom scripts, proxy wrappers, or ad-hoc bridges to work around tool or authentication limitations. If a workaround is necessary, explain why first, propose it, and wait for approval. Helper build and run scripts inside `setups/gpu-smoke-test/` are explicitly permitted.
+- **Rule against unprompted workarounds**: Never create unprompted custom scripts, proxy wrappers, or ad-hoc bridges to work around tool or authentication limitations. If a workaround is necessary, explain why first, propose it, and wait for approval. Helper build and run scripts inside `setups/gpu-smoke-tests/` are explicitly permitted.
 
 ### 2. Display and desktop safety (verified 2026-09-28)
 - **Host GNOME Shell crash risk**: On 2026-09-28, a Mutter assertion failure in the host's `tiling-assistant@ubuntu.com` GNOME Shell extension caused `gnome-shell` to abort (SIGABRT) when a newly mapped X11 window was created during heavy initialization.
@@ -18,14 +18,14 @@ Do not touch RunPod, cloud credentials, or any external cloud resource. The goal
 
 ### 4. Working directory and file boundary
 - **Working directory**: All paths below are given relative to `snngineV4_agent_branches/`. If your working directory is the parent (`snngineV4_cloud/`), prefix paths with `snngineV4_agent_branches/`.
-- **Deliverables directory**: All Dockerfiles, build scripts, run helpers, and reports must live strictly inside `setups/gpu-smoke-test/`.
-- **Reference code**: You may read `setups/gpu-smoke-test/` (the host-verified scripts) and `SNNgine3D_agent_branches/notebooks/simulation_demo/sim_demo_utils.py` (read-only sister repo). Do not modify files in those directories.
+- **Deliverables directory**: All Dockerfiles, build scripts, run helpers, and reports must live strictly inside `setups/gpu-smoke-tests/`.
+- **Reference code**: You may read `setups/gpu-smoke-tests/` (the host-verified scripts) and `SNNgine3D_agent_branches/notebooks/simulation_demo/sim_demo_utils.py` (read-only sister repo). Do not modify files in those directories.
 
 ---
 
 ## Where this task fits
 
-1. **Host baseline established (`setups/gpu-smoke-test/`)**:
+1. **Host baseline established (`setups/gpu-smoke-tests/`)**:
    - The 5-link zero-copy CUDA-OpenGL interop chain was successfully decoupled from the engine's config/network/parameter-tree stack.
    - `interop_smoke_test_auto.py` runs unattended under headless EGL, asserting on PyCUDA VBO mapping, Numba `DeviceNDArray`, PyTorch `as_tensor` zero-copy pointer identity, live CUDA kernel write-through, and `sim_demo_utils.update_N_state` execution. All 5 links pass with 100% byte-for-byte readback fidelity.
    - `interop_smoke_test_standalone_gui.py` runs live on the host RTX 3090 at ~33 FPS with live spike-to-alpha pulse modulation and PyTorch fallback toggle.
@@ -38,7 +38,7 @@ Do not touch RunPod, cloud credentials, or any external cloud resource. The goal
 ## Working autonomously
 
 - **Permissions and tool approvals**: Proactively identify anything in this project's configuration (e.g. `/permissions`, command allowlists, environment variables) that would allow end-to-end execution with fewer approval prompts. Propose exact changes in `gpu-smoke-test-report-docker.md`.
-- **Helper scripts permitted**: Helper scripts that automate Docker image building, container execution, or test log extraction (e.g. `build.sh`, `run_auto.sh`) are explicitly permitted inside `setups/gpu-smoke-test/`.
+- **Helper scripts permitted**: Helper scripts that automate Docker image building, container execution, or test log extraction (e.g. `build.sh`, `run_auto.sh`) are explicitly permitted inside `setups/gpu-smoke-tests/`.
 
 ---
 
@@ -96,7 +96,7 @@ The container must execute and validate the 5-link zero-copy chain (see `agents/
 ### Phase 1: Automated Headless EGL in Docker (Priority 1 — Top Pick)
 Build a minimal, modern container and run the automated headless test inside it.
 
-1. **Construct a lightweight `Dockerfile`** in `setups/gpu-smoke-test/` (e.g. `Dockerfile.docker-smoke` or `Dockerfile`):
+1. **Construct a lightweight `Dockerfile`** in `setups/gpu-smoke-tests/` (e.g. `Dockerfile.docker-smoke` or `Dockerfile`):
    - Use a modern CUDA development base image, e.g. `nvidia/cuda:12.4.1-devel-ubuntu22.04` (or `nvidia/cuda:12.6.x-devel-ubuntu24.04`), with OpenGL/EGL support:
      ```dockerfile
      ENV NVIDIA_DRIVER_CAPABILITIES compute,utility,graphics,display
@@ -108,7 +108,7 @@ Build a minimal, modern container and run the automated headless test inside it.
    - Run the container with GPU passthrough:
      ```bash
      docker run --rm --gpus all \
-       -v /home/htm/snngine/snngineV4_cloud/snngineV4_agent_branches/setups/gpu-smoke-test/interop_smoke_test_auto.py:/app/interop_smoke_test_auto.py:ro \
+       -v /home/htm/snngine/snngineV4_cloud/snngineV4_agent_branches/setups/gpu-smoke-tests/interop_smoke_test_auto.py:/app/interop_smoke_test_auto.py:ro \
        -v /home/htm/snngine/snngineV4_cloud/SNNgine3D_agent_branches:/app/SNNgine3D_agent_branches:ro \
        -e PYTHONPATH=/app:/app/SNNgine3D_agent_branches/notebooks/simulation_demo \
        snngine-gpu-smoke:headless python /app/interop_smoke_test_auto.py
@@ -159,7 +159,7 @@ Run the full PyQt + VisPy interactive GUI (`interop_smoke_test_standalone_gui.py
 3. **Execution & Interaction**:
    - Host launcher executes `interop_smoke_test_standalone_gui.py` inside the container:
      ```bash
-     setups/gpu-smoke-test/interop_smoke_test_docker_launcher.sh --gui
+     setups/gpu-smoke-tests/interop_smoke_test_docker_launcher.sh --gui
      ```
    - Maintainer observes and verifies:
      1. 64 3D markers rotating in a double torus with live pulse animation driven by `update_N_state_kernel`.
@@ -191,14 +191,14 @@ Prior to deploying onto remote cloud infrastructure (RunPod in `EU-RO-1`) where 
 3. **Local Intermediate Execution**:
    - Run the web bridge container locally:
      ```bash
-     setups/gpu-smoke-test/interop_smoke_test_docker_launcher.sh --web
+     setups/gpu-smoke-tests/interop_smoke_test_docker_launcher.sh --web
      ```
    - Maintainer opens `http://localhost:6080` in a browser, tests camera rotation, button responses, and confirms zero-copy mutation performance in container logs before cloud deployment.
 4. **Document Phase 4**: Record implementation, browser interaction responsiveness, and cloud readiness in `gpu-smoke-test-report-docker.md`.
 
 ---
 
-## Deliverables (all in this same `setups/gpu-smoke-test/` directory)
+## Deliverables (all in this same `setups/gpu-smoke-tests/` directory)
 
 - `gpu-smoke-test-task-docker.md` — this task write-up.
 - `Dockerfile.docker-smoke` — minimal, reproducible Dockerfile for containerized interop testing (supports headless EGL, local X11 GUI, and web GUI execution).

@@ -40,7 +40,7 @@ if [[ "${1:-}" == "--web" ]]; then
         -w "/workspace/snngineV4_cloud/snngineV4_agent_branches" \
         -e PYTHONPATH="/workspace/snngineV4_cloud/snngineV4_agent_branches:/workspace/snngineV4_cloud/SNNgine3D_agent_branches/notebooks/simulation_demo" \
         "${IMAGE_NAME}" \
-        python3 setups/gpu-smoke-test/interop_smoke_test_web_gui.py "${@:2}"
+        python3 setups/gpu-smoke-tests/interop_smoke_test_web_gui.py "${@:2}"
 elif [[ "${1:-}" == "--gui" ]]; then
     echo "======================================================================"
     echo "[Launcher] Mode: Phase 3 Interactive GUI (standalone VisPy double torus)"
@@ -62,7 +62,7 @@ elif [[ "${1:-}" == "--gui" ]]; then
         -w "/workspace/snngineV4_cloud/snngineV4_agent_branches" \
         -e PYTHONPATH="/workspace/snngineV4_cloud/snngineV4_agent_branches:/workspace/snngineV4_cloud/SNNgine3D_agent_branches/notebooks/simulation_demo" \
         "${IMAGE_NAME}" \
-        python3 setups/gpu-smoke-test/interop_smoke_test_standalone_gui.py "${@:2}"
+        python3 setups/gpu-smoke-tests/interop_smoke_test_standalone_gui.py "${@:2}"
 else
     echo "======================================================================"
     echo "[Launcher] Mode: Phase 1 & 2 Automated Headless EGL + Offscreen Snapshot"
@@ -73,7 +73,7 @@ else
         -w "/workspace/snngineV4_cloud/snngineV4_agent_branches" \
         -e PYTHONPATH="/workspace/snngineV4_cloud/snngineV4_agent_branches:/workspace/snngineV4_cloud/SNNgine3D_agent_branches/notebooks/simulation_demo" \
         "${IMAGE_NAME}" \
-        python3 setups/gpu-smoke-test/interop_smoke_test_auto.py --snapshot /output/rendered_frame.png "$@"
+        python3 setups/gpu-smoke-tests/interop_smoke_test_auto.py --snapshot /output/rendered_frame.png "$@"
 fi
 
 EXIT_CODE=$?

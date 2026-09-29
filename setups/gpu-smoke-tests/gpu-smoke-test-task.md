@@ -236,7 +236,7 @@ The sister repo's `notebooks/` directory has simulation-only-focused code
 `SNNgine3D_agent_branches/notebooks/` (sibling of `snngineV4_agent_branches/`
 under the shared parent directory — see "Working directory" above).
 
-## Deliverables (all in this same `gpu-smoke-test/` directory)
+## Deliverables (all in this same `gpu-smoke-tests/` directory)
 
 - `interop_smoke_test_standalone_gui.py` — phase 1's minimal script that
   avoids the engine's config/network/GUI stack (see "Redirect" above;

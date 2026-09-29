@@ -14,33 +14,33 @@ The pipeline is verified across:
 
 ## What Was Built
 
-- **Dockerfile**: `setups/gpu-smoke-test/Dockerfile.docker-smoke`
+- **Dockerfile**: `setups/gpu-smoke-tests/Dockerfile.docker-smoke`
   - Base: `nvidia/cuda:12.6.2-devel-ubuntu24.04` (Ubuntu 24.04 LTS Noble Numbat)
   - Environment: `NVIDIA_VISIBLE_DEVICES=all`, `NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,display` (essential for injecting host NVIDIA EGL and OpenGL driver libraries into the container).
   - Python Environment: Native Python 3.12 isolated in `/opt/venv`, avoiding Debian 24.04 package manager collisions (`RECORD file not found` / PEP 668).
   - Python Stack: PyTorch 2.5.1 (`cu124`), NumPy 1.26.4 (`numpy<2`), Numba 0.67, PyOpenGL, PyOpenGL_accelerate, PyQt6, QtPy, VisPy.
   - PyCUDA: Built from source from git tag `v2024.1` with `--cuda-enable-gl` and `--cuda-root=/usr/local/cuda` via `--no-build-isolation`.
   - System Libraries: Ubuntu 24.04 Noble packages (`libglib2.0-0t64`, `libfontconfig1`, `libxkbcommon-x11-0`, `libxcb-*`).
-- **Host Launcher Script**: `setups/gpu-smoke-test/interop_smoke_test_docker_launcher.sh`
+- **Host Launcher Script**: `setups/gpu-smoke-tests/interop_smoke_test_docker_launcher.sh`
   - Follows the project's `interop_smoke_test_<descriptor>` convention.
   - Autonomously checks whether the `snngine-gpu-smoke:headless` image exists locally; if missing, automatically triggers `docker build` from `Dockerfile.docker-smoke`.
   - **Headless Mode** (default): Launches container with `--gpus all`, mounts the workspace, configures `PYTHONPATH`, and executes `interop_smoke_test_auto.py --snapshot /output/rendered_frame.png`.
   - **Interactive GUI Mode** (`--gui`): Mounts `/tmp/.X11-unix`, authorizes X11 access via `xhost +local:root`, disables GNOME Shell `tiling-assistant@ubuntu.com` with an automated bash `trap ... EXIT` restoration handler, and launches `interop_smoke_test_standalone_gui.py`.
   - **Interactive Web Bridge Mode** (`--web`): Mounts port `6080:6080` and launches `interop_smoke_test_web_gui.py`, enabling interactive browser-based 3D manipulation over WebSocket without X11 or desktop dependencies.
-- **RunPod Bootstrap Runner**: `setups/runpod-smoke-test/runpod_smoke_runner.sh`
+- **RunPod Bootstrap Runner**: `setups/runpod-smoke-test/runpod_smoke_test_runner.sh`
   - Pod-side executable script automating single-command execution on RunPod GPU pods.
-  - Supports both automated headless assertions (`./runpod_smoke_runner.sh`) and cloud web bridge serving (`./runpod_smoke_runner.sh --web`).
+  - Supports both automated headless assertions (`./runpod_smoke_test_runner.sh --headless`) and cloud web bridge serving (`./runpod_smoke_test_runner.sh --web`).
   - Inspects GPU hardware, verifies compute capability (e.g. RTX 2000 Ada CC 8.9), activates `/opt/venv`, sets `PYOPENGL_PLATFORM=egl`, executes `interop_smoke_test_auto.py` or `interop_smoke_test_web_gui.py`, and records offscreen snapshots directly into `/workspace`.
-- **Interactive Web Bridge**: `setups/gpu-smoke-test/interop_smoke_test_web_gui.py`
+- **Interactive Web Bridge**: `setups/gpu-smoke-tests/interop_smoke_test_web_gui.py`
   - Self-contained native VisPy EGL application (`vispy.use('egl')`) running with genuine NVIDIA hardware acceleration.
   - Embedded pure Python standard library HTTP and RFC 6455 WebSocket server on port `6080` (zero external networking dependencies).
   - Streams 800x600 hardware-rendered RGBA buffers directly to an HTML5 Canvas (`ctx.putImageData`) at 29+ FPS (2.8–3.5 ms latency).
   - Embedded responsive dark-mode single-page application with real-time HUD (VRAM address, VBO ID, active neuron firing count, live server & client FPS).
   - Handles bidirectional interactive events: mouse orbit (drag), camera zoom (wheel), camera reset (double click), pause/resume simulation, single-stepping, and live toggle between CUDA simulation kernel (`update_N_state`) and PyTorch fallback.
-- **Headless Test & Visual Snapshot**: `setups/gpu-smoke-test/interop_smoke_test_auto.py`
+- **Headless Test & Visual Snapshot**: `setups/gpu-smoke-tests/interop_smoke_test_auto.py`
   - Pure standard-library PNG serialization (`write_png` via `struct` and `zlib`, zero third-party dependencies).
   - Headless offscreen snapshot rendering using OpenGL 3.3 Core Profile shader program (`VERTEX_SHADER` + `FRAGMENT_SHADER`), rendering the zero-copy VBO points and connecting circle to a 256x256 RGBA frame.
-- **Interactive GUI Test**: `setups/gpu-smoke-test/interop_smoke_test_standalone_gui.py`
+- **Interactive GUI Test**: `setups/gpu-smoke-tests/interop_smoke_test_standalone_gui.py`
   - Standalone PyQt6 + VisPy application displaying 64 animated markers arranged along a 3D double torus.
   - Complete zero-copy VBO mutation loop per frame without CPU-GPU transfers.
   - CLI argument parsing (`--timeout`, `--markers`) enabling both automated verification and interactive human inspection.
@@ -53,7 +53,7 @@ From `snngineV4_agent_branches/`:
 
 ### 1. Phase 1 & 2: Automated Headless EGL Test + Offscreen Snapshot
 ```bash
-setups/gpu-smoke-test/interop_smoke_test_docker_launcher.sh
+setups/gpu-smoke-tests/interop_smoke_test_docker_launcher.sh
 ```
 
 **What this does:**
@@ -61,12 +61,12 @@ setups/gpu-smoke-test/interop_smoke_test_docker_launcher.sh
 2. Spawns an isolated container with `--gpus all`.
 3. Initializes headless EGL directly against the host NVIDIA driver.
 4. Executes Tests A, B, C, and D across all 5 links of the zero-copy chain.
-5. Renders a 256x256 offscreen snapshot of the VBO markers and saves it to `setups/gpu-smoke-test/rendered_frame.png`.
+5. Renders a 256x256 offscreen snapshot of the VBO markers and saves it to `setups/gpu-smoke-tests/rendered_frame.png`.
 6. Exits with code 0 on complete pass.
 
 ### 2. Phase 3: Interactive GUI Check (Host X11 Display)
 ```bash
-setups/gpu-smoke-test/interop_smoke_test_docker_launcher.sh --gui
+setups/gpu-smoke-tests/interop_smoke_test_docker_launcher.sh --gui
 ```
 
 **What this does:**
@@ -78,7 +78,7 @@ setups/gpu-smoke-test/interop_smoke_test_docker_launcher.sh --gui
 
 ### 3. Phase 4: Containerized Interactive Web Bridge (Cloud Ready — Port 6080)
 ```bash
-setups/gpu-smoke-test/interop_smoke_test_docker_launcher.sh --web
+setups/gpu-smoke-tests/interop_smoke_test_docker_launcher.sh --web
 ```
 
 **What this does:**
@@ -221,7 +221,7 @@ Link 1: Successfully integrated self-compiled CUDA simulation code (update_N_sta
 
 ## Phase 2 Visual Check Verification
 
-- **Rendered Output**: `setups/gpu-smoke-test/rendered_frame.png`
+- **Rendered Output**: `setups/gpu-smoke-tests/rendered_frame.png`
 - **Format**: 256x256 RGBA 8-bit PNG.
 - **Pixel Breakdown**:
   - Background (Dark Navy `[16, 20, 25, 255]`): 61,772 pixels.
@@ -237,12 +237,12 @@ To prepare for remote cloud execution (RunPod in `EU-RO-1`) where no physical X1
 ### 1. Attempt 1: Standard Virtual Framebuffer (`Xvfb`) — FAILED
 - **Command Tested**:
   ```bash
-  (Xvfb :99 -screen 0 1280x720x24 &) && DISPLAY=:99 python3 setups/gpu-smoke-test/interop_smoke_test_standalone_gui.py
+  (Xvfb :99 -screen 0 1280x720x24 &) && DISPLAY=:99 python3 setups/gpu-smoke-tests/interop_smoke_test_standalone_gui.py
   ```
 - **Observed Output**:
   ```
   WARNING: Traceback (most recent call last):
-    File "setups/gpu-smoke-test/interop_smoke_test_standalone_gui.py", line 188, in setup_interop_chain
+    File "setups/gpu-smoke-tests/interop_smoke_test_standalone_gui.py", line 188, in setup_interop_chain
       self.reg_buffer = pycuda.gl.RegisteredBuffer(self.vbo_id)
   pycuda._driver.Error: cuGraphicsGLRegisterBuffer failed: unknown error
   ```
@@ -251,7 +251,7 @@ To prepare for remote cloud execution (RunPod in `EU-RO-1`) where no physical X1
 ### 2. Attempt 2: VirtualGL (`vglrun` with `VGL_DISPLAY=egl`) — FAILED
 - **Command Tested**:
   ```bash
-  (Xvfb :99 -screen 0 1280x720x24 &) && DISPLAY=:99 VGL_DISPLAY=egl /opt/VirtualGL/bin/vglrun python3 -u setups/gpu-smoke-test/interop_smoke_test_standalone_gui.py
+  (Xvfb :99 -screen 0 1280x720x24 &) && DISPLAY=:99 VGL_DISPLAY=egl /opt/VirtualGL/bin/vglrun python3 -u setups/gpu-smoke-tests/interop_smoke_test_standalone_gui.py
   ```
 - **Observed Output**:
   - `glxinfo` confirmed NVIDIA hardware was active:

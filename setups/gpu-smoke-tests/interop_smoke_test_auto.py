@@ -10,7 +10,7 @@ the complete 5-link zero-copy interop chain:
   Link 5: PyTorch tensor view wrapping the Numba device array (torch.as_tensor).
 
 Usage:
-    /home/htm/anaconda3/envs/snngine/bin/python setups/gpu-smoke-test/interop_smoke_test_auto.py
+    /home/htm/anaconda3/envs/snngine/bin/python setups/gpu-smoke-tests/interop_smoke_test_auto.py
 """
 
 import ctypes
