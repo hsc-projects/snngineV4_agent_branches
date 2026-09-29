@@ -4,12 +4,12 @@
 
 Push the Python, CUDA, PyTorch, and OpenGL zero-copy interop stack to the **absolute maximum possible versions** for the workstation's **NVIDIA GeForce RTX 3090** (Ampere `sm_86`).
 
-There are **NO upper limits**, no version ceilings, and no pre-emptive caps. Go as high as possible across the entire stack—including Python 3.14+, CUDA 13+, bleeding-edge PyTorch, PyCUDA, Numba, VisPy, and PyQt6.
+There are **NO upper limits**, no version ceilings, and no pre-emptive caps. Go as high as possible across the entire stack—including Python 3.14+, CUDA 13+, bleeding-edge PyTorch, PyCUDA, Numba, VisPy, and PySide6.
 
 Once the maximum operational environment is provisioned in an isolated Conda environment, validate the complete 5-link zero-copy interop pipeline across **all operational categories** (both host and containerized):
 
 1. **Category 1: Headless (EGL)** — Unattended automated assertions and offscreen EGL snapshot readback without a display server.
-2. **Category 2: Desktop GUI** — Native desktop windowing using PyQt6 + VisPy with hardware acceleration.
+2. **Category 2: Desktop GUI** — Native desktop windowing using PySide6 + VisPy with hardware acceleration.
 3. **Category 3: Web Bridge** — Headless EGL offscreen rendering with real-time WebSocket frame streaming and browser-based 3D interaction.
 4. **Category 4: Containerized Docker (v2)** — Full multi-mode containerized verification (`snngine-gpu-smoke:v2`) reproducing the v2 stack for cloud deployment.
 
@@ -116,9 +116,10 @@ Target the absolute bleeding edge across every package and dependency:
    - Install the newest Numba release or build compatible with the chosen Python.
    - Verify that `numba.cuda` initializes and supports `DeviceNDArray` with `__cuda_memory__ = True`.
 
-6. **VisPy & PyQt6**:
-   - Install the latest VisPy and PyQt6 packages.
-   - Verify that VisPy initializes with both `vispy.use('egl')` (headless) and `vispy.use('pyqt6')` (desktop).
+6. **VisPy & PySide6**:
+   - Target PySide6 (specifically `pyside6>=6.11.2` with `shiboken6`) as the required Qt binding instead of PyQt6.
+   - Verify that VisPy initializes with both `vispy.use('egl')` (headless) and `vispy.use('pyside6')` (desktop).
+   - Verify that `QtPy` dynamically binds to `PySide6` without PyQt6 being present.
 
 ---
 
@@ -134,17 +135,17 @@ Target the absolute bleeding edge across every package and dependency:
    ```bash
    /home/htm/anaconda3/bin/conda create -n snngine-frontier python=<discovered_max> -y
    ```
-2. Install the discovered top-tier packages (CUDA toolkit, PyTorch, Numba, VisPy, PyQt6).
+2. Install the discovered top-tier packages (CUDA toolkit, PyTorch, Numba, VisPy, PySide6).
 3. Build PyCUDA with OpenGL interop enabled.
 4. Run comprehensive import diagnostics:
    ```python
-   import torch, pycuda.driver, pycuda.gl, numba.cuda, vispy, PyQt6
+   import torch, pycuda.driver, pycuda.gl, numba.cuda, vispy, PySide6
    print(f"Python:  {sys.version}")
    print(f"PyTorch: {torch.__version__} (CUDA {torch.version.cuda})")
    print(f"PyCUDA:  {pycuda.VERSION_TEXT}")
    print(f"VisPy:   {vispy.__version__}")
    print(f"Numba:   {numba.__version__}")
-   print(f"PyQt6:   {PyQt6.__file__}")
+   print(f"PySide6: {PySide6.__file__} (v{PySide6.__version__})")
    ```
 
 ### Phase 2: Category 1 — Headless EGL Smoke Test
@@ -200,7 +201,7 @@ Inside the container build (`Dockerfile.docker-smoke-v2`), build and install the
   - `pycuda`: `2026.1` (cloned and compiled from source inside Docker with `--cuda-enable-gl`)
   - `numba`: `0.67.0`
   - `vispy`: `0.17.0`
-  - `pyqt6`: `6.11.0` / `PyQt6-Qt6 6.11.2`
+  - `pyside6`: `6.11.2` / `PySide6-Essentials 6.11.2` / `Shiboken6 6.11.2` (replaces PyQt6)
   - `pyopengl`: `3.1.10`
   - `websockets`: `17.1`
   - `scipy`: `1.18.1`

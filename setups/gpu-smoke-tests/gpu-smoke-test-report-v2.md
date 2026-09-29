@@ -6,7 +6,7 @@ Successfully pushed the Python, CUDA, PyTorch, and OpenGL zero-copy interop stac
 
 The complete 5-link zero-copy interop pipeline is **100% verified operational** across all three operational categories:
 - **Category 1 (Headless EGL)**: Automated 5-link assertions, live VRAM write-through verification, sister repo simulation code (`sim_demo_utils.update_N_state`), and offscreen snapshot rasterization (`rendered_frame_frontier.png`).
-- **Category 2 (Desktop GUI)**: Native interactive 3D windowing via PyQt6 + VisPy with hardware acceleration on host display (`DISPLAY=:1`) protected by automated GNOME Shell tiling assistant safety traps.
+- **Category 2 (Desktop GUI)**: Native interactive 3D windowing via PySide6 + VisPy with hardware acceleration on host display (`DISPLAY=:1`) protected by automated GNOME Shell tiling assistant safety traps.
 - **Category 3 (Web Bridge)**: Cloud-ready headless EGL rendering with real-time WebSocket frame streaming (800×600 @ 29.3 FPS, 3.8 ms render latency) and 4-way interactive toggles (CUDA Kernel / PyTorch fallback × Izhikevich SNN / Sine Wave).
 
 ### Frontier Discovery vs Previous Baselines
@@ -20,7 +20,7 @@ The complete 5-link zero-copy interop pipeline is **100% verified operational** 
 | **PyCUDA** | 2025.1.1 (git) | 2024.1 (git) | **2026.1** (Source + `--cuda-enable-gl`) | **Latest Release** |
 | **Numba** | 0.61.0 | 0.67.0 | **0.67.0** (`py314` conda-forge) | **Max Frontier** |
 | **VisPy** | 0.14.3 | 0.14.3 | **0.17.0** (`py314` conda-forge) | **Max Frontier (+3 minor)** |
-| **PyQt** | PySide6 6.7.3 / QtPy | PyQt6 6.7.1 | **PyQt6 6.11.0 / Qt6 6.11.2** | **Max Frontier (+4 minor)** |
+| **Qt Framework** | PySide6 6.7.3 / QtPy | PyQt6 6.7.1 | **PySide6 6.11.2 / Qt6 6.11.2** | **Max Frontier (+4 minor)** |
 | **OpenGL API** | 4.6.0 NVIDIA | 4.6.0 NVIDIA | **4.6.0 NVIDIA** | **Full Hardware Acceleration** |
 
 ---
@@ -56,7 +56,7 @@ The isolated environment was provisioned at `/home/htm/anaconda3/envs/snngine-fr
 conda create -n snngine-frontier python=3.14 pip setuptools wheel -c conda-forge -y
 conda install -n snngine-frontier numba "cuda-toolkit=13.2*" vispy -c conda-forge -y
 /home/htm/anaconda3/envs/snngine-frontier/bin/pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu132
-/home/htm/anaconda3/envs/snngine-frontier/bin/pip install pyqt6 pillow websockets scipy pyopengl qtpy
+/home/htm/anaconda3/envs/snngine-frontier/bin/pip install pyside6 pillow websockets scipy pyopengl qtpy
 ```
 
 PyCUDA was compiled and installed via:
@@ -77,11 +77,12 @@ PyTorch: 2.15.0.dev20260929+cu132 (CUDA 13.2)
 PyCUDA:  2026.1
 VisPy:   0.17.0
 Numba:   0.67.0
-PyQt6:   /home/htm/anaconda3/envs/snngine-frontier/lib/python3.14/site-packages/PyQt6/__init__.py
+PySide6: /home/htm/anaconda3/envs/snngine-frontier/lib/python3.14/site-packages/PySide6/__init__.py (v6.11.2)
 pycuda.gl RegisteredBuffer: True
 Numba CUDA available: True (NVIDIA GeForce RTX 3090)
 VisPy EGL backend: egl
-VisPy PyQt6 backend: PyQt6
+VisPy Qt backend: PySide6
+QtPy API: PySide6 6.11.2
 ```
 
 ---
@@ -125,7 +126,7 @@ gnome-extensions enable tiling-assistant@ubuntu.com
 
 ### Verification Results
 1. **Safety Guard**: `tiling-assistant@ubuntu.com` was cleanly disabled during window mapping and re-enabled immediately upon completion.
-2. **Window & Context Initialization**: Native PyQt6 window opened on display `:1`. OpenGL VBO generated via VisPy (`ID = 2`).
+2. **Window & Context Initialization**: Native PySide6 window opened on display `:1`. OpenGL VBO generated via VisPy (`ID = 2`).
 3. **Zero-Copy Chain**:
    - PyCUDA registered buffer mapped at `0x75db783ff000` (3,584 bytes for 64 markers).
    - PyTorch tensor view confirmed pointer identity: `data_ptr = 0x75db783ff000`.
@@ -163,7 +164,7 @@ Command executed:
    - *Resolution*: Installed `pyopengl-3.1.10` via pip.
 
 2. **Qt6 XCB Integration Failure (`QXcbIntegration: Cannot create platform OpenGL context, neither GLX nor EGL are enabled`)**:
-   - *Problem*: On Ubuntu 24.04 with proprietary NVIDIA drivers, `PyQt6-Qt6` (6.11.2) wheels under dual conda/system glvnd setups fail to auto-detect the default OpenGL integration mode.
+   - *Problem*: On Ubuntu 24.04 with proprietary NVIDIA drivers, Qt6 (PySide6 / PyQt6) wheels under dual conda/system glvnd setups fail to auto-detect the default OpenGL integration mode.
    - *Resolution*: Set `QT_XCB_GL_INTEGRATION=glx` (or `xcb_egl`), which successfully initializes hardware-accelerated OpenGL contexts for `QOpenGLWidget` (`w.isValid() == True`).
 
 3. **Attribute Typo in `interop_smoke_test_standalone_gui.py`**:

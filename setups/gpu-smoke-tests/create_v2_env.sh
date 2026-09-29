@@ -3,7 +3,7 @@
 # SNNgineV4 - Modern Frontier GPU Environment Bootstrap Helper
 # Builds an isolated Conda environment targeting maximum operational versions:
 # Python 3.14+, CUDA Toolkit 13.2+, PyTorch 2.15-dev (cu132), Numba, VisPy,
-# PyQt6, and PyCUDA compiled with OpenGL interop enabled.
+# PySide6, and PyCUDA compiled with OpenGL interop enabled.
 # ==============================================================================
 set -euo pipefail
 
@@ -28,8 +28,8 @@ echo "=== [2/6] Installing CUDA Toolkit 13.2, Numba, VisPy, and NumPy via conda-
 echo "=== [3/6] Installing Bleeding-Edge PyTorch (CUDA 13.2 / cu132 Nightly) ==="
 "$PIP_BIN" install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu132
 
-echo "=== [4/6] Installing Supporting Libraries (PyQt6, PyOpenGL, QtPy, WebSockets, SciPy, Pillow) ==="
-"$PIP_BIN" install pyqt6 pillow websockets scipy pyopengl qtpy
+echo "=== [4/6] Installing Supporting Libraries (PySide6, PyOpenGL, QtPy, WebSockets, SciPy, Pillow) ==="
+"$PIP_BIN" install pyside6 pillow websockets scipy pyopengl qtpy
 
 echo "=== [5/6] Building and Installing PyCUDA from Source with OpenGL Interop ==="
 BUILD_DIR="$(mktemp -d -t pycuda_build_XXXXXX)"
@@ -47,15 +47,17 @@ CUDA_ROOT="$TARGET_ENV/targets/x86_64-linux"
     --cuda-enable-gl
 
 "$PIP_BIN" install . --no-build-isolation
+cd /
 
 echo "=== [6/6] Verifying Environment Import Diagnostics ==="
 "$PYTHON_BIN" -c "
-import sys, torch, pycuda, pycuda.driver, pycuda.gl, numba, numba.cuda, vispy, PyQt6
+import sys, torch, pycuda, pycuda.driver, pycuda.gl, numba, numba.cuda, vispy, PySide6
 print(f'Python:  {sys.version.split()[0]}')
 print(f'PyTorch: {torch.__version__} (CUDA {torch.version.cuda})')
 print(f'PyCUDA:  {pycuda.VERSION_TEXT} (RegisteredBuffer={hasattr(pycuda.gl, \"RegisteredBuffer\")})')
 print(f'VisPy:   {vispy.__version__}')
 print(f'Numba:   {numba.__version__}')
+print(f'PySide6: {PySide6.__version__}')
 print(f'CUDA HW: {torch.cuda.get_device_name(0)} CC={torch.cuda.get_device_capability(0)}')
 "
 
