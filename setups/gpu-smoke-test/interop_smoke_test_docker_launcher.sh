@@ -3,6 +3,7 @@
 # Supports:
 #   Default (no args): Phase 1 & 2 Automated Headless EGL test + offscreen snapshot
 #   --gui:             Phase 3 Interactive GUI test (PyQt + VisPy) on host display with safety guards
+#   --web:             Phase 4 Containerized Web Bridge (EGL + WebSocket:6080) for cloud readiness
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -26,7 +27,21 @@ else
     echo "[Launcher] Docker image '${IMAGE_NAME}' found."
 fi
 
-if [[ "${1:-}" == "--gui" ]]; then
+if [[ "${1:-}" == "--web" ]]; then
+    echo "======================================================================"
+    echo "[Launcher] Mode: Phase 4 Containerized Web Bridge (EGL + WebSocket:6080)"
+    echo "======================================================================"
+    echo "[Launcher] Open http://localhost:6080 in your web browser to interact."
+    docker run --rm --gpus all \
+        --name snngine-gpu-smoke-web \
+        -p 6080:6080 \
+        -e PYTHONUNBUFFERED=1 \
+        -v "${PARENT_DIR}:/workspace/snngineV4_cloud:ro" \
+        -w "/workspace/snngineV4_cloud/snngineV4_agent_branches" \
+        -e PYTHONPATH="/workspace/snngineV4_cloud/snngineV4_agent_branches:/workspace/snngineV4_cloud/SNNgine3D_agent_branches/notebooks/simulation_demo" \
+        "${IMAGE_NAME}" \
+        python3 setups/gpu-smoke-test/interop_smoke_test_web_gui.py "${@:2}"
+elif [[ "${1:-}" == "--gui" ]]; then
     echo "======================================================================"
     echo "[Launcher] Mode: Phase 3 Interactive GUI (standalone VisPy double torus)"
     echo "======================================================================"
