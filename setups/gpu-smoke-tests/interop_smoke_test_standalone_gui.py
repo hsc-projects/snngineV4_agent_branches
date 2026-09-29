@@ -34,7 +34,12 @@ if str(PROJECT_ROOT) not in sys.path:
 # Ensure display and Qt GLX integration defaults
 if 'DISPLAY' not in os.environ:
     os.environ['DISPLAY'] = ':1'
-os.environ.setdefault('QT_XCB_GL_INTEGRATION', 'glx')
+if 'QT_XCB_GL_INTEGRATION' not in os.environ:
+    os.environ['QT_XCB_GL_INTEGRATION'] = 'glx'
+try:
+    ctypes.CDLL(None).setenv(b'QT_XCB_GL_INTEGRATION', b'glx', 1)
+except Exception:
+    pass
 
 import numpy as np
 from qtpy import QtCore, QtWidgets
@@ -462,7 +467,10 @@ class StandaloneInteropWindow(QtWidgets.QMainWindow):
                     self.gl_tensor[:, 10] = 0.3 + 0.7 * pulse
                     self.gl_tensor[:, 11] = 12.0 + 14.0 * pulse
 
-            self.canvas.view.camera.azimuth = (self.canvas.view.camera.azimuth + 0.3) % 360.0
+            if hasattr(self, 'view') and hasattr(self.view, 'camera'):
+                self.view.camera.azimuth = (self.view.camera.azimuth + 0.3) % 360.0
+            elif hasattr(self.canvas, 'view') and hasattr(self.canvas.view, 'camera'):
+                self.canvas.view.camera.azimuth = (self.canvas.view.camera.azimuth + 0.3) % 360.0
             torch.cuda.synchronize()
 
         except Exception as err:

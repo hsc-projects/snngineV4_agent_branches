@@ -1,4 +1,4 @@
-# Task: Modernized GPU/CUDA-OpenGL-Interop Smoke Test (Max Frontier Discovery)
+# Task: Modernized GPU/CUDA-OpenGL-Interop Smoke Test v2 (Max Frontier Discovery)
 
 ## Objective & Scope
 
@@ -174,13 +174,25 @@ Target the absolute bleeding edge across every package and dependency:
 3. Verify live 800×600 RGBA frame streaming at 29+ FPS.
 4. Verify interactive orbit/zoom, simulation pause/step, and live 4-way toggles over WebSocket.
 
-### Phase 5: Reporting & Deliverables
-1. Compile the findings report at `setups/gpu-smoke-tests/gpu-smoke-test-report-modern-env.md` following `setups/report-format.md`.
+### Phase 5: Corresponding Containerized Docker Smoke Test (v2 Frontier)
+1. Author `Dockerfile.docker-smoke-v2` matching the discovered v2 frontier:
+   - Base image: `nvidia/cuda:12.6.2-devel-ubuntu24.04` (or latest CUDA 13.x container base) with `NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,display`.
+   - Python runtime: Python 3.14.
+   - Core libraries: PyTorch 2.15-dev (`cu132`), PyCUDA 2026.1 compiled with `--cuda-enable-gl`, Numba 0.67, VisPy 0.17, PyQt6 6.11, PyOpenGL.
+2. Build container image `snngine-gpu-smoke:v2`.
+3. Validate operational parity across all 3 modes inside the container:
+   - **Mode 1 (Headless EGL)**: Run `interop_smoke_test_auto.py` with offscreen snapshot readback.
+   - **Mode 2 (Desktop GUI)**: Run `interop_smoke_test_standalone_gui.py` via mounted `/tmp/.X11-unix` and display safety trap.
+   - **Mode 3 (Web Bridge)**: Run `interop_smoke_test_web_gui.py` via port mapping (`-p 6080:6080`).
+4. Update host launcher script `interop_smoke_test_docker_launcher.sh` or provide v2 launcher options to run `snngine-gpu-smoke:v2`.
+
+### Phase 6: Reporting & Deliverables
+1. Compile the findings report at `setups/gpu-smoke-tests/gpu-smoke-test-report-v2.md` following `setups/report-format.md`.
 2. Document:
    - **The Frontiers Tested**: Candidate configurations probed from the absolute bleeding edge downward.
    - **Build & Compatibility Boundaries**: The exact compile, link, or runtime failure reasons encountered when pushing packages beyond working boundaries.
    - **Final Verified Frontier Matrix**: The maximum operational package versions established across all 3 categories.
-   - **Benchmarks**: Frame rates and render latencies across Headless, GUI, and Web modes.
+   - **Benchmarks**: Frame rates and render latencies across Headless, GUI, Web, and Docker modes.
 
 ---
 
@@ -188,6 +200,7 @@ Target the absolute bleeding edge across every package and dependency:
 
 All deliverables live inside [`setups/gpu-smoke-tests/`](file:///home/htm/snngine/snngineV4_cloud/snngineV4_agent_branches/setups/gpu-smoke-tests/):
 
-- `gpu-smoke-test-task-modern-env.md` — this task specification.
-- `gpu-smoke-test-report-modern-env.md` — findings, failure boundaries, and verification report (created upon execution).
-- Optional helper scripts: `create_modern_env.sh` (environment bootstrap helper if needed).
+- `gpu-smoke-test-task-v2.md` — this task specification.
+- `gpu-smoke-test-report-v2.md` — findings, failure boundaries, and verification report.
+- `create_v2_env.sh` — environment bootstrap helper.
+- `Dockerfile.docker-smoke-v2` — container specification for the v2 frontier stack.
