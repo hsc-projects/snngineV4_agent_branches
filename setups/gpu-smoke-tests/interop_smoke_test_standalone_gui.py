@@ -63,6 +63,9 @@ class StandaloneInteropWindow(QtWidgets.QMainWindow):
         self.sim_time = 0.0
         self.use_cuda_kernel = True
         self.cuda_kernel_available = False
+        self.sim_function = "izhikevich"  # "izhikevich" or "sine"
+        self.update_sine_kernel = None
+        self.gl_holder = None
         self.cu_ctx = None
         self.reg_buffer = None
         self.gl_tensor = None
@@ -123,9 +126,13 @@ class StandaloneInteropWindow(QtWidgets.QMainWindow):
         self.btn_step.clicked.connect(lambda: self._step_frame(0.05))
         bar_layout.addWidget(self.btn_step)
 
-        self.btn_toggle_mode = QtWidgets.QPushButton("Switch to PyTorch Fallback")
+        self.btn_toggle_mode = QtWidgets.QPushButton("Backend: CUDA Kernel")
         self.btn_toggle_mode.clicked.connect(self._toggle_kernel_mode)
         bar_layout.addWidget(self.btn_toggle_mode)
+
+        self.btn_toggle_func = QtWidgets.QPushButton("Function: Izhikevich SNN")
+        self.btn_toggle_func.clicked.connect(self._toggle_function)
+        bar_layout.addWidget(self.btn_toggle_func)
 
         self.lbl_status = QtWidgets.QLabel("Status: Initializing interop chain...")
         self.lbl_status.setStyleSheet("font-family: monospace; font-size: 12px; color: #a0ffa0;")
@@ -144,14 +151,21 @@ class StandaloneInteropWindow(QtWidgets.QMainWindow):
         self.timer.timeout.connect(lambda: self._step_frame(0.04))
 
     def _generate_initial_coordinates(self, n: int) -> np.ndarray:
-        """Arrange markers along a double toroidal ring in 3D."""
+        """Arrange markers on two parallel toroidal rings in 3D, offset in Z."""
         pos = np.zeros((n, 3), dtype=np.float32)
-        theta = np.linspace(0, 4 * np.pi, n, endpoint=False)
+        half = n // 2
         r_major = 10.0
         r_minor = 3.5
-        pos[:, 0] = (r_major + r_minor * np.cos(theta * 2)) * np.cos(theta)
-        pos[:, 1] = (r_major + r_minor * np.cos(theta * 2)) * np.sin(theta)
-        pos[:, 2] = r_minor * np.sin(theta * 2)
+        z_offset = 2.5  # vertical separation between the two manifolds
+
+        for group, z_sign in enumerate([1, -1]):
+            start = group * half
+            end = start + half
+            theta = np.linspace(0, 2 * np.pi, half, endpoint=False)
+            pos[start:end, 0] = (r_major + r_minor * np.cos(theta * 2)) * np.cos(theta)
+            pos[start:end, 1] = (r_major + r_minor * np.cos(theta * 2)) * np.sin(theta)
+            pos[start:end, 2] = r_minor * np.sin(theta * 2) + z_sign * z_offset
+
         return pos
 
     def setup_interop_chain(self):
@@ -209,6 +223,18 @@ class StandaloneInteropWindow(QtWidgets.QMainWindow):
         assert self.gl_tensor.data_ptr() == self.raw_ptr, "Pointer identity mismatch!"
         print("   ✓ Verified: PyTorch shares exact memory address with OpenGL VBO (zero-copy).")
 
+        # PyCUDA PointerHolder for direct kernel access to the VBO tensor
+        class LocalTorchHolder(cuda.PointerHolderBase):
+            def __init__(self, tensor):
+                super().__init__()
+                self.tensor = tensor
+                self.gpudata = tensor.data_ptr()
+            def get_pointer(self, **kwargs):
+                return self.tensor.data_ptr()
+
+        self.LocalTorchHolder = LocalTorchHolder
+        self.gl_holder = LocalTorchHolder(self.gl_tensor)
+
         mapping.unmap()
 
         # Compile CUDA Kernel (Link 1)
@@ -220,7 +246,7 @@ class StandaloneInteropWindow(QtWidgets.QMainWindow):
         print("=" * 70 + "\n")
 
     def _compile_cuda_kernel(self):
-        """Load the sister repo's self-compiled CUDA simulation code (update_N_state)."""
+        """Load the sister repo's CUDA simulation code and compile PyCUDA sine kernel."""
         import types
         from pathlib import Path
         import torch
@@ -239,6 +265,49 @@ class StandaloneInteropWindow(QtWidgets.QMainWindow):
             pandas = types.ModuleType('pandas')
             pandas.DataFrame = lambda *a, **k: None
             sys.modules['pandas'] = pandas
+
+        # Initialize neuron state tensors unconditionally (used by both CUDA and PyTorch modes)
+        N = self.n_markers
+        r_init = torch.round(torch.rand(N).cuda() * 100) / 100
+        self.N_types_tensor = (torch.rand(N).cuda() < 0.8).type(torch.int32)
+        self.N_states_tensor = torch.zeros((8, N), device='cuda')
+        self.N_states_tensor[0] = torch.rand(N).cuda()  # pt
+        self.N_states_tensor[2] = -65.0  # v
+        self.N_states_tensor[3] = 0.02 + 0.08 * r_init * self.N_types_tensor  # a
+        self.N_states_tensor[4] = 0.2 + 0.05 * (1.0 - r_init) * self.N_types_tensor  # b
+        self.N_states_tensor[5] = -65 + 15 * (r_init ** 2) * (~self.N_types_tensor.bool()).int()  # c
+        self.N_states_tensor[6] = 2 * self.N_types_tensor + (8 - 6 * (r_init ** 2)) * (~self.N_types_tensor.bool()).int()  # d
+        self.N_states_tensor[1] = self.N_states_tensor[3] * self.N_states_tensor[2]  # u = a * v
+        self.N_states_tensor[7] = 0.0  # i
+        self.fired_tensor = torch.zeros(N, device='cuda')
+        self.r_tensor = torch.rand(N).cuda()
+        self.rt_tensor = torch.ones(N).cuda()
+
+        # Compile PyCUDA Sine Wave kernel
+        try:
+            from pycuda.compiler import SourceModule
+            sine_mod = SourceModule("""
+            __global__ void update_sine_wave(
+                const int N,
+                const float t,
+                float* gl_tensor,
+                const int stride
+            )
+            {
+                const int n = blockIdx.x * blockDim.x + threadIdx.x;
+                if (n < N)
+                {
+                    float pulse = sinf(t * 4.0f + (float)n * 0.5f);
+                    if (pulse < 0.0f) pulse = 0.0f;
+                    gl_tensor[n * stride + 10] = 0.3f + 0.7f * pulse;
+                    gl_tensor[n * stride + 11] = 12.0f + 14.0f * pulse;
+                }
+            }
+            """)
+            self.update_sine_kernel = sine_mod.get_function("update_sine_wave")
+            print("Link 1: Successfully compiled PyCUDA sine wave simulation kernel.")
+        except Exception as e:
+            print(f"Link 1: Warning: Failed to compile PyCUDA sine kernel: {e}")
 
         sister_dir = None
         if len(parents) > 3:
@@ -259,23 +328,23 @@ class StandaloneInteropWindow(QtWidgets.QMainWindow):
             self.update_N_state_kernel = sim_demo_utils.update_N_state_kernel
             self.TorchHolder = sim_demo_utils.TorchHolder
 
-            N = self.n_markers
-            self.N_types = sim_demo_utils.TorchHolder((torch.rand(N).cuda() < 0.8).type(torch.int32))
-            self.N_states = sim_demo_utils.make_neurons_states(N, self.N_types.tensor)
-            self.fired = sim_demo_utils.TorchHolder(torch.zeros(N).cuda())
-            self.r = sim_demo_utils.TorchHolder(torch.rand(N).cuda())
-            self.rt = sim_demo_utils.TorchHolder(torch.ones(N).cuda())
+            # Wrap tensors in TorchHolder for PyCUDA kernel pointer passing
+            self.N_types = sim_demo_utils.TorchHolder(self.N_types_tensor)
+            self.N_states = sim_demo_utils.TorchHolder(self.N_states_tensor)
+            self.fired = sim_demo_utils.TorchHolder(self.fired_tensor)
+            self.r = sim_demo_utils.TorchHolder(self.r_tensor)
+            self.rt = sim_demo_utils.TorchHolder(self.rt_tensor)
 
             self.cuda_kernel_available = True
             print("Link 1: Successfully integrated self-compiled CUDA simulation code (update_N_state from sim_demo_utils).")
         except Exception as e:
             print(f"Link 1: Warning: Failed to load sim_demo_utils: {e}")
-            print("Falling back to direct PyTorch tensor vector operations.")
+            print("Falling back to PyTorch Izhikevich update.")
             self.cuda_kernel_available = False
             self.use_cuda_kernel = False
 
     def _step_frame(self, dt: float):
-        """Execute one live simulation step and mutate the VBO directly in VRAM."""
+        """Execute one live simulation step across 4 combinations (2 frameworks x 2 functions)."""
         if self.reg_buffer is None or self.gl_tensor is None:
             return
 
@@ -290,68 +359,114 @@ class StandaloneInteropWindow(QtWidgets.QMainWindow):
 
         try:
             if self.use_cuda_kernel and self.cuda_kernel_available:
-                # Mode A: Hand-written CUDA simulation kernel execution (update_N_state)
-                # Resets random thalamic input each step
-                self.r.tensor[:] = torch.rand(self.n_markers).cuda()
+                # ── Framework 1: CUDA Kernel ──────────────────────────────
+                if self.sim_function == "izhikevich":
+                    # 1. CUDA Kernel + Izhikevich SNN
+                    self.r.tensor[:] = torch.rand(self.n_markers).cuda()
 
-                block_dim = (32, 1, 1)
-                grid_dim = ((self.n_markers + 31) // 32, 1)
-                self.update_N_state_kernel(
-                    np.int32(self.n_markers),
-                    np.float32(self.sim_time),
-                    self.r,
-                    self.rt,
-                    self.N_states,
-                    self.N_types,
-                    self.fired,
-                    np.float32(1.0),
-                    np.float32(1.0),
-                    block=block_dim,
-                    grid=grid_dim
-                )
-                cuda.Context.synchronize()
+                    block_dim = (32, 1, 1)
+                    grid_dim = ((self.n_markers + 31) // 32, 1)
+                    self.update_N_state_kernel(
+                        np.int32(self.n_markers),
+                        np.float32(self.sim_time),
+                        self.r,
+                        self.rt,
+                        self.N_states,
+                        self.N_types,
+                        self.fired,
+                        np.float32(1.0),
+                        np.float32(1.0),
+                        block=block_dim,
+                        grid=grid_dim
+                    )
+                    cuda.Context.synchronize()
 
-                # Zero-copy write-through to VisPy marker buffer:
-                # Update alpha channel (float index 10) based on neuron firing state
-                # (matching snn_simulation.cu line 41/112 & vertical-trace.md: 1.0 on fire, 0.3 resting)
-                is_fired = self.fired.tensor > 0
-                self.gl_tensor[:, 10] = torch.where(
-                    is_fired,
-                    torch.tensor(1.0, device='cuda'),
-                    torch.tensor(0.3, device='cuda')
-                )
+                    is_fired = self.fired.tensor > 0
+                    self.gl_tensor[:, 10] = torch.where(
+                        is_fired,
+                        torch.tensor(1.0, device='cuda'),
+                        torch.tensor(0.3, device='cuda')
+                    )
+                    v = self.N_states.tensor[2]
+                    v_norm = torch.clamp((v + 65.0) / 95.0, 0.0, 1.0)
+                    self.gl_tensor[:, 11] = 12.0 + 14.0 * v_norm
 
-                # Modulate marker radius / visual oscillation based on membrane voltage v (row 2 of N_states)
-                v = self.N_states.tensor[2]  # membrane potential, typically -65mV to +30mV
-                theta = 4.0 * np.pi * torch.arange(self.n_markers, device='cuda') / self.n_markers + self.sim_time * 0.3
-                r_mod = 3.5 + 1.5 * ((v + 65.0) / 95.0)  # expands on depolarization
-                self.gl_tensor[:, 0] = (10.0 + r_mod * torch.cos(theta * 2.0)) * torch.cos(theta)
-                self.gl_tensor[:, 1] = (10.0 + r_mod * torch.cos(theta * 2.0)) * torch.sin(theta)
-                self.gl_tensor[:, 2] = r_mod * torch.sin(theta * 2.0)
+                else:
+                    # 2. CUDA Kernel + Sine Wave
+                    if self.update_sine_kernel is not None:
+                        block_dim = (32, 1, 1)
+                        grid_dim = ((self.n_markers + 31) // 32, 1)
+                        self.update_sine_kernel(
+                            np.int32(self.n_markers),
+                            np.float32(self.sim_time),
+                            self.gl_holder,
+                            np.int32(14),
+                            block=block_dim,
+                            grid=grid_dim
+                        )
+                        cuda.Context.synchronize()
+                    else:
+                        idx = torch.arange(self.n_markers, device='cuda', dtype=torch.float32)
+                        pulse = torch.clamp(torch.sin(self.sim_time * 4.0 + idx * 0.5), min=0.0)
+                        self.gl_tensor[:, 10] = 0.3 + 0.7 * pulse
+                        self.gl_tensor[:, 11] = 12.0 + 14.0 * pulse
 
             else:
-                # Mode B: PyTorch Fallback tensor operations (Links 2-5)
-                idx = torch.arange(self.n_markers, device='cuda', dtype=torch.float32)
-                theta = 4.0 * np.pi * idx / self.n_markers + self.sim_time * 0.5
-                r_major = 10.0
-                r_minor = 3.5 + 1.2 * torch.sin(self.sim_time * 1.5 + idx * 0.3)
+                # ── Framework 2: PyTorch ──────────────────────────────────
+                if self.sim_function == "izhikevich":
+                    # 3. PyTorch + Izhikevich SNN
+                    S = self.N_states_tensor
+                    N = self.n_markers
 
-                # Mutate 3D coordinates in place
-                self.gl_tensor[:, 0] = (r_major + r_minor * torch.cos(theta * 2.0)) * torch.cos(theta)
-                self.gl_tensor[:, 1] = (r_major + r_minor * torch.cos(theta * 2.0)) * torch.sin(theta)
-                self.gl_tensor[:, 2] = r_minor * torch.sin(theta * 2.0)
+                    self.r_tensor[:] = torch.rand(N, device='cuda')
+                    self.fired_tensor[:] = 0.0
 
-                # Mutate color & alpha in place (a_bg_color offset: 7..10)
-                self.gl_tensor[:, 7] = 0.5 + 0.5 * torch.sin(self.sim_time + idx)
-                self.gl_tensor[:, 8] = 0.5 + 0.5 * torch.cos(self.sim_time * 1.2 + idx)
-                self.gl_tensor[:, 9] = 1.0
-                self.gl_tensor[:, 10] = 0.4 + 0.6 * torch.abs(torch.sin(self.sim_time * 2.5 + idx))
+                    pt = S[0]
+                    u  = S[1]
+                    v  = S[2]
+                    a  = S[3]
+                    b  = S[4]
+                    c  = S[5]
+                    d  = S[6]
+                    i  = S[7].clone()
 
+                    inject_mask = self.r_tensor < pt
+                    i[inject_mask] += self.rt_tensor[inject_mask]
+
+                    fire_mask = v > 30.0
+                    v = torch.where(fire_mask, c, v)
+                    u = torch.where(fire_mask, u + d, u)
+                    self.fired_tensor[fire_mask] = self.sim_time
+
+                    v = v + 0.5 * (0.04 * v * v + 5 * v + 140 - u + i)
+                    v = v + 0.5 * (0.04 * v * v + 5 * v + 140 - u + i)
+                    u = u + a * (b * v - u)
+
+                    S[1] = u
+                    S[2] = v
+                    S[7] = 0.0
+
+                    is_fired = self.fired_tensor > 0
+                    self.gl_tensor[:, 10] = torch.where(
+                        is_fired,
+                        torch.tensor(1.0, device='cuda'),
+                        torch.tensor(0.3, device='cuda')
+                    )
+                    v_norm = torch.clamp((S[2] + 65.0) / 95.0, 0.0, 1.0)
+                    self.gl_tensor[:, 11] = 12.0 + 14.0 * v_norm
+
+                else:
+                    # 4. PyTorch + Sine Wave
+                    idx = torch.arange(self.n_markers, device='cuda', dtype=torch.float32)
+                    pulse = torch.clamp(torch.sin(self.sim_time * 4.0 + idx * 0.5), min=0.0)
+                    self.gl_tensor[:, 10] = 0.3 + 0.7 * pulse
+                    self.gl_tensor[:, 11] = 12.0 + 14.0 * pulse
+
+            self.canvas.view.camera.azimuth = (self.canvas.view.camera.azimuth + 0.3) % 360.0
             torch.cuda.synchronize()
 
         except Exception as err:
             print(f"Error during step mutation: {err}")
-            # Automatically fallback to PyTorch if kernel crashes
             self.use_cuda_kernel = False
             self._update_status_display()
 
@@ -379,19 +494,22 @@ class StandaloneInteropWindow(QtWidgets.QMainWindow):
             return
 
         self.use_cuda_kernel = not self.use_cuda_kernel
-        if self.use_cuda_kernel:
-            self.btn_toggle_mode.setText("Switch to PyTorch Fallback")
-        else:
-            self.btn_toggle_mode.setText("Switch to CUDA Kernel")
+        self._update_status_display()
+
+    def _toggle_function(self):
+        self.sim_function = "sine" if self.sim_function == "izhikevich" else "izhikevich"
         self._update_status_display()
 
     def _update_status_display(self):
-        mode_str = "CUDA (sim_demo_utils update_N_state)" if self.use_cuda_kernel else "PyTorch Fallback (Links 2-5)"
+        backend_str = "CUDA Kernel" if self.use_cuda_kernel else "PyTorch"
+        func_str = "Izhikevich SNN" if self.sim_function == "izhikevich" else "Sine Wave"
         status_text = (
-            f"Step: {self.total_steps:04d} | Mode: {mode_str} | "
+            f"Step: {self.total_steps:04d} | Backend: {backend_str} | Func: {func_str} | "
             f"VBO: #{self.vbo_id} | VRAM: {hex(self.raw_ptr) if self.raw_ptr else 'N/A'}"
         )
         self.lbl_status.setText(status_text)
+        self.btn_toggle_mode.setText(f"Backend: {backend_str}")
+        self.btn_toggle_func.setText(f"Function: {func_str}")
 
     def closeEvent(self, event):
         """Clean teardown on window exit."""
