@@ -31,7 +31,7 @@ Once the maximum operational environment is provisioned in an isolated Conda env
 - **Userspace Only**: All toolkits (CUDA Toolkit, NVCC, cuDNN), Python runtimes, PyTorch binaries, and libraries must reside strictly in userspace inside the dedicated Conda environment. No `apt install nvidia-driver-*` or system-level driver changes.
 
 ### 3. Environment Isolation
-- Create a dedicated Conda environment (e.g. `snngine-frontier` or `snngine-max`).
+- Create a dedicated Conda environment (e.g. `snngine-env-v2`).
 - Do not modify, overwrite, or mutate existing active environments (`base`, `snngine`, `agent-orchestration`, etc.).
 
 ### 4. File & Repository Boundaries
@@ -133,7 +133,7 @@ Target the absolute bleeding edge across every package and dependency:
 ### Phase 1: Environment Provisioning & Import Diagnostics
 1. Create the dedicated environment:
    ```bash
-   /home/htm/anaconda3/bin/conda create -n snngine-frontier python=<discovered_max> -y
+   /home/htm/anaconda3/bin/conda create -n snngine-env-v2 python=<discovered_max> -y
    ```
 2. Install the discovered top-tier packages (CUDA toolkit, PyTorch, Numba, VisPy, PySide6).
 3. Build PyCUDA with OpenGL interop enabled.
@@ -151,7 +151,7 @@ Target the absolute bleeding edge across every package and dependency:
 ### Phase 2: Category 1 — Headless EGL Smoke Test
 1. Execute `interop_smoke_test_auto.py` inside the frontier environment:
    ```bash
-   conda run -n snngine-frontier python setups/gpu-smoke-tests/interop_smoke_test_auto.py --snapshot setups/gpu-smoke-tests/rendered_frame.png
+   conda run -n snngine-env-v2 python setups/gpu-smoke-tests/interop_smoke_test_auto.py --snapshot setups/gpu-smoke-tests/rendered_frame.png
    ```
 2. Assert that all 5 links pass with exit code `0`.
 3. Verify that the offscreen snapshot `rendered_frame.png` is written and rasterizes markers correctly.
@@ -160,7 +160,7 @@ Target the absolute bleeding edge across every package and dependency:
 1. Prepare the display safety guard (ensure GNOME Shell tiling assistant will not crash the desktop).
 2. Execute `interop_smoke_test_standalone_gui.py`:
    ```bash
-   conda run -n snngine-frontier python setups/gpu-smoke-tests/interop_smoke_test_standalone_gui.py
+   conda run -n snngine-env-v2 python setups/gpu-smoke-tests/interop_smoke_test_standalone_gui.py
    ```
 3. Visually verify the interactive 3D double torus running on the desktop monitor at ~33 FPS.
 4. Verify both toggles:
@@ -170,7 +170,7 @@ Target the absolute bleeding edge across every package and dependency:
 ### Phase 4: Category 3 — Web Bridge Smoke Test
 1. Launch `interop_smoke_test_web_gui.py` on port 6080:
    ```bash
-   conda run -n snngine-frontier python setups/gpu-smoke-tests/interop_smoke_test_web_gui.py --port 6080
+   conda run -n snngine-env-v2 python setups/gpu-smoke-tests/interop_smoke_test_web_gui.py --port 6080
    ```
 2. Connect via `http://localhost:6080` in a browser.
 3. Verify live 800×600 RGBA frame streaming at 29+ FPS.

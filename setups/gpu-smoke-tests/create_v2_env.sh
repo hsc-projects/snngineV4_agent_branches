@@ -7,7 +7,7 @@
 # ==============================================================================
 set -euo pipefail
 
-ENV_NAME="${1:-snngine-frontier}"
+ENV_NAME="${1:-snngine-env-v2}"
 CONDA_EXE="${CONDA_EXE:-/home/htm/anaconda3/bin/conda}"
 CONDA_PREFIX_DIR="$(dirname "$(dirname "$CONDA_EXE")")"
 TARGET_ENV="$CONDA_PREFIX_DIR/envs/$ENV_NAME"
