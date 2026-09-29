@@ -27,7 +27,7 @@ The pipeline is verified across:
   - **Headless Mode** (default): Launches container with `--gpus all`, mounts the workspace, configures `PYTHONPATH`, and executes `interop_smoke_test_auto.py --snapshot /output/rendered_frame.png`.
   - **Interactive GUI Mode** (`--gui`): Mounts `/tmp/.X11-unix`, authorizes X11 access via `xhost +local:root`, disables GNOME Shell `tiling-assistant@ubuntu.com` with an automated bash `trap ... EXIT` restoration handler, and launches `interop_smoke_test_standalone_gui.py`.
   - **Interactive Web Bridge Mode** (`--web`): Mounts port `6080:6080` and launches `interop_smoke_test_web_gui.py`, enabling interactive browser-based 3D manipulation over WebSocket without X11 or desktop dependencies.
-- **RunPod Bootstrap Runner**: `setups/runpod-smoke-test/runpod_smoke_test_runner.sh`
+- **RunPod Bootstrap Runner**: `setups/runpod-smoke-tests/runpod_smoke_test_runner.sh`
   - Pod-side executable script automating single-command execution on RunPod GPU pods.
   - Supports both automated headless assertions (`./runpod_smoke_test_runner.sh --headless`) and cloud web bridge serving (`./runpod_smoke_test_runner.sh --web`).
   - Inspects GPU hardware, verifies compute capability (e.g. RTX 2000 Ada CC 8.9), activates `/opt/venv`, sets `PYOPENGL_PLATFORM=egl`, executes `interop_smoke_test_auto.py` or `interop_smoke_test_web_gui.py`, and records offscreen snapshots directly into `/workspace`.
@@ -482,11 +482,11 @@ With Phase 4 verified 100% locally in Docker, the deployment stack is completely
 3. **Execution Modes on RunPod**:
    - **Automated Verification (Unattended)**:
      ```bash
-     setups/runpod-smoke-test/runpod_smoke_runner.sh
+     setups/runpod-smoke-tests/runpod_smoke_test_runner.sh
      ```
      Executes all 5 zero-copy links and saves `rendered_frame.png` for inspection.
    - **Interactive Cloud Web GUI**:
      ```bash
-     setups/runpod-smoke-test/runpod_smoke_runner.sh --web
+     setups/runpod-smoke-tests/runpod_smoke_test_runner.sh --web
      ```
      Binds to port `6080`. Maintainer opens RunPod's public HTTP proxy endpoint (`https://<pod-id>-6080.proxy.runpod.net`) to interactively manipulate the 3D simulation in real time directly from any browser.

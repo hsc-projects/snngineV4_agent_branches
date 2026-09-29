@@ -204,7 +204,7 @@ Prior to deploying onto remote cloud infrastructure (RunPod in `EU-RO-1`) where 
 - `Dockerfile.docker-smoke` — minimal, reproducible Dockerfile for containerized interop testing (supports headless EGL, local X11 GUI, and web GUI execution).
 - `interop_smoke_test_docker_launcher.sh` — host launcher script following the repo's naming pattern; inspects if the Docker image exists, builds it automatically from `Dockerfile.docker-smoke` if missing, mounts volumes, configures `--gpus all`, and supports automated headless execution (default, includes offscreen snapshot), interactive GUI execution (`--gui`) with automatic GNOME extension safety guards, and local web bridge execution (`--web`).
 - `interop_smoke_test_web_gui.py` — native EGL-backed interactive 3D simulation and WebSocket server for browser interaction.
-- `runpod_smoke_runner.sh` — pod-side bootstrap and execution runner for RunPod cloud deployment (transferred to dedicated `setups/runpod-smoke-test/` directory).
+- `runpod_smoke_test_runner.sh` — pod-side bootstrap and execution runner for RunPod cloud deployment (transferred to dedicated `setups/runpod-smoke-tests/` directory).
 - `gpu-smoke-test-report-docker.md` — a comprehensive report following `setups/report-format.md`, documenting build steps, image sizes, test execution outputs, hiccups hit, and resolutions.
 
 ---
