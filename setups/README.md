@@ -11,7 +11,7 @@
 | `windows/notes.md` | Windows-specific setup notes: parked research on ways to test Windows-side steps, not the primary path (see below) |
 | `gpu-smoke-tests/gpu-smoke-test-task.md` | Task write-up for the local GPU/CUDA-OpenGL-interop smoke test (feeds `runpod-rationale.md`'s open item 0), delegated to `agy` |
 | `gpu-smoke-tests/gpu-smoke-test-task-docker.md` | Task write-up for running the GPU/CUDA-OpenGL interop smoke test in a Docker container (feeds `runpod-rationale.md`'s open item 0) |
-| `gpu-smoke-tests/gpu-smoke-test-task-modern-env.md` | Task write-up for modernizing the host Python/Conda environment across all 3 modes (EGL, Desktop GUI, Web Bridge) at max RTX 3090-compatible versions |
+| `gpu-smoke-tests/gpu-smoke-test-task-v2.md` | Task write-up for modernizing the GPU/CUDA-OpenGL interop stack across all 3 modes (EGL, Desktop GUI, Web Bridge) at max RTX 3090-compatible versions |
 | `runpod-smoke-tests/runpod-smoke-test-task.md` | Task write-up for the RunPod cloud GPU/CUDA-OpenGL interop smoke test (feeds `runpod-rationale.md`'s open item 0) |
 | `pi-smoke-test/task.md` | Task write-up for the Pi flash + SSH smoke test (two phases: write/flash the SD card, then SSH once the maintainer boots and connects the Pi) — not yet run |
 | `report-format.md` | Shared report structure (summary + detail subsections) for findings/status reports across this project's cloud-setup work |
