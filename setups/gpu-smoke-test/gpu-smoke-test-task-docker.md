@@ -11,7 +11,7 @@
 ### 2. Display and desktop safety (verified 2026-09-28)
 - **Host GNOME Shell crash risk**: On 2026-09-28, a Mutter assertion failure in the host's `tiling-assistant@ubuntu.com` GNOME Shell extension caused `gnome-shell` to abort (SIGABRT) when a newly mapped X11 window was created during heavy initialization.
 - **Headless first (Phase 1)**: Phase 1 runs completely headlessly via EGL. It does NOT touch X11, does NOT mount `/tmp/.X11-unix`, and does NOT set `DISPLAY`. It is completely isolated and safe to run autonomously.
-- **Visual check (Phase 2)**: Do NOT bind-mount the host X11 socket (`-v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=:1`) to launch an interactive GUI window on the host desktop without maintainer presence or without disabling `tiling-assistant@ubuntu.com`. Prefer offscreen EGL framebuffer rendering to image files (`.png`) or dedicated container streaming (e.g. VirtualGL/TurboVNC).
+- **Visual check (Phase 2 & 3 vs Phase 4)**: Do NOT bind-mount the host X11 socket (`-v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=:1`) to launch an interactive GUI window on the host desktop without maintainer presence or without disabling `tiling-assistant@ubuntu.com` (enforced via Phase 3's launcher trap). For cloud-ready and headless remote interaction, prefer the Phase 4 native EGL web bridge.
 
 ### 3. Scope: this host only
 Do not touch RunPod, cloud credentials, or any external cloud resource. The goal of this task is to verify that the GPU zero-copy interop chain runs inside a Docker container on this local machine. Once proven locally, deploying to a RunPod pod is a separate follow-up task.
@@ -91,7 +91,7 @@ The container must execute and validate the 5-link zero-copy chain (see `agents/
 
 ---
 
-## Goal — three phases, work through them autonomously
+## Goal — four phases, work through them autonomously
 
 ### Phase 1: Automated Headless EGL in Docker (Priority 1 — Top Pick)
 Build a minimal, modern container and run the automated headless test inside it.
@@ -138,21 +138,17 @@ Once headless EGL passes, verify visual rendering offscreen without requiring an
 
 ---
 
-### Phase 3: Interactive GUI from Docker (Priority 3 — Interactive User Verification)
-Run the full PyQt + VisPy interactive GUI (`interop_smoke_test_standalone_gui.py`) from inside the container, enabling live interactive manipulation (rotating camera, pausing simulation, single-stepping, toggling between self-compiled CUDA simulation code and PyTorch fallback) in real time.
+### Phase 3: Local Interactive GUI via Guarded Host X11 (Priority 3 — Host Desktop Verification)
+Run the full PyQt + VisPy interactive GUI (`interop_smoke_test_standalone_gui.py`) from inside the container mapped onto the host developer desktop, enabling live interactive manipulation (rotating camera, pausing simulation, single-stepping, toggling between self-compiled CUDA simulation code and PyTorch fallback) in real time.
 
-1. **Two Supported Interactive Paths**:
-   - **Path A: Guarded Host X11 Passthrough (Local Host Iteration)**:
-     - Direct X11 socket sharing (`-v /tmp/.X11-unix:/tmp/.X11-unix:rw -e DISPLAY=${DISPLAY:-:1}`).
-     - **Safety Guard (Mandatory)**: To prevent the Mutter assertion failure in `tiling-assistant@ubuntu.com` from crashing the host GNOME Shell session, the host launcher script must automatically disable `tiling-assistant@ubuntu.com` before container window mapping and re-enable it via shell `trap` on exit:
-       ```bash
-       gnome-extensions disable tiling-assistant@ubuntu.com
-       trap 'gnome-extensions enable tiling-assistant@ubuntu.com' EXIT INT TERM
-       xhost +local:root >/dev/null 2>&1 || true
-       ```
-   - **Path B: Cloud-Portable Web Streaming (RunPod Preparation)**:
-     - Uses VirtualGL / lightweight Xvfb with `websockify` + `noVNC` exposing an HTTP port (e.g. `6080`).
-     - Allows interactive GUI manipulation from any web browser without relying on the host's X11 server, providing the exact blueprint needed for RunPod pods.
+1. **Guarded Host X11 Passthrough**:
+   - Direct X11 socket sharing (`-v /tmp/.X11-unix:/tmp/.X11-unix:rw -e DISPLAY=${DISPLAY:-:1}`).
+   - **Safety Guard (Mandatory)**: To prevent the Mutter assertion failure in `tiling-assistant@ubuntu.com` from crashing the host GNOME Shell session, the host launcher script must automatically disable `tiling-assistant@ubuntu.com` before container window mapping and re-enable it via shell `trap` on exit:
+     ```bash
+     gnome-extensions disable tiling-assistant@ubuntu.com
+     trap 'gnome-extensions enable tiling-assistant@ubuntu.com' EXIT INT TERM
+     xhost +local:root >/dev/null 2>&1 || true
+     ```
 
 2. **Container Stack Requirements**:
    - Add GUI dependencies to the container:
@@ -161,7 +157,10 @@ Run the full PyQt + VisPy interactive GUI (`interop_smoke_test_standalone_gui.py
      - Qt platform plugin configured (`ENV QT_QPA_PLATFORM=xcb`).
 
 3. **Execution & Interaction**:
-   - Host launcher executes `interop_smoke_test_standalone_gui.py` inside the container.
+   - Host launcher executes `interop_smoke_test_standalone_gui.py` inside the container:
+     ```bash
+     setups/gpu-smoke-test/interop_smoke_test_docker_launcher.sh --gui
+     ```
    - Maintainer observes and verifies:
      1. 64 3D markers rotating in a double torus with live pulse animation driven by `update_N_state_kernel`.
      2. Interactive buttons respond cleanly ("Pause Simulation", "Step", "Switch to PyTorch Fallback").
@@ -170,11 +169,42 @@ Run the full PyQt + VisPy interactive GUI (`interop_smoke_test_standalone_gui.py
 
 ---
 
+### Phase 4: Containerized Interactive Web Bridge (Intermediate Step — Local Cloud-Ready Web Verification)
+Prior to deploying onto remote cloud infrastructure (RunPod in `EU-RO-1`) where no physical X11 display exists, implement and verify the interactive web bridge **locally inside Docker**.
+
+1. **The Cloud Headless Problem & Architectural Findings**:
+   - Cloud nodes have no local physical monitor or host `/tmp/.X11-unix` socket.
+   - Traditional virtual display approaches fail for zero-copy CUDA-OpenGL interop:
+     - Plain `Xvfb` exposes only software Mesa `llvmpipe`, which `cuGraphicsGLRegisterBuffer` strictly rejects.
+     - `VirtualGL` (`vglrun`) hooks application-level GLX calls, but NVIDIA's `libcuda.so` directly queries the X server display context, seeing the dummy Xvfb context and aborting registration with `unknown error`.
+     - Headless `Xorg` inside unprivileged containers cannot acquire DRM modesetting permissions when the host GPU is already active.
+   - **Architectural Solution**: Native VisPy EGL (`vispy.use('egl')`). VisPy initializes directly against `/usr/lib/x86_64-linux-gnu/libEGL_nvidia.so.0`, providing genuine NVIDIA hardware rendering and seamless PyCUDA zero-copy VBO registration with zero X11/Xvfb overhead.
+
+2. **Web Bridge Architecture (`interop_smoke_test_web_gui.py`)**:
+   - Server: Runs in the container with native EGL, executes the 5-link zero-copy interop chain, and serves an embedded HTTP/WebSocket service on port `6080` (pure standard library, zero extra third-party dependencies).
+   - Client: Any modern web browser connects to `http://localhost:6080` (or RunPod HTTP proxy URL).
+   - Browser Interface:
+     - HTML5 Canvas displaying the 3D rotating double torus rendered directly by NVIDIA hardware.
+     - Full interactive controls: "Pause Simulation", "Step (1 frame)", "Switch to PyTorch Fallback", and live VRAM status indicators.
+     - Interactive camera control: Mouse drag events (orbit) and scroll events (zoom) stream via WebSocket to VisPy's `TurntableCamera`.
+
+3. **Local Intermediate Execution**:
+   - Run the web bridge container locally:
+     ```bash
+     setups/gpu-smoke-test/interop_smoke_test_docker_launcher.sh --web
+     ```
+   - Maintainer opens `http://localhost:6080` in a browser, tests camera rotation, button responses, and confirms zero-copy mutation performance in container logs before cloud deployment.
+4. **Document Phase 4**: Record implementation, browser interaction responsiveness, and cloud readiness in `gpu-smoke-test-report-docker.md`.
+
+---
+
 ## Deliverables (all in this same `setups/gpu-smoke-test/` directory)
 
 - `gpu-smoke-test-task-docker.md` — this task write-up.
-- `Dockerfile.docker-smoke` — minimal, reproducible Dockerfile for containerized interop testing (supports both headless EGL and interactive GUI execution).
-- `interop_smoke_test_docker_launcher.sh` — host launcher script following the repo's naming pattern; inspects if the Docker image exists, builds it automatically from `Dockerfile.docker-smoke` if missing, mounts volumes, configures `--gpus all`, and supports both automated headless execution (default, includes offscreen snapshot) and interactive GUI execution (`--gui`) with automatic GNOME extension safety guards.
+- `Dockerfile.docker-smoke` — minimal, reproducible Dockerfile for containerized interop testing (supports headless EGL, local X11 GUI, and web GUI execution).
+- `interop_smoke_test_docker_launcher.sh` — host launcher script following the repo's naming pattern; inspects if the Docker image exists, builds it automatically from `Dockerfile.docker-smoke` if missing, mounts volumes, configures `--gpus all`, and supports automated headless execution (default, includes offscreen snapshot), interactive GUI execution (`--gui`) with automatic GNOME extension safety guards, and local web bridge execution (`--web`).
+- `interop_smoke_test_web_gui.py` — native EGL-backed interactive 3D simulation and WebSocket server for browser interaction.
+- `runpod_smoke_runner.sh` — pod-side bootstrap and execution runner for RunPod cloud deployment (transferred to dedicated `setups/runpod-smoke-test/` directory).
 - `gpu-smoke-test-report-docker.md` — a comprehensive report following `setups/report-format.md`, documenting build steps, image sizes, test execution outputs, hiccups hit, and resolutions.
 
 ---

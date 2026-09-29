@@ -185,6 +185,7 @@ class StandaloneInteropWindow(QtWidgets.QMainWindow):
         self.cu_ctx.push()
 
         # 3. PyCUDA RegisteredBuffer
+        self.canvas.set_current()
         self.reg_buffer = pycuda.gl.RegisteredBuffer(self.vbo_id)
         mapping = self.reg_buffer.map(None)
         self.raw_ptr, mapped_size = mapping.device_ptr_and_size()
