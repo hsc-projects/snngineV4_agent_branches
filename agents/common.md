@@ -91,6 +91,10 @@ idle while others keep searching for their next valid connection.
 
 Do not commit or push without explicit approval from the user.
 
+If the user asks a question, answer it. Full stop. Do not interpret a
+question as a prompt to take actions, execute commands, or modify files.
+Answer the question directly and wait.
+
 When the user dictates an explanation that needs organizing, clean it up
 into sensible prose — that's expected. Don't invent claims, comparisons,
 or framing that weren't actually said. Before turning it into prose,
