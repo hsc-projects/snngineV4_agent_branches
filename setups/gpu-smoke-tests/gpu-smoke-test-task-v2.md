@@ -6,11 +6,12 @@ Push the Python, CUDA, PyTorch, and OpenGL zero-copy interop stack to the **abso
 
 There are **NO upper limits**, no version ceilings, and no pre-emptive caps. Go as high as possible across the entire stack—including Python 3.14+, CUDA 13+, bleeding-edge PyTorch, PyCUDA, Numba, VisPy, and PyQt6.
 
-Once the maximum operational environment is provisioned in an isolated Conda environment, validate the complete 5-link zero-copy interop pipeline across **all three operational categories**:
+Once the maximum operational environment is provisioned in an isolated Conda environment, validate the complete 5-link zero-copy interop pipeline across **all operational categories** (both host and containerized):
 
 1. **Category 1: Headless (EGL)** — Unattended automated assertions and offscreen EGL snapshot readback without a display server.
 2. **Category 2: Desktop GUI** — Native desktop windowing using PyQt6 + VisPy with hardware acceleration.
 3. **Category 3: Web Bridge** — Headless EGL offscreen rendering with real-time WebSocket frame streaming and browser-based 3D interaction.
+4. **Category 4: Containerized Docker (v2)** — Full multi-mode containerized verification (`snngine-gpu-smoke:v2`) reproducing the v2 stack for cloud deployment.
 
 > [!IMPORTANT]
 > **CORE PRINCIPLE: NO UPPER LIMITS — GO MAXIMUM.**
@@ -174,33 +175,76 @@ Target the absolute bleeding edge across every package and dependency:
 3. Verify live 800×600 RGBA frame streaming at 29+ FPS.
 4. Verify interactive orbit/zoom, simulation pause/step, and live 4-way toggles over WebSocket.
 
-### Phase 5: Corresponding Containerized Docker Smoke Test (v2 Frontier)
-1. Author `Dockerfile.docker-smoke-v2` matching the discovered v2 frontier:
-   - Base image: `nvidia/cuda:12.6.2-devel-ubuntu24.04` (or latest CUDA 13.x container base) with `NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,display`.
-   - Python runtime: Python 3.14.
-   - Core libraries: PyTorch 2.15-dev (`cu132`), PyCUDA 2026.1 compiled with `--cuda-enable-gl`, Numba 0.67, VisPy 0.17, PyQt6 6.11, PyOpenGL.
-2. Build container image `snngine-gpu-smoke:v2`.
-3. Validate operational parity across all 3 modes inside the container:
-   - **Mode 1 (Headless EGL)**: Run `interop_smoke_test_auto.py` with offscreen snapshot readback.
-   - **Mode 2 (Desktop GUI)**: Run `interop_smoke_test_standalone_gui.py` via mounted `/tmp/.X11-unix` and display safety trap.
-   - **Mode 3 (Web Bridge)**: Run `interop_smoke_test_web_gui.py` via port mapping (`-p 6080:6080`).
-4. Update host launcher script `interop_smoke_test_docker_launcher.sh` or provide v2 launcher options to run `snngine-gpu-smoke:v2`.
+### Phase 5: Containerized Docker Smoke Test (v2 Frontier)
+
+Replicate the verified v2 frontier environment inside an isolated Docker container, ensuring identical 5-link zero-copy interop performance in a containerized environment (crucial for RunPod and cloud deployment).
+
+#### 1. Container Architecture & Base Image
+- **Image Name**: `snngine-gpu-smoke:v2`
+- **Dockerfile**: [`setups/gpu-smoke-tests/Dockerfile.docker-smoke-v2`](file:///home/htm/snngine/snngineV4_cloud/snngineV4_agent_branches/setups/gpu-smoke-tests/Dockerfile.docker-smoke-v2)
+- **Base Image**: `nvidia/cuda:12.6.2-devel-ubuntu24.04` (Ubuntu 24.04 LTS Noble Numbat)
+- **Driver Injection**: Configure NVIDIA container runtime capabilities:
+  ```dockerfile
+  ENV NVIDIA_VISIBLE_DEVICES=all
+  ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics,display
+  ```
+  *(Essential for injecting host NVIDIA EGL and OpenGL hardware acceleration drivers into container userspace).*
+
+#### 2. Container v2 Environment Provisioning (Exact Independent Library Build)
+Inside the container build (`Dockerfile.docker-smoke-v2`), build and install the exact verified v2 library versions independently from scratch (clean userspace build; **do not copy or bind-mount the host machine's local Conda directory**):
+- **Independent Container Runtime**: Standalone Python 3.14 environment built inside the container.
+- **Exact Pinned Library Versions**:
+  - `python`: `3.14.7`
+  - `cuda-toolkit`: `13.2.0` / `13.2.86`
+  - `torch`: `2.15.0.dev20260929+cu132` (nightly cu132 wheel)
+  - `pycuda`: `2026.1` (cloned and compiled from source inside Docker with `--cuda-enable-gl`)
+  - `numba`: `0.67.0`
+  - `vispy`: `0.17.0`
+  - `pyqt6`: `6.11.0` / `PyQt6-Qt6 6.11.2`
+  - `pyopengl`: `3.1.10`
+  - `websockets`: `17.1`
+  - `scipy`: `1.18.1`
+  - `pillow`: `12.3.0`
+  - `qtpy`: `2.4.3`
+- **Clean Image Artifact**: The Docker image must be fully self-contained, portable, and runnable on any NVIDIA GPU host or cloud instance without depending on the host workstation's local filesystem or conda environment.
+- **Permission Hygiene**: Run container processes with mapped host user UID/GID (`--user $(id -u):$(id -g)`) or fix output ownership to prevent root-owned file collisions on mounted directories.
+
+#### 3. Container Verification Across All Three Operational Modes
+1. **Mode 1: Automated Headless EGL Smoke Test (Default)**
+   - Unattended execution without display or X11 socket mounts.
+   - Run `interop_smoke_test_auto.py --snapshot /output/rendered_frame_docker_v2.png`.
+   - Assert all 5 zero-copy links pass with byte-for-byte readback fidelity and valid PNG snapshot.
+2. **Mode 2: Desktop GUI Smoke Test (`--gui`)**
+   - Bind-mount `/tmp/.X11-unix` and forward host `DISPLAY`.
+   - Execute under an automated GNOME Shell safety trap (`trap 'gnome-extensions enable tiling-assistant@ubuntu.com' ...`).
+   - Run `interop_smoke_test_standalone_gui.py` with `QT_XCB_GL_INTEGRATION=glx`.
+3. **Mode 3: Interactive Web Bridge (`--web`)**
+   - Expose container port `6080` (`-p 6080:6080`).
+   - Run `interop_smoke_test_web_gui.py --port 6080`.
+   - Validate live 800×600 RGBA WebSocket streaming at 29+ FPS from the container to a host browser.
+
+#### 4. Automated Host Launcher Script
+- **Launcher**: [`setups/gpu-smoke-tests/interop_smoke_test_docker_launcher_v2.sh`](file:///home/htm/snngine/snngineV4_cloud/snngineV4_agent_branches/setups/gpu-smoke-tests/interop_smoke_test_docker_launcher_v2.sh)
+- Checks if `snngine-gpu-smoke:v2` exists locally; automatically triggers `docker build` from `Dockerfile.docker-smoke-v2` if missing.
+- Dispatches `--headless`, `--gui`, and `--web` modes with correct volume mounts and GPU arguments.
 
 ### Phase 6: Reporting & Deliverables
-1. Compile the findings report at `setups/gpu-smoke-tests/gpu-smoke-test-report-v2.md` following `setups/report-format.md`.
+1. Update and compile the findings report at [`setups/gpu-smoke-tests/gpu-smoke-test-report-v2.md`](file:///home/htm/snngine/snngineV4_cloud/snngineV4_agent_branches/setups/gpu-smoke-tests/gpu-smoke-test-report-v2.md) following `setups/report-format.md`.
 2. Document:
    - **The Frontiers Tested**: Candidate configurations probed from the absolute bleeding edge downward.
    - **Build & Compatibility Boundaries**: The exact compile, link, or runtime failure reasons encountered when pushing packages beyond working boundaries.
-   - **Final Verified Frontier Matrix**: The maximum operational package versions established across all 3 categories.
-   - **Benchmarks**: Frame rates and render latencies across Headless, GUI, Web, and Docker modes.
+   - **Final Verified Frontier Matrix**: The maximum operational package versions established across all 3 categories (Host & Docker).
+   - **Benchmarks**: Frame rates and render latencies across Headless, GUI, Web, and Containerized Docker modes.
 
 ---
 
 ## Deliverables
 
-All deliverables live inside [`setups/gpu-smoke-tests/`](file:///home/htm/snngine/snngineV4_cloud/snngineV4_agent_branches/setups/gpu-smoke-tests/):
+All deliverables live inside [`setups/gpu-smoke-tests/`](file:///home/htm/snngine/snngineV4_cloud/snngineV4_agent_branches/setups/gpu-smoke-tests/) following the `v2` naming convention:
 
-- `gpu-smoke-test-task-v2.md` — this task specification.
+- `gpu-smoke-test-task-v2.md` — this task specification (Host & Docker).
 - `gpu-smoke-test-report-v2.md` — findings, failure boundaries, and verification report.
-- `create_v2_env.sh` — environment bootstrap helper.
+- `create_v2_env.sh` — host environment bootstrap helper.
 - `Dockerfile.docker-smoke-v2` — container specification for the v2 frontier stack.
+- `interop_smoke_test_docker_launcher_v2.sh` — container build & run automation launcher.
+- `rendered_frame_docker_v2.png` — containerized offscreen headless snapshot.
