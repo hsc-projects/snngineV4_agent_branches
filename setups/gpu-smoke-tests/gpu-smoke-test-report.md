@@ -6,7 +6,7 @@
 Built a minimal, self-contained PyQt + VisPy smoke-test script (`interop_smoke_test_standalone_gui.py`) that exercises the full 5-link CUDA-OpenGL zero-copy interop chain while completely bypassing the engine's config, network, and parameter-tree stack. The script integrates the project's real self-compiled CUDA simulation code (`update_N_state` from `SNNgine3D_agent_branches/notebooks/simulation_demo/sim_demo_utils.py`), computing Izhikevich spiking neural dynamics and mapping spike events directly to VisPy marker alpha pulsing in VRAM with zero CPU-GPU copies. An interactive UI button allows dynamic toggling to PyTorch tensor operations as fallback. The script was executed live on `DISPLAY=:1` under an extension-safety guard, running stably at ~33 FPS without crashing the desktop and exiting cleanly (code 0).
 
 ### What Was Built
-- **Script**: `setups/gpu-smoke-test/interop_smoke_test_standalone_gui.py`
+- **Script**: `setups/gpu-smoke-tests/interop_smoke_test_standalone_gui.py`
 - **Architecture & 5-Link Chain**:
   1. **Link 1 (Hand-written CUDA simulation code)**: Integrates `sim_demo_utils.update_N_state_kernel` (compiled via `pycuda.compiler.SourceModule`), stepping 64 simulated neurons with randomized thalamic inputs and updating membrane potential ($v$), recovery variable ($u$), and firing events ($fired$).
   2. **Link 2 (PyCUDA OpenGL interop)**: Retains and pushes the CUDA primary context (`dev.retain_primary_context()`) shared seamlessly with PyTorch.
@@ -18,7 +18,7 @@ Built a minimal, self-contained PyQt + VisPy smoke-test script (`interop_smoke_t
 
 ### How to Run (Maintainer visual check)
 ```bash
-DISPLAY=:1 /home/htm/anaconda3/envs/snngine/bin/python setups/gpu-smoke-test/interop_smoke_test_standalone_gui.py
+DISPLAY=:1 /home/htm/anaconda3/envs/snngine/bin/python setups/gpu-smoke-tests/interop_smoke_test_standalone_gui.py
 ```
 **What to observe:**
 1. 64 3D markers rotating in a double-ring toroidal path.
@@ -88,7 +88,7 @@ for gl_id, gl_buf in gl_buffers.items():
 Built and verified an automated, unattended smoke test (`interop_smoke_test_auto.py`) that runs completely headlessly without an X server or display. Using an EGL-backed OpenGL context and pbuffer surface, it executes rigorous automated assertions across all 5 links of the zero-copy interop chain, including executing `sim_demo_utils.update_N_state_kernel` and verifying neural voltage updates. All tests passed with 100% byte-for-byte readback fidelity and zero memory leaks.
 
 ### What Was Built
-- **Script**: `setups/gpu-smoke-test/interop_smoke_test_auto.py`
+- **Script**: `setups/gpu-smoke-tests/interop_smoke_test_auto.py`
 - **Headless Pipeline**:
   1. Initializes a headless EGL 1.5 display and pbuffer surface directly against the NVIDIA driver (no X11 / Wayland dependency).
   2. Creates an OpenGL VBO of 32 elements x 14 floats (matching VisPy `MarkersVisual` layout, 1792 bytes).
@@ -104,7 +104,7 @@ Built and verified an automated, unattended smoke test (`interop_smoke_test_auto
 
 ### How to Run
 ```bash
-/home/htm/anaconda3/envs/snngine/bin/python setups/gpu-smoke-test/interop_smoke_test_auto.py
+/home/htm/anaconda3/envs/snngine/bin/python setups/gpu-smoke-tests/interop_smoke_test_auto.py
 ```
 
 ### Execution Results

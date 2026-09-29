@@ -16,7 +16,7 @@ Features:
   - Interactive 3D scene (VisPy TurntableCamera) displaying 64 animated markers.
 
 Usage (Maintainer visual launch):
-    DISPLAY=:1 /home/htm/anaconda3/envs/snngine/bin/python setups/gpu-smoke-test/interop_smoke_test_standalone_gui.py
+    DISPLAY=:1 /home/htm/anaconda3/envs/snngine/bin/python setups/gpu-smoke-tests/interop_smoke_test_standalone_gui.py
 """
 
 import ctypes

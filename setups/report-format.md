@@ -4,7 +4,7 @@ Shared convention for any findings/status report written for this
 project's cloud-setup work — not a one-line status update.
 
 **Filename:** `<task-directory-name>-report.md`, placed inside that task's
-own directory (e.g. `gpu-smoke-test/gpu-smoke-test-report.md`) — not the
+own directory (e.g. `gpu-smoke-tests/gpu-smoke-test-report.md`) — not the
 generic `notes.md`.
 
 **Structure:**

@@ -25,11 +25,11 @@ Architectural Purpose:
 
 Usage:
   Local Container:
-    setups/gpu-smoke-test/interop_smoke_test_docker_launcher.sh --web
+    setups/gpu-smoke-tests/interop_smoke_test_docker_launcher.sh --web
     Browser: http://localhost:6080
 
   RunPod Cloud Pod:
-    ./runpod_smoke_runner.sh --web
+    ./runpod_smoke_test_runner.sh --web
     Browser: https://<pod-id>-6080.proxy.runpod.net (or pod public IP:6080)
 """
 
