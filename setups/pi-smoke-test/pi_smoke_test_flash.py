@@ -48,6 +48,7 @@ DEFAULT_IMAGE_XZ = TASK_DIR / "raspios_lite_arm64_latest.img.xz"
 # here: a missing key is an error, so the card can't silently get a key nobody
 # holds.
 KEY_PATH = TASK_DIR.parent / ".secrets" / "id_ed25519"
+WIFI_ENV_PATH = TASK_DIR.parent / ".secrets" / ".env"  # gitignored with the key
 HOSTNAME = "pi-host"
 USERNAME = "htm"
 
@@ -58,6 +59,12 @@ USERNAME = "htm"
 # Country: a generic starting default only, always confirmed/overridable
 # at runtime — not meant to imply anything about where this actually runs.
 DEFAULT_WLAN_COUNTRY = "US"
+
+# When Wi-Fi is configured, prefer it over the cable: the lowest default-route
+# metric wins, and NetworkManager's own defaults are eth0 100 and wlan0 600
+# (seen on the Pi). Set through netplan's dhcp4-overrides, documented for the
+# NetworkManager renderer: https://netplan.readthedocs.io/en/stable/netplan-yaml/
+WLAN_ROUTE_METRIC = 50
 
 SIZE_MIN_BYTES = 100 * 1024**3
 SIZE_MAX_BYTES = 140 * 1024**3
@@ -487,6 +494,23 @@ def write_boot_file(mount: Path, name: str, data: bytes) -> None:
         run(["sudo", "tee", str(target)], input=data)
 
 
+def load_env_file(path: Path) -> dict[str, str]:
+    """Minimal KEY=VALUE reader (comments, optional quotes). Values stay private."""
+    values: dict[str, str] = {}
+    if not path.is_file():
+        return values
+    for raw in path.read_text(encoding="utf-8-sig").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        val = val.strip()
+        if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+            val = val[1:-1]
+        values[key.strip()] = val
+    return values
+
+
 def delete_boot_file(mount: Path, name: str) -> None:
     target = mount / name
     if not target.exists():
@@ -501,11 +525,12 @@ def yaml_str(s: str) -> str:
     return json.dumps(s)  # a JSON string is a valid double-quoted YAML scalar
 
 
-def build_user_data(pubkey: str) -> str:
+def build_user_data(pubkey: str, enable_ssh: bool = True) -> str:
     # Raspberry Pi OS Trixie configures first boot with cloud-init, not the
     # older custom.toml/firstrun.sh. Syntax from the official example:
     # https://www.raspberrypi.com/news/cloud-init-on-raspberry-pi-os/
-    return f"""#cloud-config
+    # enable_ssh=False exists only to test whether the line is needed.
+    text = f"""#cloud-config
 
 hostname: {HOSTNAME}
 manage_etc_hosts: true
@@ -520,23 +545,24 @@ users:
     sudo: ALL=(ALL) NOPASSWD:ALL
 
 ssh_pwauth: false
-enable_ssh: true
 """
+    if enable_ssh:
+        text += "enable_ssh: true\n"
+    return text
 
 
 def build_network_config(ssid: str, country: str, password: str) -> str:
-    # link-local: netplan's default is IPv6 only, and NetworkManager does not
-    # fall back to a 169.254.x.x address by itself when DHCP fails, so a Pi
-    # cabled straight to a laptop (no DHCP server) needs IPv4 link-local
-    # asked for explicitly. Sources:
-    # https://netplan.readthedocs.io/en/stable/netplan-yaml/
-    # https://forums.raspberrypi.com/viewtopic.php?t=388100
+    # Plain DHCP on eth0. A Pi cabled straight to a laptop needs something to
+    # answer DHCP, or NetworkManager fails the activation every 45 s and
+    # eventually leaves eth0 down (measured). Windows Internet Connection
+    # Sharing on the laptop's Ethernet adapter provides that. Netplan's
+    # `link-local: [ipv4, ipv6]` was tried and does not change the generated
+    # NetworkManager profile, so it is deliberately not used.
     cfg = """network:
   version: 2
   ethernets:
     eth0:
       dhcp4: true
-      link-local: [ipv4, ipv6]
       optional: true
 """
     if ssid:
@@ -544,6 +570,8 @@ def build_network_config(ssid: str, country: str, password: str) -> str:
     renderer: NetworkManager
     wlan0:
       dhcp4: true
+      dhcp4-overrides:
+        route-metric: {WLAN_ROUTE_METRIC}
       optional: true
       regulatory-domain: {yaml_str(country)}
       access-points:
@@ -556,12 +584,17 @@ def build_network_config(ssid: str, country: str, password: str) -> str:
 def write_cloud_init(
     mount: Path, pubkey: str, ssid: str, country: str, password: str,
     new_instance_id: str | None = None,
+    ssh_file: bool = True, enable_ssh: bool = True,
 ) -> None:
     """Write the cloud-init files into a Pi OS boot partition.
 
     new_instance_id: only for a card that has already booted once. cloud-init
     skips its per-instance setup when the instance id is unchanged, so an
     already-booted card needs a new id to pick up edited files.
+    ssh_file / enable_ssh: both default on (the known-working config);
+    turning one off is for testing whether that setting is needed.
+    On an already-booted card such a test is unreliable (sshd stays enabled
+    once started), so run it on a fresh flash.
     """
     # Drop the legacy first-boot hook and its config, if present: the old
     # init= parameter and custom.toml (which may hold a Wi-Fi password).
@@ -574,8 +607,12 @@ def write_cloud_init(
     # An empty file named "ssh" is the documented headless switch: the Pi
     # enables sshd at boot and deletes it. Belt and braces next to
     # enable_ssh in user-data, which on its own did not start sshd here.
-    write_boot_file(mount, "ssh", b"")
-    write_boot_file(mount, "user-data", build_user_data(pubkey).encode())
+    if ssh_file:
+        write_boot_file(mount, "ssh", b"")
+    else:
+        delete_boot_file(mount, "ssh")
+    write_boot_file(mount, "user-data",
+                    build_user_data(pubkey, enable_ssh=enable_ssh).encode())
     write_boot_file(mount, "network-config",
                     build_network_config(ssid, country, password).encode())
     if new_instance_id:
@@ -597,6 +634,14 @@ def main() -> int:
         "--image", type=Path, default=DEFAULT_IMAGE_XZ,
         help=f"Path to the downloaded .img.xz (default: {DEFAULT_IMAGE_XZ}).",
     )
+    for flag, what in (
+        ("--no-ssh-file", "the empty `ssh` file"),
+        ("--no-enable-ssh", "`enable_ssh: true` in user-data"),
+    ):
+        parser.add_argument(
+            flag, action="store_true",
+            help=f"Experiment only: leave out {what}, to test whether it is needed.",
+        )
     parser.add_argument(
         "--confirm-device", default=None,
         help="Non-interactive confirmation: the exact device path shown in the "
@@ -608,11 +653,17 @@ def main() -> int:
         help="Answer the Wi-Fi question with 'n' (Ethernet only) without asking.",
     )
     parser.add_argument(
+        "--wifi-from-env", action="store_true",
+        help="Configure Wi-Fi from HOTSPOT_NAME and HOTSPOT_PASSWORD (optional "
+             "HOTSPOT_COUNTRY, default US) in setups/.secrets/.env, without asking. "
+             "The password still ends up in plain text in network-config on the card.",
+    )
+    parser.add_argument(
         "--boot-dir", type=Path, default=None,
         help="Don't flash: write the cloud-init files into this already-flashed "
-             "card's boot partition (e.g. F:\\) and exit. Ethernet only, no "
-             "Wi-Fi. Gives the card a new cloud-init instance id so a card that "
-             "has booted once re-applies it.",
+             "card's boot partition (e.g. F:\\) and exit. Ethernet only unless "
+             "--wifi-from-env is also given. Gives the card a new cloud-init "
+             "instance id so a card that has booted once re-applies it.",
     )
     args = parser.parse_args()
     image_xz = args.image
@@ -628,8 +679,21 @@ def main() -> int:
             print(f"{boot} doesn't look like a Pi OS boot partition "
                   "(needs cmdline.txt and meta-data).", file=sys.stderr)
             return 1
-        write_cloud_init(boot, pub_path.read_text().strip(), "", "", "",
-                         new_instance_id=f"{HOSTNAME}-{int(time.time())}")
+        b_ssid = b_country = b_password = ""
+        if args.wifi_from_env:
+            env = load_env_file(WIFI_ENV_PATH)
+            missing = [k for k in ("HOTSPOT_NAME", "HOTSPOT_PASSWORD") if not env.get(k)]
+            if missing:
+                print(f"{WIFI_ENV_PATH} lacks {', '.join(missing)}.", file=sys.stderr)
+                return 1
+            b_ssid, b_password = env["HOTSPOT_NAME"], env["HOTSPOT_PASSWORD"]
+            b_country = (env.get("HOTSPOT_COUNTRY") or DEFAULT_WLAN_COUNTRY).upper()
+            print(f"Wi-Fi settings loaded from {WIFI_ENV_PATH} (values not shown); "
+                  f"regulatory code {b_country}.")
+        write_cloud_init(boot, pub_path.read_text().strip(), b_ssid, b_country, b_password,
+                         new_instance_id=f"{HOSTNAME}-{int(time.time())}",
+                         ssh_file=not args.no_ssh_file,
+                         enable_ssh=not args.no_enable_ssh)
         print(f"cloud-init files written to {boot} (user-data, network-config, "
               "meta-data instance id), legacy custom.toml and init= removed.")
         return 0
@@ -671,10 +735,25 @@ def main() -> int:
     # front so you're not left waiting mid-flash.
     # Wi-Fi is optional, decided by an explicit y/n answer (no default, so a
     # bare Enter can't silently pick one).
-    use_wlan = "n" if args.no_wifi else ""
-    while use_wlan not in ("y", "n"):
-        use_wlan = input("Configure Wi-Fi on this card? Type y or n: ").strip().lower()
     wlan_ssid = wlan_country = wlan_password = ""
+    if args.wifi_from_env:
+        # Non-interactive: the values come from the gitignored env file and are
+        # never printed.
+        env = load_env_file(WIFI_ENV_PATH)
+        missing = [k for k in ("HOTSPOT_NAME", "HOTSPOT_PASSWORD") if not env.get(k)]
+        if missing:
+            print(f"{WIFI_ENV_PATH} lacks {', '.join(missing)}.", file=sys.stderr)
+            return 1
+        wlan_ssid = env["HOTSPOT_NAME"]
+        wlan_password = env["HOTSPOT_PASSWORD"]
+        wlan_country = (env.get("HOTSPOT_COUNTRY") or DEFAULT_WLAN_COUNTRY).upper()
+        use_wlan = "env"
+        print(f"Wi-Fi settings loaded from {WIFI_ENV_PATH} (values not shown); "
+              f"regulatory code {wlan_country}.")
+    else:
+        use_wlan = "n" if args.no_wifi else ""
+    while use_wlan not in ("y", "n", "env"):
+        use_wlan = input("Configure Wi-Fi on this card? Type y or n: ").strip().lower()
     if use_wlan == "y":
         wlan_ssid = input("Wi-Fi SSID: ").strip()
         while not wlan_ssid:
@@ -699,7 +778,9 @@ def main() -> int:
             boot_partition = linux_boot_partition
 
         with boot_partition(device) as mount_point:
-            write_cloud_init(mount_point, pubkey, wlan_ssid, wlan_country, wlan_password)
+            write_cloud_init(mount_point, pubkey, wlan_ssid, wlan_country, wlan_password,
+                             ssh_file=not args.no_ssh_file,
+                             enable_ssh=not args.no_enable_ssh)
     except (RuntimeError, subprocess.SubprocessError, OSError) as e:
         print(f"\nFailed: {e}", file=sys.stderr)
         return 1

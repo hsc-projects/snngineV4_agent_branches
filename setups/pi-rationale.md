@@ -71,6 +71,114 @@ Tailscale SSH Console (see `runpod-rationale.md`'s resolved admin/jump-pod
 item), which needs no separate service at all, but still worth knowing
 about as fallbacks.
 
+**2026-10-04 — Smoke test result (corrected the same day): a Pi can be
+flashed and reached over SSH headlessly from a Windows laptop, but a plain
+cable to the laptop does not stay up; the cable needs the laptop to share
+its connection, or the Pi needs Wi-Fi.** Details, evidence and tooling:
+`pi-smoke-test/pi-smoke-test-report.md`. What it settled for this host's
+design, and what it did not:
+
+- *No router is planned for this host/Pi combination (maintainer,
+  2026-10-04).* So the Pi's links are: the cable to the laptop, and/or
+  Wi-Fi to a phone hotspot. A router/DHCP network is not a case to test.
+- **Decision (maintainer, 2026-10-04): use Windows Internet Connection
+  Sharing on the laptop's Ethernet adapter for the cable.** Measured:
+  without a DHCP source, NetworkManager's DHCP on `eth0` fails every 45 s
+  and the Pi goes silent about 3 minutes after every boot (two cards, with
+  the link up the whole time); a runtime `ipv6.method link-local`
+  change kept it up, and with sharing it stayed `connected` for 8 minutes
+  on the default `dhcp4: true` config. The Pi then also has internet through
+  the laptop's connection. An earlier version of this entry blamed the
+  silence on "first boot still running"; that was wrong.
+- *Netplan's `link-local: [ipv4, ipv6]` did not help:* it does not change
+  the generated NetworkManager profile (`ipv6.method ignore`), and a card
+  with it dropped the same way. It is not used.
+- *IPv6 is not the requirement it looked like.* On a plain cable IPv6
+  link-local was the only reachable address (so IPv6 had to be on at the
+  laptop), but that case is not usable anyway; with sharing the Pi is
+  reached over IPv4. IPv6 was observed off on the laptop's physical
+  adapters, including while ProtonVPN was connected; whether the VPN client
+  causes it is not established (the first occurrence was reported with the
+  VPN not connected).
+- *VPN:* with ProtonVPN connected on the laptop, the Pi's traffic does not
+  go through it (sharing is on the Wi-Fi adapter); the Pi's public IP stayed
+  the laptop's underlying one. Whether a VPN on the Pi itself, or sharing the
+  tunnel adapter, would be wanted is open. Windows sharing makes the Pi's
+  traffic appear to come from the laptop; any network's rules about sharing
+  or extra devices are the maintainer's to check.
+- *Wi-Fi to a phone hotspot works:* joined, internet through `wlan0` alone,
+  stable with `eth0` also up; credentials come from the gitignored
+  `setups/.secrets/.env`. The regulatory code is set in `network-config`
+  (`JP`); it should be the country the Pi is used in. Whether it took
+  effect on the Pi was not read back.
+- *First-boot configuration is cloud-init on this OS release*
+  (`user-data`, `network-config`, `meta-data` on the boot partition), not
+  `custom.toml`/`firstrun.sh`. Any later re-provisioning of the Pi (or a
+  second one) should be written against cloud-init. A card that has
+  already booted needs a new `instance_id` in `meta-data` for edited files
+  to apply. First-boot installs can ride along in `user-data`
+  (`packages:`, `write_files:`, `runcmd:`); they need internet at that moment.
+- *`enable_ssh` in `user-data` did not start sshd by itself on an early
+  card*; an empty `ssh` file on the boot partition is the documented
+  workaround (raspberrypi/rpi-imager issue 1612), and the Pi deleted it
+  after use. Whether either alone suffices on a fresh flash is not
+  established (every working card had both).
+- *Flashing from Windows:* writes into a mounted volume's sectors are
+  blocked, so the partition table (first 1 MiB) must be written last.
+- *The earlier "faulty card" reading looks like the first card reader,*
+  not the card (inferred; the same card took a full write and booted the
+  Pi on a second reader).
+- *A VPN on the Pi itself is possible, through WireGuard (2026-10-04).*
+  Proton's official Linux CLI does not support headless setups and does not
+  document ARM, so the route is a WireGuard config from the Proton account
+  (one server per file). Tested on the Pi: install with
+  `--no-install-recommends` (no `resolvconf`), `wg-quick up` behind a
+  150 s safety timer, a Japanese public IP, IPv4 and IPv6 through the
+  tunnel, SSH unaffected. This is independent of the laptop's VPN, which does
+  not cover the Pi's traffic. Open: DNS through the tunnel (currently leaks to
+  the laptop's resolver), start at boot, behavior if the tunnel drops (no kill
+  switch), and how it combines with Tailscale and the egress-proxy role.
+- **Decision (maintainer, 2026-10-04): prefer the hotspot over the cable,
+  with the cable as the fallback, and keep the Wi-Fi settings.** The Pi's
+  default route went to `eth0` (NetworkManager metric 100) over `wlan0`
+  (600) on the card tested. The flash script now sets `wlan0`'s route metric
+  to 50 through netplan `dhcp4-overrides: route-metric` (documented for the
+  NetworkManager renderer), so the preference is in the first-boot config.
+  Not yet tested on the Pi. A cable that is up but has no internet (laptop
+  offline, sharing off) would still hold the default route only if it were
+  preferred; with Wi-Fi preferred that case matters less, but a connectivity
+  check was not built. Using the phone hotspot as the main path costs phone
+  data.
+- **Requirement (maintainer, 2026-10-04): the Pi must work without the
+  hotspot, with only the LAN.** Tested for the case the cable plus Windows
+  sharing: a cold boot with the hotspot off came up and was reachable in
+  about 40 s, had internet over `eth0` alone, and stayed connected for about
+  6 minutes with `wlan0` idle. The case of a cable with no sharing or DHCP at
+  all still fails (about 3 minutes); candidate fixes not yet tried: infinite
+  NetworkManager retries on `eth0` so it recovers when sharing returns, and a
+  link-local fallback for `eth0`.
+- *The Pi and the laptop can exit through the same Proton server.* With the
+  laptop's Proton app and the Pi's WireGuard tunnel both on the Japan
+  server, both showed the same public IP and country (measured). They are
+  two separate tunnels to one server; the Pi's traffic is not routed through
+  the laptop's.
+- *Wi-Fi reconnect when the hotspot is off or absent:* with the hotspot off,
+  `wlan0` failed activation (`ssid-not-found`) and sat `disconnected`.
+  When the hotspot was turned back on, `wlan0` reconnected by itself within
+  about 90 s of the watch starting, with no action on the Pi (it got an
+  address and reached the internet through the phone). Tested only after a
+  short absence (one failed attempt in the log); a long absence with many
+  failed attempts, or a cold boot with the hotspot off, was not tested, and
+  NetworkManager can stop retrying a profile after repeated failures
+  (`connection.autoconnect-retries`; how it resets was not checked). On that
+  card the routes still showed `eth0` at metric 100 and `wlan0` at 600, i.e.
+  the new metric of 50 is not on the Pi yet.
+- *Diagnosing a Pi that goes quiet:* the journal is volatile, so watch
+  live over SSH; Windows cannot read the root partition, and `wsl --mount`
+  does not support SD card readers (Microsoft documentation).
+- Not tested: a router/DHCP network (not planned), Docker, Tailscale,
+  sharing after a laptop reboot or sleep, a VPN on the Pi.
+
 ## Open items
 
 Ordered by dependency. This list is a starting point — confirm or add to
@@ -85,9 +193,11 @@ it, it isn't guaranteed complete.
    of this step is to avoid designing items 1+ from scratch when a
    known-good pattern already covers some or all of it.
 1. **Record the existing Pi's specs.** Not a purchase decision — already
-   owned, not expected to be a limiting factor. Model/RAM/storage/PoE
-   hat not yet recorded here.
-2. Choose OS for the Pi.
+   owned, not expected to be a limiting factor. Partly recorded now (see
+   `pi-technical.md`: card size, kernel, architecture). Still open: the
+   PoE hat/injector and how the Pi is powered.
+2. Choose OS for the Pi. (Still open: the smoke test used Raspberry Pi OS
+   Lite 64-bit only as a scoped test OS, not as the answer to this item.)
 3. Enumerate the Pi's full job list — egress-proxy and the bridge
    expansion are named; "other small services like MCP servers" isn't
    further specified. Related: whether the Pi ends up running a second
@@ -115,7 +225,10 @@ it, it isn't guaranteed complete.
    own explicit proposal before any code is written, per this repo's
    rule against unprompted custom scripts.
 7. Physical network/location details (which LAN, PoE switch/injector
-   availability) — not yet known.
+   availability) — largely answered for this combination (maintainer,
+   2026-10-04): no router; the cable to the laptop with Windows connection
+   sharing, and/or Wi-Fi to a phone hotspot. Still open: PoE switch/injector
+   availability and how the Pi is powered.
 
 Not a to-do, just a standing fact: keeping the Pi available/online when
 needed is the maintainer's own responsibility, not something planned
