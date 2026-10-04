@@ -394,8 +394,11 @@ setups/windows/*
 # but must never be committed anyway.
 setups/pi-smoke-test/pi_smoke_test_key
 setups/pi-smoke-test/pi_smoke_test_key.pub
+setups/pi-smoke-test/pi_smoke_test_known_hosts*
 
 # Pi smoke test: the downloaded OS image (~540MB) must never be
 # committed; kept locally so the flash script doesn't depend on a
 # session-specific temp path or a re-download.
 setups/pi-smoke-test/*.img.xz
+
+setups/.secrets/

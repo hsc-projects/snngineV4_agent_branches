@@ -14,20 +14,23 @@ item 2.
 
 ## Scope and file/command boundary
 
-**Only two locations are in scope for this task:**
-1. This directory, `setups/pi-smoke-test/` (scripts, report, a
-   task-local SSH keypair).
-2. The SD card mount, `/media/htm/9C33-6BBD` — currently empty, already
-   one of the few places this host session may touch without asking.
+**Only these locations are in scope for this task:**
+1. This directory, `setups/pi-smoke-test/` (scripts, report).
+2. The SD card: on Linux the mount `/media/htm/9C33-6BBD`, on Windows the
+   physical disk the flash script detects and the maintainer confirms.
+3. `setups/.secrets/`, read-only: the SSH key pair (`id_ed25519`,
+   `id_ed25519.pub`) the Pi is configured to trust. Gitignored; never
+   committed, never printed.
 
 **Everything else needs explicit approval before being touched**, per
 this host session's own boundary rule (`claude-code-and-local-agent-sandbox/AGENTS.md`,
 "Where this session may touch") — this task doc calls out the specific
 cases expected to come up, so they're recognized rather than worked
 around:
-- **`~/.ssh`** — do not read, write, or generate anything there. Generate
-  a dedicated keypair *inside this task's own directory* instead (see
-  "SSH key" below) and reference it with `ssh -i`.
+- **`~/.ssh`** — do not read, write, or generate anything there. Use the
+  key pair in `setups/.secrets/` instead (see "SSH key" below) and
+  reference it with `ssh -i`; phase 2 also keeps its own known-hosts file
+  in this directory.
 - **Installing host packages** (`rpi-imager` via apt, `arp-scan`,
   anything else not already on this machine) is a system-wide change —
   propose the exact package/command in the report and wait for the
@@ -71,7 +74,7 @@ as the GPU smoke test.
 
 Write helper scripts freely in this directory to reduce manual/repeated
 steps (image download+customize+flash, SSH discovery+check) — explicitly
-allowed for this task. Naming pattern: `pi_smoke_test_<descriptor>.sh`.
+allowed for this task. Naming pattern: `pi_smoke_test_<descriptor>.py` (or `.sh`).
 
 ## Goal — two phases
 
@@ -86,43 +89,56 @@ so, the same way any other turn-taking works.
 ### Phase 1 — write, configure, and flash the image
 
 1. **OS pick (scoped to this task, see "Order note" above):** Raspberry
-   Pi OS Lite, 64-bit — smallest headless image, matches the
-   general-purpose Docker-capable host `pi-rationale.md` describes, and
-   is the default `rpi-imager` targets. If `rpi-imager` (CLI mode) is
-   available or its install is approved, prefer it — it can do
-   download + OS customization (hostname, SSH, keys) + flash in one
-   tool, rather than hand-editing the boot partition. If it isn't
-   available and installing it isn't approved in time, fall back to the
-   manual path: download the image, `xz`-decompress, write with `dd`,
-   then mount the flashed boot partition and drop in `ssh` (empty file,
-   enables sshd) and `userconf.txt` (or `firstrun.sh`) for the account
-   and key. Document whichever path was actually used in the report.
+   Pi OS Lite, 64-bit (Debian trixie, release of 2026-09-15) — smallest
+   headless image, matches the general-purpose Docker-capable host
+   `pi-rationale.md` describes. **First-boot configuration uses
+   cloud-init**: this release ships `user-data`, `network-config` and
+   `meta-data` on the boot partition and no longer reads `custom.toml`
+   (found the hard way: a card configured that way booted as an
+   unconfigured `raspberrypi` with SSH off). Source:
+   https://www.raspberrypi.com/news/cloud-init-on-raspberry-pi-os/.
+   `rpi-imager --cli` only does a raw write plus checksum, with no
+   customization flags, so the flash script writes the image itself
+   (Python `lzma` on Windows, `xzcat | dd` on Linux) and then edits the
+   boot partition. The image is verified against the SHA-256 published
+   beside it. Document whichever path was actually used in the report.
 2. **Hostname:** `pi-host` (maintainer confirmed 2026-09-28 default; not a
    project-specific name — this repo's own convention against
    deployment-specific naming in committed material applies here too).
 3. **Account:** username `htm` (maintainer, 2026-09-28). Key-only auth,
    no password set (maintainer confirmed the key-only default).
-4. **SSH key:** generate a dedicated ed25519 keypair inside this
-   directory (e.g. `pi_smoke_test_key` / `pi_smoke_test_key.pub` — not
-   `~/.ssh`, see "Scope" above), bake the public key into the `htm`
-   account's SSH config, and add the private key to `.gitignore` before
-   anything is committed. Note in the report that it's a throwaway
-   smoke-test key, not the eventual Pi host's real credential.
-5. **Networking: Wi-Fi (changed 2026-09-28, was Ethernet/DHCP-only).**
-   The maintainer wants to share a mobile hotspot rather than run a LAN
-   cable, and may need this for more than one network/region over time.
-   Nothing about the network (SSID, region/country code) or the
-   maintainer's own location/device is hardcoded anywhere, including in
-   this doc — `pi_smoke_test_flash.py` prompts for the SSID and the
-   regulatory country code at runtime each run (country defaults to a
-   generic `US` if left blank, never assumed from context), and the
-   password is prompted via `getpass` and never written to any file. See
-   `pi_smoke_test_flash.py`'s own comments for why (this repo's rule
-   against committing secrets *or* personal/location-identifying details
-   — corrected 2026-09-28 after an earlier version of this section named
-   the maintainer's specific device and travel plan).
-6. **Flash**, per the "Safety" section above, then safely unmount/eject
-   the card so it's ready to be physically moved.
+4. **SSH key:** the maintainer's key pair in `setups/.secrets/`
+   (`id_ed25519` / `id_ed25519.pub`, gitignored, not `~/.ssh`). The flash
+   script bakes the public key into the `htm` account via `user-data` and
+   refuses to run if the `.pub` is missing — it never generates a key.
+   (An earlier version of this task generated a throwaway key in this
+   directory; that is no longer done.)
+5. **Networking.** `network-config` always enables Ethernet (`eth0`, DHCP,
+   `link-local: [ipv4, ipv6]`, optional). **Wi-Fi is optional**, decided by an explicit `y`/`n`
+   question in the flash script (no default). If `y`, the SSID,
+   regulatory country code (defaults to a generic `US`, never assumed
+   from context) and password are prompted at runtime; nothing about the
+   network or the maintainer's location/device is hardcoded in any
+   committed file, including this doc. The password is not saved by the
+   script but **is written in plain text to `network-config` on the
+   card**. When the Pi is cabled straight to the laptop there is no DHCP
+   server, so it only gets an IPv6 link-local address: IPv6 must be
+   enabled on the laptop's Ethernet adapter for phase 2 to reach it.
+6. **Flash**, per the "Safety" section above, then safely eject the card
+   so it's ready to be physically moved. On Windows this needs an
+   Administrator terminal: the script clears the card's partition table,
+   writes `\\.\PhysicalDriveN` directly, and re-checks that the disk is
+   not a system/boot disk and is within the SD-card size window right
+   before every destructive step. Windows blocks writes into the sectors
+   of a mounted volume, so the script writes the first 1 MiB (partition
+   table) **last**; writing it first makes Windows mount the new partition
+   mid-write and the next write fails with `Bad file descriptor`. The
+   "format this disk" dialogs Windows shows are to be cancelled.
+   `--confirm-device <path>` and `--no-wifi` make the run non-interactive;
+   `--boot-dir <drive>` skips the flash and writes only the cloud-init
+   files (with a new `instance_id`) onto an already-flashed card. The boot
+   partition also gets an empty `ssh` file: `enable_ssh` in `user-data`
+   alone did not start sshd on this image (known issue, rpi-imager #1612).
 7. **Stop and report** (see "Reporting format" below), then wait — don't
    start phase 2 until the maintainer confirms the Pi is powered on and
    connected.
@@ -130,15 +146,24 @@ so, the same way any other turn-taking works.
 ### Phase 2 — SSH check (after the maintainer confirms the Pi is up)
 
 1. **Find the Pi on the local network.** Try, in order, whatever's
-   already available without a new install: `ping pi-host.local` /
-   `raspberrypi.local` (mDNS, if avahi tooling is present), then an ARP
-   table read for a Raspberry Pi Foundation MAC prefix. Anything needing
-   a new package (e.g. `nmap`, `arp-scan`) goes through the "Working
+   already available without a new install: the mDNS names `pi-host.local`
+   and `raspberrypi.local` (IPv4 or IPv6, including a link-local address
+   with its interface scope), then the ARP table filtered to Raspberry Pi
+   Foundation MAC prefixes, then optionally (`--sweep`) a port-22 probe of
+   the local /24. `--host` skips discovery. Anything needing a new
+   package (e.g. `nmap`, `arp-scan`) goes through the "Working
    autonomously" / host-package-install approval path first.
-2. **SSH in** using the task-local key from phase 1
-   (`ssh -i pi_smoke_test_key ...`), confirm it lands on the actual Pi
-   (hostname/`uname -a`), and run a couple of harmless read-only checks
-   (disk space, OS version) as evidence, not as new scope.
+2. **SSH in** using the `setups/.secrets` key
+   (`ssh -i setups/.secrets/id_ed25519 ...`, with a task-local
+   known-hosts file and no user ssh config), confirm it lands on the
+   actual Pi (hostname must be `pi-host`), and run a couple of harmless
+   read-only checks (hostname, kernel, OS version, disk space) as
+   evidence, not as new scope. On Windows the script first restricts the
+   key file's ACL with `icacls`, which `ssh` requires. First boot takes
+   several minutes (green LED blinking); don't judge the Pi until the LED
+   is dark. A "connection
+   refused" during the first minutes of boot is normal: cloud-init enables
+   SSH late, and the script retries within its time limit.
 3. **Bounded runtime, no indefinite hangs:** any discovery or connection
    script needs an iteration cap / timeout with a clear failure message
    (this repo's — and the sandbox repo's — standing rule on scripts that
@@ -151,11 +176,11 @@ so, the same way any other turn-taking works.
 ## Deliverables (all in this same `pi-smoke-test/` directory)
 
 - `task.md` — this file.
-- `pi_smoke_test_flash.sh` — phase 1: download/customize/flash helper.
-- `pi_smoke_test_ssh_check.sh` — phase 2: discovery + SSH check helper,
-  bounded runtime.
-- `pi_smoke_test_key` / `pi_smoke_test_key.pub` — task-local throwaway
-  keypair; the private half must be gitignored before any commit.
+- `pi_smoke_test_flash.py` — phase 1: flash + cloud-init customization
+  helper (Linux and Windows).
+- `pi_smoke_test_ssh_check.py` — phase 2: discovery + SSH check helper,
+  bounded runtime (Linux and Windows).
+- The SSH key pair lives in `setups/.secrets/`, not in this directory.
 - `pi-smoke-test-report.md` — one section per phase, each following
   `setups/report-format.md`'s summary-then-subsections structure.
 
