@@ -18,8 +18,14 @@ first-boot provisioning script exists and has run once on card 1 (2026-10-07): p
 ## Next steps, in order
 
 1. **Provisioning retry (done 2026-10-07).** Both gaps are fixed: the flash script now installs `pi-provision.service` (Type=simple, `Restart=on-failure`, 5 minutes apart, at most 6 starts per hour, enabled so every boot retries until the marker exists), and a skipped scrub now fails the run instead of writing the marker. Tested: cloud-init's schema check accepts the new user-data; a fresh flash of card 2 booted with no network at all (hotspot off, cable out), the script kept retrying `apt` internally, finished after the cable went in about 6 minutes later, scrubbed, and wrote the marker; a transient unit with the same restart settings ran a failing script 3 times and ended in success. Not exercised on the real script: the unit-level restart (the run never exited non-zero, `NRestarts=0`). If the Pi is not found on `192.168.137.x`, check `Get-Service SharedAccess` and `Get-NetUDPEndpoint -LocalPort 67` first (sharing had to be switched off and on once). The search script can latch onto a stale neighbour entry: check port 22 on each `192.168.137.x` the Pi's MAC (`D8-3A-DD`) maps to.
-2. **Commit** (see "Uncommitted work"): propose first, never commit unasked.
-3. Items 8 to 20 in `pi-rationale.md` (all low priority unless the maintainer
+2. **Credential stick** (done 2026-10-07): the WireGuard config now lives on a
+   `PIKEYS` USB stick plugged into the Pi and survives a re-flash; see `pi-technical.md`.
+   A re-flash wipes the SD card only. **Never wipe a card or stick without asking what is on
+   its Linux partition first** (a wipe on 2026-10-07 lost the hand-installed tunnel setup).
+   Next: bring the tunnel up by hand and check SSH survives; then test with the laptop's
+   ProtonVPN on (and both at once).
+3. **Commit** (see "Uncommitted work"): propose first, never commit unasked.
+4. Items 8 to 20 in `pi-rationale.md` (all low priority unless the maintainer
    says otherwise). The next larger piece, **later** per the maintainer: the Pi
    as the sandbox's egress proxy, reusing the sandbox repo's `egress-proxy`
    container (needs Docker on the Pi); and the **keyholder** role (item 20).

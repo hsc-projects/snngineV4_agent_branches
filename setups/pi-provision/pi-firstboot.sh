@@ -29,6 +29,9 @@ NETPLAN_DIR=/etc/netplan
 EXPECT_ARCH=aarch64
 EXPECT_DEBIAN=13
 SCRUB_PLACEHOLDER="scrubbed-after-first-boot"
+KEYSTORE_LABEL=PIKEYS
+KEYSTORE_MOUNT=/mnt/pi-keys
+KEYSTORE_MANIFEST=$KEYSTORE_MOUNT/links.conf
 
 log() { echo "$(date -Is) $*"; }
 
@@ -127,9 +130,112 @@ scrub_wifi_password() {
     log "scrub: Wi-Fi password replaced in $BOOT_NET (root-only copy kept in $NETPLAN_DIR)"
 }
 
+# A general credential store on a USB stick labelled KEYSTORE_LABEL, so a
+# re-flash of the SD card never loses what is on it. The stick is mounted by
+# label (nofail: a Pi booted without it still starts). Its top-level file
+# links.conf says what to link where, one entry per line:
+#     <folder on the stick>  <absolute target path on the Pi>
+# e.g. "wireguard /etc/wireguard". Nothing in this script knows what the
+# folders hold, so new credentials need only a new line (and folder) on the
+# stick. A missing stick or manifest is not an error: it is logged and skipped,
+# and `pi-firstboot.sh keystore` can be run later.
+
+# One manifest entry. Never overwrites anything on the Pi that has content: an
+# existing real directory moves onto the stick only if the stick's folder is
+# empty, and a populated one on both sides is left for a human to decide.
+keystore_link() {
+    local sub=$1 target=$2 dir="$KEYSTORE_MOUNT/$1"
+    if ! [[ "$sub" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ ]] || [[ "$sub/" == *"../"* ]]; then
+        log "FAILED keystore: bad folder name '$sub' in $KEYSTORE_MANIFEST"; return 1
+    fi
+    if ! [[ "$target" =~ ^(/[A-Za-z0-9._-]+){2,}$ ]] || [[ "$target/" == *"/../"* ]] \
+        || [[ "$target" =~ ^/(boot|proc|sys|dev|run|usr|bin|sbin|lib|lib64|var/lib/dpkg)(/|$) ]]; then
+        log "FAILED keystore: target '$target' is not a safe absolute path (at least two levels, not a system directory)"; return 1
+    fi
+    install -d -m 700 -o root -g root "$dir"
+    if [ -L "$target" ]; then
+        if [ "$(readlink "$target")" != "$dir" ]; then
+            log "FAILED keystore: $target is a link to $(readlink "$target"), expected $dir"; return 1
+        fi
+    elif [ -d "$target" ]; then
+        if [ -n "$(ls -A "$target")" ]; then
+            if [ -n "$(ls -A "$dir")" ]; then
+                log "FAILED keystore: $target and the stick folder '$sub' both hold files; not touching either"; return 1
+            fi
+            cp -a "$target"/. "$dir"/ || { log "FAILED keystore: could not copy $target onto the stick"; return 1; }
+            log "keystore: moved the existing files of $target onto the stick"
+        fi
+        rm -rf "$target"
+        ln -s "$dir" "$target"
+    elif [ -e "$target" ]; then
+        log "FAILED keystore: $target exists and is not a directory or the expected link"; return 1
+    else
+        mkdir -p "$(dirname "$target")"
+        ln -s "$dir" "$target"
+    fi
+    if [ ! -d "$target" ]; then
+        log "FAILED keystore: $target does not resolve to a directory after linking"; return 1
+    fi
+    log "keystore: $target -> $dir ($(find "$dir" -maxdepth 1 -type f | wc -l) file(s))"
+}
+
+module_keystore() {
+    local dev sub target _rest rc=0
+    dev=$(blkid -L "$KEYSTORE_LABEL" 2> /dev/null || true)
+    if [ -z "$dev" ]; then
+        log "keystore: no stick labelled $KEYSTORE_LABEL, skipping"; return 0
+    fi
+    mkdir -p "$KEYSTORE_MOUNT"
+    if ! grep -qE "^LABEL=$KEYSTORE_LABEL[[:space:]]" /etc/fstab; then
+        echo "LABEL=$KEYSTORE_LABEL $KEYSTORE_MOUNT ext4 defaults,nofail,x-systemd.device-timeout=10 0 2" >> /etc/fstab
+        systemctl daemon-reload
+    fi
+    if ! mountpoint -q "$KEYSTORE_MOUNT"; then
+        mount "$KEYSTORE_MOUNT" || { log "FAILED keystore: could not mount $dev on $KEYSTORE_MOUNT"; return 1; }
+    fi
+    if [ ! -f "$KEYSTORE_MANIFEST" ]; then
+        log "keystore: $dev mounted, but no $KEYSTORE_MANIFEST, nothing to link"; return 0
+    fi
+    while read -r sub target _rest; do
+        case "$sub" in ''|'#'*) continue ;; esac
+        keystore_link "$sub" "$target" || rc=1
+    done < "$KEYSTORE_MANIFEST"
+    return "$rc"
+}
+
+# Explicit, never automatic: put an ext4 filesystem labelled KEYSTORE_LABEL on
+# a whole device (old signatures wiped first) and seed links.conf with the
+# WireGuard entry. Refuses a mounted device and (unless FORCE=1) one that
+# already carries a filesystem.
+format_keystore() {
+    local dev=${1:-} tmp
+    if [ -z "$dev" ] || [ ! -b "$dev" ]; then
+        log "FAILED format: give a block device, e.g. /dev/sda"; return 1
+    fi
+    if lsblk -nro MOUNTPOINTS "$dev" | grep -q .; then
+        log "FAILED format: $dev (or a partition of it) is mounted"; return 1
+    fi
+    if [ "${FORCE:-0}" != "1" ] && [ -n "$(lsblk -nro FSTYPE "$dev" | tr -d '[:space:]')" ]; then
+        log "FAILED format: $dev already carries a filesystem; set FORCE=1 to overwrite it"; return 1
+    fi
+    wipefs -a "$dev"
+    mkfs.ext4 -F -L "$KEYSTORE_LABEL" "$dev"
+    tmp=$(mktemp -d)
+    mount "$dev" "$tmp"
+    printf '%s\n' '# <folder on this stick>  <absolute target path on the Pi>' 'wireguard /etc/wireguard' > "$tmp/links.conf"
+    chmod 600 "$tmp/links.conf"
+    umount "$tmp"
+    rmdir "$tmp"
+    log "format: $dev is now ext4, label $KEYSTORE_LABEL, links.conf seeded"
+}
+
 main() {
     umask 027
     exec >>"$LOG" 2>&1
+    case "${1:-}" in
+        keystore) log "=== keystore only ==="; preflight; module_keystore; return ;;
+        format-keystore) log "=== format keystore ==="; preflight; format_keystore "${2:-}"; return ;;
+    esac
     log "=== pi-provision start ==="
     if [ -e "$MARK" ]; then
         log "marker $MARK present, nothing to do"
@@ -138,6 +244,7 @@ main() {
     preflight
     wait_for_clock
     module_wireguard
+    module_keystore
     scrub_wifi_password
     touch "$MARK"
     log "=== pi-provision done ==="

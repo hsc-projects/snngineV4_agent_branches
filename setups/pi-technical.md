@@ -106,15 +106,33 @@ limiting factor — not a purchase decision.
   Logic tested offline on fake files (14 checks); **its first real boot is not
   yet done** (card 1 is configured with it, unbooted). It carries no secret and
   no VPN config.
-- WireGuard / Proton VPN: `wireguard-tools` 1.0.20210914-3 is installed
-  (kernel module `wireguard` is available as `CONFIG_WIREGUARD=m`).
-  `/etc/wireguard/wg-JP-154.conf` (root-only, mode 600) holds a Proton
-  config for a Japan server with the `DNS` line removed. Tested by hand
-  2026-10-04: handshake, a Japanese public IP, IPv4 and IPv6 through the
-  tunnel. It is **not enabled at boot** and is currently down; DNS through
-  the tunnel is untested. Proton's own Linux app/CLI does not support headless
-  setups. `iptables` and `resolvconf` are not installed; `nft` is. Note:
-  `htm`'s PATH lacks `/usr/sbin`, so admin tools only show up with `sudo`.
+- WireGuard / Proton VPN: `wireguard-tools` 1.0.20210914-3 is installed by the
+  first-boot script (kernel module `wireguard` is available as
+  `CONFIG_WIREGUARD=m`). The Proton config (`wg-JP-154.conf`, Japan server, `DNS`
+  line removed because the Pi has no `resolvconf`) lives on the credential stick
+  (next item), reachable as `/etc/wireguard/` (mode 600, root). Tested by hand
+  2026-10-04 on an earlier card: handshake, a Japanese public IP, IPv4 and IPv6
+  through the tunnel. Since the re-flash the config was only checked for syntax
+  (`wg-quick strip` exits 0); the tunnel has **not** been brought up again, is not
+  enabled at boot, and DNS through it is untested. The laptop-side ProtonVPN and
+  the Pi tunnel at the same time are untested too. Proton's own Linux app/CLI does
+  not support headless setups. `iptables` and `resolvconf` are not installed;
+  `nft` is. Note: `htm`'s PATH lacks `/usr/sbin`, so admin tools only show up
+  with `sudo`.
+- Credential stick (`PIKEYS`): a 4 GB USB stick, ext4 (not encrypted: an
+  unattended boot cannot supply a passphrase), plugged into a blue USB 3 port of
+  the Pi. Mounted at `/mnt/pi-keys` by label with `nofail` (a Pi without the
+  stick still boots). Its top-level `links.conf` lists `<folder on the stick>
+  <absolute target path>` per line; `pi-firstboot.sh` links each one (today only
+  `wireguard /etc/wireguard`), never overwriting a populated directory on either
+  side. Nothing in the script knows what the folders hold, so other credentials
+  are a new line and folder on the stick. Tested 2026-10-07: live module run
+  (moves existing files, idempotent on a second run), reboot (still mounted and
+  linked), and a fresh flash of a second card with the stick left in (first-boot
+  script linked it unaided). `pi-firstboot.sh keystore` re-runs the linking later;
+  `pi-firstboot.sh format-keystore /dev/sdX` (explicit, never automatic) makes a
+  new stick. `setups/pi-provision/push_wireguard_config.py --host IP` pushes the
+  laptop's copy over SSH (the stick is reached through the link).
 - Tailscale client: not yet installed.
 
 ## Credentials
