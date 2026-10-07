@@ -94,6 +94,18 @@ limiting factor — not a purchase decision.
      maintainer's dev machine. Not yet designed — see
      `runpod-rationale.md`.
   Other small always-on services may follow — not yet scoped.
+- First-boot provisioning: `pi-provision/pi-firstboot.sh` is carried in
+  `user-data` (cloud-init `write_files`, installed at
+  `/usr/local/sbin/pi-provision-firstboot.sh`) and started once in the
+  background with `systemd-run`, so it cannot hold up boot. It checks the
+  system (root, aarch64, Debian 13), waits for time sync, installs
+  `wireguard-tools` (no recommended packages) and verifies it, then replaces
+  the Wi-Fi password in `/boot/firmware/network-config` with a placeholder once
+  cloud-init is done (only if the root-only netplan copy exists) and verifies
+  that. Log: `/var/log/pi-provision.log`; marker: `/var/lib/pi-provision.done`.
+  Logic tested offline on fake files (14 checks); **its first real boot is not
+  yet done** (card 1 is configured with it, unbooted). It carries no secret and
+  no VPN config.
 - WireGuard / Proton VPN: `wireguard-tools` 1.0.20210914-3 is installed
   (kernel module `wireguard` is available as `CONFIG_WIREGUARD=m`).
   `/etc/wireguard/wg-JP-154.conf` (root-only, mode 600) holds a Proton

@@ -197,8 +197,11 @@ so, the same way any other turn-taking works.
   helper (Linux and Windows).
 - `pi_smoke_test_ssh_check.py` — phase 2: discovery + SSH check helper,
   bounded runtime (Linux and Windows).
-- The SSH key pair and the Wi-Fi `.env` live in `setups/.secrets/`
-  (gitignored), not in this directory.
+- `../pi-provision/pi-firstboot.sh` — the first-boot script the flash script
+  can embed (`--provision-script`); see the report's first-boot follow-up.
+- The SSH key pair, the Wi-Fi `.env` and the Proton WireGuard config live in
+  `setups/.secrets/` (gitignored), not in this directory.
+- Current state and next steps for a new session: `../pi-handoff.md`.
 - `pi-smoke-test-report.md` — one section per phase, each following
   `setups/report-format.md`'s summary-then-subsections structure.
 

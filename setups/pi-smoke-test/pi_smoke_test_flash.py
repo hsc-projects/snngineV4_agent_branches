@@ -525,11 +525,41 @@ def yaml_str(s: str) -> str:
     return json.dumps(s)  # a JSON string is a valid double-quoted YAML scalar
 
 
-def build_user_data(pubkey: str, enable_ssh: bool = True) -> str:
+PROVISION_PATH_ON_PI = "/usr/local/sbin/pi-provision-firstboot.sh"
+PROVISION_UNIT_PATH_ON_PI = "/etc/systemd/system/pi-provision.service"
+PROVISION_MARKER_ON_PI = "/var/lib/pi-provision.done"
+# Type=simple, not oneshot: a oneshot unit in multi-user.target would hold boot
+# until the script ends. Restart=on-failure with a start limit retries a failed
+# run every 5 minutes (6 starts per hour at most), and each later boot tries
+# again until the script has written its marker file.
+PROVISION_UNIT = f"""[Unit]
+Description=Pi first-boot provisioning (retried until it succeeds)
+ConditionPathExists=!{PROVISION_MARKER_ON_PI}
+StartLimitIntervalSec=3600
+StartLimitBurst=6
+
+[Service]
+Type=simple
+ExecStart={PROVISION_PATH_ON_PI}
+Restart=on-failure
+RestartSec=300
+
+[Install]
+WantedBy=multi-user.target
+"""
+
+
+def build_user_data(
+    pubkey: str, enable_ssh: bool = True, provision: str | None = None,
+) -> str:
     # Raspberry Pi OS Trixie configures first boot with cloud-init, not the
     # older custom.toml/firstrun.sh. Syntax from the official example:
     # https://www.raspberrypi.com/news/cloud-init-on-raspberry-pi-os/
     # enable_ssh=False exists only to test whether the line is needed.
+    # provision: text of a shell script to run on first boot. It is written
+    # with write_files and run by a systemd unit (see PROVISION_UNIT) that
+    # retries it until it succeeds, so a slow or failing install cannot hold up
+    # cloud-init or boot.
     text = f"""#cloud-config
 
 hostname: {HOSTNAME}
@@ -548,6 +578,32 @@ ssh_pwauth: false
 """
     if enable_ssh:
         text += "enable_ssh: true\n"
+    if provision:
+        if "\t" in provision:
+            raise ValueError("provision script contains a tab; YAML block text needs spaces")
+        body = "\n".join(
+            ("      " + line) if line.strip() else "" for line in provision.splitlines()
+        )
+        unit_body = "\n".join(
+            ("      " + line) if line.strip() else "" for line in PROVISION_UNIT.splitlines()
+        )
+        text += (
+            "\nwrite_files:\n"
+            f"  - path: {PROVISION_PATH_ON_PI}\n"
+            "    owner: root:root\n"
+            "    permissions: '0755'\n"
+            "    content: |\n"
+            f"{body}\n"
+            f"  - path: {PROVISION_UNIT_PATH_ON_PI}\n"
+            "    owner: root:root\n"
+            "    permissions: '0644'\n"
+            "    content: |\n"
+            f"{unit_body}\n"
+            "\nruncmd:\n"
+            "  - [systemctl, daemon-reload]\n"
+            "  - [systemctl, enable, pi-provision.service]\n"
+            "  - [systemctl, start, --no-block, pi-provision.service]\n"
+        )
     return text
 
 
@@ -585,6 +641,7 @@ def write_cloud_init(
     mount: Path, pubkey: str, ssid: str, country: str, password: str,
     new_instance_id: str | None = None,
     ssh_file: bool = True, enable_ssh: bool = True,
+    provision: str | None = None,
 ) -> None:
     """Write the cloud-init files into a Pi OS boot partition.
 
@@ -612,7 +669,8 @@ def write_cloud_init(
     else:
         delete_boot_file(mount, "ssh")
     write_boot_file(mount, "user-data",
-                    build_user_data(pubkey, enable_ssh=enable_ssh).encode())
+                    build_user_data(pubkey, enable_ssh=enable_ssh,
+                                    provision=provision).encode())
     write_boot_file(mount, "network-config",
                     build_network_config(ssid, country, password).encode())
     if new_instance_id:
@@ -659,6 +717,13 @@ def main() -> int:
              "The password still ends up in plain text in network-config on the card.",
     )
     parser.add_argument(
+        "--provision-script", type=Path, default=None,
+        help="A shell script to run in the background from the Pi's first "
+             "boot (installed through cloud-init write_files and run by a "
+             "retrying systemd unit until it exits 0 and writes its own marker "
+             "file; its log is /var/log/pi-provision.log if it logs there). Must not contain secrets: it ends up in plain text on the card.",
+    )
+    parser.add_argument(
         "--boot-dir", type=Path, default=None,
         help="Don't flash: write the cloud-init files into this already-flashed "
              "card's boot partition (e.g. F:\\) and exit. Ethernet only unless "
@@ -672,6 +737,15 @@ def main() -> int:
     if not pub_path.is_file():
         print(f"Missing public key: {pub_path}", file=sys.stderr)
         return 1
+
+    provision_text = None
+    if args.provision_script:
+        if not args.provision_script.is_file():
+            print(f"Missing provision script: {args.provision_script}", file=sys.stderr)
+            return 1
+        provision_text = args.provision_script.read_text(encoding="utf-8").replace("\r\n", "\n")
+        print(f"Provision script: {args.provision_script.name} "
+              f"({len(provision_text.splitlines())} lines), retried by a systemd unit until it succeeds.")
 
     if args.boot_dir:
         boot = args.boot_dir
@@ -693,7 +767,8 @@ def main() -> int:
         write_cloud_init(boot, pub_path.read_text().strip(), b_ssid, b_country, b_password,
                          new_instance_id=f"{HOSTNAME}-{int(time.time())}",
                          ssh_file=not args.no_ssh_file,
-                         enable_ssh=not args.no_enable_ssh)
+                         enable_ssh=not args.no_enable_ssh,
+                         provision=provision_text)
         print(f"cloud-init files written to {boot} (user-data, network-config, "
               "meta-data instance id), legacy custom.toml and init= removed.")
         return 0
@@ -780,7 +855,8 @@ def main() -> int:
         with boot_partition(device) as mount_point:
             write_cloud_init(mount_point, pubkey, wlan_ssid, wlan_country, wlan_password,
                              ssh_file=not args.no_ssh_file,
-                             enable_ssh=not args.no_enable_ssh)
+                             enable_ssh=not args.no_enable_ssh,
+                             provision=provision_text)
     except (RuntimeError, subprocess.SubprocessError, OSError) as e:
         print(f"\nFailed: {e}", file=sys.stderr)
         return 1

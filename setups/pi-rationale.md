@@ -52,6 +52,23 @@ the egress-proxy role that triggered building it. Renamed the component
 from "Pi egress proxy" to "Pi host" to reflect this — the proxy is one
 job it does, not its sole purpose.
 
+**2026-10-05 — The Pi is also meant to be a keyholder (maintainer,
+stated in conversation; not in the earlier docs).** Besides the egress
+proxy and the bridge expansion, it is the machine that holds the
+credentials, so the sandbox and the pods never do. This is the sandbox
+repo's credential-holding pattern (`agent-sandbox-patterns.md`, Pattern 1):
+one single-purpose service per credential, the secret in a root-only file
+(mode 0400/0600) read once by the one process that needs it, never in
+the environment of anything the agent runs, and the service reached only
+over Tailscale. It moves "the orchestration layer" in
+`runpod-rationale.md` (where RunPod's own API key stays) from the host
+session to the Pi, and would hold the RunPod key for the phone-triggered
+spin-up. Consequences already in force: no secret travels in the
+first-boot config on the card (keys are pushed over SSH into root-only files),
+and the provisioning script scrubs the Wi-Fi password from the FAT boot
+partition once cloud-init has used it. Open (item 20): which credentials,
+and what protects them if the SD card is physically taken.
+
 **2026-09-28 — A cheap always-on VPS (e.g. Hetzner) was raised as a
 possible alternative/fallback host and dismissed as too expensive for
 just a proxy.** Not researched further, and this reasoning predates the
@@ -229,6 +246,63 @@ it, it isn't guaranteed complete.
    2026-10-04): no router; the cable to the laptop with Windows connection
    sharing, and/or Wi-Fi to a phone hotspot. Still open: PoE switch/injector
    availability and how the Pi is powered.
+
+Follow-ups from the 2026-10-04 smoke test (all low priority unless the
+maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
+
+8. **DNS through the Proton tunnel on the Pi.** With the `DNS` line removed
+   the Pi's lookups leak to the laptop's resolver. Needs `resolvconf` or an
+   equivalent, tested separately.
+9. **Proton tunnel as a service.** Start at boot (`wg-quick@`), behavior
+   when the tunnel drops (no kill switch), and how it combines with
+   Tailscale and the egress-proxy role. Related: whether the Pi should run
+   its own VPN or the laptop's tunnel adapter should be shared.
+10. **Cable with no sharing and no DHCP** still drops after about 3 minutes.
+    Candidates, untried: infinite NetworkManager retries on `eth0` so it
+    recovers when sharing returns; a link-local fallback for `eth0`.
+11. **Connectivity-based failover.** The metrics only react to link state: a
+    cable or hotspot that is up but has no internet keeps the default route.
+    No connectivity check exists; what NetworkManager supports for this is
+    unresearched.
+12. **Verify the hotspot-first metric (50) on the Pi,** a cold boot with the
+    hotspot off under the new config, a long hotspot absence (the
+    `autoconnect-retries` limit), the Wi-Fi regulatory code read back
+    (`iw` is not installed), and a hotspot on channels 12/13.
+13. **First-boot installs.** Started: `pi-provision/pi-firstboot.sh` (modules:
+    WireGuard tools; scrub of the Wi-Fi password from the boot partition; built
+    on the sandbox repo's Dockerfile/entrypoint habits: preflight, an active
+    check after each install, a verified scrub) is delivered through `user-data`
+    (`write_files` plus `runcmd` with `systemd-run`); offline-tested, first real
+    boot pending. Still to add, one tested module at a time: Docker, Tailscale,
+    the sandbox's egress-proxy container (a proxy is the Pi's core job); pinned
+    or logged versions; no long-lived secrets on the card.
+14. **Tailscale on the Pi.** Join interactively over SSH (no auth key on the
+    card), and check the machine-key expiry setting in the admin console. The
+    RunPod pod's auth key is separate (item 5).
+15. **Reading the Pi's logs when it stops responding.** Windows cannot read
+    the root partition and `wsl --mount` does not support SD card readers;
+    WSL plus usbipd-win would, but is not set up. The journal is volatile;
+    persistent logging would be a change on the Pi.
+16. **`ssh` file versus `enable_ssh`:** which suffices on a fresh flash (the
+    flash script has `--no-ssh-file` and `--no-enable-ssh` to test it).
+17. **`setups/decrypt_credential_bundle.py`** (unpacks a gpg bundle into a
+    private folder) was written, never run, and is not committed: keep,
+    commit or remove.
+18. **`RUNPOD_API_KEY`** is now in `setups/.secrets/.env` with no use decided;
+    any use needs the exact calls proposed first.
+19. **Windows connection sharing can reset** after a laptop reboot, sleep or
+    Wi-Fi change; a check step before a Pi session might be worth adding.
+20. **Keyholder design** (see the 2026-10-05 decision above). Decide which
+    credentials the Pi holds (RunPod API key for the spin-up trigger, the
+    Tailscale auth key for the pod, possibly the GitHub token the sandbox
+    sidecars use), how each is stored (root-only file secrets, read once by
+    one process) and delivered (over SSH, never on the card), and what
+    protects them at rest: the SD card is removable and its root partition is
+    not encrypted, so anyone holding the card could read the keys. Options to
+    weigh, none researched: disk encryption, loading keys into RAM over SSH
+    after each boot (lost on power loss), narrowly scoped and rotatable keys.
+    Until then `RUNPOD_API_KEY` stays on the laptop in `setups/.secrets/.env`
+    (item 18).
 
 Not a to-do, just a standing fact: keeping the Pi available/online when
 needed is the maintainer's own responsibility, not something planned

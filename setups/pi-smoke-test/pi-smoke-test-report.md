@@ -219,6 +219,27 @@ also joined a phone hotspot over Wi-Fi.
   running on the Pi itself: neither tried.
 - Docker, Tailscale and the egress proxy on the Pi: not installed.
 
+## Follow-up — first-boot provisioning script (2026-10-05 to 2026-10-07)
+
+**Summary: written and tested offline; its first real boot is still to do.**
+`setups/pi-provision/pi-firstboot.sh` is embedded in the card's `user-data` by
+`pi_smoke_test_flash.py --provision-script` (cloud-init `write_files`, started
+with `systemd-run` so it cannot block boot). It was modelled on the sandbox
+repo's Dockerfile/entrypoint habits: preflight checks that refuse an untested
+system (root, aarch64, Debian 13), one function per module with one result
+line each, an active check after each install, bounded waits, and a verified
+scrub of a credential. Modules: `wireguard-tools` (installed with
+`--no-install-recommends`, then `wg --version` and a kernel-module dry run),
+and replacing the Wi-Fi password in `/boot/firmware/network-config` once
+cloud-init is done (only if the root-only netplan copy exists), then checking
+it. It deliberately carries no VPN config or key. The flash script also gained
+`--wifi-from-env` (hotspot from `setups/.secrets/.env`), a Wi-Fi route metric of
+50 so the hotspot is preferred over the cable, and `--boot-dir` that can take
+both. Offline: `bash -n` and 14 checks of the scrub and the root check on fake
+files pass. Card 1 was flashed and then rewritten with the final config and
+script, and has not been booted. The preflight's OS and architecture checks and
+the whole boot path can only be tested on the Pi.
+
 ## Follow-up — Proton VPN on the headless Pi (2026-10-04)
 
 **Summary: works, through WireGuard, not through Proton's own app.** A

@@ -13,7 +13,11 @@
 | `gpu-smoke-tests/gpu-smoke-test-task-docker.md` | Task write-up for running the GPU/CUDA-OpenGL interop smoke test in a Docker container (feeds `runpod-rationale.md`'s open item 0) |
 | `gpu-smoke-tests/gpu-smoke-test-task-v2.md` | Task write-up for modernizing the GPU/CUDA-OpenGL interop stack across all 3 modes (EGL, Desktop GUI, Web Bridge) at max RTX 3090-compatible versions |
 | `runpod-smoke-tests/runpod-smoke-test-task.md` | Task write-up for the RunPod cloud GPU/CUDA-OpenGL interop smoke test (feeds `runpod-rationale.md`'s open item 0) |
-| `pi-smoke-test/task.md` | Task write-up for the Pi flash + SSH smoke test (two phases: write/flash the SD card, then SSH once the maintainer boots and connects the Pi) — not yet run |
+| `pi-handoff.md` | Pi work: current state, next steps, how to run things, pitfalls — start here in a new session |
+| `pi-smoke-test/task.md` | Task write-up for the Pi flash + SSH smoke test (two phases: write/flash the SD card, then SSH once the maintainer boots and connects the Pi) — done 2026-10-04, kept current |
+| `pi-smoke-test/pi-smoke-test-report.md` | Evidence and findings of that smoke test, plus the Proton VPN and first-boot follow-ups |
+| `pi-smoke-test/pi_smoke_test_flash.py`, `pi_smoke_test_ssh_check.py` | Flash/configure an SD card (Linux and Windows) and find/SSH into the Pi |
+| `pi-provision/pi-firstboot.sh` | Script that runs once on the Pi's first boot (installed by the flash script through cloud-init); first real boot not yet verified |
 | `report-format.md` | Shared report structure (summary + detail subsections) for findings/status reports across this project's cloud-setup work |
 
 Each `-technical.md`/`-rationale.md` pair follows this project's
