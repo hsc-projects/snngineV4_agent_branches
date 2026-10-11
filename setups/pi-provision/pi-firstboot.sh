@@ -46,6 +46,13 @@ DOCKER_PACKAGES=(docker-ce docker-ce-cli containerd.io docker-buildx-plugin dock
 TAILSCALE_KEY_FPR=2596A99EAAB33821893C0A79458CA832957F5868
 TAILSCALE_KEY=/usr/share/keyrings/tailscale-archive-keyring.gpg
 TAILSCALE_LIST=/etc/apt/sources.list.d/tailscale.list
+# Keyholder (setups/pi-rationale.md, item 20): high-value secrets live on the stick only
+# as passphrase-encrypted files and are decrypted into RAM (/run/pi-secrets) on request.
+KEYHOLDER_USER=pikeys
+KEYHOLDER_UNLOCK=/usr/local/sbin/pi-unlock
+KEYHOLDER_ADD=/usr/local/sbin/pi-secret-add
+KEYHOLDER_SUDOERS=/etc/sudoers.d/pikeys
+KEYHOLDER_SSHD=/etc/ssh/sshd_config.d/10-pikeys.conf
 
 log() { echo "$(date -Is) $*"; }
 
@@ -400,6 +407,213 @@ module_tailscale() {
     fi
 }
 
+# The keyholder: encrypted secrets on the credential stick, unlocked into RAM on request.
+#   On the stick:  secrets/<name>.gpg   passphrase-encrypted values (gpg, AES256)
+#                  secrets.conf         one "<name> <consumer user>" per line
+#                  unlock/authorized_keys   public keys allowed to ask for an unlock
+#   On the Pi:     /run/pi-secrets/<name>   the decrypted value, RAM only, owned by the
+#                  consumer, mode 0400; gone on power loss or after a lock.
+# Two root-owned helpers, written below. pi-unlock reads its request on stdin (verb
+# unlock, lock or status; the passphrase on the next line) and is the only command the
+# pikeys user may run: sshd forces it for that user, and sudoers allows nothing else.
+# pi-secret-add (admin only, not in pikeys' sudoers) encrypts a new value onto the
+# stick. Any device holding a key listed in unlock/authorized_keys can ask for an
+# unlock; the admin can also run pi-unlock through sudo. Nothing here is needed to boot:
+# without an unlock the Pi runs normally, only consumers of a secret wait.
+module_keyholder() {
+    local tmp applied keys=0
+    if ! command -v gpg > /dev/null 2>&1; then
+        if ! DEBIAN_FRONTEND=noninteractive timeout 600 apt-get install -y --no-install-recommends gnupg; then
+            log "FAILED module keyholder: could not install gnupg"; return 1
+        fi
+    fi
+    if ! id "$KEYHOLDER_USER" > /dev/null 2>&1; then
+        if ! useradd --system --create-home --home-dir "/home/$KEYHOLDER_USER" --shell /bin/bash "$KEYHOLDER_USER"; then
+            log "FAILED module keyholder: could not create user $KEYHOLDER_USER"; return 1
+        fi
+    fi
+    # '*' = no valid password, but not "locked" (a locked account refuses key logins too).
+    usermod -p '*' "$KEYHOLDER_USER"
+
+    # The stick's side, only if it is mounted (a Pi booted without it still gets the helpers).
+    if mountpoint -q "$KEYSTORE_MOUNT"; then
+        install -d -m 0700 -o root -g root "$KEYSTORE_MOUNT/secrets"
+        install -d -m 0750 -o root -g "$KEYHOLDER_USER" "$KEYSTORE_MOUNT/unlock"
+        [ -f "$KEYSTORE_MOUNT/unlock/authorized_keys" ] \
+            || install -m 0640 -o root -g "$KEYHOLDER_USER" /dev/null "$KEYSTORE_MOUNT/unlock/authorized_keys"
+        [ -f "$KEYSTORE_MOUNT/secrets.conf" ] \
+            || printf '%s\n' '# <secret name>  <user that reads it>   (value: secrets/<name>.gpg)' > "$KEYSTORE_MOUNT/secrets.conf"
+        chmod 600 "$KEYSTORE_MOUNT/secrets.conf"
+        keys=$(grep -c '^ssh-' "$KEYSTORE_MOUNT/unlock/authorized_keys" || true)
+    else
+        log "keyholder: no stick mounted at $KEYSTORE_MOUNT; helpers installed, stick folders not prepared"
+    fi
+
+    { printf '#!/bin/bash\nSTICK=%q\n' "$KEYSTORE_MOUNT"; cat <<'UNLOCK'
+# Written by pi-firstboot.sh (module_keyholder); edit it there. Root-owned. Run through sudo
+# by the pikeys user's forced SSH command, or by the admin. It trusts no argument and no
+# environment: the request is on stdin. Line 1: unlock | lock | status. For unlock, line 2
+# is the passphrase. Output carries secret names and counts, never a value.
+set -uo pipefail
+umask 077
+export TMPDIR=/run PATH=/usr/sbin:/usr/bin:/sbin:/bin
+RUN=/run/pi-secrets
+MANIFEST=$STICK/secrets.conf
+SECDIR=$STICK/secrets
+note() { logger -t pi-unlock -- "$*" 2> /dev/null || true; }
+
+exec 9> /run/pi-unlock.lock
+flock -w 10 9 || { echo "busy"; exit 1; }
+read -r verb || { echo "no request"; exit 2; }
+
+# One "name user" line per valid manifest entry; fails on an invalid one.
+manifest_entries() {
+    local name user rest
+    [ -f "$MANIFEST" ] || return 0
+    while read -r name user rest; do
+        case "$name" in ''|'#'*) continue ;; esac
+        [[ "$name" =~ ^[a-z0-9_]{1,40}$ ]] || { echo "bad name in the manifest" >&2; return 1; }
+        [[ "${user:-root}" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || { echo "bad user in the manifest" >&2; return 1; }
+        echo "$name ${user:-root}"
+    done < "$MANIFEST"
+}
+
+case "$verb" in
+status)
+    if mountpoint -q "$STICK"; then echo "stick: mounted"; else echo "stick: absent"; fi
+    entries=$(manifest_entries) || { echo "manifest: invalid"; exit 1; }
+    while read -r name user; do
+        [ -n "$name" ] || continue
+        s="locked"; [ -f "$RUN/$name" ] && s="in RAM"
+        c="no ciphertext"; [ -f "$SECDIR/$name.gpg" ] && c="ciphertext present"
+        echo "$name: $s, $c"
+    done <<< "$entries"
+    ;;
+lock)
+    if [ -d "$RUN" ]; then
+        find "$RUN" -type f -exec shred -u {} + 2> /dev/null
+        rmdir "$RUN" 2> /dev/null || true
+    fi
+    note "locked"; echo "locked"
+    ;;
+unlock)
+    read -r pass || { echo "no passphrase"; exit 2; }
+    [ -n "$pass" ] || { echo "empty passphrase"; exit 2; }
+    mountpoint -q "$STICK" || { echo "key stick not mounted"; exit 1; }
+    entries=$(manifest_entries) || { echo "manifest: invalid"; exit 1; }
+    [ -n "$entries" ] || { echo "no secrets listed in the manifest"; exit 1; }
+    work=$(mktemp -d /run/pi-unlock.XXXXXX); gh=$(mktemp -d /run/pi-unlock-gpg.XXXXXX)
+    trap 'find "$work" -type f -exec shred -u {} + 2> /dev/null; rm -rf "$work" "$gh"' EXIT
+    # Decrypt everything into a scratch folder first: all or nothing.
+    while read -r name user; do
+        [ -f "$SECDIR/$name.gpg" ] || { echo "missing ciphertext: $name"; exit 1; }
+        if ! gpg --homedir "$gh" --batch --quiet --no-tty --pinentry-mode loopback \
+                --passphrase-fd 3 --no-symkey-cache -o "$work/$name" -d "$SECDIR/$name.gpg" \
+                3<<< "$pass" < /dev/null > /dev/null 2>&1; then
+            sleep 2; note "unlock failed"; echo "unlock failed"; exit 1
+        fi
+    done <<< "$entries"
+    install -d -m 0711 -o root -g root "$RUN"
+    names=""
+    while read -r name user; do
+        owner=root; id -u "$user" > /dev/null 2>&1 && owner=$user
+        install -m 0400 -o "$owner" -g "$(id -gn "$owner")" "$work/$name" "$RUN/.$name.new" \
+            && mv -f "$RUN/.$name.new" "$RUN/$name" || { echo "could not place $name"; exit 1; }
+        [ "$owner" = "$user" ] || echo "note: user $user does not exist, $name is owned by root"
+        names="$names $name"
+    done <<< "$entries"
+    # Drop anything from an earlier unlock that the manifest no longer lists.
+    for f in "$RUN"/*; do
+        [ -e "$f" ] || continue
+        b=$(basename "$f"); case " $names " in *" $b "*) ;; *) shred -u "$f" ;; esac
+    done
+    note "unlocked:$names"; echo "unlocked:$names"
+    ;;
+*)
+    echo "unknown request"; exit 2
+    ;;
+esac
+UNLOCK
+    } > "$KEYHOLDER_UNLOCK"
+    chown root:root "$KEYHOLDER_UNLOCK"; chmod 755 "$KEYHOLDER_UNLOCK"
+
+    { printf '#!/bin/bash\nSTICK=%q\n' "$KEYSTORE_MOUNT"; cat <<'ADDSECRET'
+# Written by pi-firstboot.sh (module_keyholder); edit it there. Root-only: run through sudo
+# by the admin (it is NOT in the pikeys user's sudoers). Usage: pi-secret-add <name> [<user>].
+# stdin: line 1 the passphrase, line 2 the secret value (one line). Encrypts it onto the
+# stick as secrets/<name>.gpg, checks that it decrypts back to the same value, and lists
+# it in secrets.conf for <user> (default root). Prints names and sizes only.
+set -uo pipefail
+umask 077
+export TMPDIR=/run PATH=/usr/sbin:/usr/bin:/sbin:/bin
+MANIFEST=$STICK/secrets.conf
+SECDIR=$STICK/secrets
+name=${1:-}; user=${2:-root}
+[[ "$name" =~ ^[a-z0-9_]{1,40}$ ]] || { echo "the name must be a-z, 0-9 and _ (at most 40)"; exit 2; }
+[[ "$user" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || { echo "bad consumer user name"; exit 2; }
+read -r pass || { echo "no passphrase"; exit 2; }
+read -r value || true
+[ -n "$pass" ] && [ -n "$value" ] || { echo "empty passphrase or value"; exit 2; }
+mountpoint -q "$STICK" || { echo "key stick not mounted"; exit 1; }
+install -d -m 0700 -o root -g root "$SECDIR"
+gh=$(mktemp -d /run/pi-secret-gpg.XXXXXX); tmp=$SECDIR/.$name.new
+trap 'rm -rf "$gh"; rm -f "$tmp"' EXIT
+printf '%s' "$value" | gpg --homedir "$gh" --batch --quiet --no-tty --pinentry-mode loopback \
+        --passphrase-fd 3 --no-symkey-cache --symmetric --cipher-algo AES256 \
+        --s2k-mode 3 --s2k-digest-algo SHA512 --s2k-count 65011712 --compress-algo none \
+        -o "$tmp" 3<<< "$pass" > /dev/null 2>&1 || { echo "encryption failed"; exit 1; }
+back=$(gpg --homedir "$gh" --batch --quiet --no-tty --pinentry-mode loopback \
+        --passphrase-fd 3 --no-symkey-cache -d "$tmp" 3<<< "$pass" 2> /dev/null < /dev/null) || back=""
+[ "$back" = "$value" ] || { echo "round-trip check failed; nothing stored"; exit 1; }
+mv -f "$tmp" "$SECDIR/$name.gpg"
+[ -f "$MANIFEST" ] || printf '%s\n' '# <secret name>  <user that reads it>   (value: secrets/<name>.gpg)' > "$MANIFEST"
+{ grep -v -E "^$name[[:space:]]" "$MANIFEST" || true; printf '%s %s\n' "$name" "$user"; } > "$MANIFEST.new"
+mv -f "$MANIFEST.new" "$MANIFEST"; chmod 600 "$MANIFEST"
+echo "stored $name for $user ($(stat -c %s "$SECDIR/$name.gpg") bytes encrypted); verified by decrypting it back"
+ADDSECRET
+    } > "$KEYHOLDER_ADD"
+    chown root:root "$KEYHOLDER_ADD"; chmod 755 "$KEYHOLDER_ADD"
+
+    # sudo: the pikeys user may run the unlock helper and nothing else.
+    tmp=$(mktemp)
+    printf '%s ALL=(root) NOPASSWD: %s\n' "$KEYHOLDER_USER" "$KEYHOLDER_UNLOCK" > "$tmp"
+    if ! visudo -cf "$tmp" > /dev/null; then
+        rm -f "$tmp"; log "FAILED module keyholder: the sudoers rule did not validate"; return 1
+    fi
+    install -m 0440 -o root -g root "$tmp" "$KEYHOLDER_SUDOERS"; rm -f "$tmp"
+
+    # sshd: for that user only, the unlock helper is forced, with no shell, tty or forwarding.
+    # The key file is on the stick (so it survives a re-flash). Validated before reloading;
+    # a failed check removes the file again, so a bad rule can never lock the admin out.
+    install -d -m 0755 /etc/ssh/sshd_config.d
+    cat > "$KEYHOLDER_SSHD" <<SSHDCONF
+Match User $KEYHOLDER_USER
+    AuthorizedKeysFile $KEYSTORE_MOUNT/unlock/authorized_keys
+    PasswordAuthentication no
+    KbdInteractiveAuthentication no
+    AllowTcpForwarding no
+    AllowAgentForwarding no
+    X11Forwarding no
+    PermitTTY no
+    PermitUserRC no
+    ForceCommand /usr/bin/sudo -n $KEYHOLDER_UNLOCK
+SSHDCONF
+    chmod 644 "$KEYHOLDER_SSHD"
+    if ! sshd -t 2> /dev/null; then
+        rm -f "$KEYHOLDER_SSHD"; log "FAILED module keyholder: sshd rejects the keyholder config; removed it"; return 1
+    fi
+    # Captured first: under pipefail, `grep -q` ending the pipe early would fail it with SIGPIPE.
+    applied=$(sshd -T -C "user=$KEYHOLDER_USER,host=localhost,addr=127.0.0.1" 2> /dev/null) || applied=""
+    if ! grep -qi "^forcecommand .*$KEYHOLDER_UNLOCK" <<< "$applied"; then
+        rm -f "$KEYHOLDER_SSHD"; log "FAILED module keyholder: sshd does not apply the forced command to $KEYHOLDER_USER; removed the config"; return 1
+    fi
+    systemctl reload ssh 2> /dev/null || systemctl reload sshd 2> /dev/null || true
+    if [ "$(sudo -l -U "$KEYHOLDER_USER" 2> /dev/null | grep -c 'NOPASSWD:')" -ne 1 ]; then
+        log "FAILED module keyholder: $KEYHOLDER_USER has more or fewer sudo rights than the one rule"; return 1
+    fi
+    log "module keyholder: ok (user $KEYHOLDER_USER, forced unlock, $keys key(s) in unlock/authorized_keys)"
+}
+
 # Explicit, never automatic: put an ext4 filesystem labelled KEYSTORE_LABEL on
 # a whole device (old signatures wiped first) and seed links.conf with the
 # WireGuard entry. Refuses a mounted device and (unless FORCE=1) one that
@@ -434,6 +648,7 @@ main() {
         autostart) log "=== wireguard autostart only ==="; preflight; module_wireguard_autostart; return ;;
         docker) log "=== docker only ==="; preflight; wait_for_clock; module_docker; return ;;
         tailscale) log "=== tailscale only ==="; preflight; wait_for_clock; module_tailscale; return ;;
+        keyholder) log "=== keyholder only ==="; preflight; module_keyholder; return ;;
         format-keystore) log "=== format keystore ==="; preflight; format_keystore "${2:-}"; return ;;
     esac
     log "=== pi-provision start ==="
@@ -448,6 +663,7 @@ main() {
     module_wireguard_autostart
     module_docker
     module_tailscale
+    module_keyholder
     scrub_wifi_password
     touch "$MARK"
     log "=== pi-provision done ==="

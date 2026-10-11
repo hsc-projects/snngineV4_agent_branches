@@ -388,3 +388,62 @@ this section holds only what was measured.
 - Behavior when the tunnel drops (still no kill switch).
 - Whether a re-flash can keep the Tailscale identity (it cannot today; linking the
   state onto the stick is undecided).
+
+## Follow-up — keyholder tests (2026-10-11)
+
+**Summary: works on the live Pi with throwaway values; one bug caught by the
+module's own safety check, one false alarm in the tests.** Configuration is in
+`pi-technical.md`, the design in `pi-rationale.md` (item 20). All secrets, passphrases
+and keys used here were random, held in scratch files, and deleted afterwards.
+
+- **Bug found by the module's self-check.** The first run removed its own `sshd`
+  config because its check said the forced command was not applied. By hand `sshd`
+  did apply it; the check was wrong: under `pipefail`, `grep -q` ending the pipe early
+  killed `sshd -T` with SIGPIPE. Fixed by capturing the output first. Nothing was
+  left half-applied, and `htm` was never affected.
+- **Results (11 checks).** Add stored and decrypted back; the ciphertext does not
+  contain the value; status says locked before and in RAM after; a wrong passphrase is
+  refused and places nothing; the right one places the file in RAM (owner and mode as
+  listed, `/run` is tmpfs) with a matching hash; as `pikeys` over SSH lock and unlock
+  work, a command sent along is ignored, no tty is granted, sudo allows nothing else
+  (not even `pi-secret-add`), and an unknown request is refused. A second module run
+  changed nothing.
+- **False alarm.** The first log scan for the secret value found one hit. The test had
+  put the value on a `sudo grep` command line, which sudo logs. A rerun with the
+  value, the passphrase and a wrong passphrase only on stdin found none in 7,448 lines
+  of journal and provision log.
+- **Fresh flash.** Card 2, flashed with the script that has the module, installed it in
+  its first boot (user, helpers, forced command and sudo rule in place, marker
+  written). The stick already held the module's folders from the live test, so a
+  pristine stick was not exercised.
+
+### Not established
+
+- Behaviour after a real reboot (only that `/run` is tmpfs), and with the stick absent.
+- The module on a pristine stick.
+- The laptop client's hidden prompts (they need a real terminal; the same protocol was
+  sent directly), and any phone, including over Tailscale.
+- A real secret: none is stored.
+
+## Follow-up — Windows sharing failure and recovery (2026-10-11, night)
+
+**Summary: sharing could not be enabled with Wi-Fi as the internet side and worked at
+once with phone USB tethering; the cause was not found.** The Pi could not be found
+after a card swap: the sharing service was stopped, the Ethernet adapter had fallen back
+to a 169.254 address, and ProtonVPN was up and held the laptop's default route.
+
+- **Tried, in order (each logged).** The restart script (the service started, sharing did
+  not: `0x80040201`, a COM+ event error, raised by enabling the Wi-Fi side and the
+  Ethernet side alike); disabling and re-enabling the Ethernet adapter (it then took
+  `192.168.137.1`, sharing still failed); starting `NlaSvc`, then `COMSysApp`, both
+  stopped stock services (neither helped). The services sharing depends on were running,
+  and no related events were found.
+- **What worked.** With phone USB tethering holding the default route, the script (now
+  detecting the internet-side adapter) enabled sharing on the first try and DHCP
+  listened. The Pi appeared after the cable replug that was asked for; it had been without
+  DHCP for hours, which the handoff says makes it give up after about 3 minutes.
+
+### Not established
+
+- Why Wi-Fi as the internet side fails now (it worked in earlier sessions).
+- Whether a laptop reboot cures it (not tried at the maintainer's request).

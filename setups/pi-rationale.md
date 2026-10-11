@@ -309,7 +309,7 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
     lack of a key, as expected. A non-expiring node is covered by the stolen-Pi
     checklist (item 20). The RunPod pod's auth key is separate (item 5). Open: link
     `/var/lib/tailscale` onto the stick so a re-flash keeps the Pi's identity (not
-    decided); card 2's older node `pi-host-test` still expires 2027-04-09; the remote
+    decided); an older node `pi-host-test` still expires 2027-04-09 (delete it in the console); the remote
     unlock from the phone on mobile data (item 20) is not built.
 15. **Reading the Pi's logs when it stops responding.** Windows cannot read
     the root partition and `wsl --mount` does not support SD card readers;
@@ -325,9 +325,11 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
 19. **Windows connection sharing can reset** after a laptop reboot, sleep or
     network change (seen again 2026-10-11: the `SharedAccess` service had stopped,
     and starting it was not enough). `setups/restart-sharing.bat` now fixes it in
-    one call (`-Public 'Ethernet 2'` when the internet comes from phone USB
-    tethering). Setting the service to automatic start would prevent the stop; it
-    is a laptop setting, so it is the maintainer's call.
+    one call (it detects the internet-side adapter itself). Setting the service to automatic start would prevent the stop; it
+    is a laptop setting, so it is the maintainer's call. 2026-10-11 night, a different
+    failure: sharing could not be enabled at all with Wi-Fi as the internet side
+    (`0x80040201`, a COM+ event error) and worked at once with phone USB tethering;
+    cause not found, a reboot not tried (report, last follow-up).
 20. **Keyholder design** (see the 2026-10-05 decision above). Decide which
     credentials the Pi holds (RunPod API key for the spin-up trigger, the
     Tailscale auth key for the pod, possibly the GitHub token the sandbox
@@ -366,6 +368,16 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
       tailnet node, and adds a second always-on machine); revisit if theft at rest
       becomes a concern. Hardware tokens do not fit (WireGuard and API keys cannot
       live in one).
+    - *Status 2026-10-11 (maintainer's answers):* passphrase kind: a human passphrase
+      of about 7 random words made in the maintainer's password manager (never seen
+      by the assistant); the design must not depend on the phone, so any device with
+      an authorised key, or the admin through sudo, can unlock; phone tool for now:
+      Termux (switch if another app turns out better); a separate `pikeys` user.
+      Built and tested on the live Pi (the passphrase flow, the forced command, no
+      leak into the journal; evidence in the smoke-test report), its install path also passed on a
+      fresh flash (card 2), not yet with the phone. The stolen-Pi checklist is written
+      (`pi-stolen-checklist.md`). Still to do: the Termux key and widget, the first
+      real secret (the RunPod key), and a consumer for it (item 21).
 21. **The Pi's own MCP server** (brainstormed 2026-10-11, nothing built).
     Purpose: day-to-day operation of the Pi without SSH or root; root stays for
     provisioning and for changing the MCP's own code. Built as the sandbox repo's

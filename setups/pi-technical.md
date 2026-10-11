@@ -41,7 +41,9 @@ limiting factor — not a purchase decision.
      through the laptop's Wi-Fi, and stayed connected for 8 minutes with no
      dropout. With a VPN connected on the laptop the Pi's traffic bypasses
      the VPN. Sharing can reset after a laptop reboot, sleep or Wi-Fi
-     change (not seen here).
+     change (seen 2026-10-11; item 19 in the rationale, last follow-up of the report: with
+     Wi-Fi as the internet side enabling sharing failed with `0x80040201`, with phone USB
+     tethering it worked).
   3. **Wi-Fi to a phone hotspot (`wlan0`): works.** It joined, reached the
      internet through `wlan0` alone (the phone's carrier address), and
      with `eth0` also up both stayed connected for 6 minutes. The default
@@ -100,14 +102,15 @@ limiting factor — not a purchase decision.
   pinned in the script, but Tailscale publishes none, so this is trust on first
   use). Joined interactively, never with an auth key on the card:
   `sudo tailscale up --accept-dns=false --hostname=pi-host --advertise-tags=tag:pi`,
-  approved in the browser. Current node: `pi-host`, 100.96.231.96, account
-  `hsc-projects@`, tagged `tag:pi` from the join, key expiry None (a join with a tag
-  disables expiry; tagging an already-joined node does not: card 2's node
-  `pi-host-test`, 100.121.120.13, still expires 2027-04-09). `CorpDNS` and `RouteAll`
+  approved in the browser. Current node: `pi-host`, 100.119.40.123 (card 2, joined after a fresh flash on
+  2026-10-11), account `hsc-projects@`, tagged `tag:pi` from the join, key expiry None
+  (a join with a tag disables expiry; tagging an already-joined node does not: an
+  earlier node, `pi-host-test`, 100.121.120.13, still expires 2027-04-09 and may still
+  be listed in the console). `CorpDNS` and `RouteAll`
   are off, Tailscale SSH is off, shields-up is off (the normal sshd is the only SSH).
   The node state is in `/var/lib/tailscale` on the card, so a re-flash needs a new
   join (delete the old node first, or the name gets a number).
-  Beside the Proton tunnel (checked on both cards): the tunnel's handshake, DNS
+  Beside the Proton tunnel (checked on three joins, two cards): the tunnel's handshake, DNS
   (10.2.0.1) and public address were unchanged; Tailscale's own traffic carries a
   mark and leaves by the main routing table (rule 5210), directly rather than
   through Proton (its netcheck showed the home connection's address, nearest relay
@@ -142,7 +145,7 @@ limiting factor — not a purchase decision.
   Debian 13), waits for time sync, installs `wireguard-tools` (no recommended
   packages) and verifies it, links the credential stick (next items), enables the
   tunnel at boot with its DNS dispatcher, installs Docker and Tailscale (the
-  daemon only; the join is interactive; both modules added 2026-10-11), then replaces the Wi-Fi password in
+  daemon only; the join is interactive; both modules added 2026-10-11), sets up the keyholder (see below), then replaces the Wi-Fi password in
   `/boot/firmware/network-config` with a placeholder once cloud-init is done (only
   if the root-only netplan copy exists) and verifies that. A skipped scrub fails the
   run, so it is retried. Log: `/var/log/pi-provision.log`; marker:
@@ -223,6 +226,24 @@ limiting factor — not a purchase decision.
   `pi-firstboot.sh format-keystore /dev/sdX` (explicit, never automatic) makes a
   new stick. `setups/pi-provision/push_wireguard_config.py --host IP` pushes the
   laptop's copy over SSH (the stick is reached through the link).
+
+- Keyholder (`module_keyholder` in the first-boot script, `pi-firstboot.sh
+  keyholder`; installed on the live Pi 2026-10-11 and through the first boot of a fresh flash of
+  card 2 the same evening; design in `pi-rationale.md` item 20): high-value secrets are stored on the stick only as passphrase-encrypted files
+  (`secrets/<name>.gpg`, gpg symmetric AES256, listed in `secrets.conf` with the user
+  that reads each) and are decrypted into RAM on request (`/run/pi-secrets/<name>`,
+  tmpfs, mode 0400, owned by that user, gone on power loss or a lock). Two root-owned
+  helpers in `/usr/local/sbin`: `pi-unlock` (stdin protocol: `unlock` plus the
+  passphrase, `lock`, `status`; all-or-nothing; output has names, never values) and
+  `pi-secret-add` (admin only; encrypts a value onto the stick and checks that it
+  decrypts back). The `pikeys` user (no password, not locked) may only run `pi-unlock`:
+  one sudoers line, and an `sshd` drop-in (`/etc/ssh/sshd_config.d/10-pikeys.conf`)
+  that forces that command for that user, with no tty, forwarding or password and its
+  key file on the stick (`unlock/authorized_keys`, so it survives a re-flash). The
+  module validates the sudoers rule and `sshd` (`sshd -t`, the applied forced command)
+  before reloading and removes its own config if a check fails. The laptop client is
+  `pi-provision/pi_keyholder.py`; what to revoke if the Pi is lost is
+  `pi-stolen-checklist.md`. No secret is stored yet.
 
 ## Credentials
 

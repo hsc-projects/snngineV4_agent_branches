@@ -36,9 +36,9 @@ without the stick). Evidence: the smoke-test report's follow-ups (it stops at
    expiry (checked: `KeyExpiry None`); tagging an already-joined node does not remove
    it. The access policy is saved (`pi-provision/tailscale-policy.hujson`): your own
    devices reach the Pi on port 22 only, the Pi cannot reach them (checked). The
-   phone (`fairphone-5-5g`) reached the Pi's sshd over the tailnet. Left open: card 2's
-   node `pi-host-test` (100.121.120.13, expires 2027-04-09, delete it in the console
-   or leave it while card 2 is the spare), and whether to link `/var/lib/tailscale`
+   phone (`fairphone-5-5g`) reached the Pi's sshd over the tailnet. Left open: an older
+   node `pi-host-test` (100.121.120.13, expires 2027-04-09; delete it in the console
+   if it is still listed), and whether to link `/var/lib/tailscale`
    onto the stick so a re-flash keeps the Pi's identity (not decided).
    Lesson: the provision service gives up after 6 starts in an hour, so a network
    outage of about half an hour leaves it failed until the next boot; restart it
@@ -46,15 +46,22 @@ without the stick). Evidence: the smoke-test report's follow-ups (it stops at
    `sudo systemctl start pi-provision.service` (a possible improvement to the unit).
    Lesson: ProtonVPN on the laptop breaks Windows sharing for the Pi (it owns the
    laptop's default route); keep it off while the Pi is provisioning.
-2. **Keyholder (item 20), chosen next by the maintainer.** Direction (2026-10-11):
-   revocable credentials stay plain on the stick, high-value ones are encrypted
-   with a passphrase and unlocked into RAM from the phone over Tailscale
-   (forced-command SSH key). Proposed pieces (waiting for the maintainer's go and
-   three decisions: passphrase versus random key, the phone's SSH app, a separate
-   `pikeys` user): stolen-Pi checklist, `gpg --symmetric` store on the stick,
-   root-owned `pi-unlock` helper writing to a root-only tmpfs under `/run`, a
-   `module_secrets` in the first-boot script, and a laptop-side `pi-secret-add`
-   script that prompts for hidden input. First secret: the RunPod key.
+   Lesson: on 2026-10-11 night Windows sharing could not be enabled with Wi-Fi as the
+   internet side (`0x80040201`, cause not found, a reboot not tried) and worked at once
+   with phone USB tethering; `restart-sharing.ps1` now detects the internet-side adapter
+   itself (report, last follow-up). A Pi that sat without DHCP for hours needs its cable
+   replugged (or a power cycle) once sharing is back.
+2. **Keyholder (item 20), in progress.** Built and tested on the live Pi
+   2026-10-11 (`module_keyholder`, `pi-provision/pi_keyholder.py`,
+   `pi-stolen-checklist.md`; evidence in the smoke-test report, configuration in
+   `pi-technical.md`; its install path also passed on a fresh flash of card 2).
+   Left: Termux on the phone
+   (generate a key, add its public line to the stick's `unlock/authorized_keys`,
+   a widget script, test over the tailnet on mobile data; any other device works
+   the same way, or the admin with `pi_keyholder.py`); the first real secret (the
+   RunPod key, added with `pi_keyholder.py add`, hidden prompts, the maintainer's
+   own passphrase from the password manager); then something that reads it (the
+   MCP, item 21). A real reboot and an absent stick were not tested.
 3. **Egress proxy on the Pi** (the sandbox repo's `egress-proxy`, Squid). Read
    `docs/design/agent-sandbox-patterns.md` (Patterns 1 to 3) first. Proposal made
    2026-10-11, not decided: run it on the Pi, publish on `127.0.0.1`, expose on the
@@ -75,8 +82,7 @@ without the stick). Evidence: the smoke-test report's follow-ups (it stops at
 
 **Practical notes**
 - If the Pi is not found on `192.168.137.x`, run `setups\restart-sharing.bat`
-  (asks for admin; `-Public 'Ethernet 2'` when the internet comes from phone USB
-  tethering instead of `WiFi`). It starts the sharing service, switches sharing
+  (asks for admin; it detects the internet-side adapter itself, `-Public NAME` overrides). It starts the sharing service, switches sharing
   off on every adapter and on again for the chosen pair, and checks that DHCP
   listens. Windows allows one shared connection only; a leftover on the old
   adapter made `EnableSharing` fail with `0x80040201`.
@@ -89,24 +95,15 @@ without the stick). Evidence: the smoke-test report's follow-ups (it stops at
 
 ## Snapshot
 
-**Git** (branch `docs/runpod-pi-setup`): the local history was rewritten
-(two commits that were both named "dev" now have real messages; every hash
-above them changed) and has **not been pushed**; the remote still has the old
-history. The maintainer does any force-push themselves (their commit
-conventions say so). Local backup branch `backup/before-dev-msg-rewrite-13114f5`
-holds the pre-rewrite history. `git status` shows what is uncommitted;
-`setups/decrypt_credential_bundle.py` is untracked on purpose (item 17).
-
 **Cards** (both about 119 GiB, both with a Pi OS boot partition, so the flash
 script's own size window cannot tell them apart; identify by exact size):
-- card 1: 128,177,930,240 bytes. Freshly flashed 2026-10-11 (second time that day,
-  with the script's final text) and now running in the Pi, address
-  `192.168.137.56` that day (changes between boots), Tailscale node `pi-host`
-  (100.96.231.96, tagged `tag:pi`, no key expiry).
-- card 2: 127,865,454,592 bytes. The spare. Flashed 2026-10-11 with an earlier
-  version of the script (same Docker and Tailscale modules; only the join hint
-  differed); its Tailscale node is `pi-host-test` (expires 2027-04-09). Its Linux
-  partition holds only that provisioned system.
+- card 1: 128,177,930,240 bytes. The spare. Flashed 2026-10-11 (second time that
+  day, before the keyholder module existed); out of the Pi. Its Linux partition holds
+  only that provisioned system, and its Tailscale node was deleted.
+- card 2: 127,865,454,592 bytes. Freshly flashed 2026-10-11 evening with the script
+  that has the Docker, Tailscale and keyholder modules, and now running in the Pi
+  (address `192.168.137.132` that night, changes between boots); Tailscale node
+  `pi-host` (100.119.40.123, tagged `tag:pi`, no key expiry).
 - The card reader was Disk 2 on 2026-10-11 (Disk 3 earlier; numbers change). The
   4 GB Transcend stick, label `PIKEYS`, lives in the Pi and is not a card to flash.
   **Before wiping any card or stick, ask what is on its Linux partition** (Windows
@@ -128,9 +125,9 @@ contains a private key). Permissions on `.env` and the config were restricted to
 the maintainer's account. `RUNPOD_API_KEY` has no use decided (item 18).
 
 **The Pi** (2026-10-11): hostname `pi-host`, user `htm` (key-only), Debian 13,
-aarch64, kernel 6.18, card 1 in it, the `PIKEYS` stick in a blue USB 3 port.
-`wireguard-tools`, the key store, the tunnel at boot, Docker and the Tailscale
-install all come from the first-boot script; the Proton config lives on the stick (a re-flash needs no
+aarch64, kernel 6.18, card 2 in it, the `PIKEYS` stick in a blue USB 3 port.
+`wireguard-tools`, the key store, the tunnel at boot, Docker, the Tailscale
+install and the keyholder all come from the first-boot script; the Proton config lives on the stick (a re-flash needs no
 push). The Pi's address on the cable changes between boots.
 
 ## How to do the usual things
@@ -172,7 +169,10 @@ Propose before committing and wait for a go; never push or ask about pushing
 before guessing (web docs, the sandbox repo's patterns) and say plainly what is
 measured and what is inferred. Run checks yourself instead of asking for pasted
 output. Do not change a setting on the laptop or the Pi without asking
-(installs and network changes especially). Keep answers short and concrete.
+(installs and network changes especially). Keep answers short and concrete. Run anything that waits (a search, a flash, a UAC
+prompt) in the background and say what is happening: a silent foreground wait of
+minutes was the most criticised thing on 2026-10-11, and when a script blocks,
+use the commands that worked before instead of debugging it for an hour.
 
 ## Things that went wrong (do not repeat)
 
@@ -208,6 +208,7 @@ output. Do not change a setting on the laptop or the Pi without asking
 21), `pi-smoke-test/task.md` (the task spec, kept current), the report (evidence,
 phases 1 and 2, Proton and first-boot follow-ups), `runpod-rationale.md` (why the
 Pi exists), `report-format.md`, `pi-provision/tailscale-policy.hujson` (the tailnet
-access policy, to paste into the admin console). The sandbox repo (`claude-code-and-local-agent-sandbox`,
+access policy, to paste into the admin console), `pi-stolen-checklist.md` (what to
+revoke if the Pi is lost). The sandbox repo (`claude-code-and-local-agent-sandbox`,
 GitHub `hsc-projects/...`) holds the patterns to reuse: `docker/egress-proxy/`,
 the credential-sidecar pattern in `docs/design/agent-sandbox-patterns.md`.
