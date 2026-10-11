@@ -1,6 +1,6 @@
 # Pi work — handoff for the next session
 
-State as of 2026-10-07. Read this first, then `pi-technical.md` (what the Pi
+State as of 2026-10-11. Read this first, then `pi-technical.md` (what the Pi
 is now) and `pi-rationale.md` (decisions and numbered open items). The smoke
 test's evidence is in `pi-smoke-test/pi-smoke-test-report.md`. Nothing here
 contains a secret value; the secrets live in `setups/.secrets/` (gitignored).
@@ -14,24 +14,62 @@ laptop's Ethernet adapter (restart it with `setups\restart-sharing.bat`), with a
 phone hotspot over Wi-Fi as a second path (hotspot preferred through a route
 metric, cable as fallback). A fresh flash provisions itself on first boot:
 `wireguard-tools`, the credential stick (`PIKEYS`, holding the Proton WireGuard
-config), the tunnel up at every boot with its DNS through it, and the Wi-Fi
-password scrubbed from the boot partition; a failed run is retried. All of it was
-tested on the Pi 2026-10-07 to 2026-10-11 (fresh flashes of both cards, boots with
-no network and without the stick). Evidence: the smoke-test report's last
-follow-up; details: `pi-technical.md`.
+config), the tunnel up at every boot with its DNS through it, Docker (from
+Docker's own repository), Tailscale (installed; the join is interactive and
+tagged), and the Wi-Fi password scrubbed from the boot partition; a failed run is
+retried. The Pi is on the tailnet as `pi-host` under an access policy that lets
+the maintainer's devices reach it on port 22 only. All of it was tested on the Pi
+2026-10-07 to 2026-10-11 (fresh flashes of both cards, boots with no network and
+without the stick). Evidence: the smoke-test report's follow-ups (it stops at
+2026-10-07 and does not cover Docker or Tailscale); details: `pi-technical.md`.
 
 ## Next steps, in order
 
-1. **Docker, then Tailscale on the Pi** (items 13 and 14 in `pi-rationale.md`),
-   one tested module each in the first-boot script. They lead to the larger piece
-   the maintainer wants **later**: the Pi as the sandbox's egress proxy, reusing the
-   sandbox repo's `egress-proxy` container.
-2. **Keyholder design (item 20).** The stick gives the Pi a place for credentials
-   that survives a re-flash; the open question is protection at rest (the stick is
-   not encrypted, an unattended boot cannot supply a passphrase).
-3. Items 10, 11, and the rest of 12 (see their entries), all low priority unless
+1. **Done 2026-10-11: Docker and Tailscale** (items 13 and 14 in
+   `pi-rationale.md`). Docker 29.9 (Docker's own apt repository) and Tailscale 1.104.1
+   each have a module in the first-boot script; both install paths passed on fresh
+   flashes (card 2, then card 1 with the script's final text), together with the
+   tunnel. The join is interactive and must be tagged:
+   `sudo tailscale up --accept-dns=false --hostname=pi-host --advertise-tags=tag:pi`
+   (the login link lasts 10 to 15 minutes; delete the node's stale predecessor in
+   the admin console first, or the name gets a number). A tagged join has no key
+   expiry (checked: `KeyExpiry None`); tagging an already-joined node does not remove
+   it. The access policy is saved (`pi-provision/tailscale-policy.hujson`): your own
+   devices reach the Pi on port 22 only, the Pi cannot reach them (checked). The
+   phone (`fairphone-5-5g`) reached the Pi's sshd over the tailnet. Left open: card 2's
+   node `pi-host-test` (100.121.120.13, expires 2027-04-09, delete it in the console
+   or leave it while card 2 is the spare), and whether to link `/var/lib/tailscale`
+   onto the stick so a re-flash keeps the Pi's identity (not decided).
+   Lesson: the provision service gives up after 6 starts in an hour, so a network
+   outage of about half an hour leaves it failed until the next boot; restart it
+   with `sudo systemctl reset-failed pi-provision.service` and
+   `sudo systemctl start pi-provision.service` (a possible improvement to the unit).
+   Lesson: ProtonVPN on the laptop breaks Windows sharing for the Pi (it owns the
+   laptop's default route); keep it off while the Pi is provisioning.
+2. **Keyholder (item 20), chosen next by the maintainer.** Direction (2026-10-11):
+   revocable credentials stay plain on the stick, high-value ones are encrypted
+   with a passphrase and unlocked into RAM from the phone over Tailscale
+   (forced-command SSH key). Proposed pieces (waiting for the maintainer's go and
+   three decisions: passphrase versus random key, the phone's SSH app, a separate
+   `pikeys` user): stolen-Pi checklist, `gpg --symmetric` store on the stick,
+   root-owned `pi-unlock` helper writing to a root-only tmpfs under `/run`, a
+   `module_secrets` in the first-boot script, and a laptop-side `pi-secret-add`
+   script that prompts for hidden input. First secret: the RunPod key.
+3. **Egress proxy on the Pi** (the sandbox repo's `egress-proxy`, Squid). Read
+   `docs/design/agent-sandbox-patterns.md` (Patterns 1 to 3) first. Proposal made
+   2026-10-11, not decided: run it on the Pi, publish on `127.0.0.1`, expose on the
+   tailnet with `tailscale serve`, a relay container on the sandbox's `internal`
+   network that forwards to the Pi (own tag, ACL rule to `tag:pi` port 3128).
+   Open decisions: exit through Proton or directly, a kill switch (there is none),
+   fail-closed when the Pi is down, where the allowlist lives (single source in the
+   sandbox repo, pushed by script). Build order: Pi side alone, then tailnet and
+   ACL, then the sandbox side and `verify.sh`.
+4. **The Pi's own MCP server (item 21).** Overview of running services,
+   detail-free error notification, start/stop of optional services through a
+   root-owned sudo helper. Start read-only, after the proxy design.
+5. Items 10, 11, and the rest of 12 (see their entries), all low priority unless
    the maintainer says otherwise.
-4. Loose ends: `decrypt_credential_bundle.py` (item 17, untracked, never run),
+6. Loose ends: `decrypt_credential_bundle.py` (item 17, untracked, never run),
    `RUNPOD_API_KEY` (item 18), `ssh` file versus `enable_ssh` (item 16), and
    whether to set the Windows sharing service to automatic start (item 19).
 
@@ -56,13 +94,19 @@ follow-up; details: `pi-technical.md`.
 above them changed) and has **not been pushed**; the remote still has the old
 history. The maintainer does any force-push themselves (their commit
 conventions say so). Local backup branch `backup/before-dev-msg-rewrite-13114f5`
-holds the pre-rewrite history. Everything in this note is committed except
-`setups/decrypt_credential_bundle.py` (untracked on purpose; item 17).
+holds the pre-rewrite history. `git status` shows what is uncommitted;
+`setups/decrypt_credential_bundle.py` is untracked on purpose (item 17).
 
 **Cards** (both about 119 GiB, both with a Pi OS boot partition, so the flash
 script's own size window cannot tell them apart; identify by exact size):
-- card 1: 128,177,930,240 bytes. Freshly flashed 2026-10-11 and running in the Pi.
-- card 2: 127,865,454,592 bytes. The spare; also freshly flashed (2026-10-11).
+- card 1: 128,177,930,240 bytes. Freshly flashed 2026-10-11 (second time that day,
+  with the script's final text) and now running in the Pi, address
+  `192.168.137.56` that day (changes between boots), Tailscale node `pi-host`
+  (100.96.231.96, tagged `tag:pi`, no key expiry).
+- card 2: 127,865,454,592 bytes. The spare. Flashed 2026-10-11 with an earlier
+  version of the script (same Docker and Tailscale modules; only the join hint
+  differed); its Tailscale node is `pi-host-test` (expires 2027-04-09). Its Linux
+  partition holds only that provisioned system.
 - The card reader was Disk 2 on 2026-10-11 (Disk 3 earlier; numbers change). The
   4 GB Transcend stick, label `PIKEYS`, lives in the Pi and is not a card to flash.
   **Before wiping any card or stick, ask what is on its Linux partition** (Windows
@@ -85,8 +129,8 @@ the maintainer's account. `RUNPOD_API_KEY` has no use decided (item 18).
 
 **The Pi** (2026-10-11): hostname `pi-host`, user `htm` (key-only), Debian 13,
 aarch64, kernel 6.18, card 1 in it, the `PIKEYS` stick in a blue USB 3 port.
-`wireguard-tools`, the key store and the tunnel at boot all come from the
-first-boot script; the Proton config lives on the stick (a re-flash needs no
+`wireguard-tools`, the key store, the tunnel at boot, Docker and the Tailscale
+install all come from the first-boot script; the Proton config lives on the stick (a re-flash needs no
 push). The Pi's address on the cable changes between boots.
 
 ## How to do the usual things
@@ -150,12 +194,20 @@ output. Do not change a setting on the laptop or the Pi without asking
   a leftover on an old adapter blocks it). Use `setups\restart-sharing.bat`.
 - Heavy writes to a card (a flash) make Windows disk queries and PowerShell very
   slow; use short, light commands and run the flash in the background.
+- Run `pi_smoke_test_ssh_check.py` from PowerShell, not from a Git Bash shell: it
+  passes `nul` to `ssh`, which the Git Bash `ssh` rejects, so every attempt fails
+  at once whatever the Pi is doing (2026-10-11: 48 failed attempts).
+- Do not change the Pi's power or state (shutdown, restarts, installs) unprompted;
+  card swaps and power are the maintainer's, and a vague "continue" is not a go.
+- Starting or approving a Tailscale login: the link lasts 10 to 15 minutes, then
+  the command exits with `context canceled` and needs a new one.
 
 ## Map of the docs
 
 `pi-technical.md` (current state), `pi-rationale.md` (decisions, open items 0 to
-20), `pi-smoke-test/task.md` (the task spec, kept current), the report (evidence,
+21), `pi-smoke-test/task.md` (the task spec, kept current), the report (evidence,
 phases 1 and 2, Proton and first-boot follow-ups), `runpod-rationale.md` (why the
-Pi exists), `report-format.md`. The sandbox repo (`claude-code-and-local-agent-sandbox`,
+Pi exists), `report-format.md`, `pi-provision/tailscale-policy.hujson` (the tailnet
+access policy, to paste into the admin console). The sandbox repo (`claude-code-and-local-agent-sandbox`,
 GitHub `hsc-projects/...`) holds the patterns to reuse: `docker/egress-proxy/`,
 the credential-sidecar pattern in `docs/design/agent-sandbox-patterns.md`.

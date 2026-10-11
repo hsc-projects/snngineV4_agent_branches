@@ -2,23 +2,27 @@
 """Phase 1 of the Pi smoke test: flash the SD card with a customized image.
 
 Scope per task.md: hostname pi-host, account htm (key-only, no password),
-Wi-Fi (SSID/country prompted at runtime, never hardcoded — see below),
-SSH public key from setups/.secrets/id_ed25519.pub (gitignored, not ~/.ssh).
+Wi-Fi (from setups/.secrets/.env with --wifi-from-env, otherwise prompted at
+runtime; never hardcoded), SSH public key from setups/.secrets/id_ed25519.pub
+(gitignored, not ~/.ssh).
 
-custom.toml / cmdline.txt mechanism verified against RPi-Distro/
-raspberrypi-sys-mods' actual firstboot and init_config source (not guessed):
-https://github.com/RPi-Distro/raspberrypi-sys-mods
+First-boot configuration is cloud-init (user-data, network-config, meta-data on
+the boot partition); the older custom.toml mechanism is not read by this OS
+release, and any leftover one is removed. The optional --provision-script is
+carried in user-data (setups/pi-technical.md, "First-boot provisioning").
 
-Run this yourself, not through the assistant's Bash tool: it needs
-elevated rights (an interactive sudo password on Linux, an Administrator
-terminal on Windows), a Wi-Fi password prompt, and a real terminal.
+It wipes the card: check the card's exact size, and what is on it, first. It
+needs elevated rights (an interactive sudo password on Linux, an Administrator
+PowerShell on Windows). With --device, --confirm-device and --wifi-from-env it
+asks nothing, so it can run from an elevated, non-interactive PowerShell with
+its output logged (setups/pi-handoff.md, "Flash a card").
 
 Platforms: Linux (dd, lsblk, udisksctl, xzcat, sudo) and Windows (built-in
 PowerShell storage cmdlets, raw \\\\.\\PhysicalDriveN writes, Python's own
 lzma module, so no extra tools beyond Python and the OpenSSH client that
-ships with Windows 10+). The Windows path is UNTESTED as of its writing:
-it was written on a machine without Python and never run. Linux behavior is
-unchanged from the version that was run.
+ships with Windows 10+). The Windows path has been run repeatedly (2026-10-07
+to 2026-10-11); the Linux path was not re-run after the cloud-init rework and
+the Windows port.
 """
 
 import argparse

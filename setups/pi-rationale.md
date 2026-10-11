@@ -69,6 +69,15 @@ and the provisioning script scrubs the Wi-Fi password from the FAT boot
 partition once cloud-init has used it. Open (item 20): which credentials,
 and what protects them if the SD card is physically taken.
 
+**2026-10-11 — The Pi gets its own MCP server, and the host is meant to be
+portable (maintainer, in conversation).** Day-to-day operation (overview of
+running services, detail-free error notification, start/stop of optional
+services) goes through an MCP server on the Pi, so routine work needs no SSH or
+root; design in item 21. A Pi hardware failure is acceptable as a single point
+of failure on the condition that the SD card or image can be moved to a new Pi,
+and later to a cloud server. Safety comes first: the design reuses the sandbox
+repo's established patterns (Patterns 1 to 3) and improves them where needed.
+
 **2026-09-28 — A cheap always-on VPS (e.g. Hetzner) was raised as a
 possible alternative/fallback host and dismissed as too expensive for
 just a proxy.** Not researched further, and this reasoning predates the
@@ -152,16 +161,16 @@ design, and what it did not:
   `--no-install-recommends` (no `resolvconf`), `wg-quick up` behind a
   150 s safety timer, a Japanese public IP, IPv4 and IPv6 through the
   tunnel, SSH unaffected. This is independent of the laptop's VPN, which does
-  not cover the Pi's traffic. Open: DNS through the tunnel (currently leaks to
-  the laptop's resolver), start at boot, behavior if the tunnel drops (no kill
-  switch), and how it combines with Tailscale and the egress-proxy role.
+  not cover the Pi's traffic. Open at the time (since done, see item 9): DNS through the tunnel, start at
+  boot. Still open: behavior if the tunnel drops (no kill switch) and how it
+  combines with the egress-proxy role (it coexists with Tailscale).
 - **Decision (maintainer, 2026-10-04): prefer the hotspot over the cable,
   with the cable as the fallback, and keep the Wi-Fi settings.** The Pi's
   default route went to `eth0` (NetworkManager metric 100) over `wlan0`
   (600) on the card tested. The flash script now sets `wlan0`'s route metric
   to 50 through netplan `dhcp4-overrides: route-metric` (documented for the
   NetworkManager renderer), so the preference is in the first-boot config.
-  Not yet tested on the Pi. A cable that is up but has no internet (laptop
+  Verified on the Pi 2026-10-07 to 2026-10-11 (item 12). A cable that is up but has no internet (laptop
   offline, sharing off) would still hold the default route only if it were
   preferred; with Wi-Fi preferred that case matters less, but a connectivity
   check was not built. Using the phone hotspot as the main path costs phone
@@ -250,9 +259,10 @@ it, it isn't guaranteed complete.
 Follow-ups from the 2026-10-04 smoke test (all low priority unless the
 maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
 
-8. **DNS through the Proton tunnel on the Pi.** With the `DNS` line removed
-   the Pi's lookups leak to the laptop's resolver. Needs `resolvconf` or an
-   equivalent, tested separately.
+8. **DNS through the Proton tunnel on the Pi.** Done 2026-10-07 to 2026-10-11
+   without `resolvconf`: see item 9 and `pi-technical.md` (tunnel hooks plus a
+   NetworkManager dispatcher). Untested: the effect of IPv6 resolvers (this
+   network offers none).
 9. **Proton tunnel as a service.** Done 2026-10-07 to 2026-10-11: starts at
    boot (`wg-quick@`), DNS goes through it, also for devices that connect later
    (see `pi-technical.md`). Still open: behavior when the tunnel drops (no kill
@@ -274,15 +284,33 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
     is not installed), and a hotspot on channels 12/13.
 13. **First-boot installs.** `pi-provision/pi-firstboot.sh` runs for real (modules:
     WireGuard tools; the credential stick; the tunnel at boot with its DNS
-    dispatcher; scrub of the Wi-Fi password from the boot partition; built on the
-    sandbox repo's Dockerfile/entrypoint habits: preflight, an active check after
-    each install, a verified scrub) and is retried by `pi-provision.service` until
-    it succeeds. Still to add, one tested module at a time: Docker, Tailscale, the
-    sandbox's egress-proxy container (a proxy is the Pi's core job); pinned or
-    logged versions; no long-lived secrets on the card.
-14. **Tailscale on the Pi.** Join interactively over SSH (no auth key on the
-    card), and check the machine-key expiry setting in the admin console. The
-    RunPod pod's auth key is separate (item 5).
+    dispatcher; Docker; Tailscale; scrub of the Wi-Fi password from the boot
+    partition; built on the sandbox repo's Dockerfile/entrypoint habits: preflight,
+    an active check after each install, a verified scrub) and is retried by
+    `pi-provision.service` until it succeeds. Docker (2026-10-11): from Docker's own
+    apt repository, not Debian's `docker.io` (older; no buildx or Compose v2
+    plugin, which the sandbox repo uses), the signing key checked against its
+    published fingerprint, no user in the `docker` group; tested by hand beside the
+    tunnel, then through the script's own install path on fresh flashes of both
+    cards. Tailscale: item 14. Still to add, one tested module at a time: the
+    sandbox's egress-proxy container (a proxy is the Pi's core job), the Pi's
+    own MCP server (item 21); pinned or logged versions; no long-lived secrets
+    on the card. Known weakness: after about half an hour without network the
+    service uses up its start limit (6 per hour) and stays failed until the next
+    boot or a manual `reset-failed` and `start`.
+14. **Tailscale on the Pi.** Done 2026-10-11 (details in `pi-technical.md`):
+    installed by the first-boot script (daemon only), joined interactively over
+    SSH with `--advertise-tags=tag:pi` (no auth key on the card; the flag gives a
+    node without key expiry, whereas tagging an already-joined node did not remove
+    it), `--accept-dns=false`. Coexistence with the Proton tunnel was checked and
+    is fine. The access policy is saved (`pi-provision/tailscale-policy.hujson`):
+    the maintainer's devices reach it on port 22 only, and the Pi cannot start
+    connections to them. The phone's SSH attempts reached sshd and were refused for
+    lack of a key, as expected. A non-expiring node is covered by the stolen-Pi
+    checklist (item 20). The RunPod pod's auth key is separate (item 5). Open: link
+    `/var/lib/tailscale` onto the stick so a re-flash keeps the Pi's identity (not
+    decided); card 2's older node `pi-host-test` still expires 2027-04-09; the remote
+    unlock from the phone on mobile data (item 20) is not built.
 15. **Reading the Pi's logs when it stops responding.** Windows cannot read
     the root partition and `wsl --mount` does not support SD card readers;
     WSL plus usbipd-win would, but is not set up. The journal is volatile;
@@ -310,7 +338,65 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
     weigh, none researched: disk encryption, loading keys into RAM over SSH
     after each boot (lost on power loss), narrowly scoped and rotatable keys.
     Until then `RUNPOD_API_KEY` stays on the laptop in `setups/.secrets/.env`
-    (item 18).
+    (item 18). Any tool that uses a held credential (item 21) waits for this.
+    **Direction chosen 2026-10-11 (maintainer: unattended, in a semi-secure
+    location, so theft of the whole Pi is in scope; not yet built):** the Pi has
+    no TPM, so nothing is bound to hardware. Two tiers instead.
+    - *Unattended tier* (the WireGuard config, the Tailscale node state): stays
+      plain on the stick so the Pi recovers from a power cut alone. Each is
+      revocable, which is the protection: a written **stolen-Pi checklist** (to
+      write, in `setups/`) names each credential and where to revoke it (new
+      Proton config, remove the Tailscale node, and so on); the Tailscale ACL
+      gives the Pi's node the minimum reach; the Pi holds no outbound SSH keys.
+    - *High-value tier* (the RunPod key, any GitHub token): stored on the stick
+      only encrypted with a passphrase (`age` or gpg; this is also the idea behind
+      item 17), decrypted into a root-only tmpfs under `/run` after each boot,
+      never written to disk in the clear. A power cut or theft means they are gone
+      until unlocked. Only credentialed MCP tools (item 21) stop meanwhile. Also:
+      a spending cap or small prepaid balance on RunPod, and the narrowest key
+      scopes (what RunPod offers: to verify).
+    - *Unlock from the phone, one touch, over Tailscale (so from anywhere):* the
+      phone holds an SSH key behind biometrics and the passphrase, never the
+      credentials. In the Pi's `authorized_keys` that key is limited with a forced
+      command (`command="/usr/local/sbin/pi-unlock",no-pty,no-port-forwarding`),
+      so it can do only the unlock, not open a shell. App support (Shortcuts,
+      Termux:Widget, Termius snippets) is not verified; depends on the phone.
+    - *Rejected for now:* LUKS plus Tang on the stick and card (protects against
+      reading them elsewhere, but only as well as the speed of revoking the Pi's
+      tailnet node, and adds a second always-on machine); revisit if theft at rest
+      becomes a concern. Hardware tokens do not fit (WireGuard and API keys cannot
+      live in one).
+21. **The Pi's own MCP server** (brainstormed 2026-10-11, nothing built).
+    Purpose: day-to-day operation of the Pi without SSH or root; root stays for
+    provisioning and for changing the MCP's own code. Built as the sandbox repo's
+    Pattern 1 (`docs/design/agent-sandbox-patterns.md`): a custom FastMCP server
+    in a container with `cap_drop: [ALL]`, `no-new-privileges`, an unprivileged
+    user, and any secret read once by the entrypoint; no Docker socket mounted.
+    Planned tools:
+    - *Overview*: what is running, from one root-owned manifest that lists each
+      service as core or optional with its health check (a new service needs a
+      manifest line, not MCP code). Fixed typed fields only, never log text
+      (logs can carry attacker-controlled content).
+    - *Error notification without details*: only "service X is failing"; the
+      details stay readable over SSH. Open: delivery (the agent polls `status`,
+      or the Pi pushes to the maintainer's phone; the push is probably the real
+      need).
+    - *Start/stop of optional services*: through a root-owned helper script that
+      accepts only `start`/`stop` and a name from the manifest's optional list,
+      run by the MCP user through one sudoers rule. Core services (tunnel, proxy,
+      the MCP itself) are not stoppable this way. Alternative not chosen: a
+      request queue like the sandbox's `tasks.db`.
+    Constraints from the sandbox patterns: two tool surfaces (a narrow agent
+    surface; an admin surface on a separate port and token, covering allowlist
+    and credential changes, where an agent may only propose), each tool builds
+    its own target and takes no caller-supplied URL or command (Pattern 1);
+    reachable from the sandbox only through one fixed relay port, listening on
+    the Tailscale interface only (Pattern 2); check for Unix sockets afterwards.
+    Start read-only. Build order: Docker (item 13), Tailscale (item 14), MCP
+    skeleton with one `status` tool, the proxy, then credentialed tools. The
+    images and manifest are meant to move to a new Pi or a cloud server; the
+    first-boot preflight is pinned to aarch64 and Debian 13, so a move to x86
+    needs multi-arch images and a preflight change.
 
 Not a to-do, just a standing fact: keeping the Pi available/online when
 needed is the maintainer's own responsibility, not something planned

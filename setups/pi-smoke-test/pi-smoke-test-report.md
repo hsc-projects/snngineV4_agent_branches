@@ -217,11 +217,14 @@ also joined a phone hotspot over Wi-Fi.
 - Whether sharing survives a laptop reboot or sleep.
 - Whether Proton's client can share its own tunnel adapter, and a VPN
   running on the Pi itself: neither tried.
-- Docker, Tailscale and the egress proxy on the Pi: not installed.
+- Docker, Tailscale and the egress proxy on the Pi: not installed at the time
+  (Docker and Tailscale since: see the 2026-10-11 follow-up at the end; the egress
+  proxy is not built).
 
 ## Follow-up — first-boot provisioning script (2026-10-05 to 2026-10-07)
 
-**Summary: written and tested offline; later tested on the Pi (see the 2026-10-07 to 2026-10-11 follow-up at the end).**
+**Summary: written and tested offline; later tested on the Pi (see the follow-up "first boots, retry, credential stick,
+tunnel at boot" below).**
 `setups/pi-provision/pi-firstboot.sh` is embedded in the card's `user-data` by
 `pi_smoke_test_flash.py --provision-script` (cloud-init `write_files`, started
 with `systemd-run` so it cannot block boot). It was modelled on the sandbox
@@ -334,3 +337,54 @@ after the offline version:
   the old adapter made `EnableSharing` fail (`0x80040201`).
 - **Wiping cards loses what is on their Linux partition**, which Windows cannot
   read: the hand-installed tunnel setup of 2026-10-04 was lost that way.
+
+## Follow-up — Docker, Tailscale and the tailnet policy (2026-10-11)
+
+**Summary: works, tested by hand on the Pi and then through the script on fresh
+flashes of both cards; two failures on the way, both understood.** Configuration
+is in `pi-technical.md` and the reasoning in `pi-rationale.md` (items 13 and 14);
+this section holds only what was measured.
+
+- **Method.** Before each install the baseline was recorded (tunnel handshake,
+  resolver, public address, routes, nftables tables) and repeated afterwards. Each
+  install was done by hand first, then moved into the script and run through its
+  own install path on card 2 (about 3 minutes from power-on to done) and again on
+  card 1 (the script's final text).
+- **Docker.** Docker's signing key matched its published fingerprint. After the
+  install the tunnel handshake stayed fresh, the resolver stayed on the tunnel's,
+  and SSH was never interrupted. A container's public address equalled the host's
+  (so container traffic leaves through the tunnel), and names resolved through the
+  tunnel's resolver. `iptables` arrived as a dependency and the active backend was
+  `iptables-nft`. (The first container test failed only because busybox's `wget`
+  has no `-4`.)
+- **Tailscale.** No fingerprint is published for its key, so the one seen was
+  recorded and pinned (trust on first use). After the join the handshake, resolver
+  and public address were unchanged. Its routing rules sit before WireGuard's and
+  do not overlap; its own traffic bypasses the tunnel (its netcheck reported the
+  home connection's address, relay Tokyo). The phone and the Pi answered each
+  other's `tailscale ping` in 34 to 46 ms through the relay (no direct path).
+- **Key expiry.** A node joined without a tag expires (2027-04-09). Tagging it
+  afterwards in the console did not remove that (the console still said 6 months).
+  A join with `--advertise-tags=tag:pi` on card 1 gave `KeyExpiry None`.
+- **Policy.** Before the policy the Pi pinged the phone with 0% loss; after it,
+  100% loss, with the Pi tagged and the phone's SSH attempts still reaching sshd (as
+  `u0_a308`, then as `htm`; refused, no phone key exists yet).
+- **Failure 1: the login link timed out.** `tailscale up` ends with
+  `context canceled` after about 10 minutes and needs a new link.
+- **Failure 2: ProtonVPN on the laptop cut the Pi off.** Card 1's first boot got
+  through WireGuard and Docker, then the Pi had neither DNS nor internet: even
+  packets marked to bypass the tunnel got nowhere, and the tunnel's handshake was 22
+  minutes old. The laptop's own internet and sharing service were fine, but the
+  ProtonVPN adapter held its default route (metric 0). The internet came back once
+  the VPN was disconnected (cause inferred from the routes and the timing). During
+  the outage the Tailscale module failed with a clear log line, and the retry service
+  used up its 6 starts and stayed failed; `reset-failed` plus `start` finished the
+  run (earlier modules reported "already installed", marker written).
+
+### Not established
+
+- SSH from the phone with a key, and the blocked ports from the phone live (the
+  policy's saved `tests` block asserts them; not seen).
+- Behavior when the tunnel drops (still no kill switch).
+- Whether a re-flash can keep the Tailscale identity (it cannot today; linking the
+  state onto the stick is undecided).

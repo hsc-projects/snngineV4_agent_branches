@@ -10,8 +10,10 @@
 #
 # Steps in here were tested by hand on the Pi (2026-10-04). Deliberately NOT
 # here: any VPN config or key (the Pi is meant to hold credentials; they are
-# pushed over SSH into root-only files, never carried on the card), DNS through
-# the tunnel, starting the tunnel at boot, Docker (all untested or undecided).
+# pushed over SSH into root-only files, never carried on the card). Docker
+# (module_docker) was added and tested by hand on the Pi on 2026-10-11, then
+# turned into the module below; the module itself is tested only by running
+# `pi-firstboot.sh docker` on that Pi and on a fresh flash.
 #
 # Safe to re-run: a marker file, written only when every step succeeded
 # (including the scrub), ends later runs. Every wait is bounded, and a failure
@@ -32,6 +34,18 @@ SCRUB_PLACEHOLDER="scrubbed-after-first-boot"
 KEYSTORE_LABEL=PIKEYS
 KEYSTORE_MOUNT=/mnt/pi-keys
 KEYSTORE_MANIFEST=$KEYSTORE_MOUNT/links.conf
+# Docker's apt signing key, checked against its published fingerprint before it is
+# trusted (https://docs.docker.com/engine/install/debian/).
+DOCKER_KEY_FPR=9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+DOCKER_KEY=/etc/apt/keyrings/docker.asc
+DOCKER_SOURCES=/etc/apt/sources.list.d/docker.sources
+DOCKER_PACKAGES=(docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin)
+# Tailscale's apt signing key. Its docs publish no fingerprint, so this one is the
+# primary-key fingerprint seen on 2026-10-11 (trust on first use over TLS); a mismatch
+# later means the key changed and needs a look, not a silent edit of this line.
+TAILSCALE_KEY_FPR=2596A99EAAB33821893C0A79458CA832957F5868
+TAILSCALE_KEY=/usr/share/keyrings/tailscale-archive-keyring.gpg
+TAILSCALE_LIST=/etc/apt/sources.list.d/tailscale.list
 
 log() { echo "$(date -Is) $*"; }
 
@@ -261,6 +275,131 @@ DISPATCH
     log "wireguard autostart: wg-quick@$name enabled at boot"
 }
 
+# Docker Engine from Docker's own apt repository (the Debian docker.io package is
+# older and has no buildx or Compose v2 plugin; the sandbox repo uses both).
+# Floats within the repo, like the other apt packages; the installed versions are
+# logged. No user is added to the docker group (membership is root-equivalent).
+# Installing iptables as a dependency was tested alongside the WireGuard tunnel:
+# tunnel, DNS and container egress through the tunnel all kept working.
+module_docker() {
+    export DEBIAN_FRONTEND=noninteractive
+    local tmp fpr attempt ok=0 codename
+    # A retry after a later step failed must not need the network again.
+    if [ -f "$DOCKER_SOURCES" ] && dpkg-query -W "${DOCKER_PACKAGES[@]}" > /dev/null 2>&1; then
+        log "module docker: already installed ($(dpkg-query -W -f='${Version}' docker-ce))"
+    else
+        for attempt in 1 2 3 4 5; do
+            if timeout 600 apt-get install -y --no-install-recommends ca-certificates curl gnupg; then
+                ok=1; break
+            fi
+            log "apt attempt $attempt failed; retrying in 20 s"; sleep 20
+        done
+        if [ "$ok" -ne 1 ]; then
+            log "FAILED module docker: could not install ca-certificates, curl and gnupg (no internet?)"; return 1
+        fi
+        install -m 0755 -d /etc/apt/keyrings
+        tmp=$(mktemp)
+        if ! curl -fsSL --max-time 60 https://download.docker.com/linux/debian/gpg -o "$tmp"; then
+            rm -f "$tmp"; log "FAILED module docker: could not download Docker's signing key"; return 1
+        fi
+        fpr=$(gpg --homedir "$(mktemp -d)" --show-keys --with-colons "$tmp" 2> /dev/null | awk -F: '$1=="fpr"{print $10; exit}')
+        if [ "$fpr" != "$DOCKER_KEY_FPR" ]; then
+            rm -f "$tmp"; log "FAILED module docker: signing key fingerprint is '${fpr:-none}', expected $DOCKER_KEY_FPR; not trusting it"; return 1
+        fi
+        install -m 0644 "$tmp" "$DOCKER_KEY"
+        rm -f "$tmp"
+        # shellcheck disable=SC1091
+        codename=$(. /etc/os-release && echo "$VERSION_CODENAME")
+        printf 'Types: deb\nURIs: https://download.docker.com/linux/debian\nSuites: %s\nComponents: stable\nArchitectures: %s\nSigned-By: %s\n' \
+            "$codename" "$(dpkg --print-architecture)" "$DOCKER_KEY" > "$DOCKER_SOURCES"
+        ok=0
+        for attempt in 1 2 3 4 5; do
+            if timeout 300 apt-get update \
+                && timeout 900 apt-get install -y --no-install-recommends "${DOCKER_PACKAGES[@]}"; then
+                ok=1; break
+            fi
+            log "apt attempt $attempt failed; retrying in 20 s"; sleep 20
+        done
+        if [ "$ok" -ne 1 ]; then
+            log "FAILED module docker: apt could not install ${DOCKER_PACKAGES[*]} after 5 attempts (no internet, or Docker's repository is unreachable?)"; return 1
+        fi
+    fi
+    # Active checks: the daemon answers, and both plugins run. (No image is pulled.)
+    systemctl enable --now docker.service > /dev/null 2>&1 || true
+    if ! timeout 60 docker info > /dev/null 2>&1; then
+        log "FAILED module docker: installed, but the daemon does not answer 'docker info'"; return 1
+    fi
+    if ! docker compose version > /dev/null 2>&1 || ! docker buildx version > /dev/null 2>&1; then
+        log "FAILED module docker: the compose or buildx plugin does not run"; return 1
+    fi
+    log "module docker: ok (engine $(docker version -f '{{.Server.Version}}' 2> /dev/null), $(docker compose version --short), buildx $(docker buildx version | awk '{print $2}'))"
+}
+
+# Tailscale from its own apt repository. Installs and enables the daemon only: joining
+# the tailnet is interactive (`sudo tailscale up --accept-dns=false --hostname=pi-host
+# --advertise-tags=tag:pi`, approved in the maintainer's browser; the tag must be owned
+# in the tailnet policy, see tailscale-policy.hujson, and a device that authenticates
+# with a tag has no key expiry), so no auth key ever sits on the card. A node
+# that is not joined is logged, not an error. `--accept-dns=false` keeps DNS with the
+# tunnel's resolver and the NetworkManager dispatcher. Tested beside the Proton tunnel
+# on 2026-10-11 (tunnel, DNS and routes unchanged; Tailscale's own traffic is marked
+# and leaves by the main routing table, so it does not depend on the tunnel).
+module_tailscale() {
+    export DEBIAN_FRONTEND=noninteractive
+    local tmp lst fpr attempt ok=0
+    if [ -f "$TAILSCALE_LIST" ] && dpkg-query -W tailscale > /dev/null 2>&1; then
+        log "module tailscale: already installed ($(dpkg-query -W -f='${Version}' tailscale))"
+    else
+        for attempt in 1 2 3 4 5; do
+            if timeout 600 apt-get install -y --no-install-recommends ca-certificates curl gnupg; then
+                ok=1; break
+            fi
+            log "apt attempt $attempt failed; retrying in 20 s"; sleep 20
+        done
+        if [ "$ok" -ne 1 ]; then
+            log "FAILED module tailscale: could not install ca-certificates, curl and gnupg (no internet?)"; return 1
+        fi
+        tmp=$(mktemp); lst=$(mktemp)
+        if ! curl -fsSL --max-time 60 https://pkgs.tailscale.com/stable/debian/trixie.noarmor.gpg -o "$tmp" \
+            || ! curl -fsSL --max-time 60 https://pkgs.tailscale.com/stable/debian/trixie.tailscale-keyring.list -o "$lst"; then
+            rm -f "$tmp" "$lst"; log "FAILED module tailscale: could not download Tailscale's signing key or source list"; return 1
+        fi
+        fpr=$(gpg --homedir "$(mktemp -d)" --show-keys --with-colons "$tmp" 2> /dev/null | awk -F: '$1=="fpr"{print $10; exit}')
+        if [ "$fpr" != "$TAILSCALE_KEY_FPR" ]; then
+            rm -f "$tmp" "$lst"; log "FAILED module tailscale: signing key fingerprint is '${fpr:-none}', expected $TAILSCALE_KEY_FPR; not trusting it"; return 1
+        fi
+        # The list file must only point apt at Tailscale's repository with this keyring.
+        if [ "$(grep -vcE '^[[:space:]]*(#|$)' "$lst")" -ne 1 ] \
+            || ! grep -qE "^deb \[signed-by=$TAILSCALE_KEY\] https://pkgs\.tailscale\.com/stable/debian trixie main$" "$lst"; then
+            rm -f "$tmp" "$lst"; log "FAILED module tailscale: the source list is not the expected single line; not installing it"; return 1
+        fi
+        install -d -m 0755 /usr/share/keyrings
+        install -m 0644 "$tmp" "$TAILSCALE_KEY"
+        install -m 0644 "$lst" "$TAILSCALE_LIST"
+        rm -f "$tmp" "$lst"
+        ok=0
+        for attempt in 1 2 3 4 5; do
+            if timeout 300 apt-get update \
+                && timeout 600 apt-get install -y --no-install-recommends tailscale; then
+                ok=1; break
+            fi
+            log "apt attempt $attempt failed; retrying in 20 s"; sleep 20
+        done
+        if [ "$ok" -ne 1 ]; then
+            log "FAILED module tailscale: apt could not install tailscale after 5 attempts"; return 1
+        fi
+    fi
+    systemctl enable --now tailscaled.service > /dev/null 2>&1 || true
+    if ! tailscale version > /dev/null 2>&1 || [ "$(systemctl is-active tailscaled)" != "active" ]; then
+        log "FAILED module tailscale: installed, but the tailscale CLI or tailscaled does not run"; return 1
+    fi
+    if tailscale ip -4 > /dev/null 2>&1; then
+        log "module tailscale: ok ($(tailscale version | head -n 1)), joined as $(tailscale ip -4 | head -n 1)"
+    else
+        log "module tailscale: ok ($(tailscale version | head -n 1)), NOT JOINED: run 'sudo tailscale up --accept-dns=false --hostname=pi-host --advertise-tags=tag:pi' and approve the link"
+    fi
+}
+
 # Explicit, never automatic: put an ext4 filesystem labelled KEYSTORE_LABEL on
 # a whole device (old signatures wiped first) and seed links.conf with the
 # WireGuard entry. Refuses a mounted device and (unless FORCE=1) one that
@@ -293,6 +432,8 @@ main() {
     case "${1:-}" in
         keystore) log "=== keystore only ==="; preflight; module_keystore; return ;;
         autostart) log "=== wireguard autostart only ==="; preflight; module_wireguard_autostart; return ;;
+        docker) log "=== docker only ==="; preflight; wait_for_clock; module_docker; return ;;
+        tailscale) log "=== tailscale only ==="; preflight; wait_for_clock; module_tailscale; return ;;
         format-keystore) log "=== format keystore ==="; preflight; format_keystore "${2:-}"; return ;;
     esac
     log "=== pi-provision start ==="
@@ -305,6 +446,8 @@ main() {
     module_wireguard
     module_keystore
     module_wireguard_autostart
+    module_docker
+    module_tailscale
     scrub_wifi_password
     touch "$MARK"
     log "=== pi-provision done ==="

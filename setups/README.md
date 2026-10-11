@@ -17,7 +17,10 @@
 | `pi-smoke-test/task.md` | Task write-up for the Pi flash + SSH smoke test (two phases: write/flash the SD card, then SSH once the maintainer boots and connects the Pi) — done 2026-10-04, kept current |
 | `pi-smoke-test/pi-smoke-test-report.md` | Evidence and findings of that smoke test, plus the Proton VPN and first-boot follow-ups |
 | `pi-smoke-test/pi_smoke_test_flash.py`, `pi_smoke_test_ssh_check.py` | Flash/configure an SD card (Linux and Windows) and find/SSH into the Pi |
-| `pi-provision/pi-firstboot.sh` | Script that runs once on the Pi's first boot (installed by the flash script through cloud-init); first real boot not yet verified |
+| `pi-provision/pi-firstboot.sh` | Script that runs on the Pi's first boot (installed by the flash script through cloud-init, retried until done): WireGuard, the credential stick, the tunnel at boot, Docker, Tailscale, the Wi-Fi password scrub; tested on fresh flashes |
+| `pi-provision/tailscale-policy.hujson` | The tailnet access policy for the Pi (paste into the Tailscale admin console) |
+| `pi-provision/push_wireguard_config.py` | Pushes the Proton WireGuard config to the Pi's credential stick over SSH |
+| `restart-sharing.bat` | Restarts Windows connection sharing for the Pi's cable (asks for admin) |
 | `report-format.md` | Shared report structure (summary + detail subsections) for findings/status reports across this project's cloud-setup work |
 
 Each `-technical.md`/`-rationale.md` pair follows this project's
