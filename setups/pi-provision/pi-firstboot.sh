@@ -203,6 +203,64 @@ module_keystore() {
     return "$rc"
 }
 
+# Bring the WireGuard tunnel up at every boot, with wg-quick's own systemd
+# unit. The config lives on the stick, so the unit requires the stick's mount
+# (no stick: the unit fails cleanly and the Pi still boots and stays reachable,
+# which is also the way out if a tunnel ever blocks access) and retries every 30 s
+# while the network is not ready. Only acts when exactly one config is present.
+# A failure to start the tunnel is logged but never fails provisioning.
+module_wireguard_autostart() {
+    local confs name
+    confs=$(find /etc/wireguard/ -maxdepth 1 -name '*.conf' 2> /dev/null | sort)
+    if [ -z "$confs" ]; then
+        log "wireguard autostart: no config in /etc/wireguard, skipping"; return 0
+    fi
+    if [ "$(echo "$confs" | wc -l)" -ne 1 ]; then
+        log "WARNING wireguard autostart: more than one config in /etc/wireguard, not choosing one"; return 0
+    fi
+    name=$(basename "$confs" .conf)
+    if ! [[ "$name" =~ ^[A-Za-z0-9_-]{1,15}$ ]]; then
+        log "WARNING wireguard autostart: '$name' is not a valid interface name, skipping"; return 0
+    fi
+    install -d /etc/systemd/system/wg-quick@.service.d
+    cat > /etc/systemd/system/wg-quick@.service.d/pi-provision.conf <<DROPIN
+[Unit]
+RequiresMountsFor=$KEYSTORE_MOUNT
+
+[Service]
+Restart=on-failure
+RestartSec=30
+DROPIN
+    chmod 644 /etc/systemd/system/wg-quick@.service.d/pi-provision.conf
+    # A device that connects or reconnects after the tunnel is up (a cable
+    # replug, a lease failure, a Wi-Fi rejoin) gets its network's own DNS from
+    # NetworkManager, outside the tunnel. The tunnel's PostUp hook writes its
+    # resolver to /run/pi-wg-dns/<interface> (PostDown removes it); this
+    # dispatcher script re-applies that resolver to any such device, and does
+    # nothing when no tunnel file exists.
+    install -d /etc/NetworkManager/dispatcher.d
+    cat > /etc/NetworkManager/dispatcher.d/90-pi-wg-dns <<'DISPATCH'
+#!/bin/bash
+dev=$1
+case "${2:-}" in up|dhcp4-change|dhcp6-change|reapply) ;; *) exit 0 ;; esac
+[[ "$dev" =~ ^(eth|wlan) ]] || exit 0
+for f in /run/pi-wg-dns/*; do
+    [ -f "$f" ] || continue
+    dns=$(head -n 1 "$f")
+    applied=$(nmcli -t -f IP4.DNS device show "$dev" | cut -d: -f2- | paste -sd,)
+    [ "$applied" = "$dns" ] && continue
+    nmcli device modify "$dev" ipv4.dns "$dns" ipv4.ignore-auto-dns yes ipv6.ignore-auto-dns yes
+done
+exit 0
+DISPATCH
+    chmod 755 /etc/NetworkManager/dispatcher.d/90-pi-wg-dns
+    chown root:root /etc/NetworkManager/dispatcher.d/90-pi-wg-dns
+    systemctl daemon-reload
+    systemctl enable "wg-quick@$name.service" || { log "FAILED wireguard autostart: could not enable wg-quick@$name"; return 1; }
+    systemctl start --no-block "wg-quick@$name.service" || true
+    log "wireguard autostart: wg-quick@$name enabled at boot"
+}
+
 # Explicit, never automatic: put an ext4 filesystem labelled KEYSTORE_LABEL on
 # a whole device (old signatures wiped first) and seed links.conf with the
 # WireGuard entry. Refuses a mounted device and (unless FORCE=1) one that
@@ -234,6 +292,7 @@ main() {
     exec >>"$LOG" 2>&1
     case "${1:-}" in
         keystore) log "=== keystore only ==="; preflight; module_keystore; return ;;
+        autostart) log "=== wireguard autostart only ==="; preflight; module_wireguard_autostart; return ;;
         format-keystore) log "=== format keystore ==="; preflight; format_keystore "${2:-}"; return ;;
     esac
     log "=== pi-provision start ==="
@@ -245,6 +304,7 @@ main() {
     wait_for_clock
     module_wireguard
     module_keystore
+    module_wireguard_autostart
     scrub_wifi_password
     touch "$MARK"
     log "=== pi-provision done ==="

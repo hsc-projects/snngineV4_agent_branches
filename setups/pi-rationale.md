@@ -253,10 +253,13 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
 8. **DNS through the Proton tunnel on the Pi.** With the `DNS` line removed
    the Pi's lookups leak to the laptop's resolver. Needs `resolvconf` or an
    equivalent, tested separately.
-9. **Proton tunnel as a service.** Start at boot (`wg-quick@`), behavior
-   when the tunnel drops (no kill switch), and how it combines with
-   Tailscale and the egress-proxy role. Related: whether the Pi should run
-   its own VPN or the laptop's tunnel adapter should be shared.
+9. **Proton tunnel as a service.** Done 2026-10-07 to 2026-10-11: starts at
+   boot (`wg-quick@`), DNS goes through it, also for devices that connect later
+   (see `pi-technical.md`). Still open: behavior when the tunnel drops (no kill
+   switch), and how it combines with Tailscale and the egress-proxy role.
+   Related: whether the Pi should run its own VPN or the laptop's tunnel adapter
+   should be shared (the Pi's traffic through the laptop's sharing bypasses the
+   laptop's VPN, which is why the Pi has its own).
 10. **Cable with no sharing and no DHCP** still drops after about 3 minutes.
     Candidates, untried: infinite NetworkManager retries on `eth0` so it
     recovers when sharing returns; a link-local fallback for `eth0`.
@@ -264,18 +267,19 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
     cable or hotspot that is up but has no internet keeps the default route.
     No connectivity check exists; what NetworkManager supports for this is
     unresearched.
-12. **Verify the hotspot-first metric (50) on the Pi,** a cold boot with the
-    hotspot off under the new config, a long hotspot absence (the
-    `autoconnect-retries` limit), the Wi-Fi regulatory code read back
-    (`iw` is not installed), and a hotspot on channels 12/13.
-13. **First-boot installs.** Started: `pi-provision/pi-firstboot.sh` (modules:
-    WireGuard tools; scrub of the Wi-Fi password from the boot partition; built
-    on the sandbox repo's Dockerfile/entrypoint habits: preflight, an active
-    check after each install, a verified scrub) is delivered through `user-data`
-    (`write_files` plus `runcmd` with `systemd-run`); offline-tested, first real
-    boot pending. Still to add, one tested module at a time: Docker, Tailscale,
-    the sandbox's egress-proxy container (a proxy is the Pi's core job); pinned
-    or logged versions; no long-lived secrets on the card.
+12. **Hotspot-first metric (50) on the Pi:** verified on the Pi (2026-10-07 to
+    2026-10-11: `wlan0` default at 50, `eth0` at 100, a cold boot with the
+    hotspot off, reconnect when it returns). Still open: a long hotspot absence
+    (the `autoconnect-retries` limit), the Wi-Fi regulatory code read back (`iw`
+    is not installed), and a hotspot on channels 12/13.
+13. **First-boot installs.** `pi-provision/pi-firstboot.sh` runs for real (modules:
+    WireGuard tools; the credential stick; the tunnel at boot with its DNS
+    dispatcher; scrub of the Wi-Fi password from the boot partition; built on the
+    sandbox repo's Dockerfile/entrypoint habits: preflight, an active check after
+    each install, a verified scrub) and is retried by `pi-provision.service` until
+    it succeeds. Still to add, one tested module at a time: Docker, Tailscale, the
+    sandbox's egress-proxy container (a proxy is the Pi's core job); pinned or
+    logged versions; no long-lived secrets on the card.
 14. **Tailscale on the Pi.** Join interactively over SSH (no auth key on the
     card), and check the machine-key expiry setting in the admin console. The
     RunPod pod's auth key is separate (item 5).
@@ -291,7 +295,11 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
 18. **`RUNPOD_API_KEY`** is now in `setups/.secrets/.env` with no use decided;
     any use needs the exact calls proposed first.
 19. **Windows connection sharing can reset** after a laptop reboot, sleep or
-    Wi-Fi change; a check step before a Pi session might be worth adding.
+    network change (seen again 2026-10-11: the `SharedAccess` service had stopped,
+    and starting it was not enough). `setups/restart-sharing.bat` now fixes it in
+    one call (`-Public 'Ethernet 2'` when the internet comes from phone USB
+    tethering). Setting the service to automatic start would prevent the stop; it
+    is a laptop setting, so it is the maintainer's call.
 20. **Keyholder design** (see the 2026-10-05 decision above). Decide which
     credentials the Pi holds (RunPod API key for the spin-up trigger, the
     Tailscale auth key for the pod, possibly the GitHub token the sandbox

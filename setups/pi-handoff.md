@@ -10,25 +10,44 @@ contains a secret value; the secrets live in `setups/.secrets/` (gitignored).
 A Raspberry Pi 4 (8 GB) can be flashed and reached over SSH headlessly from
 this Windows laptop. A plain cable to the laptop drops after about 3 minutes
 (no DHCP); the fix in use is Windows Internet Connection Sharing on the
-laptop's Ethernet adapter, with a phone hotspot over Wi-Fi as a second path
-(hotspot preferred through a route metric, cable as fallback). Proton VPN
-works on the Pi through WireGuard (tested by hand, not enabled at boot). A
-first-boot provisioning script exists and has run once on card 1 (2026-10-07): preflight, clock sync and `wireguard-tools` all worked; the Wi-Fi password scrub was skipped by an exit-code bug (`cloud-init status --wait` exits 2 on Pi OS's harmless "degraded done"), now fixed in `pi-firstboot.sh` and run by hand on the Pi, which replaced the password with the placeholder. Card 1 was then re-flashed with the fixed script and a fresh first boot passed end to end (log: preflight, clock, wireguard ok, `scrub:` line, `done`; boot partition holds only the placeholder; Wi-Fi up at metric 50, cable at 100). A cold boot with the hotspot off also passed (cable works, no second provisioning run, Wi-Fi reconnects when the hotspot returns). Card 2 (127,865,454,592 bytes): on its first boot attempt after flashing (about 9 minutes after power-on) the Pi was not reachable and the green LED was seen dark at that one moment; the LED was not watched over time, so it is not known whether the boot failed or was just late. Its files read back fine on the laptop, and card 1 booted in the same Pi. After a second flash card 2's green LED was blinking.
+laptop's Ethernet adapter (restart it with `setups\restart-sharing.bat`), with a
+phone hotspot over Wi-Fi as a second path (hotspot preferred through a route
+metric, cable as fallback). A fresh flash provisions itself on first boot:
+`wireguard-tools`, the credential stick (`PIKEYS`, holding the Proton WireGuard
+config), the tunnel up at every boot with its DNS through it, and the Wi-Fi
+password scrubbed from the boot partition; a failed run is retried. All of it was
+tested on the Pi 2026-10-07 to 2026-10-11 (fresh flashes of both cards, boots with
+no network and without the stick). Evidence: the smoke-test report's last
+follow-up; details: `pi-technical.md`.
 
 ## Next steps, in order
 
-1. **Provisioning retry (done 2026-10-07).** Both gaps are fixed: the flash script now installs `pi-provision.service` (Type=simple, `Restart=on-failure`, 5 minutes apart, at most 6 starts per hour, enabled so every boot retries until the marker exists), and a skipped scrub now fails the run instead of writing the marker. Tested: cloud-init's schema check accepts the new user-data; a fresh flash of card 2 booted with no network at all (hotspot off, cable out), the script kept retrying `apt` internally, finished after the cable went in about 6 minutes later, scrubbed, and wrote the marker; a transient unit with the same restart settings ran a failing script 3 times and ended in success. Not exercised on the real script: the unit-level restart (the run never exited non-zero, `NRestarts=0`). If the Pi is not found on `192.168.137.x`, check `Get-Service SharedAccess` and `Get-NetUDPEndpoint -LocalPort 67` first (sharing had to be switched off and on once). The search script can latch onto a stale neighbour entry: check port 22 on each `192.168.137.x` the Pi's MAC (`D8-3A-DD`) maps to.
-2. **Credential stick** (done 2026-10-07): the WireGuard config now lives on a
-   `PIKEYS` USB stick plugged into the Pi and survives a re-flash; see `pi-technical.md`.
-   A re-flash wipes the SD card only. **Never wipe a card or stick without asking what is on
-   its Linux partition first** (a wipe on 2026-10-07 lost the hand-installed tunnel setup).
-   Next: bring the tunnel up by hand and check SSH survives; then test with the laptop's
-   ProtonVPN on (and both at once).
-3. **Commit** (see "Uncommitted work"): propose first, never commit unasked.
-4. Items 8 to 20 in `pi-rationale.md` (all low priority unless the maintainer
-   says otherwise). The next larger piece, **later** per the maintainer: the Pi
-   as the sandbox's egress proxy, reusing the sandbox repo's `egress-proxy`
-   container (needs Docker on the Pi); and the **keyholder** role (item 20).
+1. **Docker, then Tailscale on the Pi** (items 13 and 14 in `pi-rationale.md`),
+   one tested module each in the first-boot script. They lead to the larger piece
+   the maintainer wants **later**: the Pi as the sandbox's egress proxy, reusing the
+   sandbox repo's `egress-proxy` container.
+2. **Keyholder design (item 20).** The stick gives the Pi a place for credentials
+   that survives a re-flash; the open question is protection at rest (the stick is
+   not encrypted, an unattended boot cannot supply a passphrase).
+3. Items 10, 11, and the rest of 12 (see their entries), all low priority unless
+   the maintainer says otherwise.
+4. Loose ends: `decrypt_credential_bundle.py` (item 17, untracked, never run),
+   `RUNPOD_API_KEY` (item 18), `ssh` file versus `enable_ssh` (item 16), and
+   whether to set the Windows sharing service to automatic start (item 19).
+
+**Practical notes**
+- If the Pi is not found on `192.168.137.x`, run `setups\restart-sharing.bat`
+  (asks for admin; `-Public 'Ethernet 2'` when the internet comes from phone USB
+  tethering instead of `WiFi`). It starts the sharing service, switches sharing
+  off on every adapter and on again for the chosen pair, and checks that DHCP
+  listens. Windows allows one shared connection only; a leftover on the old
+  adapter made `EnableSharing` fail with `0x80040201`.
+- The search script can latch onto a stale neighbour entry: check port 22 on each
+  `192.168.137.x` the Pi's MAC (`D8-3A-DD`) maps to.
+- After plugging the stick back in, reboot the Pi (a failed mount is not
+  retried); the tunnel then comes up unaided.
+- `setups/pi-provision/push_wireguard_config.py --host IP` only for a new or
+  changed config, or a new stick; a re-flash needs no push.
 
 ## Snapshot
 
@@ -37,24 +56,17 @@ first-boot provisioning script exists and has run once on card 1 (2026-10-07): p
 above them changed) and has **not been pushed**; the remote still has the old
 history. The maintainer does any force-push themselves (their commit
 conventions say so). Local backup branch `backup/before-dev-msg-rewrite-13114f5`
-holds the pre-rewrite history.
-
-**Uncommitted work** (all intended to be committed together, by the
-conventions in `agents/commit-conventions.md`: one line, lowercase, name only
-code/config changes, leave docs out of the message, no attribution footer,
-`git add` and `git commit` in one call, single `-m`):
-`setups/pi-smoke-test/pi_smoke_test_flash.py` (new `--provision-script`),
-the new folder `setups/pi-provision/` (`pi-firstboot.sh`), and doc edits
-(`pi-rationale.md`, `pi-technical.md`, this note, the report, `task.md`, the
-README index). `setups/decrypt_credential_bundle.py` is untracked and was
-deliberately kept out of commits (written, never run; item 17).
+holds the pre-rewrite history. Everything in this note is committed except
+`setups/decrypt_credential_bundle.py` (untracked on purpose; item 17).
 
 **Cards** (both about 119 GiB, both with a Pi OS boot partition, so the flash
 script's own size window cannot tell them apart; identify by exact size):
-- card 1: 128,177,930,240 bytes. Config as above, unbooted.
-- card 2: 127,865,454,592 bytes. A spare, flashed earlier with Ethernet only.
-- Windows shows the card reader as Disk 3; disk numbers change after a reboot.
-  The 57 GiB USB stick (a different disk) and the 466 GiB USB drive are not cards.
+- card 1: 128,177,930,240 bytes. Freshly flashed 2026-10-11 and running in the Pi.
+- card 2: 127,865,454,592 bytes. The spare; also freshly flashed (2026-10-11).
+- The card reader was Disk 2 on 2026-10-11 (Disk 3 earlier; numbers change). The
+  4 GB Transcend stick, label `PIKEYS`, lives in the Pi and is not a card to flash.
+  **Before wiping any card or stick, ask what is on its Linux partition** (Windows
+  cannot read it); a wipe on 2026-10-07 lost the hand-installed tunnel setup.
 
 **Laptop** (Windows 11 Home): Windows connection sharing is on for the
 Ethernet adapter (laptop `192.168.137.1/24`, the Pi gets `192.168.137.x`; the
@@ -71,10 +83,11 @@ pair (`id_ed25519`, `.pub`), `.env` (`HOTSPOT_NAME`, `HOTSPOT_PASSWORD`,
 contains a private key). Permissions on `.env` and the config were restricted to
 the maintainer's account. `RUNPOD_API_KEY` has no use decided (item 18).
 
-**The Pi** (when last seen): hostname `pi-host`, user `htm` (key-only), Debian
-13, aarch64, kernel 6.18. `wireguard-tools` and the Proton config were installed
-by hand on an earlier card; a fresh card has neither until the provision script
-runs (and the config is pushed over SSH).
+**The Pi** (2026-10-11): hostname `pi-host`, user `htm` (key-only), Debian 13,
+aarch64, kernel 6.18, card 1 in it, the `PIKEYS` stick in a blue USB 3 port.
+`wireguard-tools`, the key store and the tunnel at boot all come from the
+first-boot script; the Proton config lives on the stick (a re-flash needs no
+push). The Pi's address on the cable changes between boots.
 
 ## How to do the usual things
 
@@ -129,6 +142,14 @@ output. Do not change a setting on the laptop or the Pi without asking
   `link-local` did not help). Sharing fixes it.
 - A first "Permission denied" over SSH can be transient (cloud-init installs the
   key late); a name lookup can be a stale cache entry.
+- **Wiping a card also wipes everything on its Linux partition**, which Windows
+  cannot read. Ask what is on a card or stick before flashing it (2026-10-07: the
+  hand-installed tunnel setup was lost that way).
+- Windows sharing stopping is not one problem: the service can be stopped, and a
+  running service can still have no DHCP until sharing is switched off and on (and
+  a leftover on an old adapter blocks it). Use `setups\restart-sharing.bat`.
+- Heavy writes to a card (a flash) make Windows disk queries and PowerShell very
+  slow; use short, light commands and run the flash in the background.
 
 ## Map of the docs
 

@@ -221,7 +221,7 @@ also joined a phone hotspot over Wi-Fi.
 
 ## Follow-up — first-boot provisioning script (2026-10-05 to 2026-10-07)
 
-**Summary: written and tested offline; its first real boot is still to do.**
+**Summary: written and tested offline; later tested on the Pi (see the 2026-10-07 to 2026-10-11 follow-up at the end).**
 `setups/pi-provision/pi-firstboot.sh` is embedded in the card's `user-data` by
 `pi_smoke_test_flash.py --provision-script` (cloud-init `write_files`, started
 with `systemd-run` so it cannot block boot). It was modelled on the sandbox
@@ -236,8 +236,8 @@ it. It deliberately carries no VPN config or key. The flash script also gained
 `--wifi-from-env` (hotspot from `setups/.secrets/.env`), a Wi-Fi route metric of
 50 so the hotspot is preferred over the cable, and `--boot-dir` that can take
 both. Offline: `bash -n` and 14 checks of the scrub and the root check on fake
-files pass. Card 1 was flashed and then rewritten with the final config and
-script, and has not been booted. The preflight's OS and architecture checks and
+files pass. At that point card 1 had been flashed and rewritten with the final config and
+script, and had not been booted. The preflight's OS and architecture checks and
 the whole boot path can only be tested on the Pi.
 
 ## Follow-up — Proton VPN on the headless Pi (2026-10-04)
@@ -306,3 +306,31 @@ and the tunnel is down again.
 - Behavior over the hotspot path; the test ran with the cable path as the
   Pi's default route.
 - Whether Proton's other config options (not read) matter for this use.
+
+## Follow-up — first boots, retry, credential stick, tunnel at boot (2026-10-07 to 2026-10-11)
+
+**Summary: all of it works on the Pi, tested with fresh flashes.** What changed
+after the offline version:
+
+- **First boots.** Card 1's first boot installed `wireguard-tools` but skipped the
+  Wi-Fi scrub: `cloud-init status --wait` exits 2 on Pi OS's harmless "degraded
+  done", which the script read as a timeout. Fixed (0 and 2 count as done). The
+  log then showed the real `scrub:` line on fresh flashes.
+- **Retry.** `pi-provision.service` replaces the one-shot `systemd-run`: retried
+  every 5 minutes (at most 6 starts per hour) and again on every boot until the
+  marker exists; a skipped scrub no longer writes it. Tested: a boot with no
+  network finished once the cable came in; a forced-failure test of the tunnel
+  unit's restart policy retried at 30 s spacing and recovered.
+- **Credential stick.** A USB stick labelled `PIKEYS` (ext4, mounted by label with
+  `nofail`) holds credentials; its `links.conf` maps folders to paths on the Pi
+  (today `wireguard /etc/wireguard`). Moves existing files, idempotent, survives a
+  reboot and a re-flash; a boot without it fails cleanly after 10 s.
+- **Tunnel at boot with tunnel-only DNS.** `wg-quick@` is enabled; the config's
+  `PostUp`/`PostDown` point NetworkManager at the tunnel resolver, and a
+  dispatcher script re-applies it to devices that connect later (measured gap:
+  `eth0` came up after the tunnel on a first boot and kept the laptop's DNS).
+- **Laptop side.** Connection sharing stopped twice and had to be restarted;
+  `setups/restart-sharing.bat` does it in one call. A leftover sharing setting on
+  the old adapter made `EnableSharing` fail (`0x80040201`).
+- **Wiping cards loses what is on their Linux partition**, which Windows cannot
+  read: the hand-installed tunnel setup of 2026-10-04 was lost that way.

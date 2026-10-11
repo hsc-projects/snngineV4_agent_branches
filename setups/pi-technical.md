@@ -96,26 +96,76 @@ limiting factor — not a purchase decision.
   Other small always-on services may follow — not yet scoped.
 - First-boot provisioning: `pi-provision/pi-firstboot.sh` is carried in
   `user-data` (cloud-init `write_files`, installed at
-  `/usr/local/sbin/pi-provision-firstboot.sh`) and started once in the
-  background with `systemd-run`, so it cannot hold up boot. It checks the
-  system (root, aarch64, Debian 13), waits for time sync, installs
-  `wireguard-tools` (no recommended packages) and verifies it, then replaces
-  the Wi-Fi password in `/boot/firmware/network-config` with a placeholder once
-  cloud-init is done (only if the root-only netplan copy exists) and verifies
-  that. Log: `/var/log/pi-provision.log`; marker: `/var/lib/pi-provision.done`.
-  Logic tested offline on fake files (14 checks); **its first real boot is not
-  yet done** (card 1 is configured with it, unbooted). It carries no secret and
-  no VPN config.
+  `/usr/local/sbin/pi-provision-firstboot.sh`) and run by `pi-provision.service`
+  (also from `write_files`; `Type=simple`, `Restart=on-failure` every 5 minutes,
+  at most 6 starts per hour, enabled so every boot retries until the marker
+  exists), so it cannot hold up boot. It checks the system (root, aarch64,
+  Debian 13), waits for time sync, installs `wireguard-tools` (no recommended
+  packages) and verifies it, links the credential stick (next items), enables the
+  tunnel at boot with its DNS dispatcher, then replaces the Wi-Fi password in
+  `/boot/firmware/network-config` with a placeholder once cloud-init is done (only
+  if the root-only netplan copy exists) and verifies that. A skipped scrub fails the
+  run, so it is retried. Log: `/var/log/pi-provision.log`; marker:
+  `/var/lib/pi-provision.done`. Tested on the Pi with fresh flashes of both cards
+  (2026-10-07, 2026-10-11), including a boot with no network and one without the
+  stick. It carries no secret and no VPN config (those live on the stick).
 - WireGuard / Proton VPN: `wireguard-tools` 1.0.20210914-3 is installed by the
   first-boot script (kernel module `wireguard` is available as
   `CONFIG_WIREGUARD=m`). The Proton config (`wg-JP-154.conf`, Japan server, `DNS`
   line removed because the Pi has no `resolvconf`) lives on the credential stick
   (next item), reachable as `/etc/wireguard/` (mode 600, root). Tested by hand
   2026-10-04 on an earlier card: handshake, a Japanese public IP, IPv4 and IPv6
-  through the tunnel. Since the re-flash the config was only checked for syntax
-  (`wg-quick strip` exits 0); the tunnel has **not** been brought up again, is not
-  enabled at boot, and DNS through it is untested. The laptop-side ProtonVPN and
-  the Pi tunnel at the same time are untested too. Proton's own Linux app/CLI does
+  through the tunnel. Re-tested 2026-10-07 on a fresh flash, with the laptop's
+  ProtonVPN up the whole time: `wg-quick up` gave a handshake, the Pi's public
+  address changed (country JP), IPv4 and IPv6 worked, the SSH session stayed up and
+  the route to the laptop (`192.168.137.1`) stayed on `eth0`; `wg-quick down`
+  restored the original address and routes. Over the cable only (`wlan0` was not
+  connected). **Up at every boot** (2026-10-07): `wg-quick@wg-JP-154` is enabled; the first-boot
+  script does this when exactly one config is present (`module_wireguard_autostart`,
+  also `pi-firstboot.sh autostart`). A drop-in `wg-quick@.service.d/pi-provision.conf`
+  requires the stick's mount and restarts the unit every 30 s on failure; with no
+  stick the unit fails and the Pi still boots and stays reachable (the way out if a
+  tunnel ever blocks access). Tested on the live Pi: reboot, tunnel up unaided with
+  a handshake, Proton address, tunnel resolver and SSH intact. Boot without the stick (tested 2026-10-11): the device wait for
+  `PIKEYS` times out after 10 s, the mount, its fsck and the tunnel unit fail with
+  `dependency`, the Pi boots and stays reachable, the tunnel stays down and the
+  Pi's own network and DNS are untouched. A failed mount is not retried when the
+  stick is plugged back in: reboot (or run `pi-firstboot.sh keystore` and start the
+  tunnel unit); after replug and reboot the tunnel came up unaided. The autostart
+  step inside a fresh-flash first boot is tested. Boot with no network (tested 2026-10-11, cable out): the tunnel unit
+  started and finished at once (the endpoint is an address, so `wg-quick up` needs no
+  lookup and sets up the interface offline); when the cable came in, `eth0` got its
+  lease, WireGuard handshook within seconds, the dispatcher put `10.2.0.1` on `eth0`,
+  and the Pi exited through Proton, with no restart (`NRestarts=0`). So the 30 s
+  restart only matters if `wg-quick up` itself fails (for example an endpoint given
+  as a name). That path was forced on the real unit (a temporary
+  `ExecStartPre=/bin/false` drop-in): the unit went to `auto-restart`, retried every
+  30 s (`NRestarts` 2 after 75 s), and once the failure was removed the next retry
+  succeeded with handshake, Proton address and tunnel DNS.  DNS: without a fix the Pi kept using the laptop's resolver
+  (`192.168.137.1`, on the cable subnet, outside the tunnel) with the tunnel up, a
+  DNS leak. The config now carries `PostUp`/`PostDown` hooks (added by
+  `push_wireguard_config.py` from the config's own `DNS` line) that point
+  NetworkManager's connected devices at the tunnel resolver while the tunnel is up
+  and `nmcli device reapply` them on the way down. Tested 2026-10-07: tunnel up,
+  `/etc/resolv.conf` has only `10.2.0.1`, which answers from a Proton exit address;
+  tunnel down, the previous resolvers are back exactly, with `eth0` and `wlan0` both
+  connected. The hooks alone only cover devices connected when the tunnel comes
+  up; a device that connects or reconnects later (measured: `eth0` got its lease
+  after the tunnel on a first boot) kept its network's DNS. So `PostUp` also writes
+  the resolver to `/run/pi-wg-dns/<interface>` (`PostDown` removes it first) and a
+  NetworkManager dispatcher script, `/etc/NetworkManager/dispatcher.d/90-pi-wg-dns`
+  (installed by the first-boot script), re-applies it on `up`, `dhcp4-change`,
+  `dhcp6-change` and `reapply` for `eth*`/`wlan*`, only when the applied DNS differs;
+  with no tunnel file it does nothing. Tested 2026-10-11: `wlan0` disconnect and
+  reconnect while the tunnel was up (back to `10.2.0.1`), tunnel stop (each device's
+  own DNS and the original address restored) and start, and a fresh flash (script
+  installed it, `eth0` and `resolv.conf` show only `10.2.0.1`). IPv6 resolvers learned
+  from the local network are ignored while the tunnel is up (`ipv6.ignore-auto-dns`; the tunnel's IPv6 resolver address is not
+  known, so none is set); this network offers no IPv6 resolver, so that part is
+  accepted by NetworkManager but its effect is untested. This is the reason the
+  Pi holds its own config: its traffic through the laptop's connection sharing
+  bypasses the laptop's VPN (measured earlier, see the smoke-test report; today's
+  Pi address before the tunnel again differed from the laptop's VPN address). Proton's own Linux app/CLI does
   not support headless setups. `iptables` and `resolvconf` are not installed;
   `nft` is. Note: `htm`'s PATH lacks `/usr/sbin`, so admin tools only show up
   with `sudo`.

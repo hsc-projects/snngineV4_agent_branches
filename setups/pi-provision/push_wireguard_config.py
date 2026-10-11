@@ -4,8 +4,9 @@ Run this once after flashing a fresh card (the first-boot script installs
 wireguard-tools but deliberately carries no VPN config: the card's boot
 partition is readable by anyone who holds the card). The config is read from
 setups/.secrets/ (gitignored), the `DNS` line is dropped (the Pi has no
-resolvconf, and wg-quick fails on a DNS line without it), and the file is
-written to /etc/wireguard/ with mode 600, owner root. The tunnel is NOT
+resolvconf, and wg-quick fails on a DNS line without it) and replaced by
+PostUp/PostDown hooks that point NetworkManager at the tunnel's resolver while
+the tunnel is up, and the file is written to /etc/wireguard/ with mode 600, owner root. The tunnel is NOT
 brought up and nothing is enabled at boot. Only names, sizes and the mode are
 printed, never a key.
 
@@ -36,6 +37,31 @@ def main() -> int:
         return 1
     lines = src.read_text(encoding="utf-8").replace("\r\n", "\n").splitlines()
     kept = [ln for ln in lines if not ln.strip().lower().startswith("dns")]
+    removed = len(lines) - len(kept)
+    dns = [ln.split("=", 1)[1].strip() for ln in lines
+           if ln.strip().lower().startswith("dns") and "=" in ln]
+    if dns and not any(ln.strip().lower().startswith("postup") for ln in kept):
+        # The Pi has no resolvconf (wg-quick's own DNS handling), so while the
+        # tunnel is up NetworkManager is pointed at the tunnel's resolver for
+        # every connected wired or Wi-Fi device (runtime only), and `reapply`
+        # restores each device's profile settings when the tunnel goes down. IPv6
+        # resolvers learned from the local network are ignored while it is up
+        # (the tunnel's own IPv6 resolver address is not known, so none is set).
+        devs = "$(nmcli -t -f DEVICE,STATE device | sed -n 's/:connected$//p' | grep -E '^(eth|wlan)')"
+        # The resolver is also written to /run/pi-wg-dns/<interface>, which the
+        # NetworkManager dispatcher script (installed by pi-firstboot.sh) reads,
+        # so a device that connects or reconnects after the tunnel is up gets the
+        # same override. PostDown removes the file first, so the dispatcher stays
+        # idle while the devices are reapplied.
+        resolver = dns[0].split(',')[0].strip()
+        up = (f"PostUp = mkdir -p /run/pi-wg-dns; echo {resolver} > /run/pi-wg-dns/%i; "
+              f"for d in {devs}; do nmcli device modify $d "
+              f"ipv4.dns {resolver} ipv4.ignore-auto-dns yes "
+              f"ipv6.ignore-auto-dns yes; done")
+        down = (f"PostDown = rm -f /run/pi-wg-dns/%i; "
+                f"for d in {devs}; do nmcli device reapply $d; done")
+        at = next((i for i, ln in enumerate(kept) if ln.strip().lower() == "[peer]"), len(kept))
+        kept[at:at] = [up, down, ""]
     body = "\n".join(kept) + "\n"
     dest = f"/etc/wireguard/{args.config}"
 
@@ -58,7 +84,7 @@ def main() -> int:
     if r.returncode != 0:
         print(r.stderr.decode(errors="replace").strip(), file=sys.stderr)
         return r.returncode
-    print(f"Removed {len(lines) - len(kept)} DNS line(s); tunnel not started.")
+    print(f"Removed {removed} DNS line(s), added DNS hooks; tunnel not started.")
     return 0
 
 
