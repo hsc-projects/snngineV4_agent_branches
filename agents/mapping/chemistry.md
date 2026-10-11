@@ -130,9 +130,52 @@ generic layer cannot reach past).
 - `agents/common.md` → Core technical facts — the CUDA/OpenGL interop
   chain overview, including the 3D-texture exception this subpackage is
   a concrete instance of.
-- `geometry/` (not yet mapped) — `VolumeConfig`, `VolumeShapeHDW`,
+- `geometry/` — `VolumeConfig`, `VolumeShapeHDW`,
   `LinkedVolumeGridConfig`, `FiniteGrid` all live there; this subpackage
   depends on it directly rather than duplicating spatial-shape logic.
+
+## End-to-end integration and buffer lifecycle
+
+`chemistry/` does not operate in isolation; it binds into three external subsystems during engine construction and simulation:
+
+### 1. Construction and visual scaling (`snngine.py`)
+- **Instantiation**: When `NetworkBuilder` builds a `NetworkReservoir`, `NetworkReservoir.BUILDER_OBJECT_CLASS_MAP` instantiates `ChemicalConcentrationVolume` for each configured chemical model.
+- **Visual instantiation**: In `SNNgine.build_visuals` (`snngine.py`), the CPU voxel array `init_data_cpu` is read from `network[elt_config0.chemicals.C0]`.
+- **Coordinate transformation**: Config shape (`HDW`) is converted to array layout (`WDH`) via `VolumeShapeHDW.hdw_to_wdh`.
+- **Anisotropic scaling**: Initial visual scaling is derived relative to the reservoir's spatial grid:
+  `initial_scale = (elt_shape[0] / ref_shape[0], elt_shape[1] / ref_shape[1], elt_shape[2] / ref_shape[2])`.
+- **Visual node**: Built as a `CompoundR32fVolumeVisual` (wrapping VisPy's `VolumeVisual`) and registered in `main_scene`.
+
+### 2. OpenGL-CUDA interop registration (`cuda_connector.py`)
+- `CudaVispyConnector.connect_object` intercepts `VolumeVisual` under `GLBufferTypes.TEXTURE_3D`.
+- It resolves the OpenGL texture handle from VisPy's GLIR parser (`obj._texture.id`).
+- It instantiates `GLTexture3DTensor`, which manages a dedicated PyTorch CUDA tensor and provides explicit GPU-to-GPU synchronization (`pycuda.driver.Memcpy3D` in `copy_to_texture()`).
+
+### 3. Simulation backend binding and stepping lifecycle (`nn/sim/simulation.py`)
+- In `Simulation._make_simulator_backend`:
+  - `C_old` receives the raw device pointer of `chemicals.C0.c_current`.
+  - `C_new` receives the raw device pointer of `chemicals.C0.c_next` (direct view of `texture_3d_tensor`).
+  - `C_source` receives the raw device pointer of `chemicals.C0.c_source`.
+  - Scalar hyperparameters `k_val` and `depreciation` are passed directly into `snn_simulation_gpu.SnnSimulation`.
+- **Stepping mechanics**: In the CUDA backend, diffusion is stepped via a 7-point 3D finite-difference stencil from `C_old` into `C_new`, attenuated by `depreciation`. Voxels where `C_source > 0` act as persistent boundary injections.
+- **Visualization synchronization gap**: For updated concentrations to render in VisPy, `copy_to_texture()` must be called each step (active in legacy SNNgine3D, currently uncalled in `SNNgine.run_sim`).
+
+## Legacy lineage and migration differences (SNNgine3D vs. snngine_v4)
+
+Comparison with SNNgine3D (`snngine3d/nn/VspNN/v_chemical_volume.py`, `chemical_control_collapsibles.py`, and `selector_box.py`) clarifies the architectural origin of the chemical subsystem:
+
+1. **Voxel initialization**:
+   - In SNNgine3D, CPU initialization (`generate_empty_data_cpu`) was zero-filled (`np.zeros`).
+   - In `snngine_v4`, `init_test_data_cpu` was added under `b_test_init=True`, loading VisPy's bundled CT scan (`volume/stent.npz`) so the volume visual rendered non-empty geometry on launch.
+2. **Boundary values and source injection**:
+   - The boundary slice pattern in `set_test_values_gpu` (`[:, :, -1] = 2000`, `[:, :, -2] = 1800`, `[:, :, -3] = 1800`) is ported directly from SNNgine3D's `ChemicalState.set_test_values`.
+   - In SNNgine3D, source voxels were also injected interactively in 3D using child `SelectorBox` instances (`SelectionTarget.CHEMICAL`), and via boolean tensor assignment scaled by an `additive` parameter (`500`). In `snngine_v4`, `c_source` remains an allocated tensor view, but the dedicated `source_visual` and interactive selector injection are not yet wired into `EngineSelectorTree`.
+3. **Parameter management**:
+   - SNNgine3D manipulated `k_val` and `depreciation` through dedicated Qt collapsible frames (`ChemKValFrame`, `ChemDeprecationFrame`) mutating `Simulation.chem_k_val` dynamically.
+   - `snngine_v4` transitioned these into declarative Pydantic fields on `ChemicalConcentrationModel`, edited via `ParameterBuilder` trees and serialized in `.snngine/template.xml`.
+4. **Stepping synchronization gap**:
+   - SNNgine3D's stepping loop (`v_simulation.py` `update` method) explicitly called `chemical_concentrations.c0.update()` (`cpy_tnsr2tex()`) per frame when `b_update_chemical_concentrations` was True.
+   - `SNNgine.run_sim` in `snngine.py` currently omits this call, leaving `copy_to_texture()` uninvoked during prototype simulation runs.
 
 ## Open questions
 
@@ -195,23 +238,19 @@ Indexed centrally in [`README.md` → Consolidated open questions](README.md#che
 - [SOLVED] `set_test_values_gpu`'s hard-coded voxel values (2000, 1800, 1800) and
   `init_test_data_cpu`'s bundled stent-scan volume are both live by
   default (`b_test_init: bool = True`).
-  - **Resolution**: `b_test_init = True` is development fixture scaffolding left
-    enabled by default because the engine currently lacks neural-to-chemical emission
-    coupling. When spikes occur, no logic writes into `C_source`. Without synthetic
-    initial data:
-    1. `init_test_data_cpu` (`snngine_v4/chemistry/chem_volume.py:78-93`) loads VisPy's
-       sample coronary CT scan (`vispy.io.load_data_file('volume/stent.npz')`) into
-       `init_data_cpu`, which `SNNgine.build_visuals` (`snngine_v4/snngine.py:159-172`)
-       passes to VisPy's `CompoundR32fVolumeVisual` so that 3D volume rendering has visible
-       geometry to display upon launch.
-    2. `set_test_values_gpu` (`snngine_v4/chemistry/chem_volume.py:63-73`) injects fixed
-       concentration values (2000, 1800, 1800) into the boundary slices of `c_source`,
-       `c_current`, and `c_next`. In the CUDA kernel
-       (`snngine_v4/nn/cuda_backend/src/simulation/snn_simulation.cu:266-278`), voxels with
-       `C_source[idx] > 0.f` serve as persistent emission boundaries from which chemical
-       diffusion propagates into neighboring voxels.
-    This scaffolding verifies that VisPy volume rendering, 3D texture OpenGL-CUDA interop,
-    and the CUDA diffusion kernel work end-to-end in the absence of neural emission sources.
-    It is persistent in `.snngine/template.xml:561` and should eventually be controlled by an
-    explicit debug flag once dynamic neural chemical emission is implemented. See
-    [`README.md#chemistry`](README.md#chemistry).
+  - **Resolution**: `b_test_init = True` is test fixture scaffolding left
+    enabled by default to verify the 3D volume rendering pipeline and CUDA-OpenGL
+    texture interop without requiring external volumetric dataset loading.
+    1. `init_test_data_cpu` (`snngine_v4/chemistry/chem_volume.py`) loads VisPy's
+       bundled coronary CT scan (`vispy.io.load_data_file('volume/stent.npz')`) into
+       `init_data_cpu`, providing nonzero voxel data for `CompoundR32fVolumeVisual`
+       at startup.
+    2. `set_test_values_gpu` (`snngine_v4/chemistry/chem_volume.py`) injects fixed
+       concentration values into the boundary slices of `c_source`, `c_current`,
+       and `c_next`. In the CUDA kernel (`snn_simulation.cu`), voxels with
+       `C_source[idx] > 0.f` serve as persistent emission boundary conditions from
+       which diffusion propagates into neighboring voxels.
+    This scaffolding verifies that VisPy volume rendering, 3D texture OpenGL-CUDA
+    interop, and the CUDA diffusion kernel function end-to-end. It is persisted
+    in `.snngine/template.xml` and can be disabled by configuring `b_test_init = False`.
+    See [`README.md#chemistry`](README.md#chemistry).

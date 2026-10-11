@@ -206,6 +206,36 @@ pybind11 extension, matching edge (1) from `config-build-pattern.md`
   `TensorDataFrame` are all defined there; this subpackage consumes but
   doesn't define them.
 
+## Recursive construction lifecycle and double-tree coordination
+
+`construction/` implements runtime graph instantiation through a recursive cascade coordinated across two distinct trees:
+
+### 1. The Double-Tree Architecture
+To prevent runtime object references from drifting away from declarative configuration, the engine coordinates two parallel hierarchies:
+1. **The Pydantic Node Tree (`node_tree: EngineNodes`)**:
+   Tracks hierarchical parent-child relationships purely among Pydantic configuration models (`ConfigModel`).
+2. **The Runtime Element Registry (`root_element: SpatialNetwork`)**:
+   A flat `BuilderDict` maintained at the network root that maps configuration model instances to their corresponding built runtime objects (`root_element[config_instance] = built_element`).
+
+When any child element calls `child.parent_element()`, it does not rely on a stored runtime reference. Instead:
+- It looks up the parent model from the declarative tree: `parent_model = self.node_tree.parent(self.config)`.
+- It retrieves the runtime parent from the root registry: `return self.root_element[parent_model]`.
+This structure guarantees that runtime parentage is always derived from configuration topology.
+
+### 2. Recursive build cascade
+When `SNNgine.build()` triggers `NetworkBuilder.build(template)`:
+1. **Template cloning**: `NetworkBuilder` performs `deepcopy -> model_dump() -> container_model_class(**dump)`, isolating the runtime build configuration from the user's template.
+2. **Root construction**: `NetworkBuilder.BUILDER_OBJECT_CLASS_MAP` instantiates `SpatialNetworkConfig -> SpatialNetwork`.
+3. **Subsystem dispatch**:
+   - `SpatialNetwork.__init__` invokes `self.add_build()` for its child models: `grid` (`FiniteGrid`), `simulator` (`Simulator`), and `elements` (`NetworkReservoir`).
+   - `NetworkReservoir.__init__` invokes `self.add_build()` for its child models: `synapses` (`Synapses`), `counts` (`SynCounts`), `chemicals` (`Chemicals`), and `neuron_states` (`NeuronStates`).
+4. **Attribute binding (`set_tensor_attr`)**:
+   Once child elements are constructed, `EngineElement.set_tensor_attr()` binds each built sub-element in `self` as a named attribute on the parent element matching its configuration field name in `config.elt_dict()`.
+5. **Global registration**:
+   `EngineElement.__setitem__` automatically forwards every built child into `self.root_element`, populating the global flat registry.
+6. **Completeness assertion**:
+   `NetworkBuilder.build()` iterates over every field key declared in `container_model`, asserting that each key exists in `self` (the builder dictionary), verifying that the build graph is fully populated without orphaned models.
+
 ## Open questions
 
 Indexed centrally in [`README.md` → Consolidated open questions](README.md#construction):

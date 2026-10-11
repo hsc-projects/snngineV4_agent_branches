@@ -45,6 +45,12 @@ two empty `__init__.py`s), all fully read for this write-up.
     by config models elsewhere), though no direct usage of either alias
     was found within `geometry/` itself.
 
+- **`volume.py`** — volumetric spatial descriptors and linked grid configs.
+  - `IndicesHDW` (`IntEnum`): axis indices `HEIGHT = 0`, `DEPTH = 1`, `WIDTH = 2`.
+  - `VolumeShapeHDW(Shape3Di32)`: 3D integer shape stored in `HDW` order. Provides `height`, `depth`, `width`, `shape_wdh` property `(width, depth, height)`, and classmethod `hdw_to_wdh()`.
+  - `LinkedVolumeGridConfig(LinkedFiniteGridConfig)`: concrete subclass of `LinkedFiniteGridConfig` holding `parent_config: VolumeConfig` (excluded from serialization). Overrides `shape` and `seg` to return `Shape3Di32(data=self.parent_config.shape.shape_wdh)`.
+  - `VolumeConfig(Object3DConfig)`: positioned base config holding `shape: VolumeShapeHDW` and cached property `linked_grid_config`.
+
 - **`grid/finite_grid_config.py`** — the grid's own config side.
   - `TechnicalValues`: one field, `max_z` (default `100`) — a rendering
     technicality (see `FiniteGrid._make_pos` below), not a physical grid
@@ -180,6 +186,28 @@ particular, one-off solution).
 - `utils/data_utils/dataframe_config.py` (not yet mapped) — defines
   `SeriesModel`/`SeriesModel.Slots`, which `XYZPars`/`EnginePos3D`
   extend; not opened for this pass.
+
+## Downstream integration and spatial discretization
+
+`geometry/` supplies spatial structures consumed across neural configuration, CUDA construction, and visualization shaders:
+
+### 1. Neuron position discretization and spatial sorting (`nn/`)
+In `NetworkReservoirConfig` (`nn/config_models/reservoir/nn_reservoir_config.py`):
+- **Discretization**: Continuous 3D neuron coordinates `pos` are converted to integer cell indices via `FiniteGrid.cls_grid_coordinates(pos, outer_shape, grid_segmentation)`.
+- **Contiguous spatial grouping**: `sort_pos()` performs stable lexicographical sorting (`argsort` across X, Y, and Z) on neuron positions based on their grid coordinates. This ensures neurons occupying the same spatial group ($G$) reside in contiguous tensor rows before being passed to CUDA construction kernels (`fill_G_neuron_count_per_delay`, `fill_N_flags_group_id_and_G_neuron_count_per_type`).
+- **Position bounds validation**: `FiniteGrid.validate_pos()` verifies that all coordinates fall within `[0, shape]`.
+
+### 2. VisPy GLSL geometry shader clipping (`visualization/`)
+- In `FiniteGrid._make_pos()`, an extra technical point is appended at `z = technical_max_z_value + 1`.
+- In `GridLinesVisual` (`visualization/visuals/grid_lines.py`), the custom line geometry shader injects:
+  `if ($transform_inv(source_pos).z > {technical_max_z_value}f) discard;`
+- This discards the closing segment without requiring OpenGL primitive restart indices across disconnected grid lines.
+
+### 3. Cross-subpackage VBO buffer contracts
+`Pos2DVBO` and `Pos3DVBO` (`spatial_pars.py`) define canonical GPU vertex buffer types reused across:
+- `NetworkReservoirConfig.pos` (`nn/`)
+- `MarkersVisualConfig.pos`, `GridLinesVisualInitConfig.pos`, and `MultiLinePlotSubVisualInitConfig.pos` (`visualization/`)
+- `OptionsBuilder` (`gui/`)
 
 ## Open questions
 

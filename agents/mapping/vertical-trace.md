@@ -141,3 +141,41 @@ marker visual's position buffer, but the full instance-binding chain
 (`NetworkReservoirConfig` → specific `NetworkReservoir` element →
 `pos_vbo` → the actual `N_pos` pointer) hasn't been walked step by step
 yet.
+
+## Confirmed instance-binding chain for `N_pos`
+
+Resolves the open item in *Additional remarks* above. The full instance-binding chain from configuration to kernel execution is:
+
+1. `elt_config0` (`NetworkReservoirConfig`) is passed to `SNNgine.make_visual()` in `SNNgine.build_visuals` (`snngine.py`).
+2. `VispyVisualBuilder.get_model` (`visual_builder.py`) extracts `dump['pos']` from `NetworkReservoirConfig` and returns `MarkersVisualConfig(pos=dump['pos'])`.
+3. `VispyVisualBuilder.BUILDER_OBJECT_CLASS_MAP` (`visual_builder.py`) maps both `MarkersVisualConfig` and `NetworkReservoirConfig` to `vispy.scene.Markers`.
+4. The visual is attached to `main_scene` and registered in `main_scene.visual_node_dict[elt_config0]` during `SceneManager.cls_build_visuals` (`scene_manager.py`).
+5. `CudaVispyConnector.cls_connect_tree` (`cuda_connector.py`) calls `scene.on_draw(None)` to force OpenGL resource allocation, then calls `CudaVispyConnector.to_gl_buffer`.
+6. `CudaVispyConnector.to_gl_buffer` extracts the OpenGL buffer ID from VisPy (`get_current_canvas().context.shared.parser._objects[obj._vbo.id].handle`) and instantiates a `GLVBOTensor`.
+7. In `GLTensorDict.__setitem__` (`gl_tensor_dict.py`), the mapped PyTorch CUDA tensor (`value.tensor`) is stored under `'POS_VBO'`, and the dictionary is assigned to `SpatialNetwork.cuda_opengl_map` in `SNNgine.build` (`snngine.py`).
+8. `NetworkReservoir.pos_vbo` (`spnn_reservoir.py`) retrieves `self.cuda_gl_dict['POS_VBO']` from `EngineElement.cuda_gl_dict` (`engine_element.py`).
+9. `Simulation._make_simulator_backend` (`simulation.py`) extracts `element.pos_vbo.data_ptr()` and passes it to `snn_simulation_gpu.SnnSimulation` as `N_pos`.
+10. In `snn_simulation.cu`, kernel `update_N_state_` reads and writes `N_pos` using `#define VISPY_MARKER_STRIDE 14`, resetting baseline opacity at offset 10 (`a_bg_color.a`) to `0.3` and pulsing it to `1.0` upon firing.
+
+---
+
+## Parallel GPU-interop channels
+
+Three additional buffers are registered and passed to CUDA alongside `N_pos`:
+
+1. **`voltage_plot_data`**:
+   - Config: `plots.voltage_plot` (`EngineMultiLinePlotConfig` in `nn/sim/sim_parameters.py`).
+   - Visual: `vispy.scene.visuals.Line` in scene `multiplot_voltage`.
+   - OpenGL resolution: `CudaVispyConnector.to_gl_buffer` (`cuda_connector.py`) extracts `line_sub_visual._pos_vbo.id` into `GLVBOTensor`.
+   - CUDA binding: Passed as `volt_plot.pos_vbo.data_ptr()` to `snn_simulation_gpu.SnnSimulation` in `Simulation._make_simulator_backend` (`simulation.py`).
+2. **`scatter_plot_data`**:
+   - Config: `plots.firings_scatter_plot` (`EngineMultiScatterPlotConfig` in `nn/sim/sim_parameters.py`).
+   - Visual: `CompoundMarkersVisual` in scene `multiplot_firings`.
+   - OpenGL resolution: `CudaVispyConnector.to_gl_buffer` (`cuda_connector.py`) extracts `markers_visual._vbo.id` into `GLVBOTensor`.
+   - CUDA binding: Passed as `firings_scatter_plot.pos_vbo.data_ptr()` to `snn_simulation_gpu.SnnSimulation` in `Simulation._make_simulator_backend` (`simulation.py`), using stride 14 and offset 10 in `snn_simulation.cu`.
+3. **`chemicals.C0`**:
+   - Config: `chemicals.C0` (`ChemicalConcentrationModel` in `chemistry/chem_models.py`).
+   - Visual: `R32fVolumeVisual` in `main_scene`.
+   - OpenGL resolution: `CudaVispyConnector.to_gl_buffer` (`cuda_connector.py`) extracts `obj._texture.id` into `GLTexture3DTensor`.
+   - CUDA binding: Passed as `C_old`, `C_new`, and `C_source` to `snn_simulation_gpu.SnnSimulation` in `Simulation._make_simulator_backend` (`simulation.py`).
+   - Interop mechanism: Uses explicit GPU-to-GPU copy (`pycuda.driver.Memcpy3D` in `GLTexture3DTensor.copy_to_texture`), not zero-copy VBO mapping.

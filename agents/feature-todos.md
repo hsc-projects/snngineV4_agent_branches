@@ -8,7 +8,31 @@ Each entry gets a priority: **high**, **mid**, or **low**.
 
 ## Now
 
-(nothing currently)
+- [high] Horizontal mapping pass across `snngine_v4/` subpackages:
+  - **Completed in this pass**:
+    - `chemistry/` (`agents/mapping/chemistry.md`): added end-to-end integration, legacy SNNgine3D differences (interactive `SelectorBox`, `stent.npz`, `additive`, stepping sync gap), and corrected Open Question 4.
+    - `geometry/` (`agents/mapping/geometry.md`): added `volume.py` catalog, neuron position discretization and spatial sorting (`sort_pos`), and VisPy GLSL geometry shader clipping (`technical_max_z_value`).
+    - `construction/` (`agents/mapping/construction.md`): added recursive build cascade and Double-Tree Architecture (`node_tree: EngineNodes` vs `root_element: SpatialNetwork`).
+  - **Next Subpackages in Sequence**:
+    - `config/` (`agents/mapping/config.md`)
+    - `nn/` (`agents/mapping/nn.md`)
+    - `visualization/` (`agents/mapping/visualization.md`)
+    - `utils/` (`agents/mapping/utils.md`)
+    - `gui/` (`agents/mapping/gui.md`)
+  - **Sister-repo cross-check to-dos**:
+    - `geometry/`: Cross-check `snngine_v4/geometry/grid/` and `volume.py` against `snngine3d/geometry/grid.py` and `snngine3d/geometry/volume/` for axis ordering (`HDW` vs `WDH`), lattice calculations, and the origin of technical `max_z` clipping.
+    - `construction/`: Cross-check `snngine_v4/construction/` (`EngineElement`, `NetworkBuilder`) against SNNgine3D's imperative construction flow (`snngine3d/engine/engine.py`) to confirm ownership boundaries and state initialization contracts.
+    - `config/`: Cross-check Pydantic `EngineConfig` (`app`, `devices`, `scenes`) against SNNgine3D's `configuration/deprecated/network_config.py` scene defaults and device assignments.
+    - `nn/`: Cross-check `SynCounts` delay redistribution and autapse avoidance (`synapses.py`) against `snngine3d/nn/spNN/synapses/synapse_representation.py`, and compare ring-buffer spike recording (`simulation.py`) against `snngine3d/nn/gpu_recorder.py`.
+    - `visualization/`: Cross-check custom GLSL wireframe geometry shaders (`visuals/grid_lines.py`) and zero-copy VBO/IBO wrapping (`visualization/cuda/gl_interop/`) against SNNgine3D's `graphics/` registration pipeline.
+    - `utils/`: Cross-check CPU/GPU dual-backed tensor containers (`TensorDataFrame`, `TensorSeries`) against SNNgine3D's `snngine3d/nn/utils/state_tensor.py` and `torch_collections.py`.
+    - `gui/`: Cross-check PySide6 parameter-tree connector architecture (`cuda_connector.py`, `object2object_links.py`) against SNNgine3D's collapsible widget bindings (`snngine3d/engine/elements/widgets/collapsibles/`).
+  - **Operational instructions for the next agent**:
+    - Audit each submodule in order, read existing mapping documentation, check underlying code, and propose targeted additions before writing to disk.
+    - Zero line numbers in documentation or proposals; cite stable file paths and symbols (`ClassName.method_name`).
+    - Do not edit any files under `agents/` without explicit user confirmation.
+    - Do not attempt to run or lint the engine locally (requires PySide6, local NVIDIA GPU, and PyCUDA-OpenGL interop).
+    - If running `agy` in terminal, launch with `agy -c --add-dir E:\dev\SNNgine3D_agent_branches` to avoid non-workspace file confirmation prompts when inspecting the legacy reference repository.
 
 ## Backlog
 
@@ -42,12 +66,8 @@ Each entry gets a priority: **high**, **mid**, or **low**.
   `self.update_builder_class_attributes()` from mutating class-level
   `ClassVar` dictionaries in place, which leaks builder map extensions
   across sibling instances of the same subclass under different parents.
-- [mid] Implement neural spike-to-chemical emission coupling
-  (`snngine_v4/nn/sim/simulation.py:151-160` and
-  `snngine_v4/chemistry/chem_volume.py`) — map firing neuron coordinates to
-  voxel indices in `C_source` during the simulation step so chemical
-  diffusion is driven by neural activity rather than synthetic test
-  fixtures (`b_test_init`).
+- [mid] Neural-chemical coupling — distinguishes between two approaches:
+  custom, currently unspecified interaction mechanisms, and standard coupling.
 - [low] Eliminate circular cross-package dependency between `config/` and
   `gui/` — move the base `AppSettings` model from
   `snngine_v4/gui/app_settings.py` into `snngine_v4/config/app.py` so that
