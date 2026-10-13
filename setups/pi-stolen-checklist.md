@@ -16,6 +16,6 @@ is fine); the rest can wait a day. Nothing below needs the Pi.
 | Phone and other unlock keys | the stick (`unlock/authorized_keys`, public keys) | remove the line for a lost device | a lost phone: also change the passphrase, since the phone may hold it |
 | Your admin SSH key | the laptop only (the Pi holds the public half) | nothing to revoke on the Pi's loss | |
 
-After the revocations: rebuild on a new card (`pi-handoff.md`, "Flash a card"), join
+After the revocations: rebuild on a new card (`pi-technical.md`, "Operating the Pi"), join
 the tailnet again with `--advertise-tags=tag:pi`, push the new WireGuard config, and
 add the secrets again.

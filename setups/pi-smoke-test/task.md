@@ -201,7 +201,7 @@ so, the same way any other turn-taking works.
   can embed (`--provision-script`); see the report's first-boot follow-up.
 - The SSH key pair, the Wi-Fi `.env` and the Proton WireGuard config live in
   `setups/.secrets/` (gitignored), not in this directory.
-- Current state and next steps for a new session: `../pi-handoff.md`.
+- Current state and how to operate the Pi: `../pi-technical.md`; next steps: `../pi-rationale.md` (open items).
 - `pi-smoke-test-report.md` — one section per phase, each following
   `setups/report-format.md`'s summary-then-subsections structure.
 

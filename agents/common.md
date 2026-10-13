@@ -188,3 +188,36 @@ grounding. If something in the code looks like it corresponds to existing
 research, an established algorithm, or a concept that should be
 sourced/verified, flag it to the user rather than assuming — don't research
 it inline, just add it to `agents/research-todos.md`.
+
+## Cloud and infrastructure work (`setups/`)
+
+**Git.** Never push, and never ask about pushing: the user pushes themselves,
+including force-pushes. Commit only after proposing the commit (files and
+message) and receiving an explicit go. Before any history rewrite, create a
+backup branch or tag.
+
+**Changes outside the repository need a go each time.** This covers installs,
+network or system settings, and the power or state of a device (shutdown,
+restart, card or stick swap), whether on the user's machine or on a remote
+host such as the Pi. Approval for one change does not extend to another, and
+a vague "continue" is not an approval.
+
+**Destructive actions on storage.** Before wiping, flashing or deleting a
+disk, card or stick, inspect it read-only (exact size, partitions, contents)
+and ask what is on its parts that this machine cannot read. Wait for the
+owner's go. A wipe on 2026-10-07 lost a hand-built setup this way.
+
+**Secrets.** Print only names, lengths or masked fields, never values. Do not
+type, paste or repeat a password for the user; they enter it, or a script
+reads it from the gitignored `setups/.secrets/` files.
+
+**Verification.** Check sources (documentation, the sandbox repo's patterns)
+before guessing, and state what was measured and what was inferred. Run
+diagnostic checks yourself instead of asking the user to paste output, when
+the check is read-only.
+
+**Waiting.** Run anything that waits (a search, a flash, an approval prompt)
+in the background and say what is happening; a silent multi-minute foreground
+wait is not acceptable. When a script blocks, use the commands that worked
+before instead of debugging the script at length without asking.
+

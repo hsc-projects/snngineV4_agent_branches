@@ -4,7 +4,7 @@
 |---|---|
 | `runpod-technical.md` | RunPod environment: current configuration (region, volume, pods, credentials, containment plan) |
 | `runpod-rationale.md` | RunPod environment: decisions, reasoning, alternatives rejected, evidence, open items |
-| `pi-technical.md` | Pi host: current configuration (hardware, network, software, credentials) |
+| `pi-technical.md` | Pi host: current configuration (hardware, network, software, credentials) and how to operate it (flash, reach, sharing, pitfalls) |
 | `pi-rationale.md` | Pi host: decisions, reasoning, alternatives rejected, open items |
 | `Dockerfile-SNNgine3D-nomachine` | NoMachine remote-desktop image for SNNgine3D — outdated, not functional, kept as a starting point |
 | `Dockerfile-SNNgine3D-nomachine-base` | Base image for the above — outdated, not functional, kept as a starting point |
@@ -13,7 +13,6 @@
 | `gpu-smoke-tests/gpu-smoke-test-task-docker.md` | Task write-up for running the GPU/CUDA-OpenGL interop smoke test in a Docker container (feeds `runpod-rationale.md`'s open item 0) |
 | `gpu-smoke-tests/gpu-smoke-test-task-v2.md` | Task write-up for modernizing the GPU/CUDA-OpenGL interop stack across all 3 modes (EGL, Desktop GUI, Web Bridge) at max RTX 3090-compatible versions |
 | `runpod-smoke-tests/runpod-smoke-test-task.md` | Task write-up for the RunPod cloud GPU/CUDA-OpenGL interop smoke test (feeds `runpod-rationale.md`'s open item 0) |
-| `pi-handoff.md` | Pi work: current state, next steps, how to run things, pitfalls — start here in a new session |
 | `pi-smoke-test/task.md` | Task write-up for the Pi flash + SSH smoke test (two phases: write/flash the SD card, then SSH once the maintainer boots and connects the Pi) — done 2026-10-04, kept current |
 | `pi-smoke-test/pi-smoke-test-report.md` | Evidence and findings of that smoke test, plus the Proton VPN and first-boot follow-ups |
 | `pi-smoke-test/pi_smoke_test_flash.py`, `pi_smoke_test_ssh_check.py` | Flash/configure an SD card (Linux and Windows) and find/SSH into the Pi |

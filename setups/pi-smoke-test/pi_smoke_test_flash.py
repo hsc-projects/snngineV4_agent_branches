@@ -15,7 +15,7 @@ It wipes the card: check the card's exact size, and what is on it, first. It
 needs elevated rights (an interactive sudo password on Linux, an Administrator
 PowerShell on Windows). With --device, --confirm-device and --wifi-from-env it
 asks nothing, so it can run from an elevated, non-interactive PowerShell with
-its output logged (setups/pi-handoff.md, "Flash a card").
+its output logged (setups/pi-technical.md, "Operating the Pi").
 
 Platforms: Linux (dd, lsblk, udisksctl, xzcat, sudo) and Windows (built-in
 PowerShell storage cmdlets, raw \\\\.\\PhysicalDriveN writes, Python's own

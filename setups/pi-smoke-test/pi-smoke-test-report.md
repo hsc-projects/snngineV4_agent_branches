@@ -447,3 +447,23 @@ to a 169.254 address, and ProtonVPN was up and held the laptop's default route.
 
 - Why Wi-Fi as the internet side fails now (it worked in earlier sessions).
 - Whether a laptop reboot cures it (not tried at the maintainer's request).
+
+## Follow-up — sharing after a reboot (2026-10-13)
+
+**Summary: `0x80040201` with Wi-Fi as the internet side survived a reboot and
+manual service starts; phone USB tethering worked on the first try and the Pi came back.**
+
+- **Tried.** The restart script after the reboot: failed with
+  `0x80040201`. Then, with the services started by hand (`NlaSvc`, `COMSysApp`): same.
+  Checked and fine: no group policy blocking sharing, the firewall services and all three
+  profiles on, `EventSystem`, `RpcSs`, `Netman`, `SENS`, `netprofm` running, the sharing
+  COM interface listing all connections with none shared. No related events were logged.
+- **What worked.** With phone USB tethering (`Ethernet 2`) as the internet side, the script
+  enabled sharing and DHCP listened. After the Pi's cable was replugged it appeared at
+  `192.168.137.132`: key-only login, uptime 40 minutes, `pi-provision.service` not failed,
+  Docker active, Tailscale node `pi-host` online, `wg-JP-154` handshake 1.5 minutes old,
+  `PIKEYS` mounted.
+
+### Not established
+
+- Why Wi-Fi as the internet side fails (system file repair, `sfc` or `DISM`, not tried).
