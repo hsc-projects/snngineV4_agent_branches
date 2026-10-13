@@ -467,3 +467,57 @@ manual service starts; phone USB tethering worked on the first try and the Pi ca
 ### Not established
 
 - Why Wi-Fi as the internet side fails (system file repair, `sfc` or `DISM`, not tried).
+
+## Follow-up — phone to the keyholder over the tailnet (2026-10-13)
+
+**Summary: the phone's SSH to the Pi timed out over the tailnet although the two nodes
+pinged each other directly; the cause was the Pi's routing rule order, fixed with two policy
+rules; then `status` worked from Termux on mobile data.**
+
+- **Symptom.** `ssh pikeys@pi-host` from Termux: `Connection timed out` (also by tailnet
+  address). `tailscale ping` worked both ways; the Pi's firewall allowed port 22 and sshd
+  listened. On the Pi the connection sat in `SYN-RECV`: the SYN arrived, the SYN-ACK did not.
+- **Cause.** `ip rule` showed the tunnel's rules (5208 suppress, 5209 `not fwmark 0xca6c
+  lookup 51820`) ahead of Tailscale's (5210 to 5270, table 52). The kernel numbers
+  wg-quick's rules just below the existing ones, so when the tunnel starts after `tailscaled`
+  they land in front; unmarked replies to `100.x` addresses then entered the tunnel.
+  The earlier SSH tests from the phone (2026-10-11) had the opposite start order.
+- **Fix.** Rules at priority 5200 for `100.64.0.0/10` and `fd7a:115c:a1e0::/48` to table 52,
+  added by the tunnel unit's `ExecStartPost` (removed by `ExecStopPost`). The Pi's own traffic
+  still exits through Proton (checked: public address unchanged). After adding the rules
+  by hand, `status` over the tailnet returned `stick: mounted`.
+- **Before that,** the Pi had no internet because the laptop's sharing was bound to an
+  adapter without internet (Wi-Fi, no connectivity) and `restart-sharing.ps1` reported
+  success anyway; naming the tether (`-Public 'Ethernet 2'`) fixed it.
+
+- **Tunnel restart (with `tailscaled` up).** After `systemctl restart wg-quick@wg-JP-154`
+  the 5200 rules (IPv4 and IPv6) were present once, ahead of the tunnel's, the handshake
+  was 8 seconds old, the exit address and DNS (`10.2.0.1`) were unchanged and the route to
+  the phone was `tailscale0` (table 52).
+- **Tailscale identity restore (simulated fresh flash).** After the node state was backed
+  up to the stick (`tailscale/tailscaled.state`, root, mode 600), `tailscaled` was stopped,
+  the card's state set aside and the daemon started: `NeedsLogin`. `tailscale_identity_restore`
+  put the state back and restarted the daemon; it was `Running` in 9 seconds as the same node
+  (`100.119.40.123`, `tag:pi`, hostname, `CorpDNS` and `RouteAll` off) with no login.
+
+- **Real reboot (`systemctl reboot`, with internet).** Everything came up unaided: the 5200
+  rules (IPv4 and IPv6) ahead of the tunnel's, the tunnel with a fresh handshake and the Proton
+  exit, `tailscaled` back as `100.119.40.123`, Docker and sshd active, `pi-provision.service`
+  not failed, the stick mounted, the keyholder `status` answering with nothing in `/run`
+  (RAM cleared).
+
+- **Real fresh flash (card 1, flashed with this script, stick left in).** The first boot
+  took about 2 minutes and finished (`pi-provision.service` not failed, marker present). The
+  log shows `tailscale identity: not joined, restoring the node state from the stick`, then
+  `restored, joined as 100.119.40.123` with no login link, and the backup on the stick
+  current. The tunnel had a fresh handshake and the Proton exit, Docker and sshd were
+  active, the keyholder `status` answered, the Wi-Fi password was scrubbed. The Pi took a
+  new cable address (`192.168.137.38`; the search script first tried the old card's stale
+  neighbour entry for 4 minutes before the new address was read from the neighbour table).
+  Here the tunnel started before `tailscaled`, so the tunnel's rules sat behind Tailscale's
+  and the 5200 rule was not needed; the other start order is the one covered earlier.
+
+### Not established
+
+- A reboot with the stick absent (keyholder and tunnel), with this script.
+- The unlock itself from the phone: no secret is stored yet.

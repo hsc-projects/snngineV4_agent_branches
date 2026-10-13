@@ -86,15 +86,17 @@ limiting factor — not a purchase decision.
   (100.121.120.13, expires 2027-04-09), may still be listed in the console.
   `CorpDNS` and `RouteAll` are off, Tailscale SSH and shields-up are off (the
   normal sshd is the only SSH). The node state is in `/var/lib/tailscale` on
-  the card, so a re-flash needs a new join. Tailscale's own traffic carries a
+  the card (the primary copy), with a backup on the stick (`tailscale/tailscaled.state`,
+  root, mode 600; `pi-firstboot.sh tailscale-backup` after a join). On a fresh flash
+  the module puts it back while the node is not joined, so the Pi returns as the same
+  node with no new login; the old card must not run at the same time. Tailscale's own traffic carries a
   mark and leaves by the main routing table (rule 5210), directly rather than
   through Proton; the tunnel's handshake, DNS and public address are unaffected.
   Access policy (text in `pi-provision/tailscale-policy.hujson`): the
   maintainer's own devices may open tcp 22 on `tag:pi` and nothing else; the
   Pi may start no connections to other devices. The phone (`fairphone-5-5g`,
-  Android) reaches the Pi over the tailnet (via a relay, no direct path); no
-  phone key is authorised for SSH yet. The laptop has no Tailscale;
-  `bridge-relay` was offline (last seen 13 days before 2026-10-13).
+  Android) reaches the Pi over the tailnet (via a relay, no direct path); the
+  phone's key is authorised for the unlock user only (below). `bridge-relay` was offline (last seen 13 days before 2026-10-13).
 - Services planned to run here: not finalized overall, but two are
   named:
   1. An egress-proxy (own instance vs. sharing this repo's existing
@@ -153,6 +155,11 @@ limiting factor — not a purchase decision.
     are covered; with no tunnel file it does nothing. IPv6 resolvers learned from
     the local network are ignored while the tunnel is up (`ipv6.ignore-auto-dns`);
     the effect of that was not tested (this network offers none).
+  - **Tailnet traffic goes first:** the drop-in adds policy rules at priority 5200
+    (`100.64.0.0/10` and `fd7a:115c:a1e0::/48`, lookup table 52) after the tunnel
+    starts and removes them when it stops. Without them, a tunnel that comes up after
+    `tailscaled` puts its rules (5208, 5209) ahead of Tailscale's, and unmarked replies
+    to tailnet addresses (the SYN-ACK of an SSH handshake) go into the tunnel and time out.
   - `resolvconf` is not installed; `htm`'s PATH lacks `/usr/sbin`, so admin tools
     only show up with `sudo`.
 - Credential stick (`PIKEYS`): a 4 GB USB stick, ext4 (not encrypted: an
@@ -183,7 +190,9 @@ limiting factor — not a purchase decision.
   the sudoers rule and `sshd` (`sshd -t`, the applied forced command) before
   reloading and removes its own config if a check fails. The laptop client is
   `pi-provision/pi_keyholder.py`; what to revoke if the Pi is lost is
-  `pi-stolen-checklist.md`. No secret is stored yet; a real reboot and an
+  `pi-stolen-checklist.md`. The phone (Termux, key `pikeys_ed25519`, one line in
+  `unlock/authorized_keys`) reaches `pi-unlock` over the tailnet on mobile data
+  (`status` returns `stick: mounted`). No secret is stored yet; a real reboot and an
   absent stick were not tested with it.
 
 ## Credentials
@@ -247,8 +256,8 @@ limiting factor — not a purchase decision.
   hour without network): `sudo systemctl reset-failed pi-provision.service`, then
   `sudo systemctl start pi-provision.service`.
 - **Tailscale join:** the login link lasts 10 to 15 minutes, then the command exits
-  with `context canceled` and needs a new one. Delete the node's stale predecessor in
-  the admin console first, or the name gets a number.
+  with `context canceled` and needs a new one. Only without a backup on the stick: delete
+  the node's stale predecessor in the admin console first, or the name gets a number.
 - **Past errors:** first boot is configured by cloud-init, not `custom.toml`;
   `enable_ssh` alone did not start sshd on an early card (the empty `ssh` file did;
   rationale item 16); write the partition table last (Windows mounts the new

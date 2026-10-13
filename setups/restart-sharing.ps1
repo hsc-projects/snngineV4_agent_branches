@@ -28,6 +28,10 @@ if ($Public) {
         if ($a -and $a.Status -eq 'Up') { [pscustomobject]@{ Alias = $_.InterfaceAlias; Metric = $_.RouteMetric + $i.InterfaceMetric; Desc = $a.InterfaceDescription } }
     } | Where-Object { $_.Alias -ne $Private -and $_.Desc -notmatch $virtual } | Sort-Object Metric | ForEach-Object { $_.Alias } | Select-Object -Unique)
     if ($candidates.Count -eq 0) { $candidates = @('WiFi') }
+    # A connected adapter can still have no internet (Wi-Fi without a route out, say);
+    # try the ones Windows reports as having internet first.
+    $online = @(Get-NetConnectionProfile -ErrorAction SilentlyContinue | Where-Object { $_.IPv4Connectivity -eq 'Internet' } | ForEach-Object { $_.InterfaceAlias })
+    $candidates = @($candidates | Where-Object { $online -contains $_ }) + @($candidates | Where-Object { $online -notcontains $_ })
 }
 
 # --- quick look at what usually gets in the way ------------------------------------
@@ -111,6 +115,11 @@ if (-not $listening) {
     exit 1
 }
 Write-Host "OK: sharing is on with '$ok' as the internet side, DHCP is listening."
+$conn = (Get-NetConnectionProfile -InterfaceAlias $ok -ErrorAction SilentlyContinue).IPv4Connectivity
+if ($conn -ne 'Internet') {
+    Write-Host "WARNING: Windows reports no internet on '$ok' (IPv4 connectivity: $(if ($conn) { $conn } else { 'no network profile' })), so the Pi will have none either."
+    Write-Host "Connect it, or run this again with -Public NAME for an adapter that has internet (for example phone USB tethering)."
+}
 
 # A Pi that sat without DHCP for minutes has given up on the cable; give it a bounded moment.
 $seen = $null

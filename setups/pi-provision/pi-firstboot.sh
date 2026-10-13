@@ -46,6 +46,11 @@ DOCKER_PACKAGES=(docker-ce docker-ce-cli containerd.io docker-buildx-plugin dock
 TAILSCALE_KEY_FPR=2596A99EAAB33821893C0A79458CA832957F5868
 TAILSCALE_KEY=/usr/share/keyrings/tailscale-archive-keyring.gpg
 TAILSCALE_LIST=/etc/apt/sources.list.d/tailscale.list
+# The node's identity (its state file) is copied onto the stick after the join and put
+# back on a fresh flash, so a re-flash comes back as the same node without a new login.
+# The card stays the primary copy: a Pi without the stick still joins the tailnet.
+TAILSCALE_STATE=/var/lib/tailscale/tailscaled.state
+TAILSCALE_BACKUP=$KEYSTORE_MOUNT/tailscale/tailscaled.state
 # Keyholder (setups/pi-rationale.md, item 20): high-value secrets live on the stick only
 # as passphrase-encrypted files and are decrypted into RAM (/run/pi-secrets) on request.
 KEYHOLDER_USER=pikeys
@@ -251,6 +256,14 @@ RequiresMountsFor=$KEYSTORE_MOUNT
 [Service]
 Restart=on-failure
 RestartSec=30
+# wg-quick's policy rules sit at the front when the tunnel comes up after
+# tailscaled (the kernel numbers them just below the existing rules), which sends
+# unmarked replies to tailnet addresses into the tunnel (so SSH over the tailnet
+# times out). These rules put tailnet-bound traffic first whatever the order.
+ExecStartPost=-/usr/sbin/ip rule add pref 5200 to 100.64.0.0/10 lookup 52
+ExecStartPost=-/usr/sbin/ip -6 rule add pref 5200 to fd7a:115c:a1e0::/48 lookup 52
+ExecStopPost=-/usr/sbin/ip rule del pref 5200 to 100.64.0.0/10 lookup 52
+ExecStopPost=-/usr/sbin/ip -6 rule del pref 5200 to fd7a:115c:a1e0::/48 lookup 52
 DROPIN
     chmod 644 /etc/systemd/system/wg-quick@.service.d/pi-provision.conf
     # A device that connects or reconnects after the tunnel is up (a cable
@@ -342,6 +355,50 @@ module_docker() {
     log "module docker: ok (engine $(docker version -f '{{.Server.Version}}' 2> /dev/null), $(docker compose version --short), buildx $(docker buildx version | awk '{print $2}'))"
 }
 
+# Copy the joined node's state onto the stick (root only, mode 600). Needs the stick
+# mounted and the node joined; does nothing otherwise. Run it after the interactive
+# join (`pi-firstboot.sh tailscale-backup`); the tailscale module also runs it.
+tailscale_identity_backup() {
+    if ! mountpoint -q "$KEYSTORE_MOUNT"; then
+        log "tailscale identity: stick not mounted, no backup made"; return 0
+    fi
+    if ! tailscale ip -4 > /dev/null 2>&1 || [ ! -f "$TAILSCALE_STATE" ]; then
+        log "tailscale identity: node not joined, no backup made"; return 0
+    fi
+    if cmp -s "$TAILSCALE_STATE" "$TAILSCALE_BACKUP"; then
+        log "tailscale identity: the backup on the stick is current"; return 0
+    fi
+    install -d -m 0700 -o root -g root "$(dirname "$TAILSCALE_BACKUP")"
+    install -m 0600 -o root -g root "$TAILSCALE_STATE" "$TAILSCALE_BACKUP" \
+        || { log "FAILED tailscale identity: could not write $TAILSCALE_BACKUP"; return 1; }
+    log "tailscale identity: node state backed up to the stick"
+}
+
+# On a fresh flash (daemon running, node not joined) with a backup on the stick: put the
+# state back and restart the daemon, so the Pi returns as the same node. Never touches a
+# node that is already joined. The old card must not run at the same time.
+tailscale_identity_restore() {
+    local i st=
+    for i in $(seq 1 10); do
+        st=$(tailscale status --json 2> /dev/null | sed -n 's/.*"BackendState": *"\([A-Za-z]*\)".*/\1/p' | head -n 1)
+        [ -n "$st" ] && [ "$st" != NoState ] && break
+        sleep 2
+    done
+    [ "$st" = NeedsLogin ] || return 0
+    if ! mountpoint -q "$KEYSTORE_MOUNT" || [ ! -f "$TAILSCALE_BACKUP" ]; then return 0; fi
+    log "tailscale identity: not joined, restoring the node state from the stick"
+    systemctl stop tailscaled.service
+    install -d -m 0700 -o root -g root "$(dirname "$TAILSCALE_STATE")"
+    install -m 0600 -o root -g root "$TAILSCALE_BACKUP" "$TAILSCALE_STATE" \
+        || { systemctl start tailscaled.service; log "FAILED tailscale identity: could not restore the state"; return 1; }
+    systemctl start tailscaled.service
+    for i in $(seq 1 30); do
+        tailscale ip -4 > /dev/null 2>&1 && { log "tailscale identity: restored, joined as $(tailscale ip -4 | head -n 1)"; return 0; }
+        sleep 2
+    done
+    log "WARNING tailscale identity: restored the state but the node did not join (removed in the admin console? then delete $TAILSCALE_STATE, restart tailscaled and join again)"
+}
+
 # Tailscale from its own apt repository. Installs and enables the daemon only: joining
 # the tailnet is interactive (`sudo tailscale up --accept-dns=false --hostname=pi-host
 # --advertise-tags=tag:pi`, approved in the maintainer's browser; the tag must be owned
@@ -397,11 +454,13 @@ module_tailscale() {
         fi
     fi
     systemctl enable --now tailscaled.service > /dev/null 2>&1 || true
+    tailscale_identity_restore || true
     if ! tailscale version > /dev/null 2>&1 || [ "$(systemctl is-active tailscaled)" != "active" ]; then
         log "FAILED module tailscale: installed, but the tailscale CLI or tailscaled does not run"; return 1
     fi
     if tailscale ip -4 > /dev/null 2>&1; then
         log "module tailscale: ok ($(tailscale version | head -n 1)), joined as $(tailscale ip -4 | head -n 1)"
+        tailscale_identity_backup || true
     else
         log "module tailscale: ok ($(tailscale version | head -n 1)), NOT JOINED: run 'sudo tailscale up --accept-dns=false --hostname=pi-host --advertise-tags=tag:pi' and approve the link"
     fi
@@ -648,6 +707,7 @@ main() {
         autostart) log "=== wireguard autostart only ==="; preflight; module_wireguard_autostart; return ;;
         docker) log "=== docker only ==="; preflight; wait_for_clock; module_docker; return ;;
         tailscale) log "=== tailscale only ==="; preflight; wait_for_clock; module_tailscale; return ;;
+        tailscale-backup) log "=== tailscale identity backup only ==="; preflight; tailscale_identity_backup; return ;;
         keyholder) log "=== keyholder only ==="; preflight; module_keyholder; return ;;
         format-keystore) log "=== format keystore ==="; preflight; format_keystore "${2:-}"; return ;;
     esac

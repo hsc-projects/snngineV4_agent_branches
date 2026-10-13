@@ -227,9 +227,13 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
     no auth key on the card, coexists with the Proton tunnel, access policy saved
     (`pi-provision/tailscale-policy.hujson`). A non-expiring node is covered by the
     stolen-Pi checklist (item 20). The RunPod pod's auth key is separate (item 5).
-    Open: link `/var/lib/tailscale` onto the stick so a re-flash keeps the Pi's
-    identity (not decided); delete the older node `pi-host-test` in the console; the
-    remote unlock from the phone on mobile data (item 20) is not built.
+    Identity (decided 2026-10-13, for now): the node state is
+    copied onto the stick and restored on a fresh flash, so re-flashing (frequent while the
+    script is being tested) needs no new login; the card stays the primary copy, so a Pi
+    without the stick still joins. Linking the state onto the stick was rejected (no tailnet
+    without the stick). A stolen stick can impersonate `tag:pi` (accept SSH only, per the
+    ACL). To be dropped once re-flashes are rare. Open: delete the older node `pi-host-test` in the console; the
+    widget script for the phone unlock (item 20).
 15. **Reading the Pi's logs when it stops responding.** Windows cannot read
     the root partition and `wsl --mount` does not support SD card readers;
     WSL plus usbipd-win would, but is not set up. The journal is volatile;
@@ -267,13 +271,17 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
     - *Unlock from the phone over Tailscale:* a phone SSH key behind biometrics, with a
       forced command that allows only the unlock (no shell); the phone never holds the
       credentials. The design must not depend on the phone: any device with an
-      authorised key, or the admin through sudo, can unlock. Passphrase: about 7 random
-      words from the maintainer's password manager, never seen by the assistant. Phone
+      authorised key, or the admin through sudo, can unlock. Passphrase: 5 random words
+      (about 64 bits; chosen 2026-10-13 over 7: gpg's S2K is already at its maximum and a
+      failed unlock costs 2 s) from the maintainer's password manager, never seen by the
+      assistant. Phone
       tool for now: Termux (app support unverified). A separate `pikeys` user.
     - *Rejected for now:* LUKS plus Tang on the stick and card (protects against
       reading them elsewhere only as well as the speed of revoking the node, and adds a
       second always-on machine); hardware tokens do not fit.
-    - *To do:* the Termux key and widget and a test over mobile data; the first real
+    - *Phone:* the Termux key is authorised and `status` works over the tailnet on
+      mobile data (2026-10-13).
+    - *To do:* the widget script; the first real
       secret (the RunPod key; until then `RUNPOD_API_KEY` stays in
       `setups/.secrets/.env`, item 18); a consumer for it (item 21).
 21. **The Pi's own MCP server** (brainstormed 2026-10-11, nothing built).
