@@ -51,6 +51,13 @@ config/build architecture note). Suggested reading order:
     (`CudaVispyConnector`, `VispyConnector`, `TensorConnector`), custom
     interactive parameter widgets, and Behringer X-Touch Mini hardware
     MIDI controller integration.
+11. **`module-interactions.md`** — system-wide subpackage dependencies, the
+    end-to-end 5-phase orchestration pipeline (`SNNgine.build`), shared GPU
+    buffer contracts (`POS_VBO`, 3D textures, plot streams), reactive event
+    propagation topology across modules, time-stepped simulation loop interactions
+    (`SNNgine.run_sim`), the Double-Tree element navigation protocol, hardware
+    MIDI controller pipelines, tabular tensor dataframe synchronization, and the
+    system-wide legacy cross-check against SNNgine3D.
 
 All planned subpackages in the horizontal mapping pass are now written.
 
@@ -295,7 +302,7 @@ identified across the horizontal mapping pass.
   - **Resolution** (detailed in
     [`nn.md#open-questions`](nn.md#open-questions)): Confirmed debug /
     smoke check verifying that `parent_element()` resolves from child
-    `NeuronStates` up to the parent `NetworkReservoir` via `node_tree`
+    `NeuronState` up to the parent `NetworkReservoir` via `node_tree`
     without raising errors during construction.
 - [SOLVED] **Leftover debug configuration field**
   ([`nn.md`](nn.md#open-questions)): `SpatialNetworkConfig.bools`

@@ -215,6 +215,41 @@ PyTorch wraps and passes directly to CUDA simulation kernels.
 - `gui/` (not yet mapped) — `CudaVispyConnector` and `VispyConnector` query
   VisPy GLIR handles and bind visual properties to parameter trees.
 
+## Runtime visual lifecycle and GPU interop pipeline
+
+`visualization/` manages multi-canvas VisPy rendering and zero-copy GPU memory mapping:
+
+### 1. Two-phase visual construction lifecycle
+Visuals are constructed and bound in two distinct phases:
+1. **Declarative canvas and visual instantiation**:
+   - `SceneManager.cls_build_visuals` (`snngine_v4/visualization/scenes/scene_manager.py`) walks `VispyCanvasConfig` definitions.
+   - `VispyVisualBuilder` (`snngine_v4/visualization/visual_builder.py`) translates Pydantic models (`OuterGridVisualInitConfig`, `MarkersVisualConfig`, `MultiLinePlotConfig`, `VolumeConfig`) into VisPy visual nodes (`Markers`, `Line`, `R32fVolumeVisual`, `MultiBoxLinesVisual`) attached to viewboxes.
+   - `CameraBuilder` attaches `EventTurntableCamera` (for 3D volume view) and `EventPanZoomCamera` (for 2D plots).
+2. **Post-render OpenGL resource allocation and CUDA mapping**:
+   - VisPy allocates OpenGL buffer objects (VBOs, IBOs, textures) lazily upon the initial canvas draw.
+   - `CudaVispyConnector.cls_connect_tree` forces an initial draw (`canvas.on_draw(None)`), queries the VisPy GLIR parser for allocated buffer IDs (`obj._vbo.id`, `obj._texture.id`), and wraps them into `GLVBOTensor` or `GLTexture3DTensor`.
+   - Mapped tensors are stored in `SpatialNetwork.cuda_opengl_map`, making their device memory pointers (`.data_ptr()`) available to CUDA simulation kernels.
+
+### 2. Zero-copy VBO/IBO vs. 3D texture copy paths
+- **Zero-copy vertex buffers**: Vertex and index buffers (`GLVBOTensor`, `GLIBOTensor`) are mapped into PyCUDA (`RegisteredBuffer`) and wrapped into `numba.cuda` device arrays, which PyTorch shares directly via `torch.as_tensor(...)`. CUDA kernels write directly into these buffers on the GPU, updating marker coordinates, voltage waveforms, and spike rasters without host transfers.
+- **Explicit 3D texture copies**: OpenGL 3D textures (`GLTexture3DTensor`) cannot be wrapped as contiguous linear PyTorch tensors due to hardware driver tiling. They use `pycuda.gl.RegisteredImage` and synchronize data between PyTorch and OpenGL using explicit GPU-to-GPU copies (`pycuda.driver.Memcpy3D`).
+
+## SNNgine3D legacy differences (sister-repo cross-check)
+
+A comparative audit against `SNNgine3D` (`snngine3d/graphics/`) documents the architectural evolution of rendering and GPU interop:
+
+### 1. Decoupling of the GPU interop bridge from the visual class tree
+- **SNNgine3D**: Interop was implemented through an intrusive class hierarchy: visuals were required to subclass `CudaNode` (`snngine3d/graphics/vispy_torch_interop/cuda_node.py`) or `CudaEngineVisualNode`, which tracked children through custom tree structures (`CudaNodeAttr`) and registered buffers into global lists (`RegisteredBufferList`).
+- **snngine_v4**: Abolished the `CudaNode` inheritance requirement. VisPy visuals are standard scene nodes without CUDA mixins. The interop layer (`snngine_v4/visualization/cuda/gl_interop/`) is completely decoupled: `GLBuffer` and `GLBufferTensor` wrap buffer IDs resolved out-of-band by `CudaVispyConnector` from VisPy's GLIR parser, and buffer references are organized cleanly in `GLTensorDict`.
+
+### 2. GPU geometry shader wireframes and parameterization
+- **SNNgine3D**: Wireframe box rendering was embedded in `snngine3d/graphics/vispy_torch_visuals/` (`boxes.py`, `finite_grid_lines.py`), combining procedural box math with VisPy `GLLineVisual`.
+- **snngine_v4**: Modularized into `GSGLLineVisual`, `GSLineVisual`, and `MultiBoxLinesVisual` (`snngine_v4/visualization/visuals/grid_lines.py`). The GLSL geometry shader (`layout (lines) in; layout (line_strip, max_vertices=16) out;`) expands line primitives into 12-edge box cages directly on the GPU, while clipping degenerate connector lines via `{technical_max_z_value}f` discard checks. Configuration is entirely driven by declarative models (`MultiBoxLinesVisualConfig`, `OuterGridVisualInitConfig`).
+
+### 3. Bidirectional camera event reflection
+- **SNNgine3D**: Camera interaction was handled through VisPy defaults; changes to camera position or zoom did not automatically reflect back into configuration models.
+- **snngine_v4**: Introduced `EventTurntableCamera` and `EventPanZoomCamera` (`snngine_v4/visualization/scenes/event_camera.py`), which intercept interactive camera movements (`azimuth`, `elevation`, `distance`, `fov`, `center`) and emit `SetAttributeEvent` / `Set3DAttributeEvent` to keep Pydantic camera configurations synchronized with the user's viewport manipulations.
+
 ## Open questions
 
 Indexed centrally in [`README.md` → Consolidated open questions](README.md#visualization):

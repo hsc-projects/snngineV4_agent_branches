@@ -209,6 +209,27 @@ In `NetworkReservoirConfig` (`nn/config_models/reservoir/nn_reservoir_config.py`
 - `MarkersVisualConfig.pos`, `GridLinesVisualInitConfig.pos`, and `MultiLinePlotSubVisualInitConfig.pos` (`visualization/`)
 - `OptionsBuilder` (`gui/`)
 
+## SNNgine3D legacy differences (sister-repo cross-check)
+
+A comparative audit against `SNNgine3D` (`snngine3d/geometry/`) reveals how spatial definitions, lattice math, and visual boundaries evolved:
+
+### 1. Decoupling of geometry from VisPy visuals
+- **SNNgine3D**: `FiniteGrid` (`snngine3d/geometry/grid/grid.py`) directly constructed visualization nodes via `FiniteGrid.make_outer_grid_visual` and `FiniteGrid.make_grid_line_visual`, importing `snngine3d.graphics.vispy_torch_visuals.outer_grid.OuterGrid` and `CudaMultiBoxLineVisual`. Geometry was tightly coupled to VisPy rendering primitives.
+- **snngine_v4**: All visual construction methods were removed from `FiniteGrid` (`snngine_v4/geometry/grid/finite_grid.py`). `FiniteGrid` is completely headless. Visual creation is handled out-of-band by `VispyVisualBuilder.get_model` (`snngine_v4/visualization/visual_builder.py`) using declarative models (`OuterGridVisualInitConfig`, `GridLinesVisualInitConfig`).
+
+### 2. Evolution of volumetric shape representations (`HDW` vs. `WDH`)
+- **SNNgine3D**: Volumetric dimensions were managed by `VolumetricMixin` (`snngine3d/geometry/volume/volume.py`), which accepted an untyped tuple `shape_hdw` (`HEIGHT=0`, `DEPTH=1`, `WIDTH=2` in `VolumeDimIdx`) and derived `shape_wdh = (width, depth, height)`.
+- **snngine_v4**: Replaced `VolumetricMixin` with a strongly validated Pydantic model `VolumeShapeHDW(Shape3Di32)` (`snngine_v4/geometry/volume.py`), which inherits from `XYZPars` (`snngine_v4/geometry/spatial_pars.py`). It retains `shape_wdh` and `hdw_to_wdh` classmethods to translate memory-contiguous tensor dimensions $(H, D, W)$ to Cartesian spatial coordinates $(X, Y, Z) = (\text{Width}, \text{Depth}, \text{Height})$.
+
+### 3. Origin of technical `max_z` geometry shader clipping
+- **Origin in SNNgine3D**: In `snngine3d/geometry/grid/grid.py`, `_make_pos` appended a degenerate segment at index `n_segments` positioned at `z = technical_max_z_value + 1`. This allowed VisPy to draw segmented grid boxes without requiring OpenGL primitive restart indices. `CudaMultiBoxLineVisual` injected an inverse-transform shader check:
+  `if ($transform_inv(source_pos).z > {technical_max_z_value}f) discard;`
+- **Carried into snngine_v4**: This exact mechanism is preserved in `snngine_v4/geometry/grid/finite_grid.py` and `snngine_v4/visualization/visuals/grid_lines.py`, but the parameter was formalized into Pydantic model `TechnicalValues(max_z=100)` under `snngine_v4/geometry/grid/finite_grid_config.py`.
+
+### 4. Origin of the `coord` direction ordering relic
+- In `snngine3d/geometry/grid/grid_object.py`, `GridDirectionsObject.coord` defined hardcoded coordinate offsets starting with `[-1, 0, 0]` at row 0 (representing $-X$), whereas `GridDirections.X_P = 0` represented $+X$.
+- When ported to `snngine_v4/geometry/grid/finite_grid_elements.py`, `GridDirectionsObject.coord` was copied verbatim. While subclass `GridStep` overrides its internal vector table to match canonical `AxDir3D` order, the inherited class-level `coord` array remained as unread dead code.
+
 ## Open questions
 
 Indexed centrally in [`README.md` → Consolidated open questions](README.md#geometry):

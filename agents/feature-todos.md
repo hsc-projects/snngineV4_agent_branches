@@ -11,28 +11,19 @@ Each entry gets a priority: **high**, **mid**, or **low**.
 - [high] Horizontal mapping pass across `snngine_v4/` subpackages:
   - **Completed in this pass**:
     - `chemistry/` (`agents/mapping/chemistry.md`): added end-to-end integration, legacy SNNgine3D differences (interactive `SelectorBox`, `stent.npz`, `additive`, stepping sync gap), and corrected Open Question 4.
-    - `geometry/` (`agents/mapping/geometry.md`): added `volume.py` catalog, neuron position discretization and spatial sorting (`sort_pos`), and VisPy GLSL geometry shader clipping (`technical_max_z_value`).
-    - `construction/` (`agents/mapping/construction.md`): added recursive build cascade and Double-Tree Architecture (`node_tree: EngineNodes` vs `root_element: SpatialNetwork`).
-  - **Next Subpackages in Sequence**:
-    - `config/` (`agents/mapping/config.md`)
-    - `nn/` (`agents/mapping/nn.md`)
-    - `visualization/` (`agents/mapping/visualization.md`)
-    - `utils/` (`agents/mapping/utils.md`)
-    - `gui/` (`agents/mapping/gui.md`)
-  - **Sister-repo cross-check to-dos**:
-    - `geometry/`: Cross-check `snngine_v4/geometry/grid/` and `volume.py` against `snngine3d/geometry/grid.py` and `snngine3d/geometry/volume/` for axis ordering (`HDW` vs `WDH`), lattice calculations, and the origin of technical `max_z` clipping.
-    - `construction/`: Cross-check `snngine_v4/construction/` (`EngineElement`, `NetworkBuilder`) against SNNgine3D's imperative construction flow (`snngine3d/engine/engine.py`) to confirm ownership boundaries and state initialization contracts.
-    - `config/`: Cross-check Pydantic `EngineConfig` (`app`, `devices`, `scenes`) against SNNgine3D's `configuration/deprecated/network_config.py` scene defaults and device assignments.
-    - `nn/`: Cross-check `SynCounts` delay redistribution and autapse avoidance (`synapses.py`) against `snngine3d/nn/spNN/synapses/synapse_representation.py`, and compare ring-buffer spike recording (`simulation.py`) against `snngine3d/nn/gpu_recorder.py`.
-    - `visualization/`: Cross-check custom GLSL wireframe geometry shaders (`visuals/grid_lines.py`) and zero-copy VBO/IBO wrapping (`visualization/cuda/gl_interop/`) against SNNgine3D's `graphics/` registration pipeline.
-    - `utils/`: Cross-check CPU/GPU dual-backed tensor containers (`TensorDataFrame`, `TensorSeries`) against SNNgine3D's `snngine3d/nn/utils/state_tensor.py` and `torch_collections.py`.
-    - `gui/`: Cross-check PySide6 parameter-tree connector architecture (`cuda_connector.py`, `object2object_links.py`) against SNNgine3D's collapsible widget bindings (`snngine3d/engine/elements/widgets/collapsibles/`).
-  - **Operational instructions for the next agent**:
-    - Audit each submodule in order, read existing mapping documentation, check underlying code, and propose targeted additions before writing to disk.
-    - Zero line numbers in documentation or proposals; cite stable file paths and symbols (`ClassName.method_name`).
-    - Do not edit any files under `agents/` without explicit user confirmation.
-    - Do not attempt to run or lint the engine locally (requires PySide6, local NVIDIA GPU, and PyCUDA-OpenGL interop).
-    - If running `agy` in terminal, launch with `agy -c --add-dir E:\dev\SNNgine3D_agent_branches` to avoid non-workspace file confirmation prompts when inspecting the legacy reference repository.
+    - `geometry/` (`agents/mapping/geometry.md`): added `volume.py` catalog, neuron position discretization and spatial sorting (`sort_pos`), VisPy GLSL geometry shader clipping (`technical_max_z_value`), and SNNgine3D legacy cross-check (decoupling from VisPy visuals, `VolumeShapeHDW` Pydantic model vs `VolumetricMixin`, `max_z` clipping origin, and `coord` direction relic).
+    - `construction/` (`agents/mapping/construction.md`): added recursive build cascade, Double-Tree Architecture (`node_tree: EngineNodes` vs `root_element: SpatialNetwork`), and SNNgine3D legacy cross-check (transition from monolithic `Engine` imperative assembly, abolition of `VspNN` visual inheritance hierarchy, and strict declarative attribute guarding).
+    - `config/` (`agents/mapping/config.md`): added runtime lifecycle and multi-file XML persistence (`.snngine/`), and SNNgine3D legacy cross-check (partitioning of monolithic `EngineConfig`, dedicated simulation CUDA device assignment, Pydantic v2 `XMLSettingsModel` vs custom `XMLHandler`).
+    - `nn/` (`agents/mapping/nn.md`): added runtime simulation execution, ring-buffer spike tracking, in-situ GPU plot streaming, and SNNgine3D legacy cross-check (elimination of host `GPURecorder`, modular `SynCounts` delay correction and autapse masking, headless simulation decoupling).
+    - `visualization/` (`agents/mapping/visualization.md`): added two-phase visual lifecycle, zero-copy VBO vs 3D texture interop, and SNNgine3D legacy cross-check (abolition of intrusive `CudaNode` hierarchy, GLSL geometry shader culling, bidirectional camera event reflection).
+    - `utils/` (`agents/mapping/utils.md`): added runtime container lifecycles, dual-backed tensor synchronization, and SNNgine3D legacy cross-check (`StateTensor` to `TensorDataFrame` transition, bidirectional `Object2ObjectMap`, generic `ModelObjectBuilder` reflection).
+    - `gui/` (`agents/mapping/gui.md`): added application initialization lifecycle, reactive connector architecture, shared buffer protection, and SNNgine3D legacy cross-check (transition from imperative collapsible frames to schema-driven `ParameterTree`, decoupled connector layer, `EngineLinkerTree` MIDI hardware mapping).
+  - **All horizontal mapping subpackages and sister-repo cross-checks are now complete.**
+- [high] Runpod headless engine simulation smoke test:
+  - Specification: `setups/runpod-engine-smoke-test/runpod-engine-test-task.md`.
+  - Automation scripts: `runpod_engine_test_runner.sh` and `test_headless_engine_sim.py` (supporting contracts check, 1-step quick smoke, and full 100-step execution with compact error pruning).
+  - Target environment: NVIDIA RTX 2000 Ada in `EU-RO-1` mounting persistent volume `qze81dpw7q`.
+  - Report artifact: `setups/runpod-engine-smoke-test/runpod-engine-smoke-test-report.md`.
 
 ## Backlog
 

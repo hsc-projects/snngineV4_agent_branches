@@ -213,6 +213,45 @@ Construction flows strictly in phases:
 - `agents/feature-todos.md` — relates to the backlog item for adding an Integrate-and-Fire
   (IF/LIF) model alongside the Izhikevich model.
 
+## Runtime simulation execution and ring-buffer spike tracking
+
+`nn/` orchestrates time-stepped simulation and zero-copy live plotting through a low-overhead CUDA interface:
+
+### 1. Unified backend initialization (`Simulation._make_simulator_backend`)
+At initialization, `Simulation` (`snngine_v4/nn/sim/simulation.py`) extracts approximately 45 raw CUDA pointers (`.data_ptr()`) across neuron states, synapses, chemical volumes, and plot VBO buffers, passing them into the C++/CUDA constructor `snn_simulation_gpu.SnnSimulation`.
+Key pointer contracts include:
+- **Neuron state & property tensors**: `N_flags` (cell type and group membership) and `N_states` ($a, b, c, d, v, u$ tabular properties).
+- **Synaptic connectivity arrays**: $N \times S$ fixed-degree connection index tables `N_rep`, delay tables `N_delays`, synaptic weight matrices `N_weights`, and pre-synaptic reverse index mappings (`N_rep_pre_synaptic`, `N_rep_pre_synaptic_idcs`, `N_rep_pre_synaptic_counts`).
+- **Chemical diffusion fields**: Pointers to the active 3D chemical grid (`chemicals.C0.texture_3d_tensor`).
+- **Live OpenGL plot buffers**: `voltage_plot_data` and `scatter_plot_data`, which map directly to VisPy vertex buffers.
+
+### 2. Ring-buffer spike recording
+Spike generation and propagation avoid dynamic memory allocations during time steps:
+- **Circular delay ring buffers**: `Firing_times` and `Firing_idcs` are allocated as $15 \times N$ ring buffers, and `last_Fired` is initialized to $-D$. The CUDA kernel cycles through the ring buffer to deliver delayed synaptic conductances based on post-synaptic delay offsets without per-step buffer copying.
+- **Group firing history**: `G_firing_count_hist` tracks aggregated spikes across spatial groups ($G$) over a rolling temporal horizon, updated directly by CUDA reduction kernels.
+
+### 3. In-situ GPU plotting without host transfers
+Live visualization of simulation dynamics (`voltage_plot` and `firings_scatter_plot`) is coupled directly to the compute pipeline via `PlotElement` (`snngine_v4/nn/sim/gpu_plots.py`):
+- VisPy VBO memory is registered via PyCUDA and exposed as a PyTorch tensor (`GLBufferTensor.pos_vbo`).
+- On every simulation step, the CUDA kernel writes membrane voltage waveforms and spike raster points directly into the VBO memory.
+- When the VisPy canvas redraws, OpenGL consumes the updated geometry without any CPU intervention or GPU-to-host memory copies.
+
+## SNNgine3D legacy differences (sister-repo cross-check)
+
+A comparative audit against `SNNgine3D` (`snngine3d/nn/spNN/` and `snngine3d/nn/gpu_recorder.py`) highlights the elimination of host-side recording overhead and the restructuring of synaptic construction:
+
+### 1. Elimination of host-driven `GPURecorder` in favor of in-situ GPU streaming
+- **SNNgine3D**: Used an ad-hoc session recorder, `GPURecorder` (`snngine3d/nn/gpu_recorder.py`), which allocated multi-dimensional PyTorch tensors of shape $(C, N, T_{\text{duration}})$ on GPU memory. On each time step, Python executed slice assignments (`self.N_states[:, :, t - self.t_start] = res`). For visualization, data was explicitly transferred back to CPU memory (`data.cpu().numpy().flatten()`) and plotted through `pyqtgraph`.
+- **snngine_v4**: Abolished `GPURecorder` and Python-side per-step slicing. Recording is performed directly inside the CUDA simulation kernel via fixed $15 \times N$ circular ring buffers (`Firing_times`, `Firing_idcs`), while real-time voltage and spike traces stream directly into OpenGL VBOs via zero-copy GPU interop (`pos_vbo.data_ptr()`).
+
+### 2. Formalization of `SynCounts` delay redistribution and autapse avoidance
+- **SNNgine3D**: Synaptic distribution calculations were embedded in procedural helper classes (`SynapseCounts` in `snngine3d/nn/spNN/synapses/synapse_contruction_helpers.py`), which passed raw temporary autapse arrays (`G_autapse_indices`, `G_relative_autapse_indices`) to `RepBackend.fill_N_rep`.
+- **snngine_v4**: Refactored into modular `EngineElement` components (`SynCounts` and `Synapses` in `snngine_v4/nn/synapses.py`). Delay distribution integer discretization surplus is iteratively reshaped on the host via `output_correction`, candidate autapses are masked beforehand (`potential_autapse_mask`), and valid sink capacity is formally validated (`validate_sink_counts`) before delegating to CUDA representation generation, sorting (`sort_N_rep`), and reindexing (`reindex_N_rep`).
+
+### 3. Removal of GUI couplings from neural and simulation classes
+- **SNNgine3D**: Neural and synaptic components (`VisualizedNeuronRepresentation`, `VisualizedSynapseRepresentation`, `VisualizedNetworkSimulationGPU`) required explicit references to `EngineUIBase`, embedding GUI event hooks and collapsible widget registrations into the neural modeling classes.
+- **snngine_v4**: All classes under `nn/` (`SpatialNetwork`, `NetworkReservoir`, `NeuronStates`, `Synapses`, `Simulation`) are strictly headless and GUI-agnostic. GUI docking, widgets, and parameter tree bindings are completely handled outside the simulation core by `gui/parameter_trees/`.
+
 ## Open questions
 
 Indexed centrally in [`README.md` → Consolidated open questions](README.md#nn):

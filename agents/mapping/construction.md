@@ -236,6 +236,25 @@ When `SNNgine.build()` triggers `NetworkBuilder.build(template)`:
 6. **Completeness assertion**:
    `NetworkBuilder.build()` iterates over every field key declared in `container_model`, asserting that each key exists in `self` (the builder dictionary), verifying that the build graph is fully populated without orphaned models.
 
+## SNNgine3D legacy differences (sister-repo cross-check)
+
+Comparing `snngine_v4/construction/` against `SNNgine3D` (`snngine3d/engine/engine.py` and `snngine3d/nn/VspNN/`) documents the complete transition from imperative monolithic assembly to a declarative double-tree builder:
+
+### 1. Monolithic imperative construction vs. Declarative Double-Tree Cascade
+- **SNNgine3D**: `Engine` (`snngine3d/engine/engine.py`) acted as a monolithic controller. In `Engine.load_config`, it imperatively instantiated `VisualizedSpatialNeuralNetwork`, passed Qt `ui` references directly to simulation subcomponents, manually wired dock widgets (`RecorderDockWidget`, `GraphWidget`), and directly set debugging attributes on GPU kernels (`Simulation.debug_neuron_0`).
+- **snngine_v4**: Replaced monolithic assembly with `NetworkBuilder` (`snngine_v4/construction/nn_builder.py`). Construction is purely declarative and recursive:
+  - Configuration topology is isolated into a declarative hierarchy (`node_tree: EngineNodes`).
+  - Runtime element instances are indexed in a flat root registry (`root_element: SpatialNetwork`).
+  - Elements resolve parents dynamically via `self.root_element[self.node_tree.parent(self.config)]` rather than storing coupled references.
+
+### 2. Elimination of the `VspNN` visual inheritance hierarchy
+- **SNNgine3D**: Visualization was coupled into domain models through inheritance across `snngine3d/nn/VspNN/` (`VisualizedSpatialNeuralNetwork`, `VisualizedNeuronRepresentation`, `VisualizedSynapseRepresentation`, `VisualizedChemicalConcentrationVolumes`, `VisualizedNetworkSimulationGPU`). Every neural and chemical object required direct references to the GUI and VisPy canvas.
+- **snngine_v4**: The entire `VspNN` layer was abolished. Domain objects under `nn/` and `chemistry/` subclass `EngineElement` without any awareness of Qt or VisPy. Rendering visuals are built separately by `VispyVisualBuilder`, and GPU interop buffers are mapped post-canvas initialization via `CudaVispyConnector`.
+
+### 3. Strict declarative attribute guarding
+- **SNNgine3D**: Domain objects maintained loosely typed, ad-hoc attribute assignments (`pos_cpu`, `neurons_pos_gpu`, `registered_buffer_list`).
+- **snngine_v4**: `EngineElement.__setattr__` (`snngine_v4/construction/engine_element.py`) enforces strict declarative consistency: assigning runtime `TensorSeries` or `TensorDict` attributes not declared in the element's Pydantic model immediately raises `PermissionError`. Shared GPU buffer identities in GUI parameter bindings are separately protected by `SHARED_RUNTIME_FIELDS`.
+
 ## Open questions
 
 Indexed centrally in [`README.md` → Consolidated open questions](README.md#construction):
@@ -294,7 +313,7 @@ Indexed centrally in [`README.md` → Consolidated open questions](README.md#con
   overridden in an unread subpackage (`nn/`, `visualization/`).
   - **Resolution**: Confirmed as an active post-construction validation hook, not dead code.
     While a no-op base stub in `EngineElement.validate_consistency` (`snngine_v4/construction/engine_element.py:274-275`),
-    it is concretely overridden in `NeuronStates.validate_consistency` (`snngine_v4/nn/neuron_states.py:33-35`),
+    it is concretely overridden in `NeuronState.validate_consistency` (`snngine_v4/nn/neuron_states.py:33-35`),
     where it verifies `self.n_neurons == self.N_props.shape[1]` and raises `InconsistencyError` before
     applying parameter presets (`apply_preset` at line 42).
 - [SOLVED] `nn_builder.py`'s commented-out `FiniteGridConfig: FiniteGrid` entry

@@ -106,6 +106,39 @@ edges.
   `XMLSettingsContainerModel` are all defined there; this subpackage
   consumes but doesn't define them.
 
+## Runtime configuration lifecycle and serialization
+
+`config/` (anchored by package-root `snngine_config.py`) orchestrates engine settings and multi-file XML persistence:
+
+### 1. Unified settings aggregation (`EngineConfig`)
+`EngineConfig` (`snngine_v4/snngine_config.py`) serves as the central configuration tree unifying five distinct domain submodels:
+- **Application UI defaults**: `app: EngineAppSettings` (`snngine_v4/config/app.py`, subclassing `snngine_v4/gui/app_settings.py:AppSettings`) sets top-level GUI flags, enforcing read-only parameter inspection modes by default (`parameter_ui_opts = {'readonly': True}`).
+- **Hardware device allocation**: `devices: DeviceSettings` (`snngine_v4/config/devices.py`) configures OpenGL rendering targets (`OpenGLSettings.gloo_target = "gl+"`) and CUDA execution requirements (`CudaSettings.b_require_pycuda = False`).
+- **Visual canvases and viewports**: `scenes: SceneSettings` (`snngine_v4/config/scenes.py`) provisions VisPy canvas topologies for `main` (3D network view using `TurnTableCameraParameters`), `multiplot_voltage`, and `multiplot_firings` (2D time series and spike rasters using `PanZoomCameraParameters`).
+- **Declarative template vs. built snapshot**: `template: EngineConstructionConfig` defines the declarative blueprint for network generation (`SpatialNetworkConfig` with child reservoirs and simulation hyperparameters). Once built by `NetworkBuilder`, the materialized runtime graph is recorded into `built: EngineConstructionConfig`, cleanly separating input parameters from running simulation state snapshots.
+
+### 2. Modular multi-file XML persistence (`.snngine/`)
+Unlike monolithic configuration dumps, `EngineConfig` integrates with `XMLSettingsModel` (`snngine_v4/utils/settings/xml_settings.py`) to serialize submodels into separate XML files under `.snngine/`:
+- `_xml_file_paths` maps submodel fields to discrete files (`app.xml`, `devices.xml`, `template.xml`, `built.xml`) using `BaseSettingsSlots.SUB_SETTINGS_FILE_NAME_PATTERN`.
+- **Exclusion of `scenes`**: `_xml_file_paths` explicitly omits `Slots.SCENES`, ensuring that canvas dimensions, viewports, and cameras are instantiated directly from Python code defaults (`SceneSettings`) rather than being overridden by stale XML presets on disk.
+- **Companion array storage**: For dense numeric data (such as neuron positions or synaptic matrices), `XMLSettingsSource` integrates with `deepdish.io.load` to store companion `.h5` files alongside XML documents, keeping markup lightweight while preserving binary tensor data.
+
+## SNNgine3D legacy differences (sister-repo cross-check)
+
+A comparative audit against `SNNgine3D` (`snngine3d/configuration/deprecated/engine_config.py` and `network_config.py`) documents the modernization of configuration architecture:
+
+### 1. Partitioning of monolithic settings
+- **SNNgine3D**: `EngineConfig` (`snngine3d/configuration/deprecated/engine_config.py`) combined disparate concerns into a single flat model: integer screen IDs (`screen: int = 1`), file loading dialog flags (`b_open_file_dialog: bool = False`), hardcoded neural topology (`N=3000`, `reservoir_shape=(6, 6, 1)`), and UI dock display modes (`PlotViewMode.MAIN`, `PlotViewMode.DOCKED`).
+- **snngine_v4**: Modularized into specialized submodels under `config/`: hardware backends in `DeviceSettings`, UI application flags in `EngineAppSettings`, VisPy canvases in `SceneSettings`, and neural network topology in `EngineConstructionConfig`. Dock view modes were removed from core settings and relocated entirely to the PySide6 UI layer.
+
+### 2. Separation of display and simulation CUDA devices
+- **SNNgine3D**: Declared a single global integer `device: int = 0` shared across OpenGL rendering, UI, and CUDA simulation.
+- **snngine_v4**: Decouples display from simulation compute. While `DeviceSettings` manages global OpenGL and CUDA driver flags, `SpatialNetworkConfig` explicitly assigns CUDA simulation workloads to dedicated GPU devices (`device = 1` by default in `.snngine/template.xml` and `snngine_v4/snngine_config.py`), isolating compute kernels from display GPU device 0.
+
+### 3. Pydantic v2 `XMLSettingsModel` vs. ad-hoc `XMLHandler`
+- **SNNgine3D**: Relied on an imperative custom reflection walker in `snngine3d/utils/xml_handler.py` (`XMLHandler.convert_to_xml`), which traversed Python dictionaries and constructed XML `ElementTree` hierarchies with explicit type attributes (`IntEnum`, `DictItem`, `SequenceElement`).
+- **snngine_v4**: Replaced custom XML parsing with Pydantic v2-backed `XMLSettingsModel` / `XMLSettingsContainerModel` (`snngine_v4/utils/settings/xml_settings.py`), embedding automated schema validation, type conversion, modular submodel routing, and companion HDF5 array storage directly into model lifecycles.
+
 ## Open questions
 
 Indexed centrally in [`README.md` → Consolidated open questions](README.md#config):

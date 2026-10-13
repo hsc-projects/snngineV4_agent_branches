@@ -188,6 +188,38 @@ and `gui/`) are built.
 - `gui/` (not yet mapped) — parameter trees directly read `parameter_ui_opts`
   and `FrozenParamOpts` defined in `utils/settings/ui_parameter_options.py`.
 
+## Runtime container lifecycles and dual-backed tensor synchronization
+
+`utils/` supplies the foundational container, reflection, and tensor abstractions underpinning all domain subpackages:
+
+### 1. Dual-backed CPU/GPU tabular containers (`TensorDataFrame` & `TensorSeries`)
+Tabular neuron and synapse state (`NeuronStates.N_props`, `N_flags`, `SynapseCountTensors`) requires both host-side semantic indexing and zero-copy GPU kernel access:
+- **Synchronization contract**: `TensorDataFrame` (`snngine_v4/utils/cuda_utils/tensor_dataframe.py`) maintains a CPU `pandas.DataFrame` coupled to a GPU `torch.Tensor` (`gpu_values`).
+- **Declarative schemas**: Row and column names are defined via Pydantic schema models (`IndexConfig`, `Row`, `Column` in `snngine_v4/utils/data_utils/index_config.py`).
+- **Zero-copy CUDA passing**: Named properties ($a, b, c, d, v, u$) can be inspected and edited semantically from Python and Qt parameter trees, while `gpu_values.data_ptr()` is passed directly into CUDA simulation kernels without runtime DataFrame-to-array conversions.
+
+### 2. Bidirectional mapping and tree containers (`containers/`)
+`utils/containers/` enforces strict relational and hierarchical constraints:
+- **Bidirectional lookup (`Object2ObjectMap`)**: Maintains an automated reciprocal inverse map (`self.inv`). When `SpatialNetwork` indexes built elements by configuration (`root_element[config] = element`), `root_element.inv[element]` immediately yields the originating configuration instance.
+- **Declarative hierarchy tracking (`NodeTree` & `ModelTree`)**: `NodeTree` (`snngine_v4/utils/containers/node_map.py`) structures configuration models into hierarchical tree graphs (`TreeNode`), enforcing parent/child relations and enabling lazy parent lookups (`child.parent_element()`) without storing hard references.
+- **Defensive collection immutability**: `ContainerConfig` defaults `b_clear_allowed=False` and `b_replace_allowed=False` across `ConfigurableDict` and `ConfigurableList`, preventing accidental eviction or replacement of live GPU buffer handles.
+
+## SNNgine3D legacy differences (sister-repo cross-check)
+
+A comparative audit against `SNNgine3D` (`snngine3d/nn/utils/state_tensor.py` and `torch_collections.py`) highlights the modernization of tabular tensor management:
+
+### 1. Transition from `StateTensor` to `TensorDataFrame`
+- **SNNgine3D**: Used `StateTensor` (`snngine3d/nn/utils/state_tensor.py`), which wrapped a raw 2D `torch.Tensor` and relied on custom dataclass rows (`StateRow`, `Rows`) for manual index lookups. Inspecting or exporting tabular state required explicit `.cpu().numpy()` conversions on the entire tensor (`to_dataframe`), and column slicing was ad-hoc.
+- **snngine_v4**: Replaced `StateTensor` with `TensorDataFrame` and `TensorSeries` (`snngine_v4/utils/cuda_utils/tensor_dataframe.py`). State containers maintain permanent dual CPU Pandas and GPU PyTorch backings governed by Pydantic tabular models (`TypedDataFrameModel`), enabling fast semantic indexing on the host alongside instant `.data_ptr()` extraction for GPU kernels.
+
+### 2. Replacement of `MonoTypedDict` with Bidirectional `ConfigurableDict`
+- **SNNgine3D**: Collections used `MonoTypedDict` and `TorchCollection` (`snngine3d/nn/utils/torch_collections.py`), which intercepted tensor attributes via `__setattr__` but lacked inverse indexing, permission enforcement, or tree coordination.
+- **snngine_v4**: Modularized into `ConfigurableDict` and `Object2ObjectMap` (`snngine_v4/utils/containers/mappings.py`). Inverse lookups are automated, mutation permissions are strictly governed by `ContainerConfig`, and tree-walking models (`ModelTree`) enable declarative lifecycle coordination across the entire engine.
+
+### 3. Introduction of the generic reflective builder (`ModelObjectBuilder`)
+- **SNNgine3D**: Object instantiation was procedural and embedded directly in component constructors, requiring tight coupling between callers and target implementations.
+- **snngine_v4**: Introduced `ModelObjectBuilder` and `BuilderDict` (`snngine_v4/utils/object_builder/object_builder.py`). Construction across all subsystems (`NetworkBuilder`, `VispyVisualBuilder`, `SceneManager`) is unified under declarative class mapping tables (`BUILDER_OBJECT_CLASS_MAP`), cleanly decoupling configuration schemas from runtime implementation classes.
+
 ## Open questions
 
 Indexed centrally in [`README.md` → Consolidated open questions](README.md#utils):

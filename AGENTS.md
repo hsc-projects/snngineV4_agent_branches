@@ -51,7 +51,7 @@ detailed write-ups gradually migrating out of `architecture-snngine_v4.md`).
 
 ## Cloud/infra setup
 
-This project also has RunPod/Pi cloud-deployment work, tracked separately
+This project also has Runpod/Pi cloud-deployment work, tracked separately
 from the engine mapping/development above: `setups/README.md` indexes it
 (`setups/runpod-rationale.md`, `setups/pi-rationale.md`, and their
 `-technical.md` counterparts). Ask the user which of the two areas —

@@ -162,6 +162,42 @@ knobs via `EngineLinkerTree` and `XTouchMiniDevice`.
 - `agents/mapping/utils.md` — `ParameterBuilder` reads UI metadata (`FrozenParamOpts`,
   `ParamOpts`) defined in `utils/settings/ui_parameter_options.py`.
 
+## Runtime GUI lifecycle and reactive connector architecture
+
+`gui/` implements the user interface through declarative parameter trees and reactive connectors:
+
+### 1. Application initialization lifecycle (`EngineApp` & `MainEngineWindow`)
+Application startup executes in coordinated stages:
+1. **Application shell creation**: `EngineApp` (`snngine_v4/gui/app/engine_app.py`) initializes the VisPy Qt event loop (`Application(backend_name='PySide6')`) and applies `qdarktheme` dark styling.
+2. **Window and dock instantiation**: `MainEngineWindow` creates dock panels for configuration trees (Template and Built), element selection (`selection_tree_dock`), hardware controller mappings (`controls_dock`), and tabular array editors (`ArrayEditorDockWidget`).
+3. **Engine build synchronization**: `construct_network()` calls `SNNgine.build()`, instantiating the simulation core and VisPy canvas scenes.
+4. **Reactive tree binding**: `ParameterBuilder` inspects Pydantic models in `EngineConfig` and generates hierarchical `EngineParameterTree` panels.
+5. **Connector registration**: Connectors walk the parameter trees:
+   - `VispyConnector` links parameter nodes to VisPy `VisualNode` properties via `VispyLinks`.
+   - `CudaVispyConnector` forces canvas drawing, resolves OpenGL handles from VisPy's GLIR parser, and exposes them as `GLVBOTensor` / `GLTexture3DTensor`.
+   - `TensorConnector` binds runtime tensors in `EngineElement.tensor_dict`.
+
+### 2. Reactive property synchronization and identity protection
+Parameter edits propagate bidirectionally between Qt widgets and domain models:
+- **Signal reflection (`Object2ObjectLinks`)**: Changes made in parameter tree widgets update underlying Pydantic model fields, emit Qt signals, and trigger associated VisPy visual setters without full scene recreations.
+- **Shared buffer identity protection (`SHARED_RUNTIME_FIELDS`)**: To prevent two-way UI bindings from overwriting mapped GPU memory arrays (e.g. neuron positions in `'pos'`), `object2object_links.py` enforces in-place array mutation (`arr[:] = value`), raising `RuntimeError` if an assignment attempts to replace the underlying buffer object.
+
+## SNNgine3D legacy differences (sister-repo cross-check)
+
+A comparative audit against `SNNgine3D` (`snngine3d/engine/elements/widgets/collapsibles/`) highlights the shift from hand-crafted Qt frames to a schema-driven parameter framework:
+
+### 1. Transition from imperative collapsible frames to declarative `ParameterTree`
+- **SNNgine3D**: Relied on hand-coded, specialized Qt collapsible frames (`NeuronPropertiesFrame`, `SynapseCollapsible`, `ChemicalControlCollapsible` in `snngine3d/engine/elements/widgets/collapsibles/`). Each panel manually created hardcoded slider collections (`SliderCollection`, `SpinBoxSliderDeprecated`), hardcoded fixed widths (`fixed_width=300`), and imperative hide/show logic (`self.sliders.hide_slider(x)`).
+- **snngine_v4**: Replaced custom collapsible frames with pyqtgraph's `EngineParameterTree` (`snngine_v4/gui/parameter_trees/engine_parameter_tree.py`). UI controls are generated automatically by `ParameterBuilder`, which introspects Pydantic configuration schemas and formats controls based on attached UI metadata (`ParamOpts`, `FrozenParamOpts`).
+
+### 2. Decoupled connector layer vs. intrusive widget interfaces
+- **SNNgine3D**: Widgets were tightly coupled to domain and visualization models through custom interface objects (`NeuronInterfaceSingle`), passing engine and visual references directly into widget constructors.
+- **snngine_v4**: Abolished widget interface wrappers. Decoupled reactive connectors (`VispyConnector`, `CudaVispyConnector`, `TensorConnector` in `snngine_v4/gui/parameter_trees/`) bind Pydantic configurations to VisPy visuals and CUDA buffers out-of-band, preserving strict separation of concerns between GUI, rendering, and simulation compute.
+
+### 3. Schema-driven hardware controller mapping (`EngineLinkerTree`)
+- **SNNgine3D**: Lacked an interactive, generalized hardware mapping system; parameter controls were tied directly to hardcoded UI frames.
+- **snngine_v4**: Introduced `EngineLinkerTree` (`snngine_v4/gui/parameter_trees/linker_tree/`) and `XTouchMiniDevice` (`snngine_v4/gui/devices/x_touch_mini/`). Any Pydantic model parameter in the tree can be interactively bound to Behringer X-Touch Mini hardware controls (rotary encoders, faders, backlit buttons) with configurable transfer functions and range limits.
+
 ## Open questions
 
 Indexed centrally in [`README.md` → Consolidated open questions](README.md#gui):

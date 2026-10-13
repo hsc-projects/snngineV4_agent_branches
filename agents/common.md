@@ -138,6 +138,8 @@ We are in an exploratory/mapping phase: the goal is not to generate new code
 (except where it aids exploration) — make the content as easy as possible for
 cold agents to understand.
 
+Do not edit or modify any files in the core codebase (`snngine_v4/` or `snngine3d/`) until a local GPU is available again to test and verify that changes do not introduce regressions. Modifications must remain strictly confined to the specific task directory under `setups/` that the agent is actively working on (e.g. `setups/runpod-engine-smoke-test/`); do not modify files in other task directories.
+
 Explain findings rather than assuming shared context, and give the user room
 to confirm or correct your understanding as you go, rather than presenting
 conclusions as settled.
