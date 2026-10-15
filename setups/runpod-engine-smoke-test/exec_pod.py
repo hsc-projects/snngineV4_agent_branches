@@ -78,6 +78,7 @@ def run_ssh(host: str, port: int, key_path: Path, remote_cmd: str, timeout: int 
 def run_scp(host: str, port: int, key_path: Path, local_path: Path, remote_path: str, timeout: int = 60) -> int:
     cmd = [
         "scp",
+        "-O",
         "-F", os.devnull,
         "-i", str(key_path),
         "-P", str(port),
@@ -131,6 +132,7 @@ def resolve_unique_filename(dest_dir: Path, target_filename: str) -> Path:
 def run_scp_download(host: str, port: int, key_path: Path, remote_path: str, local_dest: Path, timeout: int = 180) -> int:
     cmd = [
         "scp",
+        "-O",
         "-F", os.devnull,
         "-i", str(key_path),
         "-P", str(port),
@@ -179,7 +181,7 @@ if __name__ == "__main__":
 
     # Subcommand: cmd
     cmd_parser = subparsers.add_parser("cmd", help="Execute remote command over SSH")
-    cmd_parser.add_argument("command", help="Command string to execute")
+    cmd_parser.add_argument("command", nargs="+", help="Command string to execute")
     cmd_parser.add_argument("--timeout", type=int, default=180, help="Timeout in seconds")
 
     # Subcommand: sync
@@ -198,7 +200,8 @@ if __name__ == "__main__":
     fix_key_permissions(args.key)
 
     if args.action == "cmd":
-        rc = run_ssh(args.host, args.port, args.key, args.command, timeout=args.timeout)
+        full_command = " ".join(args.command)
+        rc = run_ssh(args.host, args.port, args.key, full_command, timeout=args.timeout)
         sys.exit(rc)
     elif args.action == "sync":
         rc = run_scp(args.host, args.port, args.key, args.src, args.dest)

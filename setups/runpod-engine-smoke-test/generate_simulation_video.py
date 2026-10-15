@@ -20,6 +20,16 @@ import time
 # Ensure repository root and build directory are in sys.path
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.abspath(os.path.join(_SCRIPT_DIR, "..", ".."))
+
+if not os.path.exists(os.path.join(_REPO_ROOT, "snngine_v4")):
+    for candidate in [
+        "/workspace/snngineV4_cloud/snngineV4_agent_branches",
+        "/workspace/snngineV4_agent_branches",
+    ]:
+        if os.path.exists(os.path.join(candidate, "snngine_v4")):
+            _REPO_ROOT = candidate
+            break
+
 _BUILD_DIR = os.path.join(_REPO_ROOT, "snngine_v4", "nn", "cuda_backend", "build")
 
 for p in [_REPO_ROOT, _BUILD_DIR]:
@@ -149,30 +159,37 @@ def resolve_unique_target(directory: Path, base_name: str, ext: str = ".mp4") ->
 
 def compute_neuron_colors(v_arr: np.ndarray, fired_mask: np.ndarray | None = None) -> np.ndarray:
     """
-    Map membrane potentials v in [-75, 30] mV to RGBA colormap:
-    - -70 mV (resting): Deep blue (0.1, 0.3, 0.8)
-    - -55 mV (threshold): Yellow/Cyan transition (0.9, 0.8, 0.2)
-    - >= 0 mV or fired: Bright white/magenta flash (1.0, 1.0, 1.0)
+    Map membrane potentials v in [-75, 30] mV to vivid RGBA colormap:
+    - <= -70 mV (resting): Deep blue (0.1, 0.2, 0.85)
+    - -65 mV: Cyan (0.1, 0.6, 0.85)
+    - -55 mV (threshold approach): Yellow-Green (0.8, 0.9, 0.2)
+    - -40 to 0 mV (depolarized): Bright orange-red (1.0, 0.4, 0.1)
+    - >= 0 mV or fired: Brilliant white flash (1.0, 1.0, 1.0)
     """
     n = len(v_arr)
     colors = np.zeros((n, 4), dtype=np.float32)
-    # Normalize v from [-75, 30] to [0.0, 1.0]
-    norm_v = np.clip((v_arr + 75.0) / 105.0, 0.0, 1.0)
+    # Dynamic range normalization from resting (-70 mV) to spike threshold (0 mV)
+    v_norm = np.clip((v_arr + 70.0) / 70.0, 0.0, 1.0)
 
-    # Color gradient: Blue -> Cyan -> Yellow -> Red/White
-    colors[:, 0] = np.clip(norm_v * 1.5 - 0.2, 0.1, 1.0)        # R
-    colors[:, 1] = np.clip(1.0 - np.abs(norm_v - 0.5) * 2, 0.2, 0.9) # G
-    colors[:, 2] = np.clip(1.0 - norm_v * 1.2, 0.1, 0.9)        # B
-    colors[:, 3] = 0.85                                          # Alpha
+    # Multi-gradient color mapping: Deep Blue -> Cyan -> Yellow-Green -> Orange-Red
+    colors[:, 0] = np.clip(2.0 * v_norm - 0.2, 0.1, 1.0)
+    colors[:, 1] = np.clip(1.0 - 2.0 * np.abs(v_norm - 0.4), 0.2, 0.95)
+    colors[:, 2] = np.clip(1.2 - 2.0 * v_norm, 0.1, 0.9)
+    colors[:, 3] = 0.85
 
-    # Spiking flash
+    # Spiking flash: brilliant white with full opacity
     if fired_mask is not None:
-        colors[fired_mask > 0] = [1.0, 1.0, 1.0, 1.0]
+        colors[fired_mask] = [1.0, 1.0, 1.0, 1.0]
     return colors
 
 
-def build_simulation(device: torch.device):
-    """Construct SpatialNetwork and return (network, element, simulator, N_pos)."""
+def build_simulation(
+    device: torch.device,
+    stim_mode: str = "focal",
+    stim_fraction: float = 0.20,
+    stim_pt: float = 0.35,
+):
+    """Construct SpatialNetwork and return (network, element, simulator, sim_instance, sim_backend, n_pos, stim_indices)."""
     patch_array_interfaces()
     patch_runtime_tensors()
 
@@ -192,10 +209,11 @@ def build_simulation(device: torch.device):
     firings_scatter_plot = simulator.firings_scatter_plot
 
     n_neurons = element.config.N
-    v_n_plots, v_len = volt_plot.config.n_plots, volt_plot.config.len
-    s_n_plots, s_len = firings_scatter_plot.config.n_plots, firings_scatter_plot.config.len
+    v_n_plots, v_len = volt_plot.config.n_plots, volt_plot.config.size_x
+    s_n_plots, s_len = firings_scatter_plot.config.n_plots, firings_scatter_plot.config.size_x
 
-    pos_vbo_mock = torch.zeros((n_neurons * 4,), dtype=torch.float32, device=device)
+    pos_vbo_mock = torch.zeros((n_neurons, 14), dtype=torch.float32, device=device)
+    pos_vbo_mock[:, :3] = element.N_pos
     volt_plot_vbo_mock = torch.zeros((v_n_plots * v_len * 2,), dtype=torch.float32, device=device)
     scatter_plot_vbo_mock = torch.zeros((s_n_plots * s_len * 14,), dtype=torch.float32, device=device)
 
@@ -225,11 +243,42 @@ def build_simulation(device: torch.device):
             cuda_gl_map[chem.config] = MockGLTensorDict(chem_tensor, GLBufferTypes.TEXTURE_3D.name)
 
     network.cuda_opengl_map = cuda_gl_map
-    simulator.add_simulation(0)
+    sim_instance = simulator.add_simulation(0)
+    sim_backend = sim_instance.backend
+    if sim_backend is None:
+        raise RuntimeError("Simulation backend failed to construct (b_cuda_backend_available may be False).")
+
+    # Enable thalamic input across all groups in L_Group_flags (row 1 is b_thalamic_input)
+    element.L_Group_flags.gpu_values[1, :] = 1
+
+    # Reset all stimulus probabilities to 0.0 (Row 0 of N_props is pt)
+    element.neuron_states.N_props.gpu_values[0, :] = 0.0
 
     # Neuron 3D positions
     n_pos = element.N_pos.cpu().numpy()
-    return network, element, simulator, n_pos
+
+    # Select distinct subset of neurons to activate
+    if stim_mode == "focal":
+        # Target a distinct spatial cluster (neurons closest to a focal centroid in 3D)
+        focal_center = n_pos.min(axis=0) + 0.25 * (n_pos.max(axis=0) - n_pos.min(axis=0))
+        dists = np.linalg.norm(n_pos - focal_center, axis=1)
+        stim_count = max(1, int(n_neurons * stim_fraction))
+        stim_indices = np.argsort(dists)[:stim_count]
+        element.neuron_states.N_props.gpu_values[0, stim_indices] = float(stim_pt)
+        print(f"[*] Distinct subset activated: {stim_count}/{n_neurons} neurons ({stim_fraction*100:.0f}%) in focal cluster (pt={stim_pt}).")
+    elif stim_mode == "group0":
+        stim_count = max(1, int(n_neurons // element.config.G))
+        stim_indices = np.arange(stim_count)
+        element.neuron_states.N_props.gpu_values[0, stim_indices] = float(stim_pt)
+        print(f"[*] Group 0 subset activated: {stim_count}/{n_neurons} neurons (pt={stim_pt}).")
+    elif stim_mode == "all":
+        stim_indices = np.arange(n_neurons)
+        element.neuron_states.N_props.gpu_values[0, :] = float(stim_pt)
+        print(f"[*] All {n_neurons} neurons activated (pt={stim_pt}).")
+    else:
+        raise ValueError(f"Unknown stim_mode '{stim_mode}'. Choose 'focal', 'group0', or 'all'.")
+
+    return network, element, simulator, sim_instance, sim_backend, n_pos, stim_indices
 
 
 RESOLUTION_PRESETS = {
@@ -259,6 +308,9 @@ def render_and_encode_video(
     fps: int = 30,
     resolution: tuple[int, int] = (1280, 720),
     codec: str = "auto",
+    stim_mode: str = "focal",
+    stim_fraction: float = 0.20,
+    stim_pt: float = 0.35,
     device_id: int = 0,
     output_dir: Path = Path(_SCRIPT_DIR) / "output",
 ) -> dict:
@@ -270,16 +322,31 @@ def render_and_encode_video(
     device = torch.device(f"cuda:{device_id}" if torch.cuda.is_available() else "cpu")
     print(f"[*] Initializing simulation on {device}...")
 
-    network, element, simulator, n_pos = build_simulation(device)
+    network, element, simulator, sim_instance, sim_backend, n_pos, stim_indices = build_simulation(
+        device,
+        stim_mode=stim_mode,
+        stim_fraction=stim_fraction,
+        stim_pt=stim_pt,
+    )
 
-    # Resolve deterministic timestamped output path
+    width, height = resolution
+    # Resolve deterministic timestamped output path with resolution tier tag
+    res_tag = f"{height}p"
+    if resolution == (3840, 2160):
+        res_tag = "4k"
+    elif resolution == (2560, 1440):
+        res_tag = "1440p"
+    elif resolution == (1920, 1080):
+        res_tag = "1080p"
+    elif resolution == (1280, 720):
+        res_tag = "720p"
+
     now_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    base_stem = f"simulation_{now_str}"
+    base_stem = f"simulation_{res_tag}_{now_str}"
     target_mp4 = resolve_unique_target(output_dir, base_stem, ext=".mp4")
     print(f"[*] Target video file: {target_mp4}")
 
     # Set up offscreen VisPy SceneCanvas
-    width, height = resolution
     canvas = scene.SceneCanvas(
         keys=None,
         size=(width, height),
@@ -363,23 +430,33 @@ def render_and_encode_video(
 
     t0 = time.perf_counter()
     v_history = []
+    total_spikes = 0
+    n_neurons = len(n_pos)
     
     for frame_idx in range(total_frames):
-        # Step simulation by stride
+        # Step simulation by stride, accumulating any spike events during the stride
+        stride_fired = np.zeros(n_neurons, dtype=bool)
         for _ in range(stride):
-            simulator.sim.update(b_stdp=False, verbose=False)
+            sim_backend.update(False, False)
+            stride_fired |= (sim_instance.Fired.cpu().numpy() > 0)
+        if device.type == "cuda":
+            torch.cuda.synchronize(device=device)
 
         # Retrieve membrane potential state
         v_current = element.neuron_states.N_props.gpu_values[2, :].cpu().numpy()
         v_history.append((float(v_current.min()), float(v_current.max())))
+        total_spikes += int(stride_fired.sum())
 
-        # Dynamic colormap update
-        colors = compute_neuron_colors(v_current)
+        # Dynamic colormap update: white flash on fired or spike peak (>= -30 mV)
+        fired_mask = stride_fired | (v_current >= -30.0)
+        colors = compute_neuron_colors(v_current, fired_mask=fired_mask)
         scatter.set_data(pos=n_pos, face_color=colors, size=marker_size)
 
-        # Orbit camera around reservoir
+        # Orbit camera around reservoir with smooth elevation easing
         azimuth = (frame_idx / total_frames) * 360.0
+        elevation = 25.0 + 8.0 * math.sin((frame_idx / total_frames) * 2.0 * math.pi)
         view.camera.azimuth = azimuth
+        view.camera.elevation = elevation
 
         # Render offscreen frame buffer
         img = canvas.render()
@@ -390,7 +467,7 @@ def render_and_encode_video(
         if (frame_idx + 1) % 25 == 0 or frame_idx == total_frames - 1:
             elapsed = time.perf_counter() - t0
             cur_fps = (frame_idx + 1) / elapsed
-            print(f"    [Frame {frame_idx + 1:3d}/{total_frames}] v=[{v_current.min():.1f}, {v_current.max():.1f}] mV | {cur_fps:.1f} fps")
+            print(f"    [Frame {frame_idx + 1:3d}/{total_frames}] v=[{v_current.min():.1f}, {v_current.max():.1f}] mV | spikes={total_spikes} | {cur_fps:.1f} fps")
 
     writer.close()
     canvas.close()
@@ -403,13 +480,15 @@ def render_and_encode_video(
     print(f"    Codec:      {selected_codec}")
     print(f"    Size:       {file_size / (1024 * 1024):.2f} MB ({file_size} bytes)")
     print(f"    Frames:     {total_frames} frames ({duration_sec:.1f}s @ {fps} fps)")
-    print(f"    Resolution: {width}x{height}")
+    print(f"    Resolution: {width}x{height} ({res_tag})")
     print(f"    Render:     {total_time:.2f}s ({total_frames / total_time:.1f} frames/sec)")
+    print(f"    Spikes:     {total_spikes} spike events observed")
 
     metadata = {
         "timestamp": now_str,
         "filename": target_mp4.name,
         "path": str(target_mp4.resolve()),
+        "resolution_tier": res_tag,
         "codec": selected_codec,
         "file_size_bytes": file_size,
         "total_steps": steps,
@@ -418,6 +497,12 @@ def render_and_encode_video(
         "fps": fps,
         "duration_seconds": duration_sec,
         "render_time_seconds": total_time,
+        "render_fps": round(total_frames / total_time, 2),
+        "total_spikes": total_spikes,
+        "stim_mode": stim_mode,
+        "stim_fraction": stim_fraction,
+        "stim_count": len(stim_indices),
+        "stim_pt": stim_pt,
         "resolution": list(resolution),
         "device": str(device),
         "v_range_initial": v_history[0] if v_history else None,
@@ -438,6 +523,9 @@ if __name__ == "__main__":
     parser.add_argument("--fps", type=int, default=30, help="Video framerate")
     parser.add_argument("--resolution", default="1280x720", help="Resolution: preset (720p, 1080p, 1440p, 4k) or WxH")
     parser.add_argument("--codec", default="auto", help="Video codec: auto, libx264, libx265")
+    parser.add_argument("--stim-mode", choices=["focal", "group0", "all"], default="focal", help="Neuron activation pattern")
+    parser.add_argument("--stim-fraction", type=float, default=0.20, help="Fraction of neurons to activate in distinct subset")
+    parser.add_argument("--stim-pt", type=float, default=0.35, help="Thalamic stimulus probability for active subset")
     parser.add_argument("--device-id", type=int, default=0, help="GPU device ID")
     parser.add_argument("--output-dir", type=Path, default=Path(_SCRIPT_DIR) / "output", help="Output directory")
 
@@ -450,6 +538,9 @@ if __name__ == "__main__":
         fps=args.fps,
         resolution=render_res,
         codec=args.codec,
+        stim_mode=args.stim_mode,
+        stim_fraction=args.stim_fraction,
+        stim_pt=args.stim_pt,
         device_id=args.device_id,
         output_dir=args.output_dir,
     )

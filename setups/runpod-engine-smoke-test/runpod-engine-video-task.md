@@ -73,6 +73,12 @@ To prevent overwriting previous simulation runs, video artifacts follow a determ
 3. **Git Hygiene**:
    `setups/runpod-engine-smoke-test/output/.gitignore` must ignore all large binary media files (`*.mp4`, `*.avi`, `*.webm`, `*.mov`) so that video outputs remain strictly local artifacts and do not bloat git repository history.
 
+4. **Persistent Volume Retention (Rolling Window)**:
+   To protect persistent network volume `qze81dpw7q` (20 GB total) from storage exhaustion, `/workspace/output/` enforces an automated rolling retention policy:
+   - **Baseline Capacity**: Retains a maximum of 5 video runs on the volume.
+   - **Low-Space Throttling**: If available volume space falls below $2\text{ GB}$, retention automatically throttles to 2 videos; below $1\text{ GB}$, it throttles to 1 video.
+   - **Pruning Discipline**: Oldest video runs (`simulation_*.mp4`) and their companion metadata (`.json`) are pruned in FIFO order immediately following new artifact generation.
+
 ---
 
 ## Video Rendering & Headless EGL Pipeline

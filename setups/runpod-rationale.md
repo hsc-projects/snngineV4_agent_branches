@@ -188,28 +188,57 @@ support at all ("subsystem request failed"). Direct SSH (exposing
 `22/tcp` on the pod, real `sshd`) is needed for anything beyond quick
 interactive checks.
 
+**2026-10-15 — Persistent network volume environment & wheel caching (`/workspace/venv`, `/workspace/wheels/`).**
+Ephemeral GPU pods boot from a clean container image. Re-running `apt-get`, downloading packages, and compiling PyCUDA from source on every spin-up wasted 5–10 minutes and incurred billable compute charges. To eliminate this overhead, all Python dependencies and pre-compiled wheels are persisted on volume `qze81dpw7q`:
+- `/workspace/venv`: Pre-populated virtual environment with `--system-site-packages`, containing `torch`, `vispy`, `imageio`, `numpydantic`, and dependencies.
+- `/workspace/wheels/`: Cached binary `.whl` files (specifically `pycuda-2026.1-cp312-cp312-linux_x86_64.whl`).
+Fresh pods activate `/workspace/venv` directly or install the cached wheel in $< 3\text{ seconds}$ without network downloads or recompilation.
+
+**2026-10-15 — Preservation of PyCUDA native OpenGL interop (`pycuda.gl`).**
+Mocking or bypassing PyCUDA was explicitly rejected. `snngine_v4` relies on PyCUDA's OpenGL interop (`pycuda.gl.RegisteredBuffer` and `pycuda.gl.RegisteredImage`) to bind device memory directly to VisPy visual buffers without host roundtrips. PyCUDA must be natively compiled with `CUDA_ENABLE_GL = True` and operational on the GPU device to ensure true interop validation.
+
+**2026-10-15 — PyCUDA NumPy 2.x C-API compatibility & include bridging.**
+PyCUDA `v2024.1` fails to build against NumPy 2.x due to removed C-API members (`PyArray_Descr.elsize`, `PyArray_CORDER`). The `main` branch (`pycuda-2026.1`) provides native NumPy 2.x compatibility. Furthermore, NumPy 2.x moved internal headers to `numpy/_core/include`; PyCUDA's build requires explicit `CXXFLAGS = ['-I<numpy.get_include()>']` and a symlink from `numpy/_core/include` to `numpy/core/include` during compilation.
+
+**2026-10-15 — Rolling video retention policy on persistent volume.**
+Storage on volume `qze81dpw7q` is capped at 20 GB. Storing unmanaged simulation recordings would risk storage exhaustion, breaking future pod boots and builds. An automated rolling window policy was implemented in `runpod_video_runner.sh`:
+- Retains a maximum of 5 recent simulation video runs (`simulation_*.mp4` and companion `.json`) on `/workspace/output/`.
+- Dynamically throttles retention to 2 videos if free space $< 2\text{ GB}$, and 1 video if $< 1\text{ GB}$.
+- Purges oldest runs in FIFO order following successful artifact generation.
+
+**2026-10-15 — Windows OpenSSH 9.5 legacy SCP flag (`-O`).**
+OpenSSH 9.0+ transitioned the default `scp` transfer protocol from legacy RCP/SCP to SFTP. On Windows clients connecting to Runpod container `sshd` instances that lack an active SFTP subsystem, file transfers hang indefinitely until socket timeout. Passing the `-O` flag forces the legacy SCP protocol, restoring fast, non-blocking transfer for automation scripts.
+
+**2026-10-15 — Headless H.264 video rendering vs. real-time WAN WebSocket streaming.**
+In `runpod-smoke-tests/runpod-smoke-test-report.md`, real-time interactive streaming of raw 800×600 RGBA frame buffers over WebSockets consumed ~460 Mbps (57.6 MB/s) of continuous uplink from `EU-RO-1` across Cloudflare, inducing significant TCP window buffer bloat and visual stuttering. For automated neural simulation telemetry and inspection, local containerized H.264/MP4 encoding via offscreen EGL VisPy rendering was selected instead:
+- Eliminates WAN bandwidth sensitivity entirely; rendering runs at hardware speed (57.8 fps, > 1.9x real-time).
+- Produces compact, self-contained media artifacts (~0.75 MB for 5 seconds of 720p at 30 fps).
+- Preserves frame-accurate temporal synchronization between spatial neuron state flashes and camera orbits.
+
+**2026-10-15 — Storage filesystem permissions on network volume (`mfs`).**
+Runpod's network volumes (`mfs#euro-3.runpod.net`) reject POSIX user/group ownership mutations by container clients (`chown` operations fail with `Operation not permitted (1)`). Synchronization scripts and tooling (`exec_pod.py`, `rsync`) must strictly omit owner/group preservation flags (`--no-owner --no-group`) to prevent transfer aborts.
+
+**2026-10-15 — Memory layout contiguity in host-device tensor transfers.**
+`TensorDataFrame` backing tensors constructed from pandas DataFrame objects inherit column-major (Fortran) memory ordering with stride `(1, N_rows)`. Because the native C++/CUDA simulation kernels (`snn_simulation_gpu`, `snn_construction_gpu`) calculate linear memory offsets assuming standard C-contiguous (row-major) layout (`offset = n + row * N`), passing uncorrected strided pointers causes Row 2 (`L_group`) writes to wrap across row boundaries into Row 1 (`N_type`), corrupting neuron classification flags. Enforcing `gpu_t = gpu_t.contiguous()` during tensor construction is a mandatory invariant for all cloud GPU execution.
+
 ## Open items
 
 Ordered by dependency, not just file order. Item 0 is a gate, not just
 first-in-sequence: if it surfaces a real incompatibility, everything
 below pauses until resolved.
 
-0. **Gate — read `snngineV4_cloud`'s actual dependencies and check them
-   against what RunPod can provide** (CUDA/driver versions available in
-   `EU-RO-1`, the RTX 2000 Ada's compute capability, whatever compiled
-   extensions the blueprint's generic guessed package list was standing
-   in for). Currently only have that generic guess, not the real list.
+0. **RESOLVED 2026-10-15 — Gate: dependency validation & C++/CUDA compilation.**
+   Confirmed on live Runpod GPU hardware in `EU-RO-1` (tested on RTX 4090 and RTX PRO 4000 Blackwell): CUDA 12.8 / 13.0, PyTorch 2.8.0, native PyCUDA 2026.1 with OpenGL interop, and the C++/CUDA simulation backend (`snngine_v4/nn/cuda_backend/build/`) compile and execute cleanly without numerical drift or NaN faults. Headless 3D offscreen EGL video rendering benchmarked at 57.8 frames/sec.
 1. Design + build the custom hardened pod image (root-starting
    entrypoint: capability drop, `no-new-privileges`, drop to non-root;
-   `guard-exec` wired in; real toolchain from item 0 baked in). Blocked
-   by item 0.
+   `guard-exec` wired in; real toolchain from item 0 baked in).
 2. Decide the agent credential list (LLM auth, git, etc.); wire via
    RunPod `create-secret`. Blocks nothing else in this list, but needed
    before a real agent session runs.
 3. Run the Phase 1 bootstrap on a real CPU pod using the image from
    item 1; verify persistence across stop/restart.
 4. Re-check `EU-RO-1` GPU stock immediately before provisioning the GPU
-   pod (it was `LOW`, not guaranteed).
+   pod.
 
 Standalone, not blocking anything above:
 - Compare against Vast.ai given how tight RunPod's real Ampere stock is
