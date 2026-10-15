@@ -18,7 +18,6 @@ IS_WINDOWS = sys.platform == "win32"
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
 DEFAULT_KEY = REPO_ROOT / "setups" / ".secrets" / "id_ed25519"
-KNOWN_HOSTS = SCRIPT_DIR / ".pod_known_hosts"
 
 
 def fix_key_permissions(key_path: Path):
@@ -36,8 +35,8 @@ def get_ssh_cmd(host: str, port: int, key_path: Path, remote_cmd: str) -> list[s
         "-o", "IdentitiesOnly=yes",
         "-o", "BatchMode=yes",
         "-o", "ConnectTimeout=15",
-        "-o", "StrictHostKeyChecking=accept-new",
-        "-o", f"UserKnownHostsFile={KNOWN_HOSTS}",
+        "-o", "StrictHostKeyChecking=no",
+        "-o", f"UserKnownHostsFile={os.devnull}",
         f"root@{host}",
         remote_cmd,
     ]
@@ -85,8 +84,8 @@ def run_scp(host: str, port: int, key_path: Path, local_path: Path, remote_path:
         "-o", "IdentitiesOnly=yes",
         "-o", "BatchMode=yes",
         "-o", "ConnectTimeout=15",
-        "-o", "StrictHostKeyChecking=accept-new",
-        "-o", f"UserKnownHostsFile={KNOWN_HOSTS}",
+        "-o", "StrictHostKeyChecking=no",
+        "-o", f"UserKnownHostsFile={os.devnull}",
         "-r",
         str(local_path),
         f"root@{host}:{remote_path}",
@@ -113,6 +112,58 @@ def run_scp(host: str, port: int, key_path: Path, local_path: Path, remote_path:
         return 1
 
 
+def resolve_unique_filename(dest_dir: Path, target_filename: str) -> Path:
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    base_path = dest_dir / target_filename
+    if not base_path.exists():
+        return base_path
+
+    stem = base_path.stem
+    suffix = base_path.suffix
+    i = 1
+    while True:
+        candidate = dest_dir / f"{stem} ({i}){suffix}"
+        if not candidate.exists():
+            return candidate
+        i += 1
+
+
+def run_scp_download(host: str, port: int, key_path: Path, remote_path: str, local_dest: Path, timeout: int = 180) -> int:
+    cmd = [
+        "scp",
+        "-F", os.devnull,
+        "-i", str(key_path),
+        "-P", str(port),
+        "-o", "IdentitiesOnly=yes",
+        "-o", "BatchMode=yes",
+        "-o", "ConnectTimeout=15",
+        "-o", "StrictHostKeyChecking=no",
+        "-o", f"UserKnownHostsFile={os.devnull}",
+        f"root@{host}:{remote_path}",
+        str(local_dest),
+    ]
+    print(f"\n[*] Downloading root@{host}:{remote_path} -> {local_dest} via SCP...")
+    try:
+        res = subprocess.run(
+            cmd,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+        )
+        if res.returncode == 0:
+            print(f"[+] Download successful: {local_dest} ({local_dest.stat().st_size} bytes)")
+            return 0
+        else:
+            print(f"[-] SCP download failed (exit {res.returncode}):\n{res.stderr}", file=sys.stderr)
+            return res.returncode
+    except Exception as e:
+        print(f"[-] SCP download exception: {e}", file=sys.stderr)
+        return 1
+
+
 if __name__ == "__main__":
     if hasattr(sys.stdout, "reconfigure"):
         try:
@@ -136,6 +187,12 @@ if __name__ == "__main__":
     sync_parser.add_argument("--src", type=Path, default=SCRIPT_DIR, help="Local source path")
     sync_parser.add_argument("--dest", default="/workspace/snngineV4_agent_branches/setups/", help="Remote destination path")
 
+    # Subcommand: download
+    dl_parser = subparsers.add_parser("download", help="Download remote files from pod to local machine")
+    dl_parser.add_argument("--remote-src", required=True, help="Remote file path to download")
+    dl_parser.add_argument("--dest-dir", type=Path, default=SCRIPT_DIR / "output", help="Local directory to download into")
+    dl_parser.add_argument("--dest-file", type=str, default=None, help="Optional local filename override")
+
     args = parser.parse_args()
 
     fix_key_permissions(args.key)
@@ -145,4 +202,10 @@ if __name__ == "__main__":
         sys.exit(rc)
     elif args.action == "sync":
         rc = run_scp(args.host, args.port, args.key, args.src, args.dest)
+        sys.exit(rc)
+    elif args.action == "download":
+        remote_filename = Path(args.remote_src).name
+        target_name = args.dest_file if args.dest_file else remote_filename
+        local_target = resolve_unique_filename(args.dest_dir, target_name)
+        rc = run_scp_download(args.host, args.port, args.key, args.remote_src, local_target)
         sys.exit(rc)

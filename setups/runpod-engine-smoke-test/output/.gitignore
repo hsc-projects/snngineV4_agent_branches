@@ -1,0 +1,7 @@
+# Ignore all generated and downloaded video binaries and media containers
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.gif
