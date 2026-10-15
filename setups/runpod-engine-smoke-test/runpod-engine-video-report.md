@@ -100,6 +100,10 @@ The generated video runs and companion telemetry JSON were downloaded to the rep
 - Video: [`setups/runpod-engine-smoke-test/output/simulation_1080p_2026-10-15_14-17-54.mp4`](file:///E:/dev/snngineV4_agent_branches/setups/runpod-engine-smoke-test/output/simulation_1080p_2026-10-15_14-17-54.mp4)
 - Telemetry: [`setups/runpod-engine-smoke-test/output/simulation_1080p_2026-10-15_14-17-54.json`](file:///E:/dev/snngineV4_agent_branches/setups/runpod-engine-smoke-test/output/simulation_1080p_2026-10-15_14-17-54.json)
 
+### Unified Composite 3-Panel Diagnostic (1080p Full HD)
+- Video: [`setups/runpod-engine-smoke-test/output/simulation_composite_1080p_2026-10-15_15-17-58.mp4`](file:///E:/dev/snngineV4_agent_branches/setups/runpod-engine-smoke-test/output/simulation_composite_1080p_2026-10-15_15-17-58.mp4)
+- Telemetry: [`setups/runpod-engine-smoke-test/output/simulation_composite_1080p_2026-10-15_15-17-58.json`](file:///E:/dev/snngineV4_agent_branches/setups/runpod-engine-smoke-test/output/simulation_composite_1080p_2026-10-15_15-17-58.json)
+
 ---
 
 ## Extended Duration & Distinct Focal Subset Benchmark
@@ -118,10 +122,49 @@ To evaluate dynamic color transitions and contrast between active and quiescent 
 
 ---
 
+## Unified Composite 3-Panel Diagnostic Video Benchmark (Follow-Up Sub-Task 2)
+
+Follow-Up Sub-Task 2 unified the 3D neural reservoir, spike raster plot, and membrane potential waveform visualizations into a single, synchronized Full HD ($1920 \times 1080$) diagnostic video:
+
+### 1. Viewport & Layout Architecture
+- **Left Panel (50% width, full height)**: 3D neural reservoir with orbital camera easing ($360^\circ$ azimuth sweep, $\pm 8^\circ$ elevation oscillation), dynamic multi-stop voltage colormap (deep blue $\to$ cyan $\to$ lime $\to$ orange), and brilliant white flashes on spike events.
+- **Top-Right Panel (50% width, 50% height)**: Rolling spike raster plot over a 200 ms sliding temporal window, color-coded by neural group (cyan, lime, lavender, amber) with group boundary separators and a leading-edge time cursor.
+- **Bottom-Right Panel (50% width, 50% height)**: Multi-trace stacked continuous membrane potential waveforms ($v(t)$) for 6 representative neurons:
+  - Neurons 61 & 58: Focal stimulated neurons (gold, coral) exhibiting high-frequency burst firing.
+  - Neurons 6 & 74: Recurrently activated excitatory neurons (cyan, green).
+  - Neurons 118 & 199: Unstimulated baseline quiescent neurons (sky blue, purple) maintaining physiological resting potential.
+- **Microsecond Synchronization**: Offscreen EGL single-pass render (`canvas.render()`) captures all three viewports simultaneously, eliminating temporal skew or frame desynchronization.
+
+### 2. VisPy Multi-Panel Layout Pattern
+In VisPy `SceneCanvas`, `canvas.central_widget` is a standard `Widget` rather than a `Grid`. Calling `central_widget.add_view(row=0, col=0, ...)` passes grid coordinates directly into `ViewBox.__init__`, triggering `TypeError: CompoundVisual.__init__() got an unexpected keyword argument 'row'`. The required pattern is explicitly creating a grid container:
+```python
+grid = canvas.central_widget.add_grid()
+view_3d = grid.add_view(row=0, col=0, row_span=2, col_span=1)
+view_raster = grid.add_view(row=0, col=1, row_span=1, col_span=1)
+view_voltage = grid.add_view(row=1, col=1, row_span=1, col_span=1)
+```
+
+### 3. Performance & Telemetry Results
+
+| Parameter / Metric | Measured Value | Analysis |
+| :--- | :--- | :--- |
+| **Compute Pod ID** | `zdxn7odvaeoqpn` | NVIDIA GeForce RTX 4090 (24 GB VRAM, Ada) in `EU-RO-1` |
+| **Execution Command** | `runpod_video_runner.sh composite --steps 1200 --stride 2 --fps 30 --window-ms 200` | Full composite pipeline |
+| **Duration / Frames** | $20.0\text{ s}$ (600 frames @ 30 fps) | 1,200 simulation steps @ stride 2 |
+| **Resolution Tier** | $1920 \times 1080$ (1080p Full HD) | 3 synchronized viewports |
+| **Video Codec** | `libx264` (H.264 / `yuv420p`) | High quality factor |
+| **Total Render Time** | **$9.06\text{ s}$** | Offscreen EGL single-pass canvas capture |
+| **Render Throughput** | **$66.2\text{ frames/sec}$** | **$> 2.2\times$ real-time playback** |
+| **Spike Events** | **967 spikes** | High recurrent activity across the focal cluster |
+| **Container File Size** | $10,052,642\text{ bytes}$ ($9.59\text{ MB}$) | High information density composite stream |
+| **Telemetry Metadata** | [`simulation_composite_1080p_2026-10-15_15-17-58.json`](file:///E:/dev/snngineV4_agent_branches/setups/runpod-engine-smoke-test/output/simulation_composite_1080p_2026-10-15_15-17-58.json) | Full execution metadata |
+
+---
+
 ## Verification & Teardown
 
 1. **Local Download Verification**:
-   - `simulation_1080p_2026-10-15_14-17-54.mp4` ($4,185,025\text{ bytes}$) and companion JSON metadata verified on local disk.
+   - `simulation_composite_1080p_2026-10-15_15-17-58.mp4` ($10,052,642\text{ bytes}$) and companion JSON metadata verified on local disk.
 2. **GPU Pod Teardown**:
-   - Pod `9dq88exw8u3xbe` (RTX 4090) deleted via Runpod MCP tool `delete-pod` (HTTP 204).
+   - Pod `zdxn7odvaeoqpn` (RTX 4090) deleted immediately upon artifact retrieval via Runpod MCP tool `delete-pod` (HTTP 204).
    - Runpod MCP tool `list-pods` confirmed `[]` active compute instances. Zero idle spend.

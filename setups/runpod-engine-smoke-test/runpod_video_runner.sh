@@ -138,6 +138,28 @@ run_generate() {
     fi
 }
 
+run_composite() {
+    ensure_system_packages
+    info "Launching headless unified composite video generation (3D + Raster + Voltage)..."
+    info "Output directory: $OUTPUT_DIR"
+    
+    python3 "$SCRIPT_DIR/generate_composite_video.py" \
+        --output-dir "$OUTPUT_DIR" \
+        "$@" 2>&1 | tee "$LOG_DIR/video_generation.log"
+    
+    local latest_video
+    latest_video=$(find "$OUTPUT_DIR" -maxdepth 1 -name "simulation_composite_*.mp4" -type f -printf '%T@ %p\n' | sort -n | tail -1 | cut -f2- -d" ")
+    
+    if [ -n "$latest_video" ] && [ -s "$latest_video" ]; then
+        local sz
+        sz=$(stat -c%s "$latest_video")
+        pass "Composite video generated successfully: $latest_video ($sz bytes)"
+        prune_output_retention
+    else
+        fail "Composite video generation finished without producing a valid MP4 artifact in $OUTPUT_DIR"
+    fi
+}
+
 prune_output_retention() {
     local max_videos=5
     local min_free_gb=2
@@ -188,12 +210,15 @@ case "$CMD" in
     generate)
         run_generate "$@"
         ;;
+    composite)
+        run_composite "$@"
+        ;;
     all)
         run_bootstrap
-        run_generate "$@"
+        run_composite "$@"
         ;;
     *)
-        echo "Usage: $0 {bootstrap|generate|all} [generator arguments...]"
+        echo "Usage: $0 {bootstrap|generate|composite|all} [generator arguments...]"
         exit 1
         ;;
 esac
