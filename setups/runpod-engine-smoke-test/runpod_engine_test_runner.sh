@@ -29,6 +29,7 @@ mkdir -p "$LOG_DIR"
 export PATH="/usr/local/cuda/bin:${PATH:-}"
 export LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH:-}"
 export PYOPENGL_PLATFORM="egl"
+export QT_QPA_PLATFORM="offscreen"
 export PYTHONPATH="$REPO_ROOT:${PYTHONPATH:-}"
 
 CMD="${1:-all}"
@@ -50,7 +51,7 @@ run_bootstrap() {
     # 2. Python dependencies for snngine_v4 headless execution
     info "Installing Python dependencies via pip..."
     pip install --break-system-packages --no-cache-dir \
-        "pydantic>=2.9" "numpydantic" "pydantic-settings" "scipy" "pandas" || true
+        "pydantic>=2.9" "numpydantic" "pydantic-settings" "pydantic-extra-types" "scipy" "pandas" "deepdiff" "lxml" "vispy" "numba" "tables" || true
     pass "Bootstrap completed successfully."
 }
 

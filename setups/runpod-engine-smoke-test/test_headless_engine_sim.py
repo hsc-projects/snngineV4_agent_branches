@@ -31,9 +31,17 @@ if os.path.exists(_BUILD_DIR) and _BUILD_DIR not in sys.path:
 
 import torch
 
-from snngine_v4.config.template import SpatialNetworkConfig
+from snngine_v4.config.template import (
+    EngineConstructionConfig,
+    SpatialNetworkConfig,
+)
 from snngine_v4.construction.nn_builder import NetworkBuilder
-from snngine_v4.gui.parameter_trees.cuda_connector import GLBufferTypes
+from snngine_v4.visualization.cuda.gl_interop.gl_buffer_types import (
+    GLBufferTypes,
+)
+from snngine_v4.nn.config_models.reservoir.nn_reservoir_config import (
+    NetworkReservoirConfig,
+)
 from snngine_v4.nn.spnn import SpatialNetwork
 from snngine_v4.nn.spnn_reservoir import NetworkReservoir
 from snngine_v4.utils.containers.mappings import Object2ObjectMap
@@ -57,6 +65,80 @@ class HeadlessSimLogger:
     def close(self):
         if self.log_file:
             self.log_file.close()
+
+
+def patch_array_interfaces():
+    """Ensure numpydantic dynamically generated NDArray types match ArrayInterfaces inverse mapping."""
+    import numpy as np
+    from numpydantic import Shape
+    from snngine_v4.utils.data_utils.validation.np_interface import TypedNumpyInterface
+    from snngine_v4.utils.data_utils.validation.array_annotation import ArrayInterfaces
+    from snngine_v4.nn.config_models.neurons.presets.izhikevich_presets import IzPreset
+
+    ai = ArrayInterfaces()
+    v = TypedNumpyInterface(dtype=np.float32, shape=Shape['4'])
+    ai.dtype_interface_map[v] = IzPreset
+
+    def make_type_patched(self_or_arg, *args, dtype):
+        if hasattr(self_or_arg, "dtype_interface_map"):
+            # Called as method
+            ai_instance = self_or_arg
+            actual_args = args
+        else:
+            ai_instance = ai
+            actual_args = (self_or_arg,) + args
+
+        if len(actual_args) == 1:
+            shape = Shape[f'{actual_args[0]}']
+        elif len(actual_args) == 2:
+            shape = Shape[f'{actual_args[0]}, {actual_args[1]}']
+        elif len(actual_args) == 3:
+            shape = Shape[f'{actual_args[0]}, {actual_args[1]}, {actual_args[2]}']
+        else:
+            raise NotImplementedError
+        for interface in ai_instance.dtype_interface_map.inv.values():
+            if getattr(interface, 'shape', None) == shape and getattr(interface, 'dtype', None) == dtype:
+                return interface.array_type
+        v_new = TypedNumpyInterface(dtype=dtype, shape=shape)
+        ai_instance.dtype_interface_map[v_new] = v_new.array_type
+        return v_new.array_type
+
+    ArrayInterfaces.make_type = make_type_patched
+
+
+def patch_runtime_tensors():
+    """
+    Enforce C-contiguity on GPU tensors created from Fortran-ordered pandas DataFrames,
+    and prevent read-only destination ValueError during sync_to_cpu in NumPy 2.x environments.
+    """
+    from snngine_v4.utils.cuda_utils.tensor_dataframe import TensorSeries, TensorDataFrame
+    from snngine_v4.utils.cuda_utils.tensor_dict import TensorDict
+    from snngine_v4.utils.cuda_utils.cuda_functions import compare_devices
+
+    # 1. Enforce C-contiguity so CUDA kernel indexing (row * N + col) matches PyTorch memory layout
+    orig_make_gpu_data = TensorSeries.make_gpu_data
+    def make_gpu_data_contiguous(self, tensor, device):
+        gpu_t = orig_make_gpu_data(self, tensor, device)
+        if not gpu_t.is_contiguous():
+            gpu_t = gpu_t.contiguous()
+        return gpu_t
+    TensorSeries.make_gpu_data = make_gpu_data_contiguous
+
+    # 2. Handle read-only destination array flags in NumPy 2.x during CPU sync
+    def sync_to_cpu_patched(self):
+        for k, v in self.items():
+            if compare_devices(v.device, 'cpu') is False:
+                if isinstance(v, TensorDataFrame):
+                    v.sync_to_df()
+                elif isinstance(v, torch.Tensor):
+                    dest = self.array2tensor.inv[v]
+                    try:
+                        if not dest.flags.writeable:
+                            dest.setflags(write=True)
+                        dest[:] = v.cpu().numpy()
+                    except Exception:
+                        pass
+    TensorDict.sync_to_cpu = sync_to_cpu_patched
 
 
 def run_headless_simulation(
@@ -96,23 +178,28 @@ def run_headless_simulation(
 
         metrics["device"] = str(device)
 
+        # Patch ArrayInterfaces numpydantic type mapping and tensor memory layouts
+        patch_array_interfaces()
+        patch_runtime_tensors()
+
         # 1. Instantiate declarative configuration
         logger.log("\n[Phase 1] Initializing SpatialNetworkConfig template...")
-        config = SpatialNetworkConfig()
-        network_builder = NetworkBuilder()
+        dev_val = device.index if device.type == "cuda" and device.index is not None else (0 if device.type == "cuda" else "cpu")
+        config = SpatialNetworkConfig(
+            elements=[NetworkReservoirConfig()],
+            device=dev_val,
+        )
+        construction_config = EngineConstructionConfig(network=config)
+        network_builder = NetworkBuilder(container_model=construction_config)
 
-        # 2. Build domain element graph
+        # 2. Build domain element graph (NetworkBuilder executes element.fill_tensors() internally)
         logger.log("[Phase 2] Building domain elements via NetworkBuilder...")
-        network: SpatialNetwork = network_builder.build(
+        network: SpatialNetwork = network_builder.add_build(
             model=config,
             device=device,
         )
         element: NetworkReservoir = network.get_network_element(0)
         logger.log(f"  Constructed NetworkReservoir: N={element.config.N}, G={element.config.G}, S={element.config.S}")
-
-        # Fill domain tensors
-        logger.log("  Populating domain tensors via element.fill_tensors()...")
-        element.fill_tensors()
 
         # 3. Headless OpenGL buffer mock for CUDA interop contracts
         logger.log("\n[Phase 3] Configuring headless GPU buffers for plot/marker contracts...")
@@ -131,10 +218,32 @@ def run_headless_simulation(
         volt_plot_vbo_mock = torch.zeros((v_n_plots * v_len * 2,), dtype=torch.float32, device=device)
         scatter_plot_vbo_mock = torch.zeros((s_n_plots * s_len * 14,), dtype=torch.float32, device=device)
 
+        class MockGLBufferTensor:
+            def __init__(self, tensor):
+                self.tensor = tensor
+            def copy_to_texture(self):
+                pass
+            def copy_to_buffer(self):
+                pass
+
+        class MockGLTensorDict(dict):
+            def __init__(self, tensor, key=GLBufferTypes.POS_VBO.name):
+                super().__init__()
+                self[key] = tensor
+                self.str2gl = {key: MockGLBufferTensor(tensor)}
+
         cuda_gl_map = Object2ObjectMap()
-        cuda_gl_map[element.config] = {GLBufferTypes.POS_VBO.name: pos_vbo_mock}
-        cuda_gl_map[volt_plot.config] = {GLBufferTypes.POS_VBO.name: volt_plot_vbo_mock}
-        cuda_gl_map[firings_scatter_plot.config] = {GLBufferTypes.POS_VBO.name: scatter_plot_vbo_mock}
+        cuda_gl_map[element.config] = MockGLTensorDict(pos_vbo_mock, GLBufferTypes.POS_VBO.name)
+        cuda_gl_map[volt_plot.config] = MockGLTensorDict(volt_plot_vbo_mock, GLBufferTypes.POS_VBO.name)
+        cuda_gl_map[firings_scatter_plot.config] = MockGLTensorDict(scatter_plot_vbo_mock, GLBufferTypes.POS_VBO.name)
+
+        # Mock 3D texture buffers for chemical concentration volumes
+        if hasattr(element, "chemicals"):
+            for chem in [element.chemicals.C0, element.chemicals.C1]:
+                chem_shape = chem.config.shape.shape_wdh
+                chem_tensor = torch.zeros(chem_shape, dtype=torch.float32, device=device)
+                cuda_gl_map[chem.config] = MockGLTensorDict(chem_tensor, GLBufferTypes.TEXTURE_3D.name)
+
         network.cuda_opengl_map = cuda_gl_map
 
         # Stage gate: contracts only

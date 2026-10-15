@@ -35,12 +35,9 @@ from snngine_v4.visualization.visuals.compound_markers import \
     CompoundMarkersVisual
 
 
-class GLBufferTypes(IntEnum):
-    VBO = 0
-    IBO = auto()
-    POS_VBO = auto()
-    CONNECT_IBO = auto()
-    TEXTURE_3D = auto()
+from snngine_v4.visualization.cuda.gl_interop.gl_buffer_types import (
+    GLBufferTypes,
+)
 
 
 class CudaVispyConnector(ParameterConnector):

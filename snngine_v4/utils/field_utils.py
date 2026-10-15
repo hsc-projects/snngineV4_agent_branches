@@ -11,7 +11,7 @@ from typing import (
 
 import numpy as np
 import pandas as pd
-import pyqtgraph
+import math
 from annotated_types import Ge, Gt, Le, Lt
 from pydantic import BaseModel, BeforeValidator
 from pydantic.fields import FieldInfo
@@ -610,6 +610,83 @@ def compare_basemodels_with_array_fields(a, b):
     return True
 
 
+def eq(a: Any, b: Any) -> bool:
+    """Robust equivalence evaluation guaranteed to return a single bool value.
+
+    Replaces pyqtgraph.functions.eq to decouple core utils from Qt/GUI libraries.
+    """
+    if a is b:
+        return True
+
+    if isinstance(a, float) and isinstance(b, float):
+        if math.isnan(a) and math.isnan(b):
+            return True
+
+    a_is_arr = isinstance(a, np.ndarray)
+    b_is_arr = isinstance(b, np.ndarray)
+    if (a_is_arr or b_is_arr) and type(a) is not type(b):
+        return False
+
+    if a_is_arr and b_is_arr:
+        if a.shape != b.shape or a.dtype != b.dtype:
+            return False
+        return bool(np.array_equal(a, b, equal_nan=True))
+
+    # Handle torch.Tensor without requiring a top-level torch dependency
+    a_type_name = type(a).__name__
+    b_type_name = type(b).__name__
+    if a_type_name == "Tensor" and b_type_name == "Tensor":
+        if hasattr(a, "shape") and hasattr(b, "shape"):
+            if a.shape != b.shape or a.dtype != b.dtype:
+                return False
+            try:
+                return bool((a == b).all().item())
+            except Exception:
+                return False
+
+    if isinstance(a, dict) and isinstance(b, dict):
+        if type(a) is not type(b) or len(a) != len(b):
+            return False
+        if set(a.keys()) != set(b.keys()):
+            return False
+        for k, v in a.items():
+            if not eq(v, b[k]):
+                return False
+        return True
+
+    if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
+        if type(a) is not type(b) or len(a) != len(b):
+            return False
+        for v1, v2 in zip(a, b):
+            if not eq(v1, v2):
+                return False
+        return True
+
+    try:
+        e = a == b
+    except (ValueError, AttributeError, TypeError):
+        return False
+
+    if isinstance(e, bool):
+        return e
+    if isinstance(e, (np.bool_, bool)):
+        return bool(e)
+    if isinstance(e, np.ndarray):
+        if hasattr(a, "shape") and hasattr(b, "shape") and a.shape != b.shape:
+            return False
+        return bool(e.all())
+
+    try:
+        if hasattr(e, "all"):
+            val = e.all()
+            if hasattr(val, "item"):
+                return bool(val.item())
+            return bool(val)
+        return bool(e)
+    except Exception:
+        return False
+
+
 def is_equal(a, b):
     if isinstance(a, BaseModel) and isinstance(b, BaseModel):
         if a is b:
@@ -619,4 +696,5 @@ def is_equal(a, b):
         except ValueError:
             return compare_basemodels_with_array_fields(a, b)
 
-    return pyqtgraph.functions.eq(a, b)
+    return eq(a, b)
+

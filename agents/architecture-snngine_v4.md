@@ -56,3 +56,13 @@ Top-level subpackages under `snngine_v4/`:
   more general connector linking pydantic config models to VisPy `Visual`
   objects for the parameter tree UI; distinct from the CUDA-specific
   buffer connector above.
+
+## Confirmed runtime & memory layout invariants
+
+- **TensorDataFrame C-Contiguity Requirement**:
+  `TensorDataFrame` backing tensors initialized from `pandas.DataFrame.values` inherit pandas' internal Fortran layout (column-major, stride `(1, N_rows)`). Native C++/CUDA kernels (e.g. `fill_N_flags_group_id_and_G_neuron_count_per_type_`) compute flat 1D offsets assuming standard C-contiguous (row-major) layout: `offset = n + row * N`. Passing non-contiguous device pointers (`data_ptr()`) causes linear memory writes to wrap across row boundaries (e.g., Row 2 `L_group` writes overwriting Row 1 `N_type`), causing silent state corruption or validation assertion failures. Enforcing `.contiguous()` (`gpu_t = gpu_t.contiguous()`) in `TensorSeries.make_gpu_data` / `TensorDataFrame` is mandatory for native CUDA backend interop.
+- **Headless Buffer Contracts (3D Texture & Plot VBOs)**:
+  `Simulator._make_simulator_backend` unconditionally binds raw device pointers for marker/plot VBOs (`POS_VBO`) and chemical diffusion concentration volumes (`TEXTURE_3D` for `chemicals.C0` and `C1`). In headless environments without active VisPy GLIR canvases, the simulation loop executes natively without GUI dependencies by mapping these keys in `SpatialNetwork.cuda_opengl_map` to zero-initialized device tensors wrapped in `MockGLTensorDict` structures providing no-op `.copy_to_texture()` callbacks.
+- **Numpydantic Dynamic Identity in ArrayInterfaces**:
+  Evaluating `numpydantic.NDArray[Shape, Dtype]` generates a new dynamic class object on each call (`id(dt1) != id(dt2)`). Inverse lookups in `ArrayInterfaces().dtype_interface_map.inv` fail with `KeyError` unless resolution matches by `(shape, dtype)` attributes rather than Python object identity.
+

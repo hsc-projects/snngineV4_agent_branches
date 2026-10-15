@@ -11,7 +11,9 @@ from snngine_v4.chemistry.chem_models import (ChemicalConcentrationModel,
 from snngine_v4.chemistry.chem_volume import (ChemicalConcentrationVolume,
                                               Chemicals)
 from snngine_v4.geometry.grid.finite_grid import FiniteGrid
-from snngine_v4.gui.parameter_trees.cuda_connector import GLBufferTypes
+from snngine_v4.visualization.cuda.gl_interop.gl_buffer_types import (
+    GLBufferTypes,
+)
 from snngine_v4.nn.config_models.neurons.synapse_model import (
     SynapseCountTensors, SynapseModel,
 )

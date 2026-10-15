@@ -50,3 +50,11 @@ Verified in prior smoke test ([`setups/runpod-smoke-tests/runpod-smoke-test-repo
   ```
 - PyCUDA with OpenGL interop compiled from source against CUDA 12.8 with `--cuda-enable-gl`.
 - C++/CUDA backend built via CMake in `snngine_v4/nn/cuda_backend/`.
+
+## Headless Simulation Verification & Container Gotchas
+
+Verified in engine smoke test ([`setups/runpod-engine-smoke-test/runpod-engine-smoke-test-report.md`](runpod-engine-smoke-test/runpod-engine-smoke-test-report.md)):
+- **Simulation Execution Rate**: 100 consecutive timesteps executed on an NVIDIA RTX 4090 at **0.121 ms/step** (~8,264 steps/sec) with membrane potentials bounded in physiological resting ranges ($[-70.12, -64.42] \text{ mV}$) and zero GUI/display dependencies.
+- **PyCUDA Source Import Shadowing**: Executing `python -c "import pycuda"` inside `/tmp/pycuda` attempts to import the source tree rather than the compiled site-package, failing with `ModuleNotFoundError: No module named 'pycuda._driver'`. Scripts must execute from `/root` or `/workspace`.
+- **NumPy 2.x Read-Only Buffer Flags**: On Ubuntu 24.04 / Python 3.12 containers running NumPy 2.x, numpy views produced during host-device synchronization default to `flags.writeable = False`. In-place slice updates (`dest[:] = v.cpu().numpy()`) require checking and re-enabling write flags (`dest.setflags(write=True)`).
+
