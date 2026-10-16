@@ -42,9 +42,10 @@ describe the doc change; there is nothing else to name.
 
 ## Commit process
 
-- `git add` and `git commit` go in **one** `Bash` call
-  (`git add <files> && git commit -m "..."`), so there is a single
-  confirmation prompt.
+- `git add` and `git commit` go in **one** shell call
+  (`git add <files> && git commit -m "..."` in bash, or
+  `git add <files>; if ($?) { git commit -m "..." }` in Windows PowerShell 5.1,
+  where `&&` is not a valid token), so there is a single confirmation prompt.
 - **When the agent suggests a commit** (e.g. after finishing a piece of
   work): end that reply with the preview — `committing:` plus the file
   list as markdown bullets, each filename in backticks (renders in a
