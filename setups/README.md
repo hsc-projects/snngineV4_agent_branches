@@ -16,12 +16,13 @@
 | `runpod-engine-smoke-test/runpod-engine-test-task.md` | Task write-up for the Runpod headless simulation engine smoke test (feeds domain simulation validation on cloud GPU) |
 | `runpod-engine-smoke-test/runpod-engine-video-task.md` | Task write-up for Runpod headless simulation video generation and 3-panel composite telemetry |
 | `runpod-chem-diffusion/runpod-chem-diffusion-task.md` | Task write-up for Runpod headless 3D chemical source and volumetric diffusion video generation |
+| `runpod-chem-diffusion/runpod-chem-diffusion-report.md` | Execution report and quantitative diffusion telemetry for Runpod 3D chemical source and volumetric diffusion video generation |
 | `runpod_find_combos.py` | Query live Runpod GraphQL API for in-stock, cost-optimal GPU/CPU options matching network volume constraints |
 | `.secrets/.env` | Gitignored credentials (e.g. `RUNPOD_API_KEY`) read at runtime by host tools |
 | `pi-smoke-test/task.md` | Task write-up for the Pi flash + SSH smoke test (two phases: write/flash the SD card, then SSH once the maintainer boots and connects the Pi) — done 2026-10-04, kept current |
 | `pi-smoke-test/pi-smoke-test-report.md` | Evidence and findings of that smoke test, plus the Proton VPN and first-boot follow-ups |
 | `pi-smoke-test/pi_smoke_test_flash.py`, `pi_smoke_test_ssh_check.py` | Flash/configure an SD card (Linux and Windows) and find/SSH into the Pi |
-| `pi-provision/pi-firstboot.sh` | Script that runs on the Pi's first boot (installed by the flash script through cloud-init, retried until done): WireGuard, the credential stick, the tunnel at boot, Docker, Tailscale, the Wi-Fi password scrub; tested on fresh flashes |
+| `pi-provision/pi-firstboot.sh` | Script that runs on the Pi's first boot (installed by the flash script through cloud-init, retried until done): WireGuard, the credential stick, the tunnel at boot, Docker, git, Tailscale, the Wi-Fi password scrub; tested on fresh flashes |
 | `pi-provision/tailscale-policy.hujson` | The tailnet access policy for the Pi (paste into the Tailscale admin console) |
 | `pi-provision/push_wireguard_config.py` | Pushes the Proton WireGuard config to the Pi's credential stick over SSH |
 | `pi-provision/pi_keyholder.py` | Laptop client for the Pi's keyholder: add an encrypted secret, unlock it into the Pi's RAM, lock, status |

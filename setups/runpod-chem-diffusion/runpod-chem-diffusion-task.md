@@ -108,3 +108,33 @@ setups/runpod-chem-diffusion/
   2. Volume visual axes or scale do not align with the 3D source wireframe box and reservoir cage.
   3. Out-of-bounds CUDA memory access at `i == grid_h` / `j == grid_w` / `k == grid_d`.
   4. Any core file in `snngine_v4/` or sibling `setups/` task directory is modified, or any output artifact enters VCS.
+
+---
+
+## Follow-Up Sub-Task 1: Multi-Panel Composite View (2-Way 3D Left Column + 3-Way Time-Series Right Column)
+
+### Objective
+Extend [`generate_chem_diffusion_video.py`](file:///E:/dev/snngineV4_agent_branches/setups/runpod-chem-diffusion/generate_chem_diffusion_video.py) and [`runpod_chem_runner.sh`](file:///E:/dev/snngineV4_agent_branches/setups/runpod-chem-diffusion/runpod_chem_runner.sh) to support a synchronized **5-panel composite layout (2-way 3D left column + 3-way 2D time-series right column)** (`--layout 5way`, default `5way`, with `4way` accepted as an alias), incorporating both the dedicated **3D Neural Network Reservoir view** and the **Firing Scatter Plot (Spike Raster)** from [`setups/runpod-engine-smoke-test/generate_composite_video.py`](file:///E:/dev/snngineV4_agent_branches/setups/runpod-engine-smoke-test/generate_composite_video.py) alongside the 3D chemical diffusion views.
+
+### Viewport Grid Layout ($6\text{ rows} \times 2\text{ columns}$, $\text{lcm}(2, 3) = 6$) & Synchronization
+- **Left Column (`col=0`, 50% width — 2 Equal-Height 3D Views, 50% height each)**:
+  1. **Top-Left (`row=0, col=0, row_span=3, col_span=1`, 50% width $\times$ 50% height): 3D Chemical Source & Volumetric Plume View (`3d_chemical_plume`)**:
+     - Displays the 3D reservoir bounding cage, the localized 3D chemical source wireframe box (`[44, 56]^3`), and the translucent 3D volumetric chemical diffusion plume (`visuals.Volume` for `chemicals.C0`), providing an unobstructed view of volumetric concentration buildup and outward diffusion.
+  2. **Bottom-Left (`row=3, col=0, row_span=3, col_span=1`, 50% width $\times$ 50% height): 3D Neural Network Reservoir View (`3d_neural_network`, from `runpod-engine-smoke-test`)**:
+     - Displays the 3D reservoir bounding cage (`visuals.Box` with translucent faces `(0.2, 0.4, 0.6, 0.15)` and edge color `(0.3, 0.6, 0.9, 0.4)`) and the 200 3D reservoir neurons (`visuals.Markers`) colored dynamically by membrane potential $v(t)$ (`compute_neuron_colors`) with brilliant white spike flashes on firing events (`fired_mask = stride_fired | (v_current >= -30.0)`), completely unobscured by the volumetric plume.
+     - **Synchronized Orbital Camera**: Shares the exact per-frame `TurntableCamera` `azimuth`, `elevation`, `center`, `fov`, and `distance` with Top-Left so that both 3D views rotate in lockstep for direct spatial comparison.
+- **Right Column (`col=1`, 50% width — 3 Equal-Height 2D Time-Series Views, $33.3\%$ height each)**:
+  3. **Top-Right (`row=0, col=1, row_span=2, col_span=1`, 50% width $\times$ 33.3% height): Radial Chemical Concentration Curves $C(r, t)$ (`radial_chemical_concentration_shells`)**:
+     - Plots real-time mean chemical concentration $\bar{C}(d, t)$ across the 5 concentric Chebyshev distance shells ($d \in \{1, 3, 6, 12, 20\}$ voxels outside the source boundary) over the rolling time window.
+  4. **Middle-Right (`row=2, col=1, row_span=2, col_span=1`, 50% width $\times$ 33.3% height): Firing Scatter Plot / Spike Raster (`spike_raster`, from `runpod-engine-smoke-test`)**:
+     - Displays action potential firing events `(t, neuron_id)` across all 200 neurons over the synchronized rolling time window, color-coded by neuron group (`GROUP_COLORS`) with horizontal group divider lines and a right-edge time cursor.
+  5. **Bottom-Right (`row=4, col=1, row_span=2, col_span=1`, 50% width $\times$ 33.3% height): Multi-Trace Membrane Potential Waveforms $v(t)$ (`voltage_waveforms`)**:
+     - Plots synchronized rolling membrane potential waveforms $v(t)$ for the 6 representative neurons (focal stimulated, recurrent excitatory, and baseline).
+
+### Artifact Naming & Verification Criteria
+- Output files use the prefix `simulation_chem_5way_<res>_<YYYY-MM-DD_HH-MM-SS>.mp4` (and `.json`), stored in `setups/runpod-chem-diffusion/output/` (gitignored).
+- JSON sidecar records `"layout": "5way"` and all five active viewport identifiers (`["3d_chemical_plume", "3d_neural_network", "radial_chemical_concentration_shells", "spike_raster", "voltage_waveforms"]`) in `"panels"`.
+- Ephemeral GPU pod in `EU-RO-1` is terminated immediately via `delete-pod` after artifact retrieval, with `list-pods` verified empty (`[]`).
+
+
+
