@@ -82,8 +82,7 @@ limiting factor — not a purchase decision.
   `sudo tailscale up --accept-dns=false --hostname=pi-host --advertise-tags=tag:pi`.
   Current node: `pi-host`, 100.119.40.123, account `hsc-projects@`, tagged
   `tag:pi` from the join, key expiry None (a join with a tag disables expiry;
-  tagging an already-joined node does not). An older node, `pi-host-test`
-  (100.121.120.13, expires 2027-04-09), may still be listed in the console.
+  tagging an already-joined node does not).
   `CorpDNS` and `RouteAll` are off, Tailscale SSH and shields-up are off (the
   normal sshd is the only SSH). The node state is in `/var/lib/tailscale` on
   the card (the primary copy), with a backup on the stick (`tailscale/tailscaled.state`,
@@ -137,9 +136,20 @@ limiting factor — not a purchase decision.
   - **No stick:** the device wait for `PIKEYS` times out after 10 s, the mount,
     its fsck and the tunnel unit fail with `dependency`; the Pi still boots and
     stays reachable (the way out if a tunnel ever blocks access), with the tunnel
-    down and its own network and DNS untouched. A failed mount is not retried when
-    the stick is plugged back in: reboot (or run `pi-firstboot.sh keystore` and
-    start the tunnel unit).
+    down and its own network and DNS untouched.
+  - **Stick pulled or plugged back in while running** (`module_keystore_hotplug`):
+    systemd unmounts the vanished stick and stops the tunnel unit, but the stop cannot
+    read the config, so the `wg-JP-154` interface and its routing stay up (traffic keeps
+    leaving through Proton; the 5200 tailnet rules stay too). A udev rule
+    (`/etc/udev/rules.d/90-pi-keystore.rules`) starts `pi-keystore-recover.service` when
+    a device labelled `PIKEYS` appears: `/usr/local/sbin/pi-keystore-recover` mounts it,
+    and, for each enabled tunnel unit that is not active, runs `wg-quick down` (the
+    config is readable again) and restarts the unit; an active tunnel is left alone,
+    since the rule also fires when the stick is found at boot. The unit is rate-limited
+    (5 starts in 300 s). No reboot is needed; it is complete about 30 s after the replug.
+  - **Rule order:** the drop-in removes the 5200 rules before the tunnel starts and adds
+    them after, because the kernel numbers wg-quick's rules just below the lowest existing
+    one: a leftover 5200 would put them ahead of it.
   - **No network at boot:** the unit still starts (the endpoint is an address, so
     `wg-quick up` needs no lookup); the handshake happens once `eth0` has a lease.
     The 30 s restart only matters if `wg-quick up` itself fails (for example an
@@ -242,16 +252,16 @@ limiting factor — not a purchase decision.
   `192.168.137.x` that maps to the Pi's MAC prefix `D8-3A-DD`. For longer checks pipe a
   script to `ssh ... htm@IP 'bash -s'`, starting with a throwaway line (a byte-order
   mark breaks line 1).
-- **Windows sharing:** `setups\restart-sharing.bat` (asks for admin) starts the
+- **Windows sharing:** `setups\windows\restart-sharing.bat` (asks for admin) starts the
   service, switches sharing off everywhere and on for the chosen pair, and checks that
   DHCP listens; it detects the internet-side adapter (`-Public NAME` overrides). One
   shared connection at a time. A Pi that sat
   without DHCP for hours needs its cable replugged or a power cycle once sharing is
   back. If Wi-Fi as the internet side fails with `0x80040201`, use phone USB tethering
   (rationale item 19).
-- **After plugging the stick back in,** reboot the Pi (a failed mount is not retried).
-  `push_wireguard_config.py --host IP` is only for a new or changed config or a new
-  stick.
+- **After plugging the stick back in** it mounts and the tunnel returns by itself
+  (see Software). `push_wireguard_config.py --host IP` is only for a new or changed
+  config or a new stick.
 - **If the provision service gave up** (6 starts per hour, so after about half an
   hour without network): `sudo systemctl reset-failed pi-provision.service`, then
   `sudo systemctl start pi-provision.service`.

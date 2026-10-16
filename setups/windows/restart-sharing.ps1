@@ -35,7 +35,7 @@ if ($Public) {
 }
 
 # --- quick look at what usually gets in the way ------------------------------------
-$vpn = @(Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' -and $_.InterfaceDescription -match 'WireGuard|VPN|Tunnel|TAP|Wintun' })
+$vpn = @(Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' -and $_.InterfaceDescription -match 'WireGuard|VPN|Tunnel|TAP|Wintun' -and $_.InterfaceDescription -notmatch 'Tailscale' })
 foreach ($v in $vpn) {
     Write-Host "WARNING: VPN adapter '$($v.Name)' is up. A connected VPN owns the default route and breaks sharing for the Pi; disconnect it."
 }

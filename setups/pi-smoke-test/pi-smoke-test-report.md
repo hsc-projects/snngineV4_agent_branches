@@ -333,7 +333,7 @@ after the offline version:
   dispatcher script re-applies it to devices that connect later (measured gap:
   `eth0` came up after the tunnel on a first boot and kept the laptop's DNS).
 - **Laptop side.** Connection sharing stopped twice and had to be restarted;
-  `setups/restart-sharing.bat` does it in one call. A leftover sharing setting on
+  `setups/windows/restart-sharing.bat` does it in one call. A leftover sharing setting on
   the old adapter made `EnableSharing` fail (`0x80040201`).
 - **Wiping cards loses what is on their Linux partition**, which Windows cannot
   read: the hand-installed tunnel setup of 2026-10-04 was lost that way.
@@ -486,9 +486,9 @@ rules; then `status` worked from Termux on mobile data.**
   added by the tunnel unit's `ExecStartPost` (removed by `ExecStopPost`). The Pi's own traffic
   still exits through Proton (checked: public address unchanged). After adding the rules
   by hand, `status` over the tailnet returned `stick: mounted`.
-- **Before that,** the Pi had no internet because the laptop's sharing was bound to an
-  adapter without internet (Wi-Fi, no connectivity) and `restart-sharing.ps1` reported
-  success anyway; naming the tether (`-Public 'Ethernet 2'`) fixed it.
+- **Before that,** the Pi had no internet because Windows sharing was bound to an adapter
+  without internet (Wi-Fi, no connectivity) and `restart-sharing.ps1` reported success
+  anyway; naming the tether (`-Public 'Ethernet 2'`) fixed it.
 
 - **Tunnel restart (with `tailscaled` up).** After `systemctl restart wg-quick@wg-JP-154`
   the 5200 rules (IPv4 and IPv6) were present once, ahead of the tunnel's, the handshake
@@ -519,5 +519,80 @@ rules; then `status` worked from Termux on mobile data.**
 
 ### Not established
 
-- A reboot with the stick absent (keyholder and tunnel), with this script.
 - The unlock itself from the phone: no secret is stored yet.
+
+## Follow-up — sharing and tailnet access, a day later (2026-10-14)
+
+**Summary: sharing on Wi-Fi still failed with `0x80040201`; the tether worked and the Pi came
+back; the access policy was confirmed live; a VPN client connected on the admin machine blocked
+that machine's TCP to tailnet addresses (not the Pi).**
+
+- **State found.** The tether adapter was gone; the Pi had no internet and no DHCP and showed
+  offline on the tailnet.
+- **Tried.** The restart script on Wi-Fi: `0x80040201`, also with `NlaSvc` and `COMSysApp`
+  started first, and with no VPN client connected. The Tailscale adapter, installed since, is
+  not the cause (the error predates it).
+- **Reading.** The single Wi-Fi success (2026-10-13) came within minutes of the tether's adapter
+  being present; every other Wi-Fi attempt had none. A hypothesis from two data points.
+- **Recovery.** With the tether on and the Pi's cable replugged, sharing came back (the script
+  took minutes: Windows' sharing calls were slow) and the Pi returned at `192.168.137.38`,
+  rejoined the tailnet, with internet and the tunnel as before.
+- **Access policy, live from a tailnet member.** Port 22 open; 80, 2375, 3128 and 8080 closed.
+- **VPN client connected on the admin machine.** Sharing and the Pi were unaffected (SSH over
+  the cable worked, the tailnet ping answered through a relay), but that machine's TCP
+  connections to tailnet addresses failed at connect with Windows' `Permission denied`, a
+  local block with the Pi not involved. Cause not confirmed (a rule of the VPN client; whether
+  excluding `100.64.0.0/10` from its tunnel helps is untested).
+
+### Not established
+
+- Why `0x80040201` happens on Wi-Fi, and whether the tether adapter's presence matters.
+- The unlock itself from the phone: no secret is stored yet.
+
+## Follow-up — the credential stick absent (2026-10-16)
+
+**Summary: losing the stick costs the tunnel and the keyholder and nothing else, both on a
+running Pi and on a cold boot; a replug does not recover them, a reboot does.**
+
+- **Hot unplug (found already happened).** At 00:56 systemd unmounted `/mnt/pi-keys` cleanly
+  and stopped the tunnel unit (its config lives on the stick: `wg-quick: ... does not exist`).
+  The Pi stayed up and reachable, `tailscaled` and Docker stayed active, `pi-unlock status`
+  answered `stick: absent`. (This entry first said the Pi then exited directly; not measured
+  at the time. Measured on the second pull below: the exit stayed Proton, see the hot-replug
+  entry.)
+- **Cold boot without the stick.** Booted in about 30 seconds with nothing waiting on the
+  missing device: sshd, Docker and `tailscaled` active (same node, online), the mount and the
+  tunnel inactive and not failed, `pi-provision.service` not failed, `pi-unlock status`
+  `stick: absent`.
+- **Replug.** The stick appeared as `sda` (`PIKEYS`) but was not mounted; the keyholder still
+  said `stick: absent` and the tunnel stayed down. A reboot with the stick in brought back the
+  mount, the tunnel (fresh handshake, Proton exit), the tailnet node and `stick: mounted`.
+
+- **Hot-replug recovery (udev rule, `pi-keystore-recover`).** The first version mounted the
+  stick within 3 seconds of the replug, but the tunnel did not come back: with the config
+  unreadable, `wg-quick down` had failed at the pull and left the `wg-JP-154` interface and
+  its routing up, so `wg-quick up` refused (`already exists`) and the unit retried every 30
+  seconds. While the stick is out, that stale interface keeps carrying the Pi's traffic: the
+  exit stayed the Proton address (measured). Fixes: the recovery script runs `wg-quick down`
+  (config readable again) before restarting a unit that is not active, and leaves an active
+  tunnel alone (the rule also fires at boot).
+- **A second ordering fault, found while testing the fix.** The first version kept the 5200
+  tailnet rules after a stop. With them present at the next start, the kernel numbered
+  wg-quick's rules below them (5198, 5199), ahead of the tailnet rule, which brought back the
+  tailnet-reply fault. The drop-in now removes the 5200 rules before the start and adds them
+  after (`ExecStartPre`, `ExecStartPost`); after a restart the order is 5200, then 5208 and
+  5209.
+- **Result.** Pull, then replug (about 40 minutes apart): the stick mounted, the tunnel unit
+  went `active` with a handshake under 30 seconds old, the exit was Proton, the rules were in
+  the right order, `pi-unlock status` said `mounted`, Tailscale stayed online, with no reboot.
+
+- **Fresh flash with the final script (card 2, stick left in).** The first boot finished in
+  about 3 minutes: the hotplug module installed (rule file mode 0644, recovery script in
+  place), the Tailscale identity was restored from the stick without a login
+  (`100.119.40.123`), the tunnel was active with a handshake 5 seconds old and the Proton
+  exit, `pi-provision.service` was not failed, `pi-unlock status` said `mounted`. The Pi took
+  a new cable address; the search script again tried the old stale neighbour entry first.
+
+### Not established
+
+- A stick that bounces repeatedly (the unit's start limit is set but not exercised).

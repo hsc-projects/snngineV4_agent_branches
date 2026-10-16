@@ -24,7 +24,7 @@
 | `pi-provision/push_wireguard_config.py` | Pushes the Proton WireGuard config to the Pi's credential stick over SSH |
 | `pi-provision/pi_keyholder.py` | Laptop client for the Pi's keyholder: add an encrypted secret, unlock it into the Pi's RAM, lock, status |
 | `pi-stolen-checklist.md` | What to revoke if the Pi, its card or its credential stick is lost or stolen |
-| `restart-sharing.bat` | Restarts Windows connection sharing for the Pi's cable (asks for admin) |
+| `windows/restart-sharing.bat` (with `restart-sharing.ps1`) | Restarts Windows connection sharing for the Pi's cable (asks for admin) |
 | `report-format.md` | Shared report structure (summary + detail subsections) for findings/status reports across this project's cloud-setup work |
 
 Each `-technical.md`/`-rationale.md` pair follows this project's

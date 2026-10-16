@@ -259,11 +259,16 @@ RestartSec=30
 # wg-quick's policy rules sit at the front when the tunnel comes up after
 # tailscaled (the kernel numbers them just below the existing rules), which sends
 # unmarked replies to tailnet addresses into the tunnel (so SSH over the tailnet
-# times out). These rules put tailnet-bound traffic first whatever the order.
+# times out). These rules put tailnet-bound traffic first whatever the order. They stay
+# after a stop on purpose: a stop that cannot read the config (the stick is gone) leaves
+# the interface and its routing behind, and the rules are harmless without a tunnel.
+# They must NOT exist when the tunnel comes up: the kernel numbers wg-quick's rules just
+# below the lowest existing rule, so a leftover 5200 would put them ahead of it. Hence
+# the removal before the start and the add after it.
+ExecStartPre=-/usr/sbin/ip rule del pref 5200 to 100.64.0.0/10 lookup 52
+ExecStartPre=-/usr/sbin/ip -6 rule del pref 5200 to fd7a:115c:a1e0::/48 lookup 52
 ExecStartPost=-/usr/sbin/ip rule add pref 5200 to 100.64.0.0/10 lookup 52
 ExecStartPost=-/usr/sbin/ip -6 rule add pref 5200 to fd7a:115c:a1e0::/48 lookup 52
-ExecStopPost=-/usr/sbin/ip rule del pref 5200 to 100.64.0.0/10 lookup 52
-ExecStopPost=-/usr/sbin/ip -6 rule del pref 5200 to fd7a:115c:a1e0::/48 lookup 52
 DROPIN
     chmod 644 /etc/systemd/system/wg-quick@.service.d/pi-provision.conf
     # A device that connects or reconnects after the tunnel is up (a cable
@@ -464,6 +469,62 @@ module_tailscale() {
     else
         log "module tailscale: ok ($(tailscale version | head -n 1)), NOT JOINED: run 'sudo tailscale up --accept-dns=false --hostname=pi-host --advertise-tags=tag:pi' and approve the link"
     fi
+}
+
+# Recover from a stick that was pulled and plugged back in, without a reboot. systemd
+# unmounts the stick when it disappears and stops what depends on it (the tunnel), but it
+# does not mount it again when it comes back. A udev rule starts a small service when a
+# device labelled $KEYSTORE_LABEL appears; the service mounts it and starts the enabled
+# tunnel units. Idempotent (a second event finds everything running), and rate-limited so
+# a stick that keeps bouncing cannot restart the tunnel in a loop.
+module_keystore_hotplug() {
+    install -d /usr/local/sbin
+    cat > /usr/local/sbin/pi-keystore-recover <<'RECOVER'
+#!/bin/bash
+# Mount the credential stick if it is not mounted, then start the enabled tunnel units.
+MNT=/mnt/pi-keys
+sleep 2
+if ! mountpoint -q "$MNT"; then
+    systemctl reset-failed "$(systemd-escape -p --suffix=mount "$MNT")" 2> /dev/null || true
+    mount "$MNT" || { logger -t pi-keystore "could not mount $MNT"; exit 1; }
+fi
+for f in /etc/systemd/system/multi-user.target.wants/wg-quick@*.service; do
+    [ -e "$f" ] || continue
+    u=$(basename "$f")
+    name=${u#wg-quick@}; name=${name%.service}
+    # Already up (the rule also fires when the stick is found at boot): leave it alone.
+    systemctl is-active --quiet "$u" && continue
+    # A stop that could not read the config (the stick was gone) leaves the interface and
+    # its routing behind, and wg-quick up refuses to run over it. With the config readable
+    # again, take it down properly first.
+    if ip link show "$name" > /dev/null 2>&1; then
+        wg-quick down "$name" > /dev/null 2>&1 || ip link delete dev "$name" 2> /dev/null || true
+    fi
+    systemctl reset-failed "$u" 2> /dev/null || true
+    systemctl restart "$u" || logger -t pi-keystore "could not start $u"
+done
+ip rule add pref 5200 to 100.64.0.0/10 lookup 52 2> /dev/null || true
+ip -6 rule add pref 5200 to fd7a:115c:a1e0::/48 lookup 52 2> /dev/null || true
+logger -t pi-keystore "stick mounted, tunnel start requested"
+RECOVER
+    chmod 755 /usr/local/sbin/pi-keystore-recover
+    cat > /etc/systemd/system/pi-keystore-recover.service <<UNIT
+[Unit]
+Description=Mount the credential stick and start its tunnel when it is plugged in
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/pi-keystore-recover
+UNIT
+    cat > /etc/udev/rules.d/90-pi-keystore.rules <<RULE
+ACTION=="add", SUBSYSTEM=="block", ENV{ID_FS_LABEL}=="$KEYSTORE_LABEL", TAG+="systemd", ENV{SYSTEMD_WANTS}+="pi-keystore-recover.service"
+RULE
+    chmod 644 /etc/systemd/system/pi-keystore-recover.service /etc/udev/rules.d/90-pi-keystore.rules
+    systemctl daemon-reload
+    udevadm control --reload
+    log "module keystore hotplug: ok (a stick labelled $KEYSTORE_LABEL mounts and starts the tunnel when plugged in)"
 }
 
 # The keyholder: encrypted secrets on the credential stick, unlocked into RAM on request.
@@ -705,6 +766,7 @@ main() {
     case "${1:-}" in
         keystore) log "=== keystore only ==="; preflight; module_keystore; return ;;
         autostart) log "=== wireguard autostart only ==="; preflight; module_wireguard_autostart; return ;;
+        hotplug) log "=== keystore hotplug only ==="; preflight; module_keystore_hotplug; return ;;
         docker) log "=== docker only ==="; preflight; wait_for_clock; module_docker; return ;;
         tailscale) log "=== tailscale only ==="; preflight; wait_for_clock; module_tailscale; return ;;
         tailscale-backup) log "=== tailscale identity backup only ==="; preflight; tailscale_identity_backup; return ;;
@@ -721,6 +783,7 @@ main() {
     module_wireguard
     module_keystore
     module_wireguard_autostart
+    module_keystore_hotplug
     module_docker
     module_tailscale
     module_keyholder

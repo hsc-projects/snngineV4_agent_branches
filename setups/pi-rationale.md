@@ -204,13 +204,21 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
    through sharing bypasses the laptop's VPN, which is why it has its own).
 10. **Cable with no sharing and no DHCP** still drops after about 3 minutes.
     Candidates, untried: infinite NetworkManager retries on `eth0` so it
-    recovers when sharing returns; a link-local fallback for `eth0`.
+    recovers when sharing returns; a link-local fallback for `eth0`. Documentation
+    (not tested on the Pi): the 45 s failure matches NetworkManager's default
+    `ipv4.dhcp-timeout` (45 s); `infinity` makes it keep requesting until it succeeds,
+    and `connection.autoconnect-retries 0` retries activation forever (the default,
+    -1, means the global default, 4). Both would go on the `eth0` profile.
 11. **Connectivity-based failover.** The metrics only react to link state: a
     cable or hotspot that is up but has no internet keeps the default route.
-    No connectivity check exists; what NetworkManager supports for this is
-    unresearched.
+    No connectivity check is configured. Documentation (not tested): NetworkManager 1.8
+    and later run connectivity checks per connection and give a connection that fails the
+    check a higher route metric (reports show +20000, the constant is not confirmed), then
+    restore it when the check passes. That needs NetworkManager's `[connectivity]`
+    configuration (check URI and interval); whether it works on the Pi's profiles is
+    untested.
 12. **Hotspot-first metric (50):** verified on the Pi. Still open: a long hotspot
-    absence (the `autoconnect-retries` limit), the Wi-Fi regulatory code read back
+    absence (the `autoconnect-retries` limit: the default is 4 activation attempts, `0` removes it), the Wi-Fi regulatory code read back
     (`iw` is not installed), and a hotspot on channels 12/13.
 13. **First-boot installs.** `pi-provision/pi-firstboot.sh` runs for real and is
     retried by `pi-provision.service` until it succeeds (modules: `pi-technical.md`);
@@ -232,7 +240,7 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
     script is being tested) needs no new login; the card stays the primary copy, so a Pi
     without the stick still joins. Linking the state onto the stick was rejected (no tailnet
     without the stick). A stolen stick can impersonate `tag:pi` (accept SSH only, per the
-    ACL). To be dropped once re-flashes are rare. Open: delete the older node `pi-host-test` in the console; the
+    ACL). To be dropped once re-flashes are rare. Open: the
     widget script for the phone unlock (item 20).
 15. **Reading the Pi's logs when it stops responding.** Windows cannot read
     the root partition and `wsl --mount` does not support SD card readers;
@@ -247,7 +255,7 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
     any use needs the exact calls proposed first.
 19. **Windows connection sharing can reset** after a laptop reboot, sleep or network
     change (the `SharedAccess` service stops, and starting it was not enough).
-    `setups/restart-sharing.bat` fixes it in one call. Setting the service to
+    `setups/windows/restart-sharing.bat` fixes it in one call. Setting the service to
     automatic start would prevent the stop; it is a laptop setting, so the
     maintainer's call. Separately, sharing could not be enabled with Wi-Fi as the
     internet side (`0x80040201`, a COM+ event error) on 2026-10-11 and 2026-10-13: it
