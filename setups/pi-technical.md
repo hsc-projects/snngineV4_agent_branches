@@ -118,8 +118,8 @@ limiting factor — not a purchase decision.
   exists), so it cannot hold up boot. It checks the system (root, aarch64,
   Debian 13), waits for time sync, installs `wireguard-tools` (no recommended
   packages), links the credential stick, enables the tunnel at boot with its
-  DNS dispatcher, installs Docker and Tailscale (the daemon only; the join is
-  interactive), sets up the keyholder, then replaces the Wi-Fi password in
+  DNS dispatcher, installs Docker, git and Tailscale (the daemon only; the join is
+  interactive), creates the `claude` user and installs tmux (`module_claude_user`), sets up the keyholder, then replaces the Wi-Fi password in
   `/boot/firmware/network-config` with a placeholder once cloud-init is done
   (only if the root-only netplan copy exists) and verifies that. A skipped
   scrub fails the run, so it is retried. Log: `/var/log/pi-provision.log`;
@@ -285,6 +285,28 @@ limiting factor — not a purchase decision.
   works. After a re-flash the Pi has new SSH host keys: `ssh-keygen -R pi-host` on the phone,
   then check the fingerprint when it asks. The passphrase is 5 random words; paste it, since
   a stray space or autocorrect fails the unlock (`unlock failed`, 2 s delay each).
+- **Claude Code on the Pi (2026-10-16, bare, no container):** an unprivileged user `claude`
+  (groups `claude users`, no sudo, no password) holds the install and the login. Claude Code
+  2.1.301 was installed as that user with Anthropic's official installer (read first; it
+  downloads from `downloads.claude.ai`, checks the binary's SHA-256 against the manifest, and
+  installs under the user's home: `~/.local/bin/claude`, on the card). The user and its
+  wiring come from `module_claude_user` (also `pi-firstboot.sh claude-user`): the phone's key
+  `claude_ed25519` (separate from the unlock key) is the only authorised key, kept on the
+  stick (`claude/authorized_keys`, read by an sshd drop-in `20-claude.conf` for that user;
+  no stick, no login as `claude`), and `~/.bashrc` sets `CLAUDE_CONFIG_DIR` to
+  `/mnt/pi-keys/claude/config` while the stick is mounted (otherwise a `claude` function
+  refuses to start, so it cannot log in a second time on the card). `git` and `tmux` are
+  installed (git by the first-boot script). To use it: from Termux `ssh -i
+  ~/.ssh/claude_ed25519 -o IdentitiesOnly=yes claude@pi-host`, then `tmux new -s claude`
+  (`tmux attach -t claude` after a drop), `claude`, and `/remote-control`; the session then
+  shows in the Claude app and claude.ai/code. The login (`/login`, subscription type `pro`) has
+  the full scope set including `user:sessions:claude_code`, which Remote Control needs;
+  `setup-token` and API keys do not. The URL printed by `/login` is pasted into the phone's
+  address bar (line breaks from the wrapped terminal are stripped there) and the code it shows
+  is pasted back. The login lives on the stick in plain files (mode 600, owner `claude`; about 20 MB of
+  config, history and transcripts on a 4 GB stick), so a re-flash keeps it: after the module
+  and the installer, `claude` starts logged in. The revoke path is in
+  `pi-stolen-checklist.md`.
 - **Past errors:** first boot is configured by cloud-init, not `custom.toml`;
   `enable_ssh` alone did not start sshd on an early card (the empty `ssh` file did;
   rationale item 16); write the partition table last (Windows mounts the new

@@ -9,11 +9,13 @@ is fine); the rest can wait a day. Nothing below needs the Pi.
 | What | Where it lives | Revoke at | Notes |
 |---|---|---|---|
 | Tailscale node | the Pi (`/var/lib/tailscale`) and a backup on the stick (`tailscale/`) | admin console, Machines, the Pi's row, Delete | cuts the Pi off the tailnet; it was tagged `tag:pi` with no key expiry, so a thief would otherwise stay on it |
+| Claude Code login (Remote Control) | the stick (`claude/config/.credentials.json` and `.claude.json`, plain, mode 600) | your Claude account: sign out or revoke the Pi's Claude Code session, which also ends its Remote Control session | the stick alone is enough to use it, like the Proton config; do it at once, with the Tailscale node |
 | Proton WireGuard config | the stick (`wireguard/`), plain | Proton account, Downloads, WireGuard configurations: delete the config for this device | then generate a new one and run `push_wireguard_config.py` |
 | Hotspot password | the card's root partition (root-only netplan copy, plain) | change it on the phone | it is scrubbed from the boot partition, not from the root partition |
 | Encrypted secrets (RunPod key, any GitHub token) | the stick (`secrets/*.gpg`) | rotate each at its service | only ciphertext is on the stick; how long it holds depends on the passphrase, so rotate anyway if the stick is gone |
 | Unlock passphrase | in your head, your password manager and your phone | choose a new one and re-add every secret (`pi_keyholder.py add`) | only if you think it was seen |
 | Phone and other unlock keys | the stick (`unlock/authorized_keys`, public keys) | remove the line for a lost device | a lost phone: also change the passphrase, since the phone may hold it |
+| The phone's key for the `claude` user | the stick (`claude/authorized_keys`, public key) | nothing to revoke if the Pi is gone; with the Pi in hand, remove the line | the private half is on the phone; a lost phone: remove the line and sign the session out |
 | Your admin SSH key | the laptop only (the Pi holds the public half) | nothing to revoke on the Pi's loss | |
 
 After the revocations: rebuild on a new card (`pi-technical.md`, "Operating the Pi"), join

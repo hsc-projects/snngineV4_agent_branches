@@ -629,3 +629,33 @@ running Pi and on a cold boot; a replug does not recover them, a reboot does.**
 ### Not established
 
 - A stick that bounces repeatedly (the unit's start limit is set but not exercised).
+
+## Follow-up — Claude Code on the Pi (2026-10-16)
+
+**Summary: Claude Code is installed on the Pi under an unprivileged user, logged in with the
+subscription login from the phone, and Remote Control works.**
+
+- **Setup.** User `claude` (no sudo, no password), `git` and `tmux` from apt, the official
+  installer fetched to a file and read before it ran (it checks the binary's SHA-256 against
+  Anthropic's manifest; 2.1.301, 267,247,608 bytes for linux-arm64), run as that user. The
+  phone's separate key was authorised for that user only.
+- **Login.** From Termux over SSH inside `tmux`: `claude`, `/login`, the printed URL opened in
+  the phone's browser, the code pasted back. Checked on the Pi (metadata and scope names
+  only): `.credentials.json` mode 600 owned by `claude`, scopes `user:file_upload`,
+  `user:inference`, `user:mcp_servers`, `user:plugins`, `user:profile`,
+  `user:sessions:claude_code`, subscription type `pro`.
+- **Remote Control.** `/remote-control` in the Pi's session was reachable from the phone
+  (reported working by the maintainer).
+- **Notes.** The URL is wrapped by the terminal; pasting it into the browser's address bar
+  worked.
+- **Login and key moved to the stick.** `module_claude_user` (first version failed its own
+  sshd check: `grep -q` under `pipefail`, fixed like the keyholder module) puts the phone's
+  key in `claude/authorized_keys` and sets `CLAUDE_CONFIG_DIR` to `claude/config` on the stick.
+  With Claude stopped, the config directory and `.claude.json` were copied there (every file
+  hash-matched), the card copies shredded, and a new SSH session started `claude` already
+  logged in, with Remote Control working again.
+
+### Not established
+
+- Behaviour after a reboot (the tmux session and the Remote Control session end).
+- Anything the agent does unattended: no repository is on the Pi yet.

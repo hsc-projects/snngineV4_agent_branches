@@ -229,6 +229,34 @@ module_keystore() {
     return "$rc"
 }
 
+# git from the Debian archive (floats by choice; the installed version is logged), so the
+# Pi can hold working copies (commit, pull, push). No recommended packages.
+module_git() {
+    export DEBIAN_FRONTEND=noninteractive
+    local ok=0 attempt
+    if git --version > /dev/null 2>&1; then
+        log "module git: already installed ($(git --version))"
+        return 0
+    fi
+    for attempt in 1 2 3 4 5; do
+        if timeout 300 apt-get update \
+            && timeout 600 apt-get install -y --no-install-recommends git; then
+            ok=1
+            break
+        fi
+        log "apt attempt $attempt failed; retrying in 20 s"
+        sleep 20
+    done
+    if [ "$ok" -ne 1 ]; then
+        log "FAILED module git: apt could not install git after 5 attempts (no internet, or the archive is unreachable?)"
+        return 1
+    fi
+    if ! git --version > /dev/null; then
+        log "FAILED module git: installed, but 'git' does not run"; return 1
+    fi
+    log "module git: ok ($(git --version))"
+}
+
 # Bring the WireGuard tunnel up at every boot, with wg-quick's own systemd
 # unit. The config lives on the stick, so the unit requires the stick's mount
 # (no stick: the unit fails cleanly and the Pi still boots and stays reachable,
@@ -527,6 +555,90 @@ RULE
     log "module keystore hotplug: ok (a stick labelled $KEYSTORE_LABEL mounts and starts the tunnel when plugged in)"
 }
 
+# The user for Claude Code: unprivileged (no sudo, no password), so a phone key that opens it
+# never opens the admin account. What it needs from the stick:
+#   claude/authorized_keys   the public keys allowed to log in as it (sshd reads this file
+#                            for that user only, like the keyholder user; no stick, no login)
+#   claude/config            CLAUDE_CONFIG_DIR: the login, settings and .claude.json, so a
+#                            re-flash keeps the login (set in the user's .bashrc only while the
+#                            stick is mounted; without it `claude` refuses to start rather than
+#                            log in a second time on the card)
+# The binary (~255 MB), tmux and the project clones stay on the card. Installing Claude Code
+# (Anthropic's installer, run as this user) and `/login` stay manual.
+CLAUDE_USER=claude
+CLAUDE_SSHD=/etc/ssh/sshd_config.d/20-claude.conf
+module_claude_user() {
+    export DEBIAN_FRONTEND=noninteractive
+    local home ak applied ok=0 attempt marker=">>> pi-claude (managed by pi-firstboot.sh)"
+    if ! id "$CLAUDE_USER" > /dev/null 2>&1; then
+        adduser --disabled-password --gecos '' "$CLAUDE_USER" > /dev/null \
+            || { log "FAILED module claude user: could not create $CLAUDE_USER"; return 1; }
+    fi
+    if id -nG "$CLAUDE_USER" | tr ' ' '\n' | grep -qx -e sudo -e docker -e adm; then
+        log "FAILED module claude user: $CLAUDE_USER is in a privileged group ($(id -nG "$CLAUDE_USER"))"; return 1
+    fi
+    home=$(getent passwd "$CLAUDE_USER" | cut -d: -f6)
+    if ! command -v tmux > /dev/null 2>&1; then
+        for attempt in 1 2 3 4 5; do
+            if timeout 300 apt-get update && timeout 600 apt-get install -y --no-install-recommends tmux; then
+                ok=1; break
+            fi
+            log "apt attempt $attempt failed; retrying in 20 s"; sleep 20
+        done
+        if [ "$ok" -ne 1 ]; then
+            log "FAILED module claude user: apt could not install tmux after 5 attempts"; return 1
+        fi
+    fi
+    if ! mountpoint -q "$KEYSTORE_MOUNT"; then
+        log "module claude user: $CLAUDE_USER exists, but the stick is not mounted, so no key file or config directory was set up"
+        return 0
+    fi
+    ak="$KEYSTORE_MOUNT/claude/authorized_keys"
+    install -d -m 0755 -o root -g root "$KEYSTORE_MOUNT/claude"
+    install -d -m 0700 -o "$CLAUDE_USER" -g "$CLAUDE_USER" "$KEYSTORE_MOUNT/claude/config"
+    [ -f "$ak" ] || install -m 0640 -o root -g "$CLAUDE_USER" /dev/null "$ak"
+    # A key already authorised on the card (set up by hand) moves to the stick's file.
+    if [ ! -s "$ak" ] && [ -s "$home/.ssh/authorized_keys" ]; then
+        grep '^ssh-' "$home/.ssh/authorized_keys" >> "$ak" || true
+        log "module claude user: moved $(grep -c '^ssh-' "$ak") key(s) from $home/.ssh to the stick"
+    fi
+    chown root:"$CLAUDE_USER" "$ak"; chmod 0640 "$ak"
+    install -d /etc/ssh/sshd_config.d
+    cat > "$CLAUDE_SSHD" <<SSHDCONF
+Match User $CLAUDE_USER
+    AuthorizedKeysFile $ak
+    PasswordAuthentication no
+    KbdInteractiveAuthentication no
+    AllowAgentForwarding no
+    X11Forwarding no
+SSHDCONF
+    chmod 644 "$CLAUDE_SSHD"
+    # Captured first: under pipefail, `grep -q` ending the pipe early would fail it with SIGPIPE.
+    applied=$(sshd -T -C "user=$CLAUDE_USER,host=localhost,addr=127.0.0.1" 2> /dev/null) || applied=""
+    if ! sshd -t 2> /dev/null || ! grep -qi "^authorizedkeysfile $ak" <<< "$applied"; then
+        rm -f "$CLAUDE_SSHD"
+        log "FAILED module claude user: sshd did not accept the key-file rule; removed it"; return 1
+    fi
+    systemctl reload ssh > /dev/null 2>&1 || systemctl reload sshd > /dev/null 2>&1 || true
+    # The shell profile: PATH for the installer's launcher, and the config directory on the stick.
+    touch "$home/.bashrc"; chown "$CLAUDE_USER":"$CLAUDE_USER" "$home/.bashrc"
+    if ! grep -q "$marker" "$home/.bashrc"; then
+        cat >> "$home/.bashrc" <<'PROFILE'
+
+# >>> pi-claude (managed by pi-firstboot.sh)
+export PATH="$HOME/.local/bin:$PATH"
+if mountpoint -q /mnt/pi-keys; then
+    export CLAUDE_CONFIG_DIR=/mnt/pi-keys/claude/config
+else
+    claude() { echo "The credential stick is not mounted: claude would start without its login. Plug it in (it mounts by itself)." >&2; return 1; }
+fi
+# <<< pi-claude
+PROFILE
+        chown "$CLAUDE_USER":"$CLAUDE_USER" "$home/.bashrc"
+    fi
+    log "module claude user: ok (user $CLAUDE_USER, $(grep -c '^ssh-' "$ak") key(s) in claude/authorized_keys, config dir on the stick)"
+}
+
 # The keyholder: encrypted secrets on the credential stick, unlocked into RAM on request.
 #   On the stick:  secrets/<name>.gpg   passphrase-encrypted values (gpg, AES256)
 #                  secrets.conf         one "<name> <consumer user>" per line
@@ -768,6 +880,8 @@ main() {
         autostart) log "=== wireguard autostart only ==="; preflight; module_wireguard_autostart; return ;;
         hotplug) log "=== keystore hotplug only ==="; preflight; module_keystore_hotplug; return ;;
         docker) log "=== docker only ==="; preflight; wait_for_clock; module_docker; return ;;
+        git) log "=== git only ==="; preflight; wait_for_clock; module_git; return ;;
+        claude-user) log "=== claude user only ==="; preflight; module_claude_user; return ;;
         tailscale) log "=== tailscale only ==="; preflight; wait_for_clock; module_tailscale; return ;;
         tailscale-backup) log "=== tailscale identity backup only ==="; preflight; tailscale_identity_backup; return ;;
         keyholder) log "=== keyholder only ==="; preflight; module_keyholder; return ;;
@@ -785,6 +899,8 @@ main() {
     module_wireguard_autostart
     module_keystore_hotplug
     module_docker
+    module_git
+    module_claude_user
     module_tailscale
     module_keyholder
     scrub_wifi_password

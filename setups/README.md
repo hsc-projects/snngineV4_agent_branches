@@ -5,7 +5,7 @@
 | `runpod-technical.md` | Runpod environment: current configuration (region, volume, pods, credentials, containment plan) |
 | `runpod-rationale.md` | Runpod environment: decisions, reasoning, alternatives rejected, evidence, open items |
 | `pi-technical.md` | Pi host: current configuration (hardware, network, software, credentials) and how to operate it (flash, reach, sharing, pitfalls) |
-| `pi-rationale.md` | Pi host: decisions, reasoning, alternatives rejected, open items |
+| `pi-rationale.md` | Pi host: decisions, reasoning, alternatives rejected, open items; its last block, "Where things stand", is where a new session starts |
 | `Dockerfile-SNNgine3D-nomachine` | NoMachine remote-desktop image for SNNgine3D — outdated, not functional, kept as a starting point |
 | `Dockerfile-SNNgine3D-nomachine-base` | Base image for the above — outdated, not functional, kept as a starting point |
 | `windows/notes.md` | Windows-specific setup notes: parked research on ways to test Windows-side steps, not the primary path (see below) |
@@ -22,7 +22,7 @@
 | `pi-smoke-test/task.md` | Task write-up for the Pi flash + SSH smoke test (two phases: write/flash the SD card, then SSH once the maintainer boots and connects the Pi) — done 2026-10-04, kept current |
 | `pi-smoke-test/pi-smoke-test-report.md` | Evidence and findings of that smoke test, plus the Proton VPN and first-boot follow-ups |
 | `pi-smoke-test/pi_smoke_test_flash.py`, `pi_smoke_test_ssh_check.py` | Flash/configure an SD card (Linux and Windows) and find/SSH into the Pi |
-| `pi-provision/pi-firstboot.sh` | Script that runs on the Pi's first boot (installed by the flash script through cloud-init, retried until done): WireGuard, the credential stick, the tunnel at boot, Docker, git, Tailscale, the Wi-Fi password scrub; tested on fresh flashes |
+| `pi-provision/pi-firstboot.sh` | Script that runs on the Pi's first boot (installed by the flash script through cloud-init, retried until done): WireGuard, the credential stick, the tunnel at boot, stick hotplug recovery, Docker, git, the `claude` user, the keyholder, Tailscale (with identity restore), the Wi-Fi password scrub; tested on fresh flashes |
 | `pi-provision/tailscale-policy.hujson` | The tailnet access policy for the Pi (paste into the Tailscale admin console) |
 | `pi-provision/push_wireguard_config.py` | Pushes the Proton WireGuard config to the Pi's credential stick over SSH |
 | `pi-provision/pi_keyholder.py` | Laptop client for the Pi's keyholder: add an encrypted secret, unlock it into the Pi's RAM, lock, status |

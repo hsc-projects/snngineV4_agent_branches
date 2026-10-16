@@ -332,9 +332,58 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
     Proton or directly; a kill switch (none exists, item 9); fail-closed when the Pi is
     down; where the allowlist lives (single source in the sandbox repo, pushed by script).
     Build order: Pi side alone, then tailnet and ACL, then the sandbox side and `verify.sh`.
+23. **Optional sync of task output folders to a cloud drive** (asked for 2026-10-16, nothing
+    decided or built). Tasks such as `setups/runpod-chem-diffusion/` and
+    `setups/runpod-engine-smoke-test/` write generated media and telemetry (an MP4 of a few
+    MB, small JSON) to a gitignored `output/` folder, downloaded from the pod. Wanted: an
+    optional step that copies or pushes such a folder to a Google Drive or Dropbox folder, so
+    the results are reachable without the laptop. Options to weigh, none researched:
+    `rclone` on the Pi (supports both services; headless authorisation by running
+    `rclone authorize` on another machine and pasting the token), or a copy into a folder the
+    cloud client already syncs. Open: where the files enter the chain (the laptop after the
+    download, or the Pi directly from the pod), the trigger (a flag per task, never
+    automatic), the credential (the service's OAuth token would live on the Pi: scope it to
+    one folder, for example Dropbox's app-folder scope, and list it in the stolen-Pi checklist
+    with its revoke step; decide whether it belongs in the keyholder's high-value tier),
+    whether a failed upload may ever block a task, and a size limit.
+24. **Claude Code on the Pi** (item 3's candidate; done in part 2026-10-16). Bare install under
+    an unprivileged user, logged in with the full-scope subscription login, driven from the
+    phone over SSH (Termux) and through Remote Control: works (`pi-technical.md`). Chosen on
+    purpose: the phone's key opens the `claude` user only, never the admin account. The login,
+    the config and that key live on the stick (`module_claude_user`), so a re-flash needs the
+    installer and no new login; the cost is the plain login beside the Proton config. Not done,
+    all open: which repositories to put on the Pi (a read-only deploy key or token would go in
+    the keyholder); a permission mode and settings for an unattended agent; whether to run it
+    inside the sandbox project's container stack instead of bare (its image pins a
+    multi-arch Ubuntu base and installs Claude Code through npm; not built on the Pi);
+    keeping the Remote Control session alive across reboots (it lives in a tmux session
+    that a reboot ends; the sandbox project's `rc-supervisor.sh` is one model); egress
+    limits for the agent (item 22); updates (the installer's updater, or a pinned version).
 
-Suggested order (2026-10-13): item 20 (Termux, the first secret), then 22, then 21;
-items 10, 11 and the rest of 12 are low priority unless the maintainer says otherwise.
+**Where things stand (2026-10-16; a new session starts here).** Read `pi-technical.md` for
+the current configuration and `pi-smoke-test/pi-smoke-test-report.md` for the evidence.
+- *Hardware.* A Raspberry Pi 4 (`pi-host`, tailnet `100.119.40.123`) on card 2, on the router's
+  LAN (address from DHCP), with the `PIKEYS` stick in a blue USB 3 port. Card 1 (the spare) is
+  flashed with the current first-boot script and not booted yet. Cards are told apart by exact
+  size (`pi-technical.md`, "Operating the Pi").
+- *Working and tested:* the tunnel at boot with DNS through it, the tailnet identity restore on
+  a fresh flash, the stick hotplug recovery, the keyholder (one secret, unlock from the phone
+  with `pi-keys` or the widget), and Claude Code under the unprivileged user `claude` (login,
+  config and key on the stick; Remote Control works from the phone).
+- *Pending tests (2026-10-16):* a reboot of card 2 with the Claude setup (the tmux and Remote
+  Control sessions end and are restarted by hand), then a first boot of card 1 (the `git` and
+  `claude-user` modules; the installer is then run as `claude`, and Claude should start logged in
+  with no new login).
+- *Next, by value:* the open parts of item 24 (repositories on the Pi, permission settings,
+  keeping Remote Control alive across reboots), item 22 (egress proxy), item 21 (the Pi's MCP,
+  the first reader of an unlocked secret), item 23 (cloud-drive sync). Items 10, 11 and the rest
+  of 12 are low priority: they concern networks the Pi no longer depends on.
+- *Admin access.* SSH as `htm` with the key in `setups/.secrets/` (gitignored), by the tailnet
+  address or the LAN address; a VPN client on the admin machine blocks that machine's TCP to
+  tailnet addresses (use the LAN address then). The search script
+  (`pi-smoke-test/pi_smoke_test_ssh_check.py`) tries a stale neighbour entry first; read the
+  neighbour table for the Pi's MAC prefix `D8-3A-DD`. Working rules for agents:
+  `agents/common.md`, "Cloud and infrastructure work".
 
 Not a to-do, just a standing fact: keeping the Pi available/online when
 needed is the maintainer's own responsibility, not something planned
