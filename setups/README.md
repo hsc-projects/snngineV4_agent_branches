@@ -14,6 +14,8 @@
 | `gpu-smoke-tests/gpu-smoke-test-task-v2.md` | Task write-up for modernizing the GPU/CUDA-OpenGL interop stack across all 3 modes (EGL, Desktop GUI, Web Bridge) at max RTX 3090-compatible versions |
 | `runpod-smoke-tests/runpod-smoke-test-task.md` | Task write-up for the Runpod cloud GPU/CUDA-OpenGL interop smoke test (feeds `runpod-rationale.md`'s open item 0) |
 | `runpod-engine-smoke-test/runpod-engine-test-task.md` | Task write-up for the Runpod headless simulation engine smoke test (feeds domain simulation validation on cloud GPU) |
+| `runpod-engine-smoke-test/runpod-engine-video-task.md` | Task write-up for Runpod headless simulation video generation and 3-panel composite telemetry |
+| `runpod-chem-diffusion/runpod-chem-diffusion-task.md` | Task write-up for Runpod headless 3D chemical source and volumetric diffusion video generation |
 | `runpod_find_combos.py` | Query live Runpod GraphQL API for in-stock, cost-optimal GPU/CPU options matching network volume constraints |
 | `.secrets/.env` | Gitignored credentials (e.g. `RUNPOD_API_KEY`) read at runtime by host tools |
 | `pi-smoke-test/task.md` | Task write-up for the Pi flash + SSH smoke test (two phases: write/flash the SD card, then SSH once the maintainer boots and connects the Pi) — done 2026-10-04, kept current |
