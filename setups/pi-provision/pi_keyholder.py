@@ -45,15 +45,20 @@ def ssh(host: str, user: str, key: Path, remote: str | None, stdin: str) -> int:
     ]
     if remote:
         cmd.append(remote)
+    # Bytes, not text mode: on Windows text mode turns every "\n" into "\r\n", and the
+    # Pi's helpers read their lines with plain `read -r`, which would keep the "\r"
+    # (a passphrase or a secret value ending in it, a verb "unlock\r" they do not know).
     try:
-        r = subprocess.run(cmd, input=stdin, capture_output=True, text=True, timeout=90)
+        r = subprocess.run(cmd, input=stdin.encode("utf-8"), capture_output=True, timeout=90)
     except subprocess.TimeoutExpired:
         print("The Pi did not answer in time.", file=sys.stderr)
         return 1
-    if r.stdout.strip():
-        print(r.stdout.rstrip())
-    if r.returncode != 0 and r.stderr.strip():
-        print(r.stderr.rstrip(), file=sys.stderr)
+    out = r.stdout.decode("utf-8", "replace")
+    err = r.stderr.decode("utf-8", "replace")
+    if out.strip():
+        print(out.rstrip())
+    if r.returncode != 0 and err.strip():
+        print(err.rstrip(), file=sys.stderr)
     return r.returncode
 
 

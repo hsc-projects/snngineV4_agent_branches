@@ -25,8 +25,11 @@ limiting factor — not a purchase decision.
 
 - On a Tailscale network (node `pi-host`, see Software). No RunPod pod
   reaches it yet; the pod's own Tailscale join is not set up.
-- No router is planned for this host/Pi combination. Three paths (behind a
-  router/DHCP network: not tested):
+- **Behind a router (2026-10-16): works, and is the simplest path.** The Pi's `eth0`
+  takes its address and internet from the router's DHCP (`10.99.1.103/16`, gateway
+  `10.99.0.254`, 2 ms to the internet); the tunnel, Tailscale and the keyholder come up as
+  before, and nothing depends on Windows sharing. Other devices on the router reach it
+  directly. Earlier paths, tested when no router was available:
   1. **Plain cable straight to the laptop (no DHCP server): not usable.**
      The Pi has only an IPv6 link-local address and answers by mDNS
      (`pi-host.local`), but NetworkManager's DHCP on `eth0` fails every
@@ -202,8 +205,10 @@ limiting factor — not a purchase decision.
   `pi-provision/pi_keyholder.py`; what to revoke if the Pi is lost is
   `pi-stolen-checklist.md`. The phone (Termux, key `pikeys_ed25519`, one line in
   `unlock/authorized_keys`) reaches `pi-unlock` over the tailnet on mobile data
-  (`status` returns `stick: mounted`). No secret is stored yet; a real reboot and an
-  absent stick were not tested with it.
+  (`status` returns `stick: mounted`). One secret is stored (`runpod_api_key`, root-readable
+  once unlocked); the phone's unlock puts it in `/run/pi-secrets` (mode 400, root, 50 bytes
+  = the key's length). The Pi's helpers read lines with plain `read -r`, so a client must not
+  send carriage returns (the laptop client sends bytes for that reason).
 
 ## Credentials
 
@@ -268,6 +273,18 @@ limiting factor — not a purchase decision.
 - **Tailscale join:** the login link lasts 10 to 15 minutes, then the command exits
   with `context canceled` and needs a new one. Only without a backup on the stick: delete
   the node's stale predecessor in the admin console first, or the name gets a number.
+- **Phone unlock (Termux, rebuilt after a reinstall):** `pkg install openssh`, then
+  `ssh-keygen -t ed25519 -N "" -f ~/.ssh/pikeys_ed25519` and append the public line to
+  `/mnt/pi-keys/unlock/authorized_keys` on the Pi (root-owned, group `pikeys`, mode 640).
+  The command `$PREFIX/bin/pi-keys unlock|lock|status` runs
+  `ssh -i ~/.ssh/pikeys_ed25519 -o IdentitiesOnly=yes pikeys@pi-host` and sends the request
+  on stdin (`unlock`, then the passphrase on the next line, read with a hidden prompt; the
+  other two verbs alone). Termux:Widget (same store and signing key as Termux) lists the
+  scripts in `~/.shortcuts/` (`pi-unlock.sh`, `pi-lock.sh`, `pi-status.sh`, each calling
+  `pi-keys <verb>` and waiting for Enter); each opens a terminal, so the passphrase prompt
+  works. After a re-flash the Pi has new SSH host keys: `ssh-keygen -R pi-host` on the phone,
+  then check the fingerprint when it asks. The passphrase is 5 random words; paste it, since
+  a stray space or autocorrect fails the unlock (`unlock failed`, 2 s delay each).
 - **Past errors:** first boot is configured by cloud-init, not `custom.toml`;
   `enable_ssh` alone did not start sshd on an early card (the empty `ssh` file did;
   rationale item 16); write the partition table last (Windows mounts the new

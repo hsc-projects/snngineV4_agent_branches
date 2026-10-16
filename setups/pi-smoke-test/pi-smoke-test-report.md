@@ -544,10 +544,43 @@ that machine's TCP to tailnet addresses (not the Pi).**
   local block with the Pi not involved. Cause not confirmed (a rule of the VPN client; whether
   excluding `100.64.0.0/10` from its tunnel helps is untested).
 
+- **Pi on a router (2026-10-16).** Moved to the router's LAN: `eth0` took `10.99.1.103/16`
+  from the router, ping to the internet 2 ms, tunnel handshake current and Proton exit, the
+  stick mounted. The phone (on the same router's Wi-Fi) reached it; the admin machine, on a
+  phone tether, needed a tunnel-level ping (TSMP) before its TCP to the Pi worked.
+
 ### Not established
 
 - Why `0x80040201` happens on Wi-Fi, and whether the tether adapter's presence matters.
-- The unlock itself from the phone: no secret is stored yet.
+
+## Follow-up — the first secret and the phone unlock (2026-10-16)
+
+**Summary: the first secret (the RunPod key) was stored and unlocked from the phone; the first
+attempt failed because the laptop client sent carriage returns.**
+
+- **Failure.** The phone's unlock got `unlock failed` five times (the Pi accepted the phone's
+  key each time, so the fault was in the secret), and the laptop client's `unlock` got
+  `unknown request`.
+- **Cause.** The client used text-mode pipes: on Windows Python turns every `\n` into `\r\n`.
+  The Pi's helpers read lines with plain `read -r`, which keeps the `\r`. So the verb became
+  `unlock\r`, and `add` had stored a passphrase and a value that each ended in `\r` (the stored
+  value was 51 bytes for a 50-character key). The phone sent a clean passphrase, so it could
+  never match.
+- **Fix.** `pi_keyholder.py` sends bytes. After a re-add (116 encrypted bytes, was 117) the
+  phone's unlock returned `unlocked: runpod_api_key`; on the Pi the file in RAM was
+  `/run/pi-secrets/runpod_api_key`, mode 400, root, 50 bytes, equal to the key's length, last
+  byte an ordinary character; `lock` and `status` through the client answered cleanly.
+- **Earlier tests did not catch it** because they sent the protocol with ordinary shell
+  commands, not through the Windows client.
+
+- **Reboot with the secret unlocked.** Before: `runpod_api_key: in RAM, ciphertext present`.
+  After the reboot: `locked, ciphertext present`, `/run/pi-secrets` gone, the ciphertext on the
+  stick unchanged (116 bytes, same time stamp); the stick mounted, the tunnel, Tailscale and
+  Docker active, neither `pi-provision.service` nor the recovery service failed.
+
+### Not established
+
+- Anything that reads the unlocked file (the MCP server, item 21).
 
 ## Follow-up — the credential stick absent (2026-10-16)
 

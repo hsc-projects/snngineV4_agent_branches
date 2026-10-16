@@ -139,7 +139,7 @@ What it settled:
 - *Diagnosing a Pi that goes quiet:* the journal is volatile, so watch live over
   SSH; Windows cannot read the root partition, and `wsl --mount` does not support
   SD card readers (Microsoft documentation; item 15).
-- Not tested: a router/DHCP network (not planned).
+- A router/DHCP network: tested 2026-10-16, works (see `pi-technical.md`).
 
 ## Open items
 
@@ -289,6 +289,7 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
       second always-on machine); hardware tokens do not fit.
     - *Phone:* the Termux key is authorised and `status` works over the tailnet on
       mobile data (2026-10-13).
+    - *Done 2026-10-16:* the first secret (the RunPod key) and the unlock from the phone.
     - *To do:* the widget script; the first real
       secret (the RunPod key; until then `RUNPOD_API_KEY` stays in
       `setups/.secrets/.env`, item 18); a consumer for it (item 21).
