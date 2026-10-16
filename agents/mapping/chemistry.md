@@ -145,6 +145,9 @@ generic layer cannot reach past).
 - **Anisotropic scaling**: Initial visual scaling is derived relative to the reservoir's spatial grid:
   `initial_scale = (elt_shape[0] / ref_shape[0], elt_shape[1] / ref_shape[1], elt_shape[2] / ref_shape[2])`.
 - **Visual node**: Built as a `CompoundR32fVolumeVisual` (wrapping VisPy's `VolumeVisual`) and registered in `main_scene`.
+- **VolumeShapeHDW Array Property Mutability**:
+  `VolumeShapeHDW` (`geometry/volume.py`) inherits from `XYZPars(SeriesModel)`. Its `height`, `depth`, and `width` attributes are read-only `@property` getters referencing `self.data[IndicesHDW]`. Mutating chemical grid dimensions programmatically requires direct slice assignment to the underlying integer tensor in canonical `HDW` order: `chem_cfg.shape.data[:] = np.array([height, depth, width], dtype=np.int32)`. Direct assignment to `.height`, `.depth`, or `.width` raises `AttributeError: property of 'VolumeShapeHDW' object has no setter`.
+
 
 ### 2. OpenGL-CUDA interop registration (`cuda_connector.py`)
 - `CudaVispyConnector.connect_object` intercepts `VolumeVisual` under `GLBufferTypes.TEXTURE_3D`.

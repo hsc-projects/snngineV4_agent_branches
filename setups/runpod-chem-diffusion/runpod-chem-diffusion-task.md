@@ -136,5 +136,30 @@ Extend [`generate_chem_diffusion_video.py`](file:///E:/dev/snngineV4_agent_branc
 - JSON sidecar records `"layout": "5way"` and all five active viewport identifiers (`["3d_chemical_plume", "3d_neural_network", "radial_chemical_concentration_shells", "spike_raster", "voltage_waveforms"]`) in `"panels"`.
 - Ephemeral GPU pod in `EU-RO-1` is terminated immediately via `delete-pod` after artifact retrieval, with `list-pods` verified empty (`[]`).
 
+---
+
+## Follow-Up Sub-Task 2: Large-Scale Flat-Slab Network (`(6, 6, 1)`), Dual Chemical Sources, Depth-Transparent Neuron Visuals & VRAM/Throughput Scaling
+
+### Primary-Source Reference (`SNNgine3D` $\leftrightarrow$ `snngine_v4`)
+- In the legacy repository ([`snngine3d/configuration/deprecated/engine_config.py:26-28`](file:///E:/dev/SNNgine3D_agent_branches/snngine3d/configuration/deprecated/engine_config.py#L26-L28) and [`network_config.py:181-196`](file:///E:/dev/SNNgine3D_agent_branches/snngine3d/configuration/deprecated/network/network_config.py#L181-L196)), `default_network` configured a **non-cubic, flat-slab reservoir** with `reservoir_shape = (6, 6, 1)` (wide in $X, Y$, thin in $Z$) and scaled neuron counts from `N = 3000` up to $10^5\text{–}10^6+$ neurons (`S = min(1000, floor(sqrt(N) + 50), N // 4)`).
+- [`NetworkReservoirConfig.generate_segmentation()`](file:///E:/dev/snngineV4_agent_branches/snngine_v4/nn/config_models/reservoir/nn_reservoir_config.py#L178-L193) in `snngine_v4` preserves the exact same anisotropic segmentation formula: passing `grid=FiniteGridConfig(shape=Shape3Df32(data=np.array([6.0, 6.0, 1.0], dtype=np.float32)))` automatically partitions the `(6, 6, 1)` slab into cubic location-group cells (`seg = (12, 12, 2)`, $G = 288$ location groups).
+
+### Technical Requirements
+1. **Non-Cubic Flat-Slab Reservoir (`reservoir_shape = (6, 6, 1)`)**:
+   - Configure `FiniteGridConfig.shape` to `(6.0, 6.0, 1.0)` (`--reservoir-shape 6,6,1`) so the 3D neural network and 3D chemical volume form a wide, flat cortical slab ($6:6:1$ aspect ratio) rather than a cube.
+   - Proportionally scale the 3D chemical volume grid (e.g. `height=40, width=240, depth=240` or high-density slab grid with boundary padding) and camera framing (`distance`, `elevation`) to showcase the wide slab geometry.
+2. **High-Scale Neuron/Synapse Population & GPU VRAM / Throughput Maxing**:
+   - Scale `N` and `S` (plus chemical volume resolution / batch buffers) up toward the GPU VRAM ceiling (configurable via `--neurons` and `--synapses`, targeting tens/hundreds of thousands of neurons and tens/hundreds of millions of synapses, or automatic VRAM-aware sizing based on `torch.cuda.get_device_properties(device).total_memory`).
+   - Record peak and allocated GPU VRAM (`vram_allocated_mb`, `vram_reserved_mb`, `vram_total_mb`, `total_synapses = N * S`) in the JSON telemetry sidecar.
+3. **Depth-Transparent Neuron Visuals (Smaller Size & Lower Resting Opacity)**:
+   - Reduce resting/sub-threshold 3D neuron marker size (`--neuron-size`, e.g. `2.0–2.8 px` at 1080p) and lower resting alpha opacity (`--resting-alpha`, e.g. `0.15–0.25`) so the dense foreground population acts as a subtle translucent mist, allowing depolarized neurons (`alpha = 0.65–0.85`) and spiking neurons (`alpha = 1.0`, brilliant white/gold flash with marker size boost) deep in the background of the slab to shine clearly through the volume.
+4. **Dual Localized 3D Chemical Sources**:
+   - Inject **two** spatially separated 3D chemical sources inside `c_source` within the flat `(6, 6, 1)` slab (e.g. **Source A** at front-left `(x=0.28, y=0.30, z=0.50)` and **Source B** at back-right `(x=0.72, y=0.70, z=0.50)`), rendering two distinct 3D wireframe source indicator boxes and two expanding volumetric plumes that diffuse outward and merge across the slab over time $t$.
+
+### Verification Criteria
+- Output video `simulation_chem_5way_slab_<res>_<YYYY-MM-DD_HH-MM-SS>.mp4` and `.json` sidecar demonstrate the flat `(6, 6, 1)` slab geometry, high neuron/synapse density with recorded VRAM utilization, background spike visibility through the low-opacity resting neurons, and two distinct diffusing chemical plumes.
+- Ephemeral GPU pod in `EU-RO-1` is terminated immediately via `delete-pod` after artifact retrieval, with `list-pods` verified empty (`[]`).
+
+
 
 

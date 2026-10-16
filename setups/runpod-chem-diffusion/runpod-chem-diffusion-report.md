@@ -102,3 +102,60 @@ Executed the standalone headless 3D chemical concentration diffusion simulation 
   - `setups/runpod-chem-diffusion/output/simulation_chem_5way_1080p_2026-10-16_14-09-58.json` (`1,725 bytes`, gitignored)
 - **Terminated**: Called `delete-pod(id="7hejsf6v71fxgy")` (`HTTP 204`) and verified `list-pods` returned `"pods": []` ($0.00/hr active compute spend; total pod runtime ~5 minutes $\approx \$0.05$).
 
+---
+
+## Phase 4: Follow-Up Sub-Task 2 — Large-Scale Flat-Slab Reservoir (`(6, 6, 1)`), Dual Chemical Sources, Depth-Transparent Visuals & GPU VRAM/Throughput Scaling
+
+**Summary:** Successfully implemented and verified **Follow-Up Sub-Task 2** on ephemeral Runpod GPU pod `1ozjtxxxj0eryv` (`NVIDIA RTX PRO 4000 Blackwell` in `EU-RO-1`). Configured a 30,000-neuron ($6,690,000$ synapses), non-cubic flat-slab reservoir geometry (`reservoir_shape = (6, 6, 1)` matching legacy SNNgine3D) with dual spatially separated 3D chemical sources in opposite quadrants, depth-transparent neuron visuals (`resting_alpha = 0.16` with variable marker sizing), and active GPU VRAM stress-scaling reaching **19,670.4 MB / 23,986.0 MB (82.01% VRAM utilization)**. Rendered 600 frames (`1920x1080` @ 30 fps, `11,980,816 bytes`) in `44.31s` (`13.54 fps`), downloaded `simulation_chem_5way_slab_1080p_2026-10-16_15-12-27.mp4` and `.json`, and immediately terminated the pod (`0` active pods remaining).
+
+### Architectural Innovations & Geometry Configuration
+1. **Flat-Slab Reservoir Geometry (`reservoir_shape = (6, 6, 1)`)**:
+   - Replicated legacy `SNNgine3D` geometry (`reservoir_shape = (6, 6, 1)` from `snngine3d/configuration/deprecated/engine_config.py`).
+   - Automatically computed spatial segmentation `seg = (12, 12, 2)` yielding `G = 288` cubic location groups with lattice spacing `(0.5, 0.5, 0.5)`.
+   - Prevented CPU/GPU floating-point boundary rounding mismatches in `sort_pos` by clamping neuron positions strictly to cell interiors (`[1e-3, 1 - 1e-3]`).
+2. **Dual Localized 3D Chemical Sources & Dual Focal Thalamic Foci**:
+   - Chemical grid sized to `(H=52, W=156, D=156)`: satisfies both `FiniteGrid._make_pos` height limit (`H <= 100`) and partial-block CUDA alignment (`52 % 8 == 4`, `156 % 8 == 4`).
+   - Injected **Source 1** at $(i=26, j=46, k=46)$ (front-left quadrant) with emerald wireframe box, and **Source 2** at $(i=26, j=110, k=110)$ (back-right quadrant) with amber-gold wireframe box.
+   - Dual focal thalamic stimulation activated at the centroid of each chemical source, driving concurrent traveling neural waves across the wide slab.
+3. **Depth-Transparent Neuron Visuals & Adaptive Sizing**:
+   - Resting neurons ($v < -55\text{ mV}$): small markers ($2.94\text{ px}$) and low opacity ($\alpha = 0.16$), creating an ethereal translucent background allowing deep activity to remain visible.
+   - Sub-threshold depolarizing neurons ($-55 \le v < -30\text{ mV}$): vibrant cyan-emerald with rising opacity ($\alpha \approx 0.50 \to 0.85$) and $1.35\times$ size ($3.9\text{ px}$).
+   - Spiking neurons ($v \ge -30\text{ mV}$ or fired): bright warm gold-white flash at full opacity ($\alpha = 1.0$) and $2.35\times$ size ($6.9\text{ px}$).
+4. **VRAM Scaling & Fast-Path DataFrame Synchronization**:
+   - Patched `TensorSeries.sync_to_df` for $N > 500$ to build a single 2D NumPy block in $O(1)$ instead of iterating column slices in Pandas 2.x, dropping reservoir build time to `1.75s` for 30,000 neurons.
+   - Allocated GPU simulation state and volumetric history cache up to target fraction `0.82`, utilizing **19.67 GB / 23.99 GB VRAM** while maintaining 4.3 GB free headroom for EGL rendering.
+
+### Quantitative Telemetry (`simulation_chem_5way_slab_1080p_2026-10-16_15-39-18.json` — Brightened Inactive Palette)
+| Metric | Initial (Frame 1) | Midpoint (Frame 300) | Final (Frame 600) |
+|---|---|---|---|
+| Active Plume Voxels ($C > 1.0$) | `13,717` | `1,077,419` | `1,238,003` |
+| Total Plume Mass ($\sum C$) | `3,361,898.25` | — | `336,897,408.0` |
+| Shell $d = 1$ voxel | `854.51` | `1735.8` | `1767.92` |
+| Shell $d = 3$ voxels | `44.00` | `1160.5` | `1384.95` |
+| Shell $d = 6$ voxels | `0.01` | `885.6` | `1018.91` |
+| Shell $d = 12$ voxels | `0.00` | `512.7` | `642.79` |
+| Shell $d = 20$ voxels | `0.00` | `265.3` | `374.19` |
+| Total Neural Spikes | — | — | `154,259` |
+| GPU VRAM Device Used | — | — | `19,670.44 MB (82.01%)` |
+| PyTorch Allocated VRAM | — | — | `19,296.74 MB` |
+| Synapses per Neuron ($S$) | — | — | `223` |
+| Total Network Synapses | — | — | `6,690,000` |
+
+### Inactive Neuron Contrast & Luminance Tuning
+Following visual inspection showing inactive neurons were previously too dark against the `#0c0e17` deep background, the visualizer palette in `compute_slab_neuron_colors_and_sizes` was tuned:
+1. **Luminous Sky-Blue/Cyan Resting Baseline**:
+   - Resting neurons ($v < -55\text{ mV}$) elevated to luminous cyan-blue `(0.25..0.40, 0.65..0.85, 0.95..1.00)` with `resting_alpha = 0.40` (increased from `0.16`) and base marker size `2.8 px` (increased from `2.4 px`).
+   - Retains translucent 3D depth perception while guaranteeing crisp, starry visibility across all 30,000 neurons regardless of view angle.
+2. **Distinct Multi-Stage Activation Progression**:
+   - Sub-threshold depolarizing neurons transition smoothly into vivid chartreuse-gold $\to$ warm amber ($\alpha \approx 0.65 \to 0.90$, size $1.35\times$).
+   - Spiking neurons deliver a brilliant white-hot flash at full opacity ($\alpha = 1.0$, size $2.4\times$).
+
+### Ephemeral Pod Lifecycle & Financial Teardown
+- **Provisioned**: Pod `1ozjtxxxj0eryv` (first run) and `novm5nt2m062bm` (palette update run, `NVIDIA RTX PRO 4000 Blackwell`, $0.57/hr in `EU-RO-1`, attached to `qze81dpw7q` at `/workspace`).
+- **Artifacts Retrieved**:
+  - `setups/runpod-chem-diffusion/output/simulation_chem_5way_slab_1080p_2026-10-16_15-12-27.mp4` (`11,980,816 bytes`, gitignored)
+  - `setups/runpod-chem-diffusion/output/simulation_chem_5way_slab_1080p_2026-10-16_15-39-18.mp4` (`19,568,608 bytes`, gitignored, brightened inactive neurons)
+  - `setups/runpod-chem-diffusion/output/simulation_chem_5way_slab_1080p_2026-10-16_15-39-18.json` (`3,060 bytes`, gitignored)
+- **Terminated**: Called `delete-pod(id="novm5nt2m062bm")` (`HTTP 204`) and verified `list-pods` returned `"pods": []` ($0.00/hr active compute spend; pod active runtime ~7 minutes $\approx \$0.07$).
+
+

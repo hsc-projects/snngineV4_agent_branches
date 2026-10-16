@@ -196,6 +196,9 @@ In `NetworkReservoirConfig` (`nn/config_models/reservoir/nn_reservoir_config.py`
 - **Discretization**: Continuous 3D neuron coordinates `pos` are converted to integer cell indices via `FiniteGrid.cls_grid_coordinates(pos, outer_shape, grid_segmentation)`.
 - **Contiguous spatial grouping**: `sort_pos()` performs stable lexicographical sorting (`argsort` across X, Y, and Z) on neuron positions based on their grid coordinates. This ensures neurons occupying the same spatial group ($G$) reside in contiguous tensor rows before being passed to CUDA construction kernels (`fill_G_neuron_count_per_delay`, `fill_N_flags_group_id_and_G_neuron_count_per_type`).
 - **Position bounds validation**: `FiniteGrid.validate_pos()` verifies that all coordinates fall within `[0, shape]`.
+- **Float32 Grid Boundary Discretization Invariant**:
+  `FiniteGrid.cls_grid_coordinates` computes discrete cell coordinates on CPU via `arr = np.floor((pos / outer_shape) * grid_segmentation).astype(int)`, while CUDA kernel `snn_construction_gpu.fill_N_flags_group_id_and_G_neuron_count_per_type` computes group indices on GPU in native float32 arithmetic. For high-density random neuron distributions, coordinates positioned within numerical epsilon of grid cell boundaries ($pos \approx k \cdot lattice$) can produce discrepant cell assignments due to FMA rounding differences between host and device, triggering validation failure in `NeuronFlags.cls_validate_data` (`cond1: l_group_data.diff() < 0`). Clamping fractional coordinates inside each cell to `[1e-3, 1 - 1e-3]` guarantees exact CPU/GPU cell-index parity across arbitrarily large neuron populations.
+
 
 ### 2. VisPy GLSL geometry shader clipping (`visualization/`)
 - In `FiniteGrid._make_pos()`, an extra technical point is appended at `z = technical_max_z_value + 1`.
