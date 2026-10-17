@@ -1,10 +1,12 @@
-// Tailscale access policy (admin console > Access controls), drafted 2026-10-11.
+// Tailscale access policy (admin console > Access controls), drafted 2026-10-11,
+// updated 2026-10-17 (tcp 443 for VS Code in the browser).
 // Not a secret; kept here as the record of what the tailnet should allow.
 // Based on Tailscale's stock default policy: Tailscale's own example comments are
 // kept, and lines starting with "PI:" are this project's comments and changes.
 //
 // PI: Effect: the Pi is tagged tag:pi (tagged nodes have no key expiry); the
-// PI: maintainer's own devices may open SSH (tcp 22) on it and nothing else; the Pi
+// PI: maintainer's own devices may open SSH (tcp 22) and the VS Code web editor
+// PI: (tcp 443, served by `tailscale serve`) on it and nothing else; the Pi
 // PI: itself may not start connections to other devices. Funnel and Tailscale SSH
 // PI: are left as in the stock policy.
 {
@@ -28,14 +30,15 @@
 		// PI: commented out on purpose (this was the stock allow-all grant):
 		// {"src": ["*"], "dst": ["*"], "ip": ["*"]},
 
-		// PI: the maintainer's own devices (phone, later the laptop) may open SSH on
-		// PI: the Pi and nothing else. Nothing else has any access, including the Pi
-		// PI: itself towards other devices. Add a rule here when the sandbox needs to
-		// PI: reach the Pi (for example the proxy port).
+		// PI: the maintainer's own devices (phone, laptop) may open SSH (22) and the
+		// PI: VS Code web editor (443, HTTPS from `tailscale serve`, which still needs
+		// PI: the connection token) on the Pi and nothing else. Nothing else has any
+		// PI: access, including the Pi itself towards other devices. Add a rule here
+		// PI: when the sandbox needs to reach the Pi (for example the proxy port).
 		{
 			"src": ["autogroup:member"],
 			"dst": ["tag:pi"],
-			"ip":  ["tcp:22"],
+			"ip":  ["tcp:22", "tcp:443"],
 		},
 
 		// Allow users in "group:example" to access "tag:example", but only from
@@ -97,8 +100,8 @@
 	"tests": [
 		{
 			"src":    "100.108.215.27",
-			"accept": ["tag:pi:22"],
-			"deny":   ["tag:pi:80", "tag:pi:2375"],
+			"accept": ["tag:pi:22", "tag:pi:443"],
+			"deny":   ["tag:pi:80", "tag:pi:2375", "tag:pi:8000"],
 		},
 	],
 }

@@ -563,10 +563,59 @@ RULE
 #                            re-flash keeps the login (set in the user's .bashrc only while the
 #                            stick is mounted; without it `claude` refuses to start rather than
 #                            log in a second time on the card)
-# The binary (~255 MB), tmux and the project clones stay on the card. Installing Claude Code
-# (Anthropic's installer, run as this user) and `/login` stay manual.
+#   claude/bin/claude-<version>   a cached copy of the binary (see claude_install_binary)
+# The binary (~255 MB) is installed on the card by Anthropic's installer, run as this user; if
+# the download fails (no network, region block), the cached copy on the stick is installed
+# instead. tmux and the project clones stay on the card. `/login` stays manual, once per stick.
 CLAUDE_USER=claude
 CLAUDE_SSHD=/etc/ssh/sshd_config.d/20-claude.conf
+# Puts a working ~/.local/bin/claude on the card. First choice: the official installer (up to 3
+# attempts); fallback: the newest binary cached on the stick. After an installer success, the
+# installed binary is cached on the stick (older cached versions removed).
+claude_install_binary() {
+    local home="$1" bin attempt cache ver=""
+    bin="$home/.local/bin/claude"
+    cache="$KEYSTORE_MOUNT/claude/bin"
+    if ! timeout 60 runuser -u "$CLAUDE_USER" -- env HOME="$home" "$bin" --version > /dev/null 2>&1; then
+        for attempt in 1 2 3; do
+            if timeout 600 runuser -u "$CLAUDE_USER" -- env HOME="$home" bash -c \
+                'curl -fsSL https://claude.ai/install.sh | bash' > /dev/null 2>&1; then
+                break
+            fi
+            log "claude installer attempt $attempt failed; retrying in 20 s"; sleep 20
+        done
+    fi
+    if ! timeout 60 runuser -u "$CLAUDE_USER" -- env HOME="$home" "$bin" --version > /dev/null 2>&1; then
+        local cached
+        cached=$(ls -1 "$cache"/claude-* 2> /dev/null | sort -V | tail -n 1)
+        if [ -n "$cached" ] && mountpoint -q "$KEYSTORE_MOUNT"; then
+            ver=${cached##*/claude-}
+            install -d -m 0755 -o "$CLAUDE_USER" -g "$CLAUDE_USER" \
+                "$home/.local/share/claude/versions" "$home/.local/bin"
+            install -m 0755 -o "$CLAUDE_USER" -g "$CLAUDE_USER" "$cached" \
+                "$home/.local/share/claude/versions/$ver"
+            ln -sfn "$home/.local/share/claude/versions/$ver" "$bin"
+            chown -h "$CLAUDE_USER":"$CLAUDE_USER" "$bin"
+            log "claude binary: installer failed; installed $ver from the stick's cache"
+        else
+            log "FAILED claude binary: installer failed and the stick has no cached copy"; return 1
+        fi
+    fi
+    # Cache the installed binary on the stick when it is not there yet.
+    if mountpoint -q "$KEYSTORE_MOUNT"; then
+        ver=$(readlink -f "$bin"); ver=${ver##*/}
+        if [ -n "$ver" ] && [ ! -f "$cache/claude-$ver" ]; then
+            install -d -m 0755 -o root -g root "$cache"
+            if install -m 0755 -o root -g root "$(readlink -f "$bin")" "$cache/claude-$ver.tmp"; then
+                mv -f "$cache/claude-$ver.tmp" "$cache/claude-$ver"
+                find "$cache" -maxdepth 1 -name 'claude-*' ! -name "claude-$ver" -delete
+                log "claude binary: cached $ver on the stick"
+            else
+                rm -f "$cache/claude-$ver.tmp"; log "claude binary: could not cache $ver on the stick"
+            fi
+        fi
+    fi
+}
 module_claude_user() {
     export DEBIAN_FRONTEND=noninteractive
     local home ak applied ok=0 attempt marker=">>> pi-claude (managed by pi-firstboot.sh)"
@@ -589,6 +638,7 @@ module_claude_user() {
             log "FAILED module claude user: apt could not install tmux after 5 attempts"; return 1
         fi
     fi
+    claude_install_binary "$home" || log "module claude user: no Claude Code binary; install it by hand as $CLAUDE_USER"
     if ! mountpoint -q "$KEYSTORE_MOUNT"; then
         log "module claude user: $CLAUDE_USER exists, but the stick is not mounted, so no key file or config directory was set up"
         return 0
@@ -637,6 +687,212 @@ PROFILE
         chown "$CLAUDE_USER":"$CLAUDE_USER" "$home/.bashrc"
     fi
     log "module claude user: ok (user $CLAUDE_USER, $(grep -c '^ssh-' "$ak") key(s) in claude/authorized_keys, config dir on the stick)"
+}
+
+# Google Antigravity CLI (`agy`) for the same unprivileged user. It has no setting to relocate
+# its state, so ~/.gemini is a symlink to claude/gemini on the stick (settings, MCP config,
+# plugins, whatever login state it keeps there); with no stick the link dangles and agy cannot
+# write state on the card. Binary: Google's installer (3 attempts), else the copy cached on the
+# stick (claude/bin/agy; agy updates itself in the background, so the cache can be stale).
+module_agy() {
+    local home bin cache attempt gem
+    id "$CLAUDE_USER" > /dev/null 2>&1 || { log "FAILED module agy: no user $CLAUDE_USER (run claude-user first)"; return 1; }
+    mountpoint -q "$KEYSTORE_MOUNT" || { log "module agy: the stick is not mounted; skipped"; return 0; }
+    home=$(getent passwd "$CLAUDE_USER" | cut -d: -f6)
+    bin="$home/.local/bin/agy"; cache="$KEYSTORE_MOUNT/claude/bin"; gem="$KEYSTORE_MOUNT/claude/gemini"
+    install -d -m 0700 -o "$CLAUDE_USER" -g "$CLAUDE_USER" "$gem"
+    if [ -d "$home/.gemini" ] && [ ! -L "$home/.gemini" ]; then
+        cp -a "$home/.gemini/." "$gem/" && rm -rf "$home/.gemini"
+    fi
+    ln -sfn "$gem" "$home/.gemini"; chown -h "$CLAUDE_USER":"$CLAUDE_USER" "$home/.gemini"
+    if ! timeout 60 runuser -u "$CLAUDE_USER" -- env HOME="$home" "$bin" --version > /dev/null 2>&1; then
+        for attempt in 1 2 3; do
+            if timeout 600 runuser -u "$CLAUDE_USER" -- env HOME="$home" bash -c \
+                'curl -fsSL https://antigravity.google/cli/install.sh | bash' > /dev/null 2>&1; then
+                break
+            fi
+            log "agy installer attempt $attempt failed; retrying in 20 s"; sleep 20
+        done
+    fi
+    if ! timeout 60 runuser -u "$CLAUDE_USER" -- env HOME="$home" "$bin" --version > /dev/null 2>&1; then
+        if [ -f "$cache/agy" ]; then
+            install -d -m 0755 -o "$CLAUDE_USER" -g "$CLAUDE_USER" "$home/.local/bin"
+            install -m 0755 -o "$CLAUDE_USER" -g "$CLAUDE_USER" "$cache/agy" "$bin"
+            log "module agy: installer failed; installed agy from the stick's cache"
+        else
+            log "FAILED module agy: installer failed and the stick has no cached copy"; return 1
+        fi
+    elif [ ! -f "$cache/agy" ]; then
+        install -d -m 0755 -o root -g root "$cache"
+        install -m 0755 -o root -g root "$bin" "$cache/agy.tmp" && mv -f "$cache/agy.tmp" "$cache/agy"
+    fi
+    log "module agy: ok ($(runuser -u "$CLAUDE_USER" -- env HOME="$home" "$bin" --version 2> /dev/null | head -n 1); state in $gem)"
+}
+
+# Claude Code Remote Control as a service: `claude remote-control` (server mode) restarted by a
+# small supervisor, so it survives reboots and network drops (server mode exits by itself after
+# about 10 minutes without network). Modelled on the sandbox project's rc-supervisor.sh. It waits
+# for the stick (the login and config live there) and backs off while there is no login. The
+# permission mode is Claude Code's own default unless /etc/default/claude-rc sets
+# CLAUDE_RC_PERMISSION_MODE.
+module_claude_rc() {
+    local home
+    id "$CLAUDE_USER" > /dev/null 2>&1 || { log "FAILED module claude rc: no user $CLAUDE_USER"; return 1; }
+    home=$(getent passwd "$CLAUDE_USER" | cut -d: -f6)
+    install -d -m 0755 -o "$CLAUDE_USER" -g "$CLAUDE_USER" "$home/work"
+    if mountpoint -q "$KEYSTORE_MOUNT" && [ ! -f "$KEYSTORE_MOUNT/claude/trusted-dirs" ]; then
+        printf '# folders Claude Code trusts without asking, one per line (edit as root)\n%s\n' \
+            "$home/work" > "$KEYSTORE_MOUNT/claude/trusted-dirs"
+        chmod 644 "$KEYSTORE_MOUNT/claude/trusted-dirs"
+    fi
+    cat > /usr/local/sbin/claude-rc-supervisor <<'SUP'
+#!/bin/bash
+set -u
+export CLAUDE_CONFIG_DIR=/mnt/pi-keys/claude/config
+export PATH="$HOME/.local/bin:$PATH"
+[ -f /etc/default/claude-rc ] && . /etc/default/claude-rc
+log() { printf '[claude-rc] %s\n' "$*"; }
+args=(remote-control --name "${CLAUDE_RC_NAME:-pi}" --capacity "${CLAUDE_RC_CAPACITY:-2}")
+[ -n "${CLAUDE_RC_PERMISSION_MODE:-}" ] && args+=(--permission-mode "$CLAUDE_RC_PERMISSION_MODE")
+while ! mountpoint -q /mnt/pi-keys; do sleep 10; done
+# Workspace trust for the folders listed in the stick's claude/trusted-dirs (root-owned, so the
+# agent cannot widen it): mark each existing one as trusted in the config's .claude.json.
+if [ -r /mnt/pi-keys/claude/trusted-dirs ]; then
+    python3 - "$CLAUDE_CONFIG_DIR/.claude.json" /mnt/pi-keys/claude/trusted-dirs <<'PY'
+import json, os, sys
+cfg, lst = sys.argv[1:3]
+data = json.load(open(cfg)) if os.path.exists(cfg) else {}
+proj = data.setdefault("projects", {})
+for line in open(lst):
+    p = line.strip()
+    if p and not p.startswith("#") and os.path.isdir(p):
+        proj.setdefault(p, {})["hasTrustDialogAccepted"] = True
+tmp = cfg + ".tmp"
+with open(tmp, "w") as f:
+    json.dump(data, f, indent=2)
+os.replace(tmp, cfg)
+PY
+fi
+cd "$HOME/work" || exit 1
+child=
+trap 'log stopping; [ -n "$child" ] && kill "$child" 2>/dev/null; exit 0' TERM INT
+delay=5
+while :; do
+    started=$SECONDS
+    log "starting: claude ${args[*]}"
+    claude "${args[@]}" < /dev/null &
+    child=$!
+    wait "$child"; rc=$?; child=
+    ran=$((SECONDS - started))
+    [ "$ran" -ge 60 ] && delay=5
+    log "claude exited with status $rc after ${ran}s; restarting in ${delay}s"
+    sleep "$delay" & child=$!; wait "$child"; child=
+    delay=$((delay * 2)); [ "$delay" -gt 300 ] && delay=300
+done
+SUP
+    chmod 755 /usr/local/sbin/claude-rc-supervisor
+    cat > /etc/systemd/system/claude-rc.service <<UNIT
+[Unit]
+Description=Claude Code Remote Control (server mode) for $CLAUDE_USER
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=$CLAUDE_USER
+Environment=HOME=$home
+ExecStart=/usr/local/sbin/claude-rc-supervisor
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+    chmod 644 /etc/systemd/system/claude-rc.service
+    systemctl daemon-reload
+    systemctl enable --now claude-rc.service > /dev/null 2>&1 || { log "FAILED module claude rc: could not enable the service"; return 1; }
+    log "module claude rc: ok (claude-rc.service enabled and started)"
+}
+
+# VS Code in the browser (for the phone): the official CLI's `code serve-web` as a service under
+# the unprivileged user, listening on loopback only and published to the tailnet over HTTPS by
+# `tailscale serve` (so it is not exposed on the router's LAN; needs HTTPS certificates enabled
+# for the tailnet). A connection token is kept on the stick (claude/vscode-web-token, readable
+# by the claude user: a secret of the same standing as the rest of its files) so the URL stays
+# the same across re-flashes; settings and extensions are kept on the stick (claude/vscode-web).
+# The URL: https://<pi tailnet name>/?tkn=<token>&folder=<folder>
+module_vscode_web() {
+    local home attempt s
+    id "$CLAUDE_USER" > /dev/null 2>&1 || { log "FAILED module vscode web: no user $CLAUDE_USER"; return 1; }
+    mountpoint -q "$KEYSTORE_MOUNT" || { log "module vscode web: the stick is not mounted; skipped"; return 0; }
+    home=$(getent passwd "$CLAUDE_USER" | cut -d: -f6)
+    s="$KEYSTORE_MOUNT/claude"
+    if ! timeout 60 runuser -u "$CLAUDE_USER" -- env HOME="$home" "$home/.local/bin/code" --version > /dev/null 2>&1; then
+        for attempt in 1 2 3; do
+            if timeout 600 runuser -u "$CLAUDE_USER" -- env HOME="$home" bash -c \
+                'mkdir -p ~/.local/bin && cd "$(mktemp -d)" && curl -fsSL "https://update.code.visualstudio.com/latest/cli-linux-arm64/stable" -o cli.tgz && tar -xzf cli.tgz -C ~/.local/bin code'; then
+                break
+            fi
+            log "vscode cli download attempt $attempt failed; retrying in 20 s"; sleep 20
+        done
+    fi
+    if ! timeout 60 runuser -u "$CLAUDE_USER" -- env HOME="$home" "$home/.local/bin/code" --version > /dev/null 2>&1; then
+        log "FAILED module vscode web: could not install the VS Code CLI"; return 1
+    fi
+    install -d -m 0700 -o "$CLAUDE_USER" -g "$CLAUDE_USER" "$s/vscode-web"
+    if [ ! -s "$s/vscode-web-token" ]; then
+        (umask 077; head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n' > "$s/vscode-web-token")
+        chown "$CLAUDE_USER":"$CLAUDE_USER" "$s/vscode-web-token"; chmod 600 "$s/vscode-web-token"
+    fi
+    cat > /etc/systemd/system/vscode-web.service <<UNIT
+[Unit]
+Description=VS Code in the browser (serve-web), loopback only; published over the tailnet by tailscale serve
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+User=$CLAUDE_USER
+Environment=HOME=$home
+TimeoutStartSec=infinity
+ExecStartPre=/bin/sh -c 'until mountpoint -q $KEYSTORE_MOUNT; do sleep 5; done'
+ExecStart=$home/.local/bin/code serve-web --host 127.0.0.1 --port 8000 --connection-token-file $s/vscode-web-token --server-data-dir $s/vscode-web --default-folder $home/work --accept-server-license-terms --disable-telemetry
+ExecStartPost=+-/bin/sh -c 'for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18; do /usr/bin/tailscale serve --bg --https=443 http://127.0.0.1:8000 && exit 0; sleep 10; done'
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+    chmod 644 /etc/systemd/system/vscode-web.service
+    systemctl daemon-reload
+    systemctl enable --now vscode-web.service > /dev/null 2>&1 || { log "FAILED module vscode web: could not enable the service"; return 1; }
+    # The first request makes serve-web download its server build (a few hundred MB; 202 until it
+    # is ready). Make it now, so the first use from the phone is instant.
+    timeout 900 sh -c 'until c=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/); [ "$c" != 000 ] && [ "$c" != 202 ]; do sleep 10; done' \
+        || log "module vscode web: the warm-up did not finish; the first request will download the server"
+    log "module vscode web: ok (vscode-web.service; the token is in $s/vscode-web-token)"
+}
+
+# The Pi's SSH host keys live on the stick (ssh-host/, root-only), so a re-flash keeps the same
+# fingerprint and no client has to forget the old one. With keys on the stick they replace the
+# freshly generated ones (sshd restarted); without, the current keys are saved there.
+module_ssh_hostkeys() {
+    local d="$KEYSTORE_MOUNT/ssh-host" f
+    mountpoint -q "$KEYSTORE_MOUNT" || { log "module ssh hostkeys: the stick is not mounted; skipped"; return 0; }
+    if ls "$d"/ssh_host_*_key > /dev/null 2>&1; then
+        for f in "$d"/ssh_host_*; do
+            case "$f" in
+                *.pub) install -m 0644 -o root -g root "$f" "/etc/ssh/${f##*/}" ;;
+                *) install -m 0600 -o root -g root "$f" "/etc/ssh/${f##*/}" ;;
+            esac
+        done
+        if ! sshd -t 2> /dev/null; then log "FAILED module ssh hostkeys: sshd rejects the restored keys"; return 1; fi
+        systemctl restart ssh > /dev/null 2>&1 || systemctl restart sshd > /dev/null 2>&1 || true
+        log "module ssh hostkeys: restored the host keys from the stick"
+    else
+        install -d -m 0700 -o root -g root "$d"
+        cp -p /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub "$d"/
+        log "module ssh hostkeys: saved the host keys on the stick"
+    fi
 }
 
 # The keyholder: encrypted secrets on the credential stick, unlocked into RAM on request.
@@ -882,6 +1138,10 @@ main() {
         docker) log "=== docker only ==="; preflight; wait_for_clock; module_docker; return ;;
         git) log "=== git only ==="; preflight; wait_for_clock; module_git; return ;;
         claude-user) log "=== claude user only ==="; preflight; module_claude_user; return ;;
+        agy) log "=== agy only ==="; preflight; module_agy; return ;;
+        claude-rc) log "=== claude remote control only ==="; preflight; module_claude_rc; return ;;
+        vscode-web) log "=== vscode web only ==="; preflight; module_vscode_web; return ;;
+        ssh-hostkeys) log "=== ssh host keys only ==="; preflight; module_ssh_hostkeys; return ;;
         tailscale) log "=== tailscale only ==="; preflight; wait_for_clock; module_tailscale; return ;;
         tailscale-backup) log "=== tailscale identity backup only ==="; preflight; tailscale_identity_backup; return ;;
         keyholder) log "=== keyholder only ==="; preflight; module_keyholder; return ;;
@@ -898,12 +1158,25 @@ main() {
     module_keystore
     module_wireguard_autostart
     module_keystore_hotplug
+    # The extras (downloads from third-party servers) must never block the core setup: a failure
+    # is logged, the run goes on, and at the end it exits non-zero without the marker, so the
+    # unit retries the whole (idempotent) run until they succeed.
+    optional_failed=0
+    optional() { "$@" || { log "optional step $1 failed; continuing, will retry the run"; optional_failed=1; }; }
+    optional module_ssh_hostkeys
     module_docker
     module_git
     module_claude_user
+    optional module_agy
+    optional module_claude_rc
     module_tailscale
+    optional module_vscode_web
     module_keyholder
     scrub_wifi_password
+    if [ "$optional_failed" -ne 0 ]; then
+        log "=== pi-provision incomplete: an optional step failed; no marker, will retry ==="
+        exit 1
+    fi
     touch "$MARK"
     log "=== pi-provision done ==="
 }

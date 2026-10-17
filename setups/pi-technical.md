@@ -234,7 +234,8 @@ limiting factor — not a purchase decision.
 - **Cards** (both about 119 GiB with a Pi OS boot partition, so the flash script's
   size window cannot tell them apart; identify by exact size): card 1, 128,177,930,240
   bytes, the spare, out of the Pi; card 2, 127,865,454,592 bytes, in the Pi (flashed
-  2026-10-11 with the Docker, Tailscale and keyholder modules). The `PIKEYS` stick is
+  2026-10-11, and again on 2026-10-17 with the current script: the Docker, Tailscale,
+  keyholder, SSH host keys, `agy`, Remote Control and VS Code web modules). The `PIKEYS` stick is
   not a card to flash. Disk numbers change between sessions. **Before wiping a card or
   stick, ask what is on its Linux partition** (Windows cannot read it; a wipe on
   2026-10-07 lost the hand-installed tunnel setup, and one spare card held personal
@@ -247,8 +248,10 @@ limiting factor — not a purchase decision.
   "\\.\PhysicalDriveN" --wifi-from-env --provision-script
   setups\pi-provision\pi-firstboot.sh` (image: Raspberry Pi OS Lite 64-bit,
   2026-09-15, checksum verified). A re-flash needs no WireGuard push (the config is on
-  the stick); delete `pi-smoke-test/pi_smoke_test_known_hosts` first (new host keys)
-  and the old Tailscale node. To rewrite only the config of a card that has not
+  the stick), and it keeps the SSH host keys (on the stick too), so the fingerprint stays
+  the same and nothing needs deleting; only a new stick makes new keys
+  (then delete `pi-smoke-test/pi_smoke_test_known_hosts` and `ssh-keygen -R pi-host` on the
+  phone and laptop). Without a Tailscale backup on the stick, delete the old node. To rewrite only the config of a card that has not
   booted: the same script with `--boot-dir F:\ --wifi-from-env --provision-script ...`
   (no admin; new cloud-init instance id).
 - **Find and reach the Pi:** `python setups\pi-smoke-test\pi_smoke_test_ssh_check.py
@@ -282,9 +285,14 @@ limiting factor — not a purchase decision.
   other two verbs alone). Termux:Widget (same store and signing key as Termux) lists the
   scripts in `~/.shortcuts/` (`pi-unlock.sh`, `pi-lock.sh`, `pi-status.sh`, each calling
   `pi-keys <verb>` and waiting for Enter); each opens a terminal, so the passphrase prompt
-  works. After a re-flash the Pi has new SSH host keys: `ssh-keygen -R pi-host` on the phone,
-  then check the fingerprint when it asks. The passphrase is 5 random words; paste it, since
+  works. The Pi's SSH host keys are kept on the stick, so a re-flash keeps the fingerprint and
+  the phone needs nothing (with a new stick: `ssh-keygen -R pi-host`, then check the
+  fingerprint when it asks). The passphrase is 5 random words; paste it, since
   a stray space or autocorrect fails the unlock (`unlock failed`, 2 s delay each).
+  A fourth widget script, `~/.shortcuts/pi-code.sh`, opens VS Code in the browser in one tap: it
+  reads the connection token from the stick over SSH as `claude` (key `claude_ed25519`), then
+  `termux-open-url`s `https://pi-host.tail5deeb7.ts.net/?tkn=<token>&folder=/home/claude/work`
+  (the tailnet grant allows tcp 443; rationale item 28).
 - **Claude Code on the Pi (2026-10-16, bare, no container):** an unprivileged user `claude`
   (groups `claude users`, no sudo, no password) holds the install and the login. Claude Code
   2.1.301 was installed as that user with Anthropic's official installer (read first; it
@@ -298,15 +306,33 @@ limiting factor — not a purchase decision.
   refuses to start, so it cannot log in a second time on the card). `git` and `tmux` are
   installed (git by the first-boot script). To use it: from Termux `ssh -i
   ~/.ssh/claude_ed25519 -o IdentitiesOnly=yes claude@pi-host`, then `tmux new -s claude`
-  (`tmux attach -t claude` after a drop), `claude`, and `/remote-control`; the session then
-  shows in the Claude app and claude.ai/code. The login (`/login`, subscription type `pro`) has
+  (`tmux attach -t claude` after a drop) and `claude`. Remote Control runs by itself as
+  `claude-rc.service` (next entry); its session `pi` shows in the Claude app and
+  claude.ai/code. A hand-started `/remote-control` in tmux also works but ends at reboot. The login (`/login`, subscription type `pro`) has
   the full scope set including `user:sessions:claude_code`, which Remote Control needs;
   `setup-token` and API keys do not. The URL printed by `/login` is pasted into the phone's
   address bar (line breaks from the wrapped terminal are stripped there) and the code it shows
   is pasted back. The login lives on the stick in plain files (mode 600, owner `claude`; about 20 MB of
-  config, history and transcripts on a 4 GB stick), so a re-flash keeps it: after the module
-  and the installer, `claude` starts logged in. The revoke path is in
+  config, history and transcripts on a 4 GB stick), so a re-flash keeps it. The module also
+  installs the binary itself (2026-10-17): Anthropic's installer first (3 attempts), else the
+  copy cached on the stick (`claude/bin/claude-<version>`, refreshed after each installer
+  success); so after a flash `claude` starts logged in with nothing to run by hand (tested,
+  including the cache fallback with the download hosts blocked). The revoke path is in
   `pi-stolen-checklist.md`.
+- **Also from first boot (2026-10-17):** `module_ssh_hostkeys` (host keys in `ssh-host/` on
+  the stick), `module_agy` (`agy` in `~/.local/bin`, `~/.gemini` linked to `claude/gemini` on
+  the stick, binary cached as `claude/bin/agy`), `module_claude_rc` (`claude-rc.service`, logs
+  in `journalctl -u claude-rc`; trusted folders listed in the stick's `claude/trusted-dirs`)
+  and `module_vscode_web` (`vscode-web.service`, loopback port 8000, token on the stick;
+  rationale item 28; `serve-web` downloads its server on the first request, so the module
+  makes that request itself). These extras download from third-party servers, so a failure
+  there never blocks the core modules (Tailscale, keyholder): it is logged as `optional step
+  ... failed`, the run goes on and ends non-zero without the marker, and the unit retries the
+  whole run. Each also runs alone: `pi-firstboot.sh ssh-hostkeys|agy|claude-rc|vscode-web`.
+  From the laptop: `ssh pi` or VS Code Remote-SSH host `pi` (user `claude`). Tested on the
+  live Pi (including a reboot, and the installers fetching all three binaries from nothing) and
+  on a fresh flash of card 2 (2026-10-17): every module ran with no manual step, the SSH
+  fingerprint stayed the same, and both CLIs answered at once with their logins from the stick.
 - **Past errors:** first boot is configured by cloud-init, not `custom.toml`;
   `enable_ssh` alone did not start sshd on an early card (the empty `ssh` file did;
   rationale item 16); write the partition table last (Windows mounts the new

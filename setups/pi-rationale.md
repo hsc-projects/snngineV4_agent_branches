@@ -350,32 +350,84 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
     an unprivileged user, logged in with the full-scope subscription login, driven from the
     phone over SSH (Termux) and through Remote Control: works (`pi-technical.md`). Chosen on
     purpose: the phone's key opens the `claude` user only, never the admin account. The login,
-    the config and that key live on the stick (`module_claude_user`), so a re-flash needs the
-    installer and no new login; the cost is the plain login beside the Proton config. Not done,
-    all open: which repositories to put on the Pi (a read-only deploy key or token would go in
-    the keyholder); a permission mode and settings for an unattended agent; whether to run it
-    inside the sandbox project's container stack instead of bare (its image pins a
-    multi-arch Ubuntu base and installs Claude Code through npm; not built on the Pi);
-    keeping the Remote Control session alive across reboots (it lives in a tmux session
-    that a reboot ends; the sandbox project's `rc-supervisor.sh` is one model); egress
+    the config and that key live on the stick (`module_claude_user`), so a re-flash needs no
+    installer and no new login (the module installs the binary itself, with a copy cached on
+    the stick as the fallback); the cost is the plain login beside the Proton config. Built
+    2026-10-17 and tested on a fresh flash: Remote Control as a service (`module_claude_rc` runs
+    `claude remote-control` as `claude-rc.service` under a supervisor modelled on the sandbox
+    project's `rc-supervisor.sh`, so it survives reboots and network drops; the session `pi`
+    shows in the Claude app). Workspace trust comes from an allow-list on the stick,
+    `claude/trusted-dirs` (root-owned, one folder per line, starting with `~/work`; each start
+    marks those folders trusted in `.claude.json`, so a new clone stays untrusted until listed
+    and the agent cannot widen the list). Still open: which repositories to put on the Pi (a
+    read-only deploy key or token would go in the keyholder, the clones in a listed folder); a
+    permission mode and settings for an unattended agent (Remote Control uses Claude Code's
+    default unless `/etc/default/claude-rc` sets `CLAUDE_RC_PERMISSION_MODE`); whether to run
+    it inside the sandbox project's container stack instead of bare (its image pins a
+    multi-arch Ubuntu base and installs Claude Code through npm; not built on the Pi); egress
     limits for the agent (item 22); updates (the installer's updater, or a pinned version).
+25. **Google Antigravity CLI on the Pi** (added 2026-10-16; built, logged in and tested on a fresh
+    flash 2026-10-17).
+    Installed as `agy` 1.4.0 under the `claude` user (arm64 Linux is supported; Google's
+    installer from `antigravity.google/cli/install.sh`, which fetches from a Cloud Run update
+    server and checks a SHA-512 from that same server; the binary then updates itself in the
+    background, which is at odds with a pinned unattended agent). It cannot relocate its state,
+    so `~/.gemini` is a symlink to `claude/gemini` on the stick (`module_agy`, which also
+    installs the binary at first boot, cached on the stick as `claude/bin/agy`). Login done
+    2026-10-17 with the printed URL and pasted code (the other headless routes are a Gemini API
+    key, `modelProvider` `gemini` in `settings.json` plus `GEMINI_API_KEY`, or application
+    default credentials): with no OS keyring on the Pi it writes the OAuth token to a plain
+    file, `~/.gemini/antigravity-cli/antigravity-oauth-token` (mode 600, owner `claude`), so it
+    lands on the stick, and nothing else it created is on the card; `agy -p` answered using
+    only that file. The login survived the re-flash of card 2 (`agy -p` answered at once). The
+    token is in the stolen-Pi checklist (revoke: the Google account's third-party access
+    page, or `/logout` in `agy`). Open: egress limits (item 22), and whether to pin the
+    version.
+26. **SSH host keys on the stick** (added and built 2026-10-17). `module_ssh_hostkeys` keeps the
+    Pi's host keys in `ssh-host/` on the stick (root-only) and restores them on a fresh flash,
+    so the phone and the laptop need no `ssh-keygen -R`. The keys are secrets of the same
+    standing as the others on the stick (in the stolen-Pi checklist). Tested on a re-flash
+    (card 2, 2026-10-17): the fingerprint stayed the same.
+27. **VS Code Remote-SSH from the laptop** (added and built 2026-10-17). Host `pi` in the
+    laptop's `~/.ssh/config` (user `claude`, dedicated key `~/.ssh/pi_claude_ed25519`, whose
+    public half is in the stick's `claude/authorized_keys`, so it survives a re-flash);
+    VS Code installs its own server under `~/.vscode-server` on the card on the first connect.
+    A VPN client on the laptop (ProtonVPN) blocks TCP to tailnet addresses: switch it off.
+28. **VS Code in the browser, for the phone** (added and built 2026-10-17; tested on the laptop,
+    the phone and a fresh flash). `module_vscode_web` runs the official CLI's `code serve-web` as
+    `vscode-web.service` under `claude`, on loopback port 8000, with a connection token kept on
+    the stick (`claude/vscode-web-token`; no token gives 403; a stolen-Pi checklist item) and
+    its settings and extensions in `claude/vscode-web`. `tailscale serve --https=443` publishes
+    it at the Pi's tailnet name only:
+    `https://pi-host.tail5deeb7.ts.net/?tkn=<token>&folder=/home/claude/work`.
+    The tailnet grant for `tag:pi` allows tcp 443 since 2026-10-17 (recorded in
+    `pi-provision/tailscale-policy.hujson`); without it, `ssh -L 8000:127.0.0.1:8000
+    claude@pi-host` and `http://localhost:8000/...` work. On the phone, the Termux widget
+    `pi-code.sh` opens it in one tap (`pi-technical.md`). `serve-web` downloads its server on
+    the first request (202 until ready), so the module makes that request at provisioning. VS
+    Code asks for its own workspace trust once per browser (stored in the browser, not on the Pi;
+    separate from Claude Code's trust list), and the terminal does nothing until it is
+    accepted. On the laptop the name does not resolve (its Tailscale DNS is off), so use
+    `curl --resolve` or turn DNS on; the phone's resolves it.
 
-**Where things stand (2026-10-16; a new session starts here).** Read `pi-technical.md` for
+**Where things stand (2026-10-17; a new session starts here).** Read `pi-technical.md` for
 the current configuration and `pi-smoke-test/pi-smoke-test-report.md` for the evidence.
-- *Hardware.* A Raspberry Pi 4 (`pi-host`, tailnet `100.119.40.123`) on card 2, on the router's
-  LAN (address from DHCP), with the `PIKEYS` stick in a blue USB 3 port. Card 1 (the spare) is
-  flashed with the current first-boot script and not booted yet. Cards are told apart by exact
-  size (`pi-technical.md`, "Operating the Pi").
+- *Hardware.* A Raspberry Pi 4 (`pi-host`, tailnet `100.119.40.123`) on card 2 (flashed
+  2026-10-17 with the current first-boot script), on the router's LAN (address from DHCP),
+  with the `PIKEYS` stick in a blue USB 3 port. Card 1 (the spare) is out of the Pi, flashed
+  with an earlier version of the script. Cards are told apart by exact size
+  (`pi-technical.md`, "Operating the Pi").
 - *Working and tested:* the tunnel at boot with DNS through it, the tailnet identity restore on
   a fresh flash, the stick hotplug recovery, the keyholder (one secret, unlock from the phone
-  with `pi-keys` or the widget), and Claude Code under the unprivileged user `claude` (login,
-  config and key on the stick; Remote Control works from the phone).
-- *Pending tests (2026-10-16):* a reboot of card 2 with the Claude setup (the tmux and Remote
-  Control sessions end and are restarted by hand), then a first boot of card 1 (the `git` and
-  `claude-user` modules; the installer is then run as `claude`, and Claude should start logged in
-  with no new login).
-- *Next, by value:* the open parts of item 24 (repositories on the Pi, permission settings,
-  keeping Remote Control alive across reboots), item 22 (egress proxy), item 21 (the Pi's MCP,
+  with `pi-keys` or the widget), and, under the unprivileged user `claude`, Claude Code (login,
+  config and key on the stick), `agy`, Remote Control as a service, the SSH host keys on the
+  stick, and VS Code in the browser (items 24 to 28). A fresh flash of card 2 on 2026-10-17 ran
+  every module with no manual step and nothing failed (the same SSH fingerprint, both CLIs
+  logged in at once, the HTTPS editor URL working); the installers' cache fallbacks were tested
+  with the download hosts blocked. Still manual, by design: VS Code's workspace-trust prompt
+  (once per browser) and the phone's `pi-code.sh` widget script (`pi-technical.md`).
+- *Next, by value:* the open parts of item 24 (repositories on the Pi, permission settings),
+  item 25 (Antigravity: egress, pinning), item 22 (egress proxy), item 21 (the Pi's MCP,
   the first reader of an unlocked secret), item 23 (cloud-drive sync). Items 10, 11 and the rest
   of 12 are low priority: they concern networks the Pi no longer depends on.
 - *Admin access.* SSH as `htm` with the key in `setups/.secrets/` (gitignored), by the tailnet
