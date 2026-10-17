@@ -195,7 +195,9 @@ limiting factor — not a purchase decision.
   helpers in `/usr/local/sbin`: `pi-unlock` (stdin protocol: `unlock` plus the
   passphrase, `lock`, `status`; all-or-nothing; output has names, never values)
   and `pi-secret-add` (admin only; encrypts a value onto the stick and checks
-  that it decrypts back). The `pikeys` user (no password, not locked) may only
+  that it decrypts back; from 2026-10-17 it also refuses a passphrase that does not open the
+  secrets already stored, because unlock is all-or-nothing; tested on a scratch stick, and the
+  live Pi gets it at the next flash). The `pikeys` user (no password, not locked) may only
   run `pi-unlock`: one sudoers line, and an `sshd` drop-in
   (`/etc/ssh/sshd_config.d/10-pikeys.conf`) that forces that command for that
   user, with no tty, forwarding or password and its key file on the stick
@@ -205,9 +207,11 @@ limiting factor — not a purchase decision.
   `pi-provision/pi_keyholder.py`; what to revoke if the Pi is lost is
   `pi-stolen-checklist.md`. The phone (Termux, key `pikeys_ed25519`, one line in
   `unlock/authorized_keys`) reaches `pi-unlock` over the tailnet on mobile data
-  (`status` returns `stick: mounted`). One secret is stored (`runpod_api_key`, root-readable
-  once unlocked); the phone's unlock puts it in `/run/pi-secrets` (mode 400, root, 50 bytes
-  = the key's length). The Pi's helpers read lines with plain `read -r`, so a client must not
+  (`status` returns `stick: mounted`). Two secrets are stored, both read by the `claude` user
+  once unlocked (since 2026-10-17): `runpod_api_key` (50 bytes, the key's length; it was
+  root-readable before, changed so agents can use it) and `rclone_config_pass` (43 bytes, the
+  random passphrase of the cloud-drive config); the phone's unlock puts them in
+  `/run/pi-secrets` (RAM, mode 400). The Pi's helpers read lines with plain `read -r`, so a client must not
   send carriage returns (the laptop client sends bytes for that reason).
 
 ## Credentials
@@ -266,7 +270,9 @@ limiting factor — not a purchase decision.
   shared connection at a time. A Pi that sat
   without DHCP for hours needs its cable replugged or a power cycle once sharing is
   back. If Wi-Fi as the internet side fails with `0x80040201`, use phone USB tethering
-  (rationale item 19).
+  (rationale item 19). The laptop's own Wi-Fi adapter was unreliable (it nearly froze the laptop),
+  so since 2026-10-17 a USB Wi-Fi adapter in the laptop is the preferred internet side; if the
+  script picks the wrong adapter, name it with `-Public NAME`.
 - **After plugging the stick back in** it mounts and the tunnel returns by itself
   (see Software). `push_wireguard_config.py --host IP` is only for a new or changed
   config or a new stick.
@@ -333,6 +339,70 @@ limiting factor — not a purchase decision.
   live Pi (including a reboot, and the installers fetching all three binaries from nothing) and
   on a fresh flash of card 2 (2026-10-17): every module ran with no manual step, the SSH
   fingerprint stayed the same, and both CLIs answered at once with their logins from the stick.
+- **Cloud drives (2026-10-17; rationale item 23):** `module_cloud` installs rclone
+  (`/usr/local/bin/rclone`, cached as `claude/bin/rclone` on the stick) and root-owned scripts:
+  `/usr/local/bin/pi-cloud`, `/usr/local/sbin/pi-cloud-pass` (prints the config passphrase from
+  `/run/pi-secrets/rclone_config_pass`, else from `cloud/config-pass` on the stick) and the phone
+  login script in `/usr/local/share/pi-phone/`. Use: `pi-cloud status|login P|logout P|ls P
+  [sub]|push [opts] P dir [sub]|pull [opts] P sub dir|sync|auto on|off` with P one of `gdrive
+  dropbox onedrive mega proton`; the Pi's folder on every drive is `snngine-pi`; copy-only. Options
+  of push and pull: `--videos`, `--only EXT,EXT`, `--exclude PATTERN` (ordered rclone `--filter`
+  rules: excludes, then the includes, then `- *`; separate `--include` and `--exclude` flags are
+  not applied in order and let an excluded folder through). **Timer:** `pi-cloud-sync.timer`
+  (every 5 minutes, `OnBootSec=3min`) runs `pi-cloud sync` as `claude`, which does the jobs in
+  `claude/sync.conf` on the stick (root-owned; one per line: `push|pull PROVIDER LOCALDIR
+  SUBPATH|- [options]`): the whole `output/` folder of each task, both ways, and `dump` pulled into
+  `~/dump`. Logs: `journalctl -u pi-cloud-sync`. Skips a round while locked, leaves files younger
+  than a minute, and never fails the unit. One-time setup, from the laptop (prompts for the
+  keyholder passphrase; the value is random and never shown): `python
+  setups/pi-provision/pi_keyholder.py --host ADDRESS add rclone_config_pass --consumer claude
+  --generate`. Logins, from the phone: the Termux:Widget shortcut `pi-cloud-login.sh` is a stub
+  (`ssh claude@pi-host cat /usr/local/share/pi-phone/pi-cloud-login.sh` into a temporary file,
+  then `bash` on it; the record is `pi-provision/phone/pi-cloud-login.sh`), so changes to the
+  login script never need pasting again. It unlocks the keyholder if needed; type a provider
+  at the `>` prompt, or `logout PROVIDER`. gdrive asks for an optional own client id and secret
+  and the scope (blank, or `full`); onedrive opens the sign-in by itself; dropbox needs the key
+  and secret of your own Dropbox app (developer console, "App folder" access, redirect URI
+  `http://localhost:53682/`); mega and proton need the dedicated account's email and password.
+  `pi-cloud auto on` (when unlocked) makes the logins and the timer work without an unlock (the
+  stick alone then opens them). The config is `cloud/rclone.conf` on the stick, encrypted by
+  rclone. Runs alone as `pi-firstboot.sh cloud`.
+- **GitHub and the project clones (2026-10-17):** `module_github` installs `gh` and keeps its
+  login on the stick (`GH_CONFIG_DIR` is `claude/gh`; set in `~/.bashrc` while the stick is
+  mounted, and `gh` refuses to run without it); git uses it for https://github.com through a
+  credential helper in the `claude` user's `~/.gitconfig`, and takes its identity from the
+  stick's `claude/git-identity` (name, then email). Sign in once, as `claude` (device code; the
+  scope is whatever you approve; full for now: repo, read:org, gist, workflow): `GH_CONFIG_DIR=
+  /mnt/pi-keys/claude/gh gh auth login -h github.com -p https -w -s repo,read:org,gist,workflow`,
+  then enter the printed code at https://github.com/login/device. The repos are cloned in
+  `~/dev` on the card, as on the laptop's `E:\dev`: `autonomous-blender-sculptor`,
+  `claude-code-and-local-agent-sandbox`, `private-public-repo-skills`,
+  `private-public-repo-skills-internal`, `private-public-repo-skills-testing`,
+  `SNNgine3D_agent_branches`, `snngineV4_agent_branches`, with the laptop's local branches that
+  exist on GitHub (the laptop's local-only branches and its uncommitted changes are not on the
+  Pi). The two task `output/` folders were copied from the laptop once; the cloud sync keeps
+  them in step afterwards. Not automatic yet: cloning after a re-flash.
+- **agy for the snngineV4 project (2026-10-17):** the laptop runs agy there with `agentMode:
+  accept-edits`, `toolPermission: always-proceed`, `allowNonWorkspaceAccess: true` and that repo as
+  its only trusted workspace. agy's settings are global (the CLI documents no per-project
+  settings), so on the Pi `module_agy` sets the global trusted workspaces to exactly the two repos
+  (`snngineV4_agent_branches`, `SNNgine3D_agent_branches`) and `allowNonWorkspaceAccess: true`
+  (agents need `~/dump` and `/run/pi-secrets`, outside the project), and installs
+  `/usr/local/bin/agy-snngine`, which starts agy in the snngineV4 repo with `--mode accept-edits
+  --dangerously-skip-permissions --add-dir ~/dev/SNNgine3D_agent_branches`: the always-proceed
+  permission belongs to that launcher only (the maintainer's decision), and plain `agy` keeps
+  asking before it runs a command. Headless `agy -p` cannot approve commands without the flag.
+- **RunPod key for agents (2026-10-17):** the keyholder secret `runpod_api_key` is listed for the
+  `claude` user in the stick's `secrets.conf` (it was root), so after an unlock from the phone
+  `/run/pi-secrets/runpod_api_key` (RAM, mode 400) is readable by agents on the Pi, and it is gone
+  after a lock or reboot. It is the key the RunPod MCP (`https://mcp.getrunpod.io/`, an
+  `Authorization` header) and the RunPod scripts need; the MCP config and the pod SSH key are not
+  set up on the Pi yet (the maintainer will do that on first use).
+- **One-click shortcuts on the phone (Termux:Widget):** `pi-ssh.sh` opens an SSH session as
+  `claude` in a tmux session (`tmux new-session -A -s main`: the same session again after a
+  drop), and `pi-agy.sh` runs `agy-snngine` in a tmux session named `agy` the same way. Both
+  are two-line scripts around `ssh -t -i ~/.ssh/claude_ed25519 -o IdentitiesOnly=yes
+  claude@pi-host`, with the logic on the Pi, so they never need updating.
 - **Past errors:** first boot is configured by cloud-init, not `custom.toml`;
   `enable_ssh` alone did not start sshd on an early card (the empty `ssh` file did;
   rationale item 16); write the partition table last (Windows mounts the new

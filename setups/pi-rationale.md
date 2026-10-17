@@ -332,20 +332,50 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
     Proton or directly; a kill switch (none exists, item 9); fail-closed when the Pi is
     down; where the allowlist lives (single source in the sandbox repo, pushed by script).
     Build order: Pi side alone, then tailnet and ACL, then the sandbox side and `verify.sh`.
-23. **Optional sync of task output folders to a cloud drive** (asked for 2026-10-16, nothing
-    decided or built). Tasks such as `setups/runpod-chem-diffusion/` and
-    `setups/runpod-engine-smoke-test/` write generated media and telemetry (an MP4 of a few
-    MB, small JSON) to a gitignored `output/` folder, downloaded from the pod. Wanted: an
-    optional step that copies or pushes such a folder to a Google Drive or Dropbox folder, so
-    the results are reachable without the laptop. Options to weigh, none researched:
-    `rclone` on the Pi (supports both services; headless authorisation by running
-    `rclone authorize` on another machine and pasting the token), or a copy into a folder the
-    cloud client already syncs. Open: where the files enter the chain (the laptop after the
-    download, or the Pi directly from the pod), the trigger (a flag per task, never
-    automatic), the credential (the service's OAuth token would live on the Pi: scope it to
-    one folder, for example Dropbox's app-folder scope, and list it in the stolen-Pi checklist
-    with its revoke step; decide whether it belongs in the keyholder's high-value tier),
-    whether a failed upload may ever block a task, and a size limit.
+23. **Cloud drives (rclone): Google Drive, Dropbox, OneDrive, Mega, Proton Drive** (asked for
+    2026-10-16; built 2026-10-17; only Google Drive is logged in so far). Purpose: results made on
+    the Pi reach a cloud drive, and files put on the drive reach the Pi, without the laptop. One
+    way of working for all five: `pi-cloud status|login|logout|ls|push|pull|sync|auto`
+    (`module_cloud`; rclone, official build, checksum verified, cached on the stick). It only
+    copies (no delete, no sync in the mirroring sense, no move), only inside the Pi's own folder
+    `snngine-pi` on each drive (a path that is absolute, starts with `-` or contains `..` is
+    refused), and stops at 2 GB per call (`PI_CLOUD_MAX_TRANSFER`). Because it never deletes, a
+    file removed on one side comes back from the other. **Automatic part:** a systemd timer
+    (`pi-cloud-sync.timer`, every five minutes, from three minutes after boot) runs `pi-cloud
+    sync`, which does the jobs in `claude/sync.conf` on the stick (root-owned, so an agent cannot
+    add a job): each task's whole `output/` folder (chem-diffusion, engine-smoke-test) pushed and
+    pulled, so a video made on the Pi goes up and one put on the drive comes down, and the drive's
+    `dump` folder pulled into `~/dump` for any agent to pick up. A new task with its own output
+    folder needs its two lines added. Files younger than a minute are left for the next round, a
+    locked keyholder skips the round, and a job that fails (a provider not logged in, a folder not
+    cloned yet) is reported in the journal without failing the unit. Videos only: `push` and
+    `pull` take `--videos`, `--only EXT,EXT` and `--exclude PATTERN`; they are built as ordered
+    `--filter` rules (excludes first, then the includes, then `- *`), because separate rclone
+    `--include` and `--exclude` flags are not applied in the order given, which let an excluded
+    folder through once; not in the default jobs (the maintainer chose whole folders). **Scope
+    of each login:** Google Drive is on the full scope (`drive`) at the maintainer's choice, since
+    the dump folder and a hand-filled folder are invisible to the narrower `drive.file`; it
+    uses rclone's shared client, which rclone says Google retires during 2026 (a change to the
+    maintainer's own client id is supported at login, `logout gdrive` first; not yet done).
+    Dropbox is planned through the maintainer's own App-folder app (the token sees only
+    `Apps/<app>`; redirect URI `http://localhost:53682/`); OneDrive, Mega and Proton Drive have no
+    folder-level scope (Proton's rclone backend is beta, and its 2FA login is unreliable), so
+    they get dedicated accounts used only by the Pi, without 2FA. The logins live in an
+    rclone-encrypted config on the stick (`cloud/rclone.conf`, rewritten when a token refreshes).
+    Its passphrase is the keyholder secret `rclone_config_pass`, read by `claude`: until the
+    phone unlocks it, nothing can log in or transfer. `pi-cloud auto on` (run once unlocked)
+    copies the passphrase to `cloud/config-pass` on the stick, after which the stick alone opens
+    the logins and the timer runs unattended; `auto off` reverses it. A login is never replaced
+    by itself (`login` refuses; `logout` first). The sign-in runs on the Pi: the phone widget
+    (`pi-cloud-login.sh`, a stub that fetches the current script from the Pi) tunnels port 53682,
+    opens rclone's link in the phone's browser, and the token never leaves the Pi. Tested on
+    the live Pi: the lock states, copy-only, folder confinement, the size limit, the encrypted
+    config, a real Google Drive login with push, list and pull, the videos-only filter, both
+    directions of the timer jobs, the dump folder, and the install paths with the download host
+    blocked; not yet: Dropbox, OneDrive, Mega, Proton Drive, and a fresh flash of the module.
+    Open: those four logins (the Dropbox app and three dedicated accounts), the own Google
+    client id, whether the timer should run before an unlock (`auto on`), and a stick-held list
+    of repositories to clone at first boot (the clones in `~/dev` are on the card).
 24. **Claude Code on the Pi** (item 3's candidate; done in part 2026-10-16). Bare install under
     an unprivileged user, logged in with the full-scope subscription login, driven from the
     phone over SSH (Termux) and through Remote Control: works (`pi-technical.md`). Chosen on
@@ -359,9 +389,10 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
     shows in the Claude app). Workspace trust comes from an allow-list on the stick,
     `claude/trusted-dirs` (root-owned, one folder per line, starting with `~/work`; each start
     marks those folders trusted in `.claude.json`, so a new clone stays untrusted until listed
-    and the agent cannot widen the list). Still open: which repositories to put on the Pi (a
-    read-only deploy key or token would go in the keyholder, the clones in a listed folder); a
-    permission mode and settings for an unattended agent (Remote Control uses Claude Code's
+    and the agent cannot widen the list). Repositories (2026-10-17): the seven project repos are
+    cloned in `~/dev` with a full-scope GitHub login on the stick (`module_github`; a narrower
+    token or a deploy key in the keyholder is the later step), and `~/dev` is not in
+    `trusted-dirs` yet, so Claude Code asks for trust there. Still open: a permission mode and settings for an unattended agent (Remote Control uses Claude Code's
     default unless `/etc/default/claude-rc` sets `CLAUDE_RC_PERMISSION_MODE`); whether to run
     it inside the sandbox project's container stack instead of bare (its image pins a
     multi-arch Ubuntu base and installs Claude Code through npm; not built on the Pi); egress
@@ -381,8 +412,10 @@ maintainer says otherwise; details in `pi-smoke-test/pi-smoke-test-report.md`):
     lands on the stick, and nothing else it created is on the card; `agy -p` answered using
     only that file. The login survived the re-flash of card 2 (`agy -p` answered at once). The
     token is in the stolen-Pi checklist (revoke: the Google account's third-party access
-    page, or `/logout` in `agy`). Open: egress limits (item 22), and whether to pin the
-    version.
+    page, or `/logout` in `agy`). The laptop's agy permissions for the snngineV4 project are
+    reproduced for that project only: the launcher `agy-snngine` (accept-edits, always-proceed,
+    SNNgine3D added) and global settings that trust just the two repos (`pi-technical.md`).
+    Open: egress limits (item 22), and whether to pin the version.
 26. **SSH host keys on the stick** (added and built 2026-10-17). `module_ssh_hostkeys` keeps the
     Pi's host keys in `ssh-host/` on the stick (root-only) and restores them on a fresh flash,
     so the phone and the laptop need no `ssh-keygen -R`. The keys are secrets of the same
@@ -418,17 +451,26 @@ the current configuration and `pi-smoke-test/pi-smoke-test-report.md` for the ev
   with an earlier version of the script. Cards are told apart by exact size
   (`pi-technical.md`, "Operating the Pi").
 - *Working and tested:* the tunnel at boot with DNS through it, the tailnet identity restore on
-  a fresh flash, the stick hotplug recovery, the keyholder (one secret, unlock from the phone
-  with `pi-keys` or the widget), and, under the unprivileged user `claude`, Claude Code (login,
-  config and key on the stick), `agy`, Remote Control as a service, the SSH host keys on the
-  stick, and VS Code in the browser (items 24 to 28). A fresh flash of card 2 on 2026-10-17 ran
-  every module with no manual step and nothing failed (the same SSH fingerprint, both CLIs
-  logged in at once, the HTTPS editor URL working); the installers' cache fallbacks were tested
-  with the download hosts blocked. Still manual, by design: VS Code's workspace-trust prompt
-  (once per browser) and the phone's `pi-code.sh` widget script (`pi-technical.md`).
-- *Next, by value:* the open parts of item 24 (repositories on the Pi, permission settings),
-  item 25 (Antigravity: egress, pinning), item 22 (egress proxy), item 21 (the Pi's MCP,
-  the first reader of an unlocked secret), item 23 (cloud-drive sync). Items 10, 11 and the rest
+  a fresh flash, the stick hotplug recovery, the keyholder (two secrets, both read by `claude`
+  once unlocked from the phone with `pi-keys` or the widget), and, under the unprivileged user
+  `claude`, Claude Code (login, config and key on the stick), `agy` (and its project launcher
+  `agy-snngine`), Remote Control as a service, the SSH host keys on the stick, VS Code in the
+  browser (items 24 to 28), GitHub (login on the stick, the seven project repos cloned in
+  `~/dev`), and Google Drive with the sync timer (item 23: the task `output/` folders both ways,
+  and a `dump` folder pulled into `~/dump`). A fresh flash of card 2 on 2026-10-17 ran every
+  module that existed then with no manual step and nothing failed (the same SSH fingerprint,
+  both CLIs logged in at once, the HTTPS editor URL working); the installers' cache fallbacks
+  were tested with the download hosts blocked. The GitHub, cloud-drive, launcher and sync parts
+  came after that flash and have not been through a fresh flash yet (card 1's flash is the
+  planned test). Still manual, by design: VS Code's workspace-trust prompt (once per browser),
+  the phone's widget scripts (`pi-technical.md`), the GitHub and drive sign-ins, and cloning the
+  repos after a re-flash.
+- *Next, by value:* item 23's other four drives (Dropbox, OneDrive, Mega, Proton Drive; each
+  needs its account) and an own Google client id, then a flash of card 1 as the seamless-path
+  test; the RunPod MCP config and a pod SSH key on the Pi (the maintainer, on first use); the
+  open parts of item 24 (permission settings for Remote Control, a stick-held list of repos to
+  clone at first boot), item 25 (Antigravity: egress, pinning), item 22 (egress proxy),
+  item 21 (the Pi's MCP, the first reader of an unlocked secret). Items 10, 11 and the rest
   of 12 are low priority: they concern networks the Pi no longer depends on.
 - *Admin access.* SSH as `htm` with the key in `setups/.secrets/` (gitignored), by the tailnet
   address or the LAN address; a VPN client on the admin machine blocks that machine's TCP to

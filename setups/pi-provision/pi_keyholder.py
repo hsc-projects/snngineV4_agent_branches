@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Laptop-side client for the Pi's keyholder (setups/pi-rationale.md, item 20).
 
-    python setups/pi-provision/pi_keyholder.py --host ADDRESS add NAME [--consumer USER]
+    python setups/pi-provision/pi_keyholder.py --host ADDRESS add NAME [--consumer USER] [--generate]
     python setups/pi-provision/pi_keyholder.py --host ADDRESS unlock
     python setups/pi-provision/pi_keyholder.py --host ADDRESS lock
     python setups/pi-provision/pi_keyholder.py --host ADDRESS status
@@ -22,6 +22,7 @@ the Pi's own status lines are printed. ADDRESS is the Pi's LAN or tailnet addres
 import argparse
 import getpass
 import os
+import secrets
 import subprocess
 import sys
 from pathlib import Path
@@ -72,6 +73,8 @@ def main() -> int:
     add = sub.add_parser("add", help="encrypt a secret onto the stick")
     add.add_argument("name", help="a-z, 0-9 and _ (at most 40)")
     add.add_argument("--consumer", default="root", help="the user that will read it (default root)")
+    add.add_argument("--generate", action="store_true",
+                     help="make the value a random 43-character string (never shown) instead of asking for it")
     for v in ("unlock", "lock", "status"):
         sub.add_parser(v)
     args = ap.parse_args()
@@ -92,7 +95,10 @@ def main() -> int:
         if pw != getpass.getpass("Repeat the passphrase: "):
             print("The passphrases differ; nothing sent.", file=sys.stderr)
             return 2
-        value = getpass.getpass(f"Value of {args.name} (hidden, one line): ")
+        if args.generate:
+            value = secrets.token_urlsafe(32)
+        else:
+            value = getpass.getpass(f"Value of {args.name} (hidden, one line): ")
         if not pw or not value or "\n" in value or "\r" in value:
             print("Empty passphrase or value, or the value has a line break; nothing sent.", file=sys.stderr)
             return 2

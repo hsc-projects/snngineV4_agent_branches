@@ -726,7 +726,45 @@ module_agy() {
         install -d -m 0755 -o root -g root "$cache"
         install -m 0755 -o root -g root "$bin" "$cache/agy.tmp" && mv -f "$cache/agy.tmp" "$cache/agy"
     fi
-    log "module agy: ok ($(runuser -u "$CLAUDE_USER" -- env HOME="$home" "$bin" --version 2> /dev/null | head -n 1); state in $gem)"
+    # The maintainer's laptop runs agy on the snngineV4 project in accept-edits mode with tool
+    # permissions on always-proceed, access outside the workspace allowed, and that repo as its
+    # only trusted workspace. agy's settings are global (the CLI has no per-project settings), so
+    # on the Pi the global settings only trust the two repos and allow non-workspace access (agents
+    # need ~/dump and /run/pi-secrets), while accept-edits and always-proceed (the flag
+    # --dangerously-skip-permissions, decided by the maintainer on 2026-10-17) belong to
+    # `agy-snngine`, the launcher for that project (SNNgine3D is added with --add-dir, as on the
+    # laptop). Plain `agy` keeps asking before it runs a command.
+    local proj="$home/dev/snngineV4_agent_branches" extra="$home/dev/SNNgine3D_agent_branches"
+    runuser -u "$CLAUDE_USER" -- env HOME="$home" python3 - "$home/.gemini/antigravity-cli/settings.json" "$home" "$proj" "$extra" <<'PY' \
+        || log "module agy: could not set the trusted workspaces"
+import json, os, sys
+p, home, *ws = sys.argv[1:]
+os.makedirs(os.path.dirname(p), exist_ok=True)
+d = json.load(open(p)) if os.path.exists(p) else {}
+# agy trusts the home directory by itself on its first run; project-specific means it does not
+t = [w for w in d.get("trustedWorkspaces", []) if w != home]
+d["trustedWorkspaces"] = t
+d["allowNonWorkspaceAccess"] = True
+for w in ws:
+    if w not in t:
+        t.append(w)
+tmp = p + ".tmp"
+with open(tmp, "w") as f:
+    json.dump(d, f, indent=2)
+os.chmod(tmp, 0o600)
+os.replace(tmp, p)
+PY
+    cat > /usr/local/bin/agy-snngine <<AGYSNN
+#!/bin/bash
+# Starts agy for the snngineV4 project the way the maintainer's laptop does: accept-edits mode,
+# tool permissions always proceed (the maintainer's decision, 2026-10-17), SNNgine3D added.
+# Written by pi-firstboot.sh (module_agy).
+export PATH="\$HOME/.local/bin:\$PATH"
+cd "$proj" || { echo "agy-snngine: $proj is missing (not cloned yet)" >&2; exit 1; }
+exec agy --mode accept-edits --dangerously-skip-permissions --add-dir "$extra" "\$@"
+AGYSNN
+    chmod 755 /usr/local/bin/agy-snngine
+    log "module agy: ok ($(runuser -u "$CLAUDE_USER" -- env HOME="$home" "$bin" --version 2> /dev/null | head -n 1); state in $gem; launcher agy-snngine)"
 }
 
 # Claude Code Remote Control as a service: `claude remote-control` (server mode) restarted by a
@@ -811,6 +849,444 @@ UNIT
     systemctl daemon-reload
     systemctl enable --now claude-rc.service > /dev/null 2>&1 || { log "FAILED module claude rc: could not enable the service"; return 1; }
     log "module claude rc: ok (claude-rc.service enabled and started)"
+}
+
+# GitHub for the claude user: the `gh` CLI, with its login on the stick (GH_CONFIG_DIR is
+# claude/gh there, so a re-flash keeps it and nothing is written to the card), and git using that
+# login for https://github.com (a credential helper on the claude user). The git identity comes
+# from the stick's claude/git-identity (line 1 name, line 2 email), so it is not in this script.
+# The login itself is one browser sign-in from the phone or laptop (gh's device code); the scope
+# is the maintainer's choice at that moment (full for now, narrower later: a fine-grained token
+# or a deploy key would go in the keyholder). With the stick missing, `gh` refuses to run.
+module_github() {
+    id "$CLAUDE_USER" > /dev/null 2>&1 || { log "FAILED module github: no user $CLAUDE_USER"; return 1; }
+    mountpoint -q "$KEYSTORE_MOUNT" || { log "module github: the stick is not mounted; skipped"; return 0; }
+    local home gh="$KEYSTORE_MOUNT/claude/gh" attempt ok=0 marker=">>> pi-github (managed by pi-firstboot.sh)" idf name email
+    home=$(getent passwd "$CLAUDE_USER" | cut -d: -f6)
+    if ! command -v gh > /dev/null 2>&1; then
+        export DEBIAN_FRONTEND=noninteractive
+        for attempt in 1 2 3 4 5; do
+            if timeout 300 apt-get update && timeout 600 apt-get install -y --no-install-recommends gh; then ok=1; break; fi
+            log "apt attempt $attempt failed; retrying in 20 s"; sleep 20
+        done
+        [ "$ok" -eq 1 ] || { log "FAILED module github: apt could not install gh after 5 attempts"; return 1; }
+    fi
+    install -d -m 0700 -o "$CLAUDE_USER" -g "$CLAUDE_USER" "$gh"
+    touch "$home/.bashrc"; chown "$CLAUDE_USER":"$CLAUDE_USER" "$home/.bashrc"
+    if ! grep -q "$marker" "$home/.bashrc"; then
+        cat >> "$home/.bashrc" <<'PROFILE'
+
+# >>> pi-github (managed by pi-firstboot.sh)
+if mountpoint -q /mnt/pi-keys; then
+    export GH_CONFIG_DIR=/mnt/pi-keys/claude/gh
+else
+    gh() { echo "The credential stick is not mounted: gh would write its login to the card. Plug it in (it mounts by itself)." >&2; return 1; }
+fi
+# <<< pi-github
+PROFILE
+        chown "$CLAUDE_USER":"$CLAUDE_USER" "$home/.bashrc"
+    fi
+    local git_as=(runuser -u "$CLAUDE_USER" -- env HOME="$home" git config --global)
+    idf="$KEYSTORE_MOUNT/claude/git-identity"
+    if [ -r "$idf" ]; then
+        name=$(sed -n 1p "$idf"); email=$(sed -n 2p "$idf")
+        [ -n "$name" ] && "${git_as[@]}" user.name "$name"
+        [ -n "$email" ] && "${git_as[@]}" user.email "$email"
+    fi
+    "${git_as[@]}" --unset-all credential.https://github.com.helper 2> /dev/null || true
+    "${git_as[@]}" --add credential.https://github.com.helper ""
+    "${git_as[@]}" --add credential.https://github.com.helper "!GH_CONFIG_DIR=$gh /usr/bin/gh auth git-credential"
+    log "module github: ok ($(gh --version | head -n 1); login and config on the stick in claude/gh; sign in with: gh auth login)"
+}
+
+# Cloud drives (rclone), one way of working for Google Drive, Dropbox, OneDrive, Mega and Proton
+# Drive (setups/pi-rationale.md, item 23). `pi-cloud` (below) only ever copies, only inside the
+# Pi's own folder (snngine-pi) on each drive, and each login is confined as far as the provider
+# allows (Drive: scope drive.file; Dropbox: an App-folder app of the maintainer's own; OneDrive,
+# Mega and Proton have no such scope, so they use dedicated accounts). The logins live in an
+# rclone-encrypted config on the stick (cloud/rclone.conf); its passphrase is the keyholder
+# secret rclone_config_pass (read by the claude user after an unlock from the phone), or, when
+# `pi-cloud auto on` was run, a file on the stick (cloud/config-pass: then the stick alone opens
+# the logins). The first-boot part installs rclone (official build, checksum verified; else the
+# copy cached on the stick) and the two scripts; the logins are made from the phone.
+cloud_install_rclone() {
+    local cache="$KEYSTORE_MOUNT/claude/bin/rclone" attempt tmp
+    if ! rclone version > /dev/null 2>&1; then
+        for attempt in 1 2 3; do
+            tmp=$(mktemp -d)
+            if ( cd "$tmp" \
+                && ver=$(curl -fsSL https://downloads.rclone.org/version.txt | awk '{print $2}') \
+                && [[ "$ver" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+                && f="rclone-$ver-linux-arm64.zip" \
+                && curl -fsSL -o "$f" "https://downloads.rclone.org/$ver/$f" \
+                && curl -fsSL -o SHA256SUMS "https://downloads.rclone.org/$ver/SHA256SUMS" \
+                && grep " $f\$" SHA256SUMS | sha256sum -c - > /dev/null \
+                && python3 -c 'import sys,zipfile,os; z=zipfile.ZipFile(sys.argv[1]); n=[i for i in z.namelist() if i.endswith("/rclone")][0]; open("/usr/local/bin/rclone.new","wb").write(z.read(n)); os.chmod("/usr/local/bin/rclone.new",0o755); os.replace("/usr/local/bin/rclone.new","/usr/local/bin/rclone")' "$f" ); then
+                rm -rf "$tmp"; break
+            fi
+            rm -rf "$tmp"; log "rclone download attempt $attempt failed; retrying in 20 s"; sleep 20
+        done
+    fi
+    if ! rclone version > /dev/null 2>&1; then
+        if [ -f "$cache" ] && mountpoint -q "$KEYSTORE_MOUNT"; then
+            install -m 0755 -o root -g root "$cache" /usr/local/bin/rclone
+            log "module cloud: the rclone download failed; installed rclone from the stick's cache"
+        else
+            log "FAILED module cloud: could not install rclone (no download, no cached copy)"; return 1
+        fi
+    elif mountpoint -q "$KEYSTORE_MOUNT" && ! cmp -s /usr/local/bin/rclone "$cache" 2> /dev/null; then
+        install -d -m 0755 -o root -g root "$KEYSTORE_MOUNT/claude/bin"
+        install -m 0755 -o root -g root /usr/local/bin/rclone "$cache.tmp" && mv -f "$cache.tmp" "$cache"
+    fi
+}
+
+module_cloud() {
+    id "$CLAUDE_USER" > /dev/null 2>&1 || { log "FAILED module cloud: no user $CLAUDE_USER"; return 1; }
+    cloud_install_rclone || return 1
+    cat > /usr/local/sbin/pi-cloud-pass <<'PASS'
+#!/bin/sh
+# The passphrase of the rclone config on the stick (rclone runs this as RCLONE_PASSWORD_COMMAND).
+# From RAM when the keyholder is unlocked, else from the stick when `pi-cloud auto on` was run.
+for f in /run/pi-secrets/rclone_config_pass /mnt/pi-keys/cloud/config-pass; do
+    [ -r "$f" ] && { cat "$f"; exit 0; }
+done
+echo "locked: unlock from the phone first" >&2
+exit 1
+PASS
+    chmod 755 /usr/local/sbin/pi-cloud-pass
+    cat > /usr/local/bin/pi-cloud <<'PICLOUD'
+#!/bin/bash
+# pi-cloud: copy-only access to the Pi's own folder on cloud drives (setups/pi-rationale.md,
+# item 23). Written by pi-firstboot.sh (module_cloud); edit it there.
+#   pi-cloud status
+#   pi-cloud login PROVIDER          onedrive: browser sign-in (the phone tunnels port 53682);
+#                                    gdrive: stdin client id, client secret (both may be blank), scope (blank or
+#                                    "full" = the whole Drive), then the sign-in;
+#                                    dropbox: stdin app key, app secret, then the same sign-in;
+#                                    mega: stdin email, password; proton: stdin email, password [, 2fa code]
+#   pi-cloud logout PROVIDER
+#   pi-cloud ls PROVIDER [SUBPATH]
+#   pi-cloud push [--videos | --only EXT,EXT] [--exclude PATTERN] PROVIDER LOCALDIR [SUBPATH]
+#                                    copies LOCALDIR into snngine-pi/SUBPATH (never deletes); with
+#                                    --videos or --only, just those files, same folder structure
+#   pi-cloud pull [same options as push] PROVIDER SUBPATH LOCALDIR
+#                                    copies snngine-pi/SUBPATH to LOCALDIR (never deletes)
+#   pi-cloud sync                    run the jobs in claude/sync.conf on the stick (the timer does this)
+#   pi-cloud auto on|off             keep the config passphrase on the stick (logins without unlock)
+# Providers: gdrive dropbox onedrive mega proton. Transfers stop at PI_CLOUD_MAX_TRANSFER (2G).
+set -uo pipefail
+STICK=/mnt/pi-keys
+CLOUD=$STICK/cloud
+FOLDER=snngine-pi
+MAXT=${PI_CLOUD_MAX_TRANSFER:-2G}
+PROVIDERS="gdrive dropbox onedrive mega proton"
+export RCLONE_CONFIG=$CLOUD/rclone.conf
+export RCLONE_PASSWORD_COMMAND=/usr/local/sbin/pi-cloud-pass
+
+die() { echo "pi-cloud: $*" >&2; exit 1; }
+provider_ok() { case " $PROVIDERS " in *" ${1:-} "*) return 0 ;; esac; die "unknown provider '${1:-}' (one of: $PROVIDERS)"; }
+sub_ok() { # a relative path inside the Pi's folder: no leading slash or dash, no "..", no backslash
+    case "${1:-}" in
+        '') return 0 ;;
+        /* | -* | *..* | *\\* | *$'\n'*) die "bad path '$1' (it must stay inside $FOLDER)" ;;
+    esac
+}
+rtype() { case "$1" in gdrive) echo drive ;; dropbox) echo dropbox ;; onedrive) echo onedrive ;; mega) echo mega ;; proton) echo protondrive ;; esac; }
+mode() { if [ -r /run/pi-secrets/rclone_config_pass ]; then echo "unlocked from the phone"; else echo "automatic, passphrase on the stick"; fi; }
+need_stick() { [ -d "$CLOUD" ] || die "the credential stick is not mounted (or module_cloud has not run)"; }
+need_unlocked() {
+    need_stick
+    /usr/local/sbin/pi-cloud-pass > /dev/null 2>&1 \
+        || die "locked: unlock from the phone first (the config passphrase is the keyholder secret rclone_config_pass; once only: pi_keyholder.py add rclone_config_pass --consumer claude --generate)"
+}
+configured() { rclone listremotes 2> /dev/null | tr -d ':' | grep -qx "$1"; }
+need_login() { need_unlocked; configured "$1" || die "$1 is not logged in (pi-cloud login $1)"; }
+ensure_conf() {
+    need_unlocked
+    [ -f "$RCLONE_CONFIG" ] && return 0
+    { rclone config touch && rclone config encryption set; } > /dev/null 2>&1 || die "could not create the encrypted config"
+}
+
+cmd_status() {
+    need_stick
+    if ! /usr/local/sbin/pi-cloud-pass > /dev/null 2>&1; then echo "locked (unlock from the phone first)"; return 0; fi
+    echo "unlocked ($(mode))"
+    local p
+    for p in $PROVIDERS; do
+        if configured "$p"; then echo "$p: logged in"; else echo "$p: not logged in"; fi
+    done
+}
+
+cmd_login() {
+    local p=${1:-} a b c
+    provider_ok "$p"; ensure_conf
+    # Never replaces a login by itself: `config create` on an existing remote would keep its old
+    # token and skip the sign-in, so an existing login has to be removed on purpose first.
+    ! configured "$p" || die "$p is already logged in; to switch account or client id, run: pi-cloud logout $p"
+    case "$p" in
+        gdrive)   # stdin: the maintainer's own Google client id and secret (both may be blank:
+                  # rclone's shared client, which Google is retiring during 2026), then the scope:
+                  # blank = drive.file (only what rclone created), "full" = the whole Drive
+                  local scope=drive.file; local -a extra=()
+                  read -r a || true; read -r b || true; read -r c || true
+                  [ "$c" = full ] && scope=drive
+                  [ -n "$a" ] && [ -n "$b" ] && extra=(client_id "$a" client_secret "$b")
+                  timeout 900 rclone config create gdrive drive scope "$scope" "${extra[@]}" ;;
+        onedrive) timeout 900 rclone config create onedrive onedrive ;;
+        dropbox)  read -r a; read -r b
+                  [ -n "$a" ] && [ -n "$b" ] || die "dropbox needs the app key and the app secret on stdin"
+                  timeout 900 rclone config create dropbox dropbox client_id "$a" client_secret "$b" ;;
+        mega)     read -r a; read -r b
+                  [ -n "$a" ] && [ -n "$b" ] || die "mega needs the email and the password on stdin"
+                  rclone config create mega mega user "$a" pass "$b" ;;
+        proton)   read -r a; read -r b; read -r c || true
+                  [ -n "$a" ] && [ -n "$b" ] || die "proton needs the email and the password on stdin"
+                  if [ -n "$c" ]; then rclone config create proton protondrive username "$a" password "$b" 2fa "$c"
+                  else rclone config create proton protondrive username "$a" password "$b"; fi ;;
+    esac || { rclone config delete "$p" > /dev/null 2>&1; die "the $p sign-in did not complete"; }
+    if timeout 180 rclone mkdir "$p:$FOLDER"; then
+        echo "$p: logged in; the Pi's folder is $FOLDER"
+    else
+        rclone config delete "$p" > /dev/null 2>&1
+        die "$p: signed in, but could not create $FOLDER (login removed)"
+    fi
+}
+
+cmd_logout() { local p=${1:-}; provider_ok "$p"; need_unlocked; rclone config delete "$p" && echo "$p: logged out (revoke the token at the provider too)"; }
+
+cmd_ls() { local p=${1:-} s=${2:-}; provider_ok "$p"; sub_ok "$s"; need_login "$p"; rclone lsf "$p:$FOLDER/$s"; }
+
+# Options shared by push and pull: --videos, --only EXT,EXT (just those files, same folder
+# structure), --exclude PATTERN (repeatable; a path pattern inside the Pi's folder, e.g. dump/**).
+# Sets FILTERS (ordered rules: excludes first, then the includes, then exclude everything else) and POS.
+parse_opts() {
+    local only="" e ex=() exc=()
+    FILTERS=(); POS=()
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --videos) only="mp4,m4v,mov,mkv,webm,avi" ;;
+            --only) only=${2:-}; shift ;;
+            --exclude) [[ "${2:-}" =~ ^[A-Za-z0-9._/*-]+$ ]] || die "bad exclude pattern '${2:-}'"; exc+=("$2"); shift ;;
+            *) POS+=("$1") ;;
+        esac
+        shift
+    done
+    # Ordered --filter rules (the first matching rule wins): rclone does not apply separate
+    # --exclude and --include flags in the order given, which let excluded files through.
+    for e in "${exc[@]+"${exc[@]}"}"; do FILTERS+=(--filter "- $e"); done
+    if [ -n "$only" ]; then
+        IFS=, read -ra ex <<< "$only"
+        for e in "${ex[@]}"; do
+            [[ "$e" =~ ^[A-Za-z0-9]+$ ]] || die "bad extension '$e'"
+            FILTERS+=(--filter "+ *.$e")
+        done
+        FILTERS+=(--filter "- *")
+    fi
+}
+
+cmd_push() {
+    parse_opts "$@"; set -- "${POS[@]+"${POS[@]}"}"
+    local p=${1:-} d=${2:-} s=${3:-}
+    provider_ok "$p"; sub_ok "$s"; need_login "$p"
+    [ -d "$d" ] || die "'$d' is not a directory"
+    d=$(realpath -- "$d")
+    rclone copy "$d" "$p:$FOLDER/$s" "${FILTERS[@]+"${FILTERS[@]}"}" ${PI_CLOUD_MIN_AGE:+--min-age "$PI_CLOUD_MIN_AGE"} --max-transfer "$MAXT" --cutoff-mode cautious -v 2>&1 | tail -n 5
+    return "${PIPESTATUS[0]}"
+}
+
+cmd_pull() {
+    parse_opts "$@"; set -- "${POS[@]+"${POS[@]}"}"
+    local p=${1:-} s=${2:-} d=${3:-}
+    provider_ok "$p"; sub_ok "$s"; need_login "$p"
+    [ -n "$d" ] || die "pull needs a local directory"
+    d=$(realpath -m -- "$d"); [ ! -e "$d" ] || [ -d "$d" ] || die "'$d' exists and is not a directory"
+    rclone copy "$p:$FOLDER/$s" "$d" "${FILTERS[@]+"${FILTERS[@]}"}" --max-transfer "$MAXT" --cutoff-mode cautious -v 2>&1 | tail -n 5
+    return "${PIPESTATUS[0]}"
+}
+
+# The jobs the timer runs: /mnt/pi-keys/claude/sync.conf (root-owned, so the agent cannot add a
+# job), one per line: push|pull PROVIDER LOCALDIR SUBPATH|- [options as for push and pull].
+# Copy-only like the rest, so a file deleted on one side comes back from the other; a locked
+# keyholder skips the round; files younger than a minute are left for the next round.
+cmd_sync() {
+    local conf=$STICK/claude/sync.conf kind p dir sub rest failed=0
+    local -a opts
+    [ -r "$conf" ] || die "no job list ($conf)"
+    need_stick
+    if ! /usr/local/sbin/pi-cloud-pass > /dev/null 2>&1; then echo "sync: locked, nothing done"; return 0; fi
+    exec 9> "$CLOUD/.sync.lock"
+    flock -n 9 || { echo "sync: a run is already in progress"; return 0; }
+    export PI_CLOUD_MIN_AGE=1m
+    while read -r kind p dir sub rest <&3; do
+        case "$kind" in '' | '#'*) continue ;; esac
+        [ "$sub" = "-" ] && sub=""
+        read -ra opts <<< "${rest:-}"
+        case "$kind" in
+            push) echo "sync: push $p $dir -> ${sub:-/} ${rest:-}"; ( cmd_push "${opts[@]+"${opts[@]}"}" "$p" "$dir" "$sub" ) < /dev/null || failed=$((failed + 1)) ;;
+            pull) echo "sync: pull $p ${sub:-/} -> $dir ${rest:-}"; ( cmd_pull "${opts[@]+"${opts[@]}"}" "$p" "$sub" "$dir" ) < /dev/null || failed=$((failed + 1)) ;;
+            *) echo "sync: unknown job '$kind' (skipped)" ;;
+        esac
+    done 3< "$conf"
+    # A failed job is reported above, not as a failed timer unit (a provider that is not logged
+    # in yet, or a folder that is not there yet, is normal).
+    [ "$failed" -eq 0 ] || echo "sync: $failed job(s) did not complete (see above)"
+    return 0
+}
+
+cmd_auto() {
+    need_stick
+    case "${1:-}" in
+        on)  [ -r /run/pi-secrets/rclone_config_pass ] || die "unlock from the phone first, then run this"
+             install -m 0600 /run/pi-secrets/rclone_config_pass "$CLOUD/config-pass" && echo "automatic: the config passphrase is now on the stick" ;;
+        off) rm -f "$CLOUD/config-pass"; echo "locked by default again (unlock from the phone)" ;;
+        *)   die "pi-cloud auto on|off" ;;
+    esac
+}
+
+verb=${1:-}; [ $# -gt 0 ] && shift
+case "$verb" in
+    status) cmd_status ;;
+    login) cmd_login "$@" ;;
+    logout) cmd_logout "$@" ;;
+    ls) cmd_ls "$@" ;;
+    push) cmd_push "$@" ;;
+    pull) cmd_pull "$@" ;;
+    auto) cmd_auto "$@" ;;
+    sync) cmd_sync ;;
+    *) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+esac
+PICLOUD
+    chmod 755 /usr/local/bin/pi-cloud
+    install -d -m 0755 /usr/local/share/pi-phone
+    cat > /usr/local/share/pi-phone/pi-cloud-login.sh <<'PHONESCRIPT'
+#!/data/data/com.termux/files/usr/bin/bash
+# The phone-side login for the Pi's cloud drives (setups/pi-rationale.md, item 23). Installed on
+# the Pi by pi-firstboot.sh (module_cloud) and run on the phone by the Termux:Widget stub
+# ~/.shortcuts/pi-cloud-login.sh, which fetches this file from the Pi each time (so it is never
+# pasted again). It unlocks the keyholder if needed (the passphrase prompt of `pi-keys unlock`),
+# then runs `pi-cloud login PROVIDER` on the Pi as the claude user:
+#   gdrive, onedrive  browser sign-in: the Pi's rclone listens on 127.0.0.1:53682, this script
+#                     tunnels that port to the phone and opens the link in the phone's browser
+#                     (gdrive first asks for your own Google client id and secret, blank for
+#                     rclone's shared client, and the scope: blank = only files the Pi creates,
+#                     "full" = the whole Drive)
+#   dropbox           asks for the app key and secret of the maintainer's own App-folder app
+#                     (redirect URI http://localhost:53682/), then the same browser sign-in
+#   mega, proton      asks for the email and password of the dedicated account (hidden)
+#   logout PROVIDER   removes a login (it never replaces one by itself)
+# Nothing is stored on the phone, and no secret is put in an argument or the output.
+SSH=(ssh -i "$HOME/.ssh/claude_ed25519" -o IdentitiesOnly=yes)
+HOST=claude@pi-host
+TUNNEL=(-o ExitOnForwardFailure=yes -L 53682:127.0.0.1:53682)
+
+stop() { echo; read -r -p "Press Enter to close" _; exit "${1:-0}"; }
+
+echo "Provider: gdrive dropbox onedrive mega proton   (or: logout PROVIDER)"
+read -r -p "> " P
+case "$P" in
+    "logout "*) L="${P#logout }" ;;
+    gdrive | dropbox | onedrive | mega | proton) ;;
+    *) echo "unknown provider"; stop 1 ;;
+esac
+
+if ! "${SSH[@]}" "$HOST" pi-cloud status 2> /dev/null | grep -q '^unlocked'; then
+    echo "Locked: unlocking the keyholder first"
+    pi-keys unlock || { echo "unlock failed"; stop 1; }
+    "${SSH[@]}" "$HOST" pi-cloud status 2> /dev/null | grep -q '^unlocked' \
+        || { echo "still locked: the keyholder has no rclone_config_pass yet"; stop 1; }
+fi
+
+if [ -n "${L:-}" ]; then
+    "${SSH[@]}" "$HOST" "pi-cloud logout $L" 2>&1
+    stop 0
+fi
+
+# Prints the Pi's output and opens the sign-in link in the phone's browser when it appears.
+open_links() {
+    local line url
+    while IFS= read -r line; do
+        printf '%s\n' "$line"
+        url=$(printf '%s' "$line" | grep -o 'http://127.0.0.1:53682/auth[^ ]*')
+        [ -n "$url" ] && termux-open-url "$url"
+    done
+}
+
+case "$P" in
+    gdrive)
+        echo "Your own Google client id and secret (blank = rclone's shared client, which Google is retiring during 2026)."
+        read -r -p "Google client id: " K
+        read -r -s -p "Google client secret (hidden): " S; echo
+        read -r -p "Scope (blank = only files the Pi creates, 'full' = the whole Drive): " SC
+        printf '%s\n%s\n%s\n' "$K" "$S" "$SC" | "${SSH[@]}" "${TUNNEL[@]}" "$HOST" "pi-cloud login gdrive" 2>&1 | open_links ;;
+    onedrive)
+        "${SSH[@]}" "${TUNNEL[@]}" "$HOST" "pi-cloud login onedrive" 2>&1 | open_links ;;
+    dropbox)
+        read -r -p "Dropbox app key: " K
+        read -r -s -p "Dropbox app secret (hidden): " S; echo
+        printf '%s\n%s\n' "$K" "$S" | "${SSH[@]}" "${TUNNEL[@]}" "$HOST" "pi-cloud login dropbox" 2>&1 | open_links ;;
+    mega)
+        read -r -p "Mega account email: " U
+        read -r -s -p "Password (hidden): " W; echo
+        printf '%s\n%s\n' "$U" "$W" | "${SSH[@]}" "$HOST" "pi-cloud login mega" 2>&1 ;;
+    proton)
+        read -r -p "Proton account email: " U
+        read -r -s -p "Password (hidden): " W; echo
+        read -r -p "2FA code (blank if the account has none): " C
+        printf '%s\n%s\n%s\n' "$U" "$W" "$C" | "${SSH[@]}" "$HOST" "pi-cloud login proton" 2>&1 ;;
+esac
+stop 0
+PHONESCRIPT
+    chmod 644 /usr/local/share/pi-phone/pi-cloud-login.sh
+    if mountpoint -q "$KEYSTORE_MOUNT"; then
+        install -d -m 0700 -o "$CLAUDE_USER" -g "$CLAUDE_USER" "$KEYSTORE_MOUNT/cloud"
+    fi
+    # The timer: every five minutes, `pi-cloud sync` runs the jobs in the stick's claude/sync.conf
+    # (root-owned). The default jobs: each task's whole output folder is copied to the Pi's folder
+    # on Google Drive and anything found there comes down (both copy-only), and everything in
+    # its dump folder comes down to ~/dump for any agent to pick up. It does nothing while locked.
+    local home; home=$(getent passwd "$CLAUDE_USER" | cut -d: -f6)
+    install -d -m 0755 -o "$CLAUDE_USER" -g "$CLAUDE_USER" "$home/dump"
+    if mountpoint -q "$KEYSTORE_MOUNT" && [ ! -f "$KEYSTORE_MOUNT/claude/sync.conf" ]; then
+        cat > "$KEYSTORE_MOUNT/claude/sync.conf" <<CONF
+# <push|pull> <provider> <local dir> <subpath in snngine-pi, - for none> [options]  (edit as root)
+# A task's whole output folder, both ways (copy-only: nothing is ever deleted on either side).
+# A new task with its own output folder needs its two lines here.
+push gdrive $home/dev/snngineV4_agent_branches/setups/runpod-chem-diffusion/output runpod-chem-diffusion/output
+pull gdrive $home/dev/snngineV4_agent_branches/setups/runpod-chem-diffusion/output runpod-chem-diffusion/output
+push gdrive $home/dev/snngineV4_agent_branches/setups/runpod-engine-smoke-test/output runpod-engine-smoke-test/output
+pull gdrive $home/dev/snngineV4_agent_branches/setups/runpod-engine-smoke-test/output runpod-engine-smoke-test/output
+# Everything uploaded into the dump folder on Drive lands in ~/dump for any agent.
+pull gdrive $home/dump dump
+CONF
+        chown root:root "$KEYSTORE_MOUNT/claude/sync.conf"; chmod 644 "$KEYSTORE_MOUNT/claude/sync.conf"
+    fi
+    cat > /etc/systemd/system/pi-cloud-sync.service <<UNIT
+[Unit]
+Description=Copy videos and the dump folder between the Pi and the cloud drives (pi-cloud sync)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=$CLAUDE_USER
+Environment=HOME=$home
+ExecStart=/usr/local/bin/pi-cloud sync
+UNIT
+    cat > /etc/systemd/system/pi-cloud-sync.timer <<UNIT
+[Unit]
+Description=Run pi-cloud sync every five minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
+UNIT
+    chmod 644 /etc/systemd/system/pi-cloud-sync.service /etc/systemd/system/pi-cloud-sync.timer
+    systemctl daemon-reload
+    systemctl enable --now pi-cloud-sync.timer > /dev/null 2>&1 || { log "FAILED module cloud: could not enable the sync timer"; return 1; }
+    log "module cloud: ok ($(rclone version | head -n 1); pi-cloud installed; logins are made from the phone)"
 }
 
 # VS Code in the browser (for the phone): the official CLI's `code serve-web` as a service under
@@ -1046,6 +1522,15 @@ mountpoint -q "$STICK" || { echo "key stick not mounted"; exit 1; }
 install -d -m 0700 -o root -g root "$SECDIR"
 gh=$(mktemp -d /run/pi-secret-gpg.XXXXXX); tmp=$SECDIR/.$name.new
 trap 'rm -rf "$gh"; rm -f "$tmp"' EXIT
+# One passphrase protects every secret (unlock is all-or-nothing), so when a secret already
+# exists, the typed passphrase must open it: a different one would make the next unlock fail.
+# (To change the passphrase on purpose, move the secrets/ folder away first and add them all again.)
+first=$(ls -1 "$SECDIR"/*.gpg 2> /dev/null | head -n 1)
+if [ -n "$first" ]; then
+    gpg --homedir "$gh" --batch --quiet --no-tty --pinentry-mode loopback --passphrase-fd 3 \
+        --no-symkey-cache -d "$first" 3<<< "$pass" > /dev/null 2>&1 < /dev/null \
+        || { echo "that passphrase does not open the secrets already stored; nothing stored (use the passphrase you unlock with)"; exit 1; }
+fi
 printf '%s' "$value" | gpg --homedir "$gh" --batch --quiet --no-tty --pinentry-mode loopback \
         --passphrase-fd 3 --no-symkey-cache --symmetric --cipher-algo AES256 \
         --s2k-mode 3 --s2k-digest-algo SHA512 --s2k-count 65011712 --compress-algo none \
@@ -1139,6 +1624,8 @@ main() {
         git) log "=== git only ==="; preflight; wait_for_clock; module_git; return ;;
         claude-user) log "=== claude user only ==="; preflight; module_claude_user; return ;;
         agy) log "=== agy only ==="; preflight; module_agy; return ;;
+        cloud) log "=== cloud drives only ==="; preflight; module_cloud; return ;;
+        github) log "=== github only ==="; preflight; module_github; return ;;
         claude-rc) log "=== claude remote control only ==="; preflight; module_claude_rc; return ;;
         vscode-web) log "=== vscode web only ==="; preflight; module_vscode_web; return ;;
         ssh-hostkeys) log "=== ssh host keys only ==="; preflight; module_ssh_hostkeys; return ;;
@@ -1169,6 +1656,8 @@ main() {
     module_claude_user
     optional module_agy
     optional module_claude_rc
+    optional module_cloud
+    optional module_github
     module_tailscale
     optional module_vscode_web
     module_keyholder

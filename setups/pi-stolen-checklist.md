@@ -3,7 +3,7 @@
 Use this when the Pi, its SD card or its credential stick (`PIKEYS`) is lost, stolen,
 returned or thrown away. The design (`pi-rationale.md`, item 20) keeps the credentials
 on the Pi revocable, and the high-value ones only encrypted on the stick or in RAM, so
-a loss costs a few revocations, not a rebuild. Do the first five at once (from a phone
+a loss costs a few revocations, not a rebuild. Do the first seven at once (from a phone
 is fine); the rest can wait a day. Nothing below needs the Pi.
 
 | What | Where it lives | Revoke at | Notes |
@@ -11,6 +11,8 @@ is fine); the rest can wait a day. Nothing below needs the Pi.
 | Tailscale node | the Pi (`/var/lib/tailscale`) and a backup on the stick (`tailscale/`) | admin console, Machines, the Pi's row, Delete | cuts the Pi off the tailnet; it was tagged `tag:pi` with no key expiry, so a thief would otherwise stay on it |
 | Claude Code login (Remote Control) | the stick (`claude/config/.credentials.json` and `.claude.json`, plain, mode 600) | your Claude account: sign out or revoke the Pi's Claude Code session, which also ends its Remote Control session | the stick alone is enough to use it, like the Proton config; do it at once, with the Tailscale node |
 | Antigravity login (`agy`) | the stick (`claude/gemini/antigravity-cli/antigravity-oauth-token`, plain, mode 600) | your Google account, Security, third-party access: remove Antigravity (or run `/logout` in `agy` on a rebuilt Pi, which only clears the local copy) | the stick alone is enough to use it; do it at once, with the Claude login |
+| GitHub login (`gh`) | the stick (`claude/gh/hosts.yml`, plain, mode 600; the token has the scopes repo, read:org, gist, workflow, so full access to your repositories) | github.com, Settings, Applications, Authorized OAuth Apps: revoke "GitHub CLI" | the stick alone is enough to use it; do it at once, with the Claude login; a narrower token (fine-grained, or a deploy key in the keyholder) is planned |
+| Cloud drive logins (Google Drive, Dropbox, OneDrive, Mega, Proton Drive) | the stick: `cloud/rclone.conf` (encrypted by rclone: tokens, or the dedicated accounts' passwords) and its passphrase, which is the keyholder secret `rclone_config_pass`, or, after `pi-cloud auto on`, the plain file `cloud/config-pass` | at each provider: Google account, Security, third-party access (remove rclone); Dropbox, the app's permissions or delete the app; Microsoft account, Privacy, app access; Mega and Proton: change the dedicated account's password or delete it | with `auto on` the stick alone opens them, so do it at once; otherwise the passphrase protects them like the other keyholder secrets. the Google Drive login is on the full scope (a loss exposes the whole Drive: revoke it at once); a Dropbox token (planned, through your own App-folder app) sees only its app folder; OneDrive, Mega and Proton are dedicated accounts, so a loss exposes only the Pi's files |
 | Proton WireGuard config | the stick (`wireguard/`), plain | Proton account, Downloads, WireGuard configurations: delete the config for this device | then generate a new one and run `push_wireguard_config.py` |
 | Hotspot password | the card's root partition (root-only netplan copy, plain) | change it on the phone | it is scrubbed from the boot partition, not from the root partition |
 | Encrypted secrets (RunPod key, any GitHub token) | the stick (`secrets/*.gpg`) | rotate each at its service | only ciphertext is on the stick; how long it holds depends on the passphrase, so rotate anyway if the stick is gone |
