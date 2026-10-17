@@ -54,7 +54,7 @@ needs to move between them.
 The CUDA simulation code is based on Nageswaran et al., "Efficient
 simulation of large-scale spiking Neural networks using cuda Graphics
 processors" (referenced in snngineV4's `nn/NDKNV/`; full entry in
-`agents/references.md`) — the basic/foundational algorithm. It was
+`agents/main_feature/main-feature-references.md`) — the basic/foundational algorithm. It was
 implemented first as a direct translation of that paper, then
 progressively optimized (simplifications, matrix-operation tricks) to
 accelerate it further. Understanding kernel-level detail is deferred (see
@@ -134,6 +134,14 @@ clause.
 Any markdown files you create (notes, extracted write-ups, etc.) land under
 `agents/` in snngineV4 (the new repo).
 
+When naming newly created files (markdown notes, specs, or scripts), avoid
+generic or ambiguous names (such as `draft.md`, `feature-draft.md`, or
+`methodology.md`). Aim for nearly self-explanatory filenames consisting of
+two or more descriptive words (using kebab-case for markdown files, e.g.
+`main-feature-definition-draft.md` or `research-synthesis-methodology.md`) so
+that a cold agent or human can immediately understand the file's specific
+scope and purpose from the filename alone.
+
 We are in an exploratory/mapping phase: the goal is not to generate new code
 (except where it aids exploration) — make the content as easy as possible for
 cold agents to understand.
@@ -159,7 +167,7 @@ kernel implementation details. Treat the CUDA/kernel layer as accelerated
 compute understood by its *intent*, as inferred from the surrounding
 Python code — not by reading kernel internals. Deep understanding of the
 simulation algorithm itself is deferred until the user provides the
-underlying source material (see `agents/references.md`). Avoid cluttering
+underlying source material (see `agents/main_feature/main-feature-references.md`). Avoid cluttering
 context with kernel-level detail not needed for the current pass.
 
 When documenting code in `agents/mapping/`, favor tagging over restating
@@ -189,7 +197,8 @@ project grew out of self-taught exploration of a visual idea, not scientific
 grounding. If something in the code looks like it corresponds to existing
 research, an established algorithm, or a concept that should be
 sourced/verified, flag it to the user rather than assuming — don't research
-it inline, just add it to `agents/research-todos.md`.
+it inline, just add it to the main feature specification task (Track 2 or Track 3
+in `agents/main_feature/generate_specs_task/generate-main-feature-specs-task.md`).
 
 ## Cloud and infrastructure work (`setups/`)
 

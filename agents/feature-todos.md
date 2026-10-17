@@ -8,7 +8,11 @@ Each entry gets a priority: **high**, **mid**, or **low**.
 
 ## Now
 
-(none currently active — see Backlog for prioritized next work items)
+- [high] Generate main feature specifications:
+  - Specification pipeline overview: `agents/main_feature/README.md`.
+  - Active Level 1 task: `agents/main_feature/generate_specs_task/generate-main-feature-specs-task.md`.
+  - Target deliverable: Authoritative task specifications in `agents/main_feature/specs/` (Level 2).
+  - Status: Phase 1 — Discussion & Scoping.
 
 ## Completed
 

@@ -1,7 +1,6 @@
 # References
 
-Confirmed source material relevant to the project (distinct from
-`agents/research-todos.md`, which is for *unverified* things to check).
+Confirmed source material relevant to the project (exploratory candidates are tracked under Track 3 in [`agents/main_feature/generate_specs_task/generate-main-feature-specs-task.md`](file:///E:/dev/snngineV4_agent_branches/agents/main_feature/generate_specs_task/generate-main-feature-specs-task.md#L27-L35)).
 
 ## Nageswaran et al., 2009 — the foundational algorithm
 

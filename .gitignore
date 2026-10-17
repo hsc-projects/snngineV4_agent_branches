@@ -402,3 +402,6 @@ setups/pi-smoke-test/pi_smoke_test_known_hosts*
 setups/pi-smoke-test/*.img.xz
 
 setups/.secrets/
+
+# Non-VCS archive for main feature drafts and literature digests
+archive/

@@ -135,6 +135,7 @@ building what they wanted rather than research, and is open to a better
 pattern existing for this same problem (config-driven object
 construction feeding into a rendering/simulation loop is a problem every
 3D engine or game engine has to solve somehow). See
-`agents/research-todos.md` for the comparison-to-established-patterns
-question this raises, which is a separate, later task, not a reason to
-second-guess or rework this pattern now.
+[`agents/main_feature/generate_specs_task/generate-main-feature-specs-task.md`](file:///E:/dev/snngineV4_agent_branches/agents/main_feature/generate_specs_task/generate-main-feature-specs-task.md#L34-L35)
+(Track 3) for the comparison-to-established-patterns question this raises,
+which is a separate, later task, not a reason to second-guess or rework this
+pattern now.
