@@ -59,6 +59,7 @@ with live stock in `EU-RO-1` (A4500 $0.25/hr/20GB, RTX 4000 Ada
 $0.28/hr/20GB were the alternatives, at $0.24/hr/16GB). Binary/VRAM
 compatibility deferred to a smoke test rather than decided upfront.
 Stock is `LOW`, not guaranteed — re-check before provisioning.
+*(2026-10-15 update: subsequent validation runs used live in-stock Ada and Blackwell hardware: NVIDIA RTX PRO 4500 Blackwell for initial zero-copy interop, RTX 4090 for the headless engine simulation smoke test, and RTX PRO 4000 Blackwell for offscreen EGL video rendering; see `runpod-technical.md`).*
 
 **2026-09-27 — Storage: 20GB Standard, no early resize.** $0.07/GB/month,
 billed continuously with or without an attached/running pod — no pause

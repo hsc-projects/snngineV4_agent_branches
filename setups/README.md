@@ -9,12 +9,18 @@
 | `Dockerfile-SNNgine3D-nomachine` | NoMachine remote-desktop image for SNNgine3D — outdated, not functional, kept as a starting point |
 | `Dockerfile-SNNgine3D-nomachine-base` | Base image for the above — outdated, not functional, kept as a starting point |
 | `windows/notes.md` | Windows-specific setup notes: parked research on ways to test Windows-side steps, not the primary path (see below) |
-| `gpu-smoke-tests/gpu-smoke-test-task.md` | Task write-up for the local GPU/CUDA-OpenGL-interop smoke test (feeds `runpod-rationale.md`'s open item 0), delegated to `agy` |
-| `gpu-smoke-tests/gpu-smoke-test-task-docker.md` | Task write-up for running the GPU/CUDA-OpenGL interop smoke test in a Docker container (feeds `runpod-rationale.md`'s open item 0) |
+| `gpu-smoke-tests/gpu-smoke-test-task.md` | Task write-up for the local GPU/CUDA-OpenGL-interop smoke test (fed `runpod-rationale.md`'s open item 0, resolved 2026-10-15), delegated to `agy` |
+| `gpu-smoke-tests/gpu-smoke-test-report.md` | Execution report for local standalone workstation GPU/CUDA-OpenGL zero-copy interop smoke test (RTX 3090, 5-link chain) |
+| `gpu-smoke-tests/gpu-smoke-test-task-docker.md` | Task write-up for running the GPU/CUDA-OpenGL interop smoke test in a Docker container (fed `runpod-rationale.md`'s open item 0, resolved 2026-10-15) |
+| `gpu-smoke-tests/gpu-smoke-test-report-docker.md` | Execution report for containerized GPU/CUDA-OpenGL zero-copy interop smoke test (Docker, headless EGL, WebSocket web bridge) |
 | `gpu-smoke-tests/gpu-smoke-test-task-v2.md` | Task write-up for modernizing the GPU/CUDA-OpenGL interop stack across all 3 modes (EGL, Desktop GUI, Web Bridge) at max RTX 3090-compatible versions |
-| `runpod-smoke-tests/runpod-smoke-test-task.md` | Task write-up for the Runpod cloud GPU/CUDA-OpenGL interop smoke test (feeds `runpod-rationale.md`'s open item 0) |
+| `gpu-smoke-tests/gpu-smoke-test-report-v2.md` | Execution report for modernized max-frontier GPU/CUDA-OpenGL interop stack (Python 3.14, CUDA 13.2, PyTorch 2.15 dev) |
+| `runpod-smoke-tests/runpod-smoke-test-task.md` | Task write-up for the Runpod cloud GPU/CUDA-OpenGL interop smoke test (fed `runpod-rationale.md`'s open item 0, resolved 2026-10-15) |
+| `runpod-smoke-tests/runpod-smoke-test-report.md` | Execution report and zero-copy pointer verification for Runpod cloud GPU/CUDA-OpenGL interop smoke test |
 | `runpod-engine-smoke-test/runpod-engine-test-task.md` | Task write-up for the Runpod headless simulation engine smoke test (feeds domain simulation validation on cloud GPU) |
+| `runpod-engine-smoke-test/runpod-engine-smoke-test-report.md` | Execution report for Runpod headless simulation engine smoke test (100-step execution, resting membrane stability) |
 | `runpod-engine-smoke-test/runpod-engine-video-task.md` | Task write-up for Runpod headless simulation video generation and 3-panel composite telemetry |
+| `runpod-engine-smoke-test/runpod-engine-video-report.md` | Execution report and performance benchmarks for Runpod headless simulation video generation and 3-panel composite telemetry |
 | `runpod-chem-diffusion/runpod-chem-diffusion-task.md` | Task write-up for Runpod headless 3D chemical source and volumetric diffusion video generation |
 | `runpod-chem-diffusion/runpod-chem-diffusion-report.md` | Execution report and quantitative diffusion telemetry for Runpod 3D chemical source and volumetric diffusion video generation |
 | `runpod_find_combos.py` | Query live Runpod GraphQL API for in-stock, cost-optimal GPU/CPU options matching network volume constraints |

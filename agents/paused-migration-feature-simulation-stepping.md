@@ -62,7 +62,8 @@ synapse layout, STDP gated by a bool flag, chemical swap is conditional.
 ### Current implementation status in snngine_v4
 - **Backend wiring complete**: Tensor allocation, OpenGL VBO mapping, and backend constructor pointer passing (~45 raw pointers into `snn_simulation_gpu.SnnSimulation`) are already implemented in `Simulation._make_simulator_backend` (`snngine_v4/nn/sim/simulation.py`).
 - **Stepping loop prototype**: `SNNgine.run_sim` (`snngine.py`) contains a basic stepping loop calling `sim.update(False, True)` and updating plot scenes.
-- **Current gaps in snngine_v4**:
+- **Current gaps in snngine_v4 (desktop GUI context)**:
   - `run_sim` is a synchronous loop called only in commented-out manual debug code (`MainEngineWindow.test_func` in `main_window.py`). No GUI timer (`QTimer` or `vispy.app.Timer`) is currently wired in `EngineApp` or `MainEngineWindow`.
   - Chemical volume texture copying (`cpy_tnsr2tex`) is not invoked during `run_sim`.
   - Main scene redraw (`main_scene.update()`) is not invoked during `run_sim`.
+  *(Note: Headless simulation stepping, chemical diffusion volume mocking, and hardware-accelerated offscreen EGL render loops were independently implemented and verified for cloud execution in `setups/runpod-engine-smoke-test/test_headless_engine_sim.py` and `generate_simulation_video.py`).*

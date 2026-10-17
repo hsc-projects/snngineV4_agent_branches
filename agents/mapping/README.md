@@ -60,11 +60,7 @@ config/build architecture note). Suggested reading order:
     system-wide legacy cross-check against SNNgine3D.
 
 All planned subpackages in the horizontal mapping pass are now written.
-
-`architecture-snngine_v4.md` is being migrated into this directory
-subpackage by subpackage (each migrated bullet is replaced there with a
-pointer to its new file here); see that file's own remaining content for
-what hasn't been migrated yet.
+All subpackage write-ups have been migrated into this directory (with pointers retained in `architecture-snngine_v4.md`); see that file for top-level orchestration flow, confirmed CUDA/OpenGL interop details, and runtime memory invariants.
 
 ## Consolidated open questions
 

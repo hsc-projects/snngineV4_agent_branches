@@ -8,22 +8,18 @@ Each entry gets a priority: **high**, **mid**, or **low**.
 
 ## Now
 
+(none currently active — see Backlog for prioritized next work items)
+
+## Completed
+
 - [high] Horizontal mapping pass across `snngine_v4/` subpackages:
-  - **Completed in this pass**:
-    - `chemistry/` (`agents/mapping/chemistry.md`): added end-to-end integration, legacy SNNgine3D differences (interactive `SelectorBox`, `stent.npz`, `additive`, stepping sync gap), and corrected Open Question 4.
-    - `geometry/` (`agents/mapping/geometry.md`): added `volume.py` catalog, neuron position discretization and spatial sorting (`sort_pos`), VisPy GLSL geometry shader clipping (`technical_max_z_value`), and SNNgine3D legacy cross-check (decoupling from VisPy visuals, `VolumeShapeHDW` Pydantic model vs `VolumetricMixin`, `max_z` clipping origin, and `coord` direction relic).
-    - `construction/` (`agents/mapping/construction.md`): added recursive build cascade, Double-Tree Architecture (`node_tree: EngineNodes` vs `root_element: SpatialNetwork`), and SNNgine3D legacy cross-check (transition from monolithic `Engine` imperative assembly, abolition of `VspNN` visual inheritance hierarchy, and strict declarative attribute guarding).
-    - `config/` (`agents/mapping/config.md`): added runtime lifecycle and multi-file XML persistence (`.snngine/`), and SNNgine3D legacy cross-check (partitioning of monolithic `EngineConfig`, dedicated simulation CUDA device assignment, Pydantic v2 `XMLSettingsModel` vs custom `XMLHandler`).
-    - `nn/` (`agents/mapping/nn.md`): added runtime simulation execution, ring-buffer spike tracking, in-situ GPU plot streaming, and SNNgine3D legacy cross-check (elimination of host `GPURecorder`, modular `SynCounts` delay correction and autapse masking, headless simulation decoupling).
-    - `visualization/` (`agents/mapping/visualization.md`): added two-phase visual lifecycle, zero-copy VBO vs 3D texture interop, and SNNgine3D legacy cross-check (abolition of intrusive `CudaNode` hierarchy, GLSL geometry shader culling, bidirectional camera event reflection).
-    - `utils/` (`agents/mapping/utils.md`): added runtime container lifecycles, dual-backed tensor synchronization, and SNNgine3D legacy cross-check (`StateTensor` to `TensorDataFrame` transition, bidirectional `Object2ObjectMap`, generic `ModelObjectBuilder` reflection).
-    - `gui/` (`agents/mapping/gui.md`): added application initialization lifecycle, reactive connector architecture, shared buffer protection, and SNNgine3D legacy cross-check (transition from imperative collapsible frames to schema-driven `ParameterTree`, decoupled connector layer, `EngineLinkerTree` MIDI hardware mapping).
-  - **All horizontal mapping subpackages and sister-repo cross-checks are now complete.**
+  - Completed all 8 subpackage mapping write-ups (`chemistry.md`, `geometry.md`, `construction.md`, `config.md`, `nn.md`, `visualization.md`, `utils.md`, `gui.md`), `vertical-trace.md`, `config-build-pattern.md`, and system-wide orchestration cross-check `module-interactions.md`. Central index at `agents/mapping/README.md`.
 - [high] Runpod headless engine simulation smoke test:
-  - Specification: `setups/runpod-engine-smoke-test/runpod-engine-test-task.md`.
-  - Automation scripts: `runpod_engine_test_runner.sh` and `test_headless_engine_sim.py` (supporting contracts check, 1-step quick smoke, and full 100-step execution with compact error pruning).
-  - Target environment: NVIDIA RTX 2000 Ada in `EU-RO-1` mounting persistent volume `qze81dpw7q`.
-  - Report artifact: `setups/runpod-engine-smoke-test/runpod-engine-smoke-test-report.md`.
+  - Validated headless Double-Tree assembly, C++/CUDA backend bindings, and 100-step simulation execution on NVIDIA RTX 4090 with resting potential stability. Report: `setups/runpod-engine-smoke-test/runpod-engine-smoke-test-report.md`.
+- [high] Runpod headless simulation video generation:
+  - Validated hardware-accelerated offscreen EGL VisPy 3D neural activity rendering and H.264/H.265 MP4 encoding across 720p, 1080p, and 4K UHD resolutions, plus 3-panel composite telemetry (reservoir, rolling spike raster, stacked voltage traces) on RTX PRO 4000 Blackwell. Report: `setups/runpod-engine-smoke-test/runpod-engine-video-report.md`.
+- [high] Runpod 3D chemical diffusion video generation:
+  - Validated headless volumetric chemical concentration simulation and 3D visual rendering on cloud GPU. Report: `setups/runpod-chem-diffusion/runpod-chem-diffusion-report.md`.
 
 ## Backlog
 
