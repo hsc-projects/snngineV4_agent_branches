@@ -23,6 +23,7 @@
 | `runpod-engine-smoke-test/runpod-engine-video-report.md` | Execution report and performance benchmarks for Runpod headless simulation video generation and 3-panel composite telemetry |
 | `runpod-chem-diffusion/runpod-chem-diffusion-task.md` | Task write-up for Runpod headless 3D chemical source and volumetric diffusion video generation |
 | `runpod-chem-diffusion/runpod-chem-diffusion-report.md` | Execution report and quantitative diffusion telemetry for Runpod 3D chemical source and volumetric diffusion video generation |
+| `runpod-assembly-association/runpod-assembly-association-task.md` | Task write-up for the minimal version of the main feature: two assemblies associated through activity-proportional chemical release and chemical-gated plasticity, implemented and tuned on Runpod in a cost-efficient loop |
 | `runpod_find_combos.py` | Query live Runpod GraphQL API for in-stock, cost-optimal GPU/CPU options matching network volume constraints |
 | `.secrets/.env` | Gitignored credentials (e.g. `RUNPOD_API_KEY`) read at runtime by host tools |
 | `pi-smoke-test/task.md` | Task write-up for the Pi flash + SSH smoke test (two phases: write/flash the SD card, then SSH once the maintainer boots and connects the Pi) — done 2026-10-04, kept current |

@@ -13,6 +13,12 @@ Each entry gets a priority: **high**, **mid**, or **low**.
   - Active Level 1 task: `agents/main_feature/generate_specs_task/generate-main-feature-specs-task.md`.
   - Target deliverable: Authoritative task specifications in `agents/main_feature/specs/` (Level 2).
   - Status: Phase 1 — Discussion & Scoping.
+- [high] Minimal version of the main feature (two assemblies associated via
+  activity-proportional chemical release and chemical-gated plasticity),
+  implemented and tuned on Runpod:
+  - Task write-up: `setups/runpod-assembly-association/runpod-assembly-association-task.md`.
+  - Context: `agents/main_feature/main-feature-readme-reconstruction.md`.
+  - Status: task approved; nothing implemented.
 
 ## Completed
 
