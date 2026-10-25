@@ -398,6 +398,18 @@ limiting factor — not a purchase decision.
   after a lock or reboot. It is the key the RunPod MCP (`https://mcp.getrunpod.io/`, an
   `Authorization` header) and the RunPod scripts need; the MCP config and the pod SSH key are not
   set up on the Pi yet (the maintainer will do that on first use).
+- **RunPod pod SSH key for agents (2026-10-17):** `module_runpod_ssh` makes a key pair of its
+  own on the stick, `claude/ssh/runpod_ed25519` (plain, mode 600, owner `claude`; comment
+  `pi-claude-runpod`), and links it into the snngineV4 clone at `setups/.secrets/id_ed25519` (and
+  `.pub`; that folder is gitignored), where `exec_pod.py` and the runner look for it. It is NOT the
+  laptop's `runpod-snngine` key (`setups/.secrets/id_ed25519` on the laptop): that one is also
+  the Pi's admin login (`htm`, passwordless sudo), so on the stick it would give every agent root.
+  The public half was added to the RunPod account (console, Settings, SSH keys) by the maintainer
+  on 2026-10-17 under the name `pi0`, and the Pi confirmed the account now lists both keys;
+  a pod accepting it is untested until the first pod is made from the Pi. A new stick makes
+  a new key that has to be added the same way. Runs alone as `pi-firstboot.sh
+  runpod-ssh`. Rule for working on the Pi: a repo clone there is only changed after it is at the
+  latest commit of its branch (fetch, ahead 0 and behind 0, then fast-forward if needed).
 - **One-click shortcuts on the phone (Termux:Widget):** `pi-ssh.sh` opens an SSH session as
   `claude` in a tmux session (`tmux new-session -A -s main`: the same session again after a
   drop), and `pi-agy.sh` runs `agy-snngine` in a tmux session named `agy` the same way. Both

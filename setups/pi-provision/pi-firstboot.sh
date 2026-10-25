@@ -899,6 +899,39 @@ PROFILE
     log "module github: ok ($(gh --version | head -n 1); login and config on the stick in claude/gh; sign in with: gh auth login)"
 }
 
+# The SSH key agents use to reach RunPod pods, on the stick (claude/ssh/runpod_ed25519, plain, mode
+# 600). It is its own key pair, made on the Pi, NOT the laptop's runpod-snngine key: that one is
+# also the Pi's admin login (htm, passwordless sudo), so on the stick it would give every agent
+# root. The public half has to be added to the RunPod account (RunPod console, Settings, SSH
+# keys) before a new pod accepts it. The task scripts look for setups/.secrets/id_ed25519 in the
+# repo, so that path (gitignored) is a symlink to the stick's key once the repo is cloned.
+module_runpod_ssh() {
+    id "$CLAUDE_USER" > /dev/null 2>&1 || { log "FAILED module runpod ssh: no user $CLAUDE_USER"; return 1; }
+    mountpoint -q "$KEYSTORE_MOUNT" || { log "module runpod ssh: the stick is not mounted; skipped"; return 0; }
+    local home k d repo
+    home=$(getent passwd "$CLAUDE_USER" | cut -d: -f6)
+    d="$KEYSTORE_MOUNT/claude/ssh"; k="$d/runpod_ed25519"; repo="$home/dev/snngineV4_agent_branches"
+    install -d -m 0700 -o "$CLAUDE_USER" -g "$CLAUDE_USER" "$d"
+    if [ ! -f "$k" ]; then
+        runuser -u "$CLAUDE_USER" -- ssh-keygen -q -t ed25519 -N '' -C "pi-claude-runpod" -f "$k" \
+            || { log "FAILED module runpod ssh: ssh-keygen failed"; return 1; }
+        log "module runpod ssh: made a new key pair on the stick; add $k.pub to the RunPod account"
+    fi
+    chmod 600 "$k"; chmod 644 "$k.pub"
+    if [ -d "$repo/setups" ]; then
+        install -d -m 0700 -o "$CLAUDE_USER" -g "$CLAUDE_USER" "$repo/setups/.secrets"
+        for f in id_ed25519 id_ed25519.pub; do
+            src="$k"; [ "$f" = id_ed25519.pub ] && src="$k.pub"
+            if [ -e "$repo/setups/.secrets/$f" ] && [ ! -L "$repo/setups/.secrets/$f" ]; then
+                log "module runpod ssh: $repo/setups/.secrets/$f is a real file; left alone"
+            else
+                ln -sfn "$src" "$repo/setups/.secrets/$f"; chown -h "$CLAUDE_USER":"$CLAUDE_USER" "$repo/setups/.secrets/$f"
+            fi
+        done
+    fi
+    log "module runpod ssh: ok ($(ssh-keygen -lf "$k.pub" | cut -d' ' -f2); on the stick in claude/ssh)"
+}
+
 # Cloud drives (rclone), one way of working for Google Drive, Dropbox, OneDrive, Mega and Proton
 # Drive (setups/pi-rationale.md, item 23). `pi-cloud` (below) only ever copies, only inside the
 # Pi's own folder (snngine-pi) on each drive, and each login is confined as far as the provider
@@ -1626,6 +1659,7 @@ main() {
         agy) log "=== agy only ==="; preflight; module_agy; return ;;
         cloud) log "=== cloud drives only ==="; preflight; module_cloud; return ;;
         github) log "=== github only ==="; preflight; module_github; return ;;
+        runpod-ssh) log "=== runpod ssh key only ==="; preflight; module_runpod_ssh; return ;;
         claude-rc) log "=== claude remote control only ==="; preflight; module_claude_rc; return ;;
         vscode-web) log "=== vscode web only ==="; preflight; module_vscode_web; return ;;
         ssh-hostkeys) log "=== ssh host keys only ==="; preflight; module_ssh_hostkeys; return ;;
@@ -1658,6 +1692,7 @@ main() {
     optional module_claude_rc
     optional module_cloud
     optional module_github
+    optional module_runpod_ssh
     module_tailscale
     optional module_vscode_web
     module_keyholder
