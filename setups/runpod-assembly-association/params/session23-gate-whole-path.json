@@ -1,0 +1,417 @@
+{
+ "session": "s23-gate-whole-path",
+ "engine": {
+  "n_neurons": 5000,
+  "reservoir_shape": [
+   1,
+   1,
+   1
+  ],
+  "seed": 0,
+  "engine_chem_dim": 32,
+  "n_synapses": 775
+ },
+ "defaults": {
+  "video": {
+   "enabled": false
+  }
+ },
+ "jobs": [
+  {
+   "name": "s4-sat8.0-dec0.01-both",
+   "type": "substep4",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 6.0,
+    "gain_ie": 6.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.5,
+     "w_ee": 0.2
+    },
+    "c1": {
+     "gain": 20.0,
+     "decay": 0.01,
+     "saturation": 8.0
+    },
+    "c2": {
+     "gain": 20.0,
+     "decay": 0.01,
+     "saturation": 8.0
+    },
+    "train_noise": null,
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 1.0,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": 0.4,
+     "theta2": 0.4,
+     "soft1": 0.4,
+     "soft2": 0.4
+    },
+    "protocol": {
+     "pair_distance": 2.0,
+     "max_c1_rounds": 50,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 10
+    },
+    "video": {
+     "enabled": true,
+     "frame_stride": 6
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   }
+  },
+  {
+   "name": "s4-sat8.0-dec0.01-pre_c1",
+   "type": "substep4",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 6.0,
+    "gain_ie": 6.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.5,
+     "w_ee": 0.2
+    },
+    "c1": {
+     "gain": 20.0,
+     "decay": 0.01,
+     "saturation": 8.0
+    },
+    "c2": {
+     "gain": 20.0,
+     "decay": 0.01,
+     "saturation": 8.0
+    },
+    "train_noise": null,
+    "plasticity": {
+     "rule": "pre_c1",
+     "a_pre": 1.0,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": 0.4,
+     "theta2": 0.4,
+     "soft1": 0.4,
+     "soft2": 0.4
+    },
+    "protocol": {
+     "pair_distance": 2.0,
+     "max_c1_rounds": 50,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 10
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   }
+  },
+  {
+   "name": "s4-sat8.0-dec0.005-both",
+   "type": "substep4",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 6.0,
+    "gain_ie": 6.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.5,
+     "w_ee": 0.2
+    },
+    "c1": {
+     "gain": 20.0,
+     "decay": 0.005,
+     "saturation": 8.0
+    },
+    "c2": {
+     "gain": 20.0,
+     "decay": 0.005,
+     "saturation": 8.0
+    },
+    "train_noise": null,
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 1.0,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": 0.4,
+     "theta2": 0.4,
+     "soft1": 0.4,
+     "soft2": 0.4
+    },
+    "protocol": {
+     "pair_distance": 2.0,
+     "max_c1_rounds": 50,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 10
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   }
+  },
+  {
+   "name": "s4-sat8.0-dec0.005-pre_c1",
+   "type": "substep4",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 6.0,
+    "gain_ie": 6.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.5,
+     "w_ee": 0.2
+    },
+    "c1": {
+     "gain": 20.0,
+     "decay": 0.005,
+     "saturation": 8.0
+    },
+    "c2": {
+     "gain": 20.0,
+     "decay": 0.005,
+     "saturation": 8.0
+    },
+    "train_noise": null,
+    "plasticity": {
+     "rule": "pre_c1",
+     "a_pre": 1.0,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": 0.4,
+     "theta2": 0.4,
+     "soft1": 0.4,
+     "soft2": 0.4
+    },
+    "protocol": {
+     "pair_distance": 2.0,
+     "max_c1_rounds": 50,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 10
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   }
+  },
+  {
+   "name": "s4-sat16.0-dec0.01-both",
+   "type": "substep4",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 6.0,
+    "gain_ie": 6.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.5,
+     "w_ee": 0.2
+    },
+    "c1": {
+     "gain": 20.0,
+     "decay": 0.01,
+     "saturation": 16.0
+    },
+    "c2": {
+     "gain": 20.0,
+     "decay": 0.01,
+     "saturation": 16.0
+    },
+    "train_noise": null,
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 1.0,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": 0.8,
+     "theta2": 0.8,
+     "soft1": 0.8,
+     "soft2": 0.8
+    },
+    "protocol": {
+     "pair_distance": 2.0,
+     "max_c1_rounds": 50,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 10
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   }
+  },
+  {
+   "name": "s4-sat16.0-dec0.01-pre_c1",
+   "type": "substep4",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 6.0,
+    "gain_ie": 6.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.5,
+     "w_ee": 0.2
+    },
+    "c1": {
+     "gain": 20.0,
+     "decay": 0.01,
+     "saturation": 16.0
+    },
+    "c2": {
+     "gain": 20.0,
+     "decay": 0.01,
+     "saturation": 16.0
+    },
+    "train_noise": null,
+    "plasticity": {
+     "rule": "pre_c1",
+     "a_pre": 1.0,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": 0.8,
+     "theta2": 0.8,
+     "soft1": 0.8,
+     "soft2": 0.8
+    },
+    "protocol": {
+     "pair_distance": 2.0,
+     "max_c1_rounds": 50,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 10
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   }
+  },
+  {
+   "name": "s4-sat16.0-dec0.005-both",
+   "type": "substep4",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 6.0,
+    "gain_ie": 6.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.5,
+     "w_ee": 0.2
+    },
+    "c1": {
+     "gain": 20.0,
+     "decay": 0.005,
+     "saturation": 16.0
+    },
+    "c2": {
+     "gain": 20.0,
+     "decay": 0.005,
+     "saturation": 16.0
+    },
+    "train_noise": null,
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 1.0,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": 0.8,
+     "theta2": 0.8,
+     "soft1": 0.8,
+     "soft2": 0.8
+    },
+    "protocol": {
+     "pair_distance": 2.0,
+     "max_c1_rounds": 50,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 10
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   }
+  },
+  {
+   "name": "s4-sat16.0-dec0.005-pre_c1",
+   "type": "substep4",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 6.0,
+    "gain_ie": 6.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.5,
+     "w_ee": 0.2
+    },
+    "c1": {
+     "gain": 20.0,
+     "decay": 0.005,
+     "saturation": 16.0
+    },
+    "c2": {
+     "gain": 20.0,
+     "decay": 0.005,
+     "saturation": 16.0
+    },
+    "train_noise": null,
+    "plasticity": {
+     "rule": "pre_c1",
+     "a_pre": 1.0,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": 0.8,
+     "theta2": 0.8,
+     "soft1": 0.8,
+     "soft2": 0.8
+    },
+    "protocol": {
+     "pair_distance": 2.0,
+     "max_c1_rounds": 50,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 10
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   }
+  }
+ ]
+}

@@ -1,0 +1,298 @@
+{
+ "session": "s3-substep1-sweep",
+ "engine": {
+  "n_neurons": 5000,
+  "reservoir_shape": [
+   1,
+   1,
+   1
+  ],
+  "seed": 0,
+  "engine_chem_dim": 32
+ },
+ "defaults": {
+  "video": {
+   "enabled": false
+  }
+ },
+ "jobs": [
+  {
+   "name": "s1-S1000-k3-pt0.0",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 1000
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.0
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    }
+   }
+  },
+  {
+   "name": "s1-S1000-k3-pt0.02",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 1000
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.02
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    }
+   }
+  },
+  {
+   "name": "s1-S1000-k3-pt0.05",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 1000
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.05
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    }
+   }
+  },
+  {
+   "name": "s1-S1000-k3-pt0.1",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 1000
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.1
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    }
+   }
+  },
+  {
+   "name": "s1-S1000-k10-pt0.0",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 1000
+   },
+   "params": {
+    "k_inject": 10,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.0
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    }
+   }
+  },
+  {
+   "name": "s1-S1000-k10-pt0.02",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 1000
+   },
+   "params": {
+    "k_inject": 10,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.02
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    }
+   }
+  },
+  {
+   "name": "s1-S1000-k10-pt0.05",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 1000
+   },
+   "params": {
+    "k_inject": 10,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.05
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    },
+    "video": {
+     "enabled": true
+    }
+   }
+  },
+  {
+   "name": "s1-S1000-k10-pt0.1",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 1000
+   },
+   "params": {
+    "k_inject": 10,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.1
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    }
+   }
+  },
+  {
+   "name": "s1-S300-k3-pt0.0",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.0
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    }
+   }
+  },
+  {
+   "name": "s1-S300-k3-pt0.02",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.02
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    }
+   }
+  },
+  {
+   "name": "s1-S300-k3-pt0.05",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.05
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    }
+   }
+  },
+  {
+   "name": "s1-S300-k3-pt0.1",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.1
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    }
+   }
+  },
+  {
+   "name": "s1-S300-k10-pt0.0",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 10,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.0
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    }
+   }
+  },
+  {
+   "name": "s1-S300-k10-pt0.02",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 10,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.02
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    }
+   }
+  },
+  {
+   "name": "s1-S300-k10-pt0.05",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 10,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.05
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    },
+    "video": {
+     "enabled": true
+    }
+   }
+  },
+  {
+   "name": "s1-S300-k10-pt0.1",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 10,
+    "inject_current": 20,
+    "noise": {
+     "pt": 0.1
+    },
+    "weights": {
+     "w_intra_ee": 1.0
+    }
+   }
+  }
+ ]
+}

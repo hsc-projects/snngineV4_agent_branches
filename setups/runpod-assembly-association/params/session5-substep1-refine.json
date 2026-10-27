@@ -1,0 +1,356 @@
+{
+ "session": "s5-substep1-refine",
+ "engine": {
+  "n_neurons": 5000,
+  "reservoir_shape": [
+   1,
+   1,
+   1
+  ],
+  "seed": 0,
+  "engine_chem_dim": 32,
+  "n_synapses": 300
+ },
+ "defaults": {
+  "video": {
+   "enabled": false
+  }
+ },
+ "jobs": [
+  {
+   "name": "s1-intra15-k3",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "gain": 1.0,
+    "weights": {
+     "w_intra_ee": 15.0
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-intra15-k5",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 5,
+    "inject_current": 20,
+    "gain": 1.0,
+    "weights": {
+     "w_intra_ee": 15.0
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-intra20-k3",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "gain": 1.0,
+    "weights": {
+     "w_intra_ee": 20.0
+    },
+    "video": {
+     "enabled": true
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-intra20-k5",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 5,
+    "inject_current": 20,
+    "gain": 1.0,
+    "weights": {
+     "w_intra_ee": 20.0
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-intra30-k3",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "gain": 1.0,
+    "weights": {
+     "w_intra_ee": 30.0
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-intra30-k5",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 5,
+    "inject_current": 20,
+    "gain": 1.0,
+    "weights": {
+     "w_intra_ee": 30.0
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-g6-wiebase",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "gain": 6.0,
+    "weights": {
+     "w_intra_ee": 1.0,
+     "w_ie": null
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-g6-wie-1.0",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "gain": 6.0,
+    "weights": {
+     "w_intra_ee": 1.0,
+     "w_ie": -1.0
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-g7-wiebase",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "gain": 7.0,
+    "weights": {
+     "w_intra_ee": 1.0,
+     "w_ie": null
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-g7-wie-1.0",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "gain": 7.0,
+    "weights": {
+     "w_intra_ee": 1.0,
+     "w_ie": -1.0
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-g8-wiebase",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "gain": 8.0,
+    "weights": {
+     "w_intra_ee": 1.0,
+     "w_ie": null
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-g8-wie-1.0",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "gain": 8.0,
+    "weights": {
+     "w_intra_ee": 1.0,
+     "w_ie": -1.0
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-g9-wiebase",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "gain": 9.0,
+    "weights": {
+     "w_intra_ee": 1.0,
+     "w_ie": null
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-g9-wie-1.0",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "gain": 9.0,
+    "weights": {
+     "w_intra_ee": 1.0,
+     "w_ie": -1.0
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-g2-intra5",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "gain": 2.0,
+    "weights": {
+     "w_intra_ee": 5.0
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-g2-intra10",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "gain": 2.0,
+    "weights": {
+     "w_intra_ee": 10.0
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-g3-intra5",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "gain": 3.0,
+    "weights": {
+     "w_intra_ee": 5.0
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  },
+  {
+   "name": "s1-g3-intra7",
+   "type": "substep1",
+   "engine": {
+    "n_synapses": 300
+   },
+   "params": {
+    "k_inject": 3,
+    "inject_current": 20,
+    "gain": 3.0,
+    "weights": {
+     "w_intra_ee": 7.0
+    }
+   },
+   "kwargs": {
+    "n_groups": 10
+   }
+  }
+ ]
+}

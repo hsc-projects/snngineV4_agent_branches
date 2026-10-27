@@ -1,0 +1,471 @@
+{
+ "session": "s19-regime-refine",
+ "engine": {
+  "n_neurons": 5000,
+  "reservoir_shape": [
+   1,
+   1,
+   1
+  ],
+  "seed": 0,
+  "engine_chem_dim": 32,
+  "n_synapses": 775
+ },
+ "defaults": {
+  "video": {
+   "enabled": false
+  }
+ },
+ "jobs": [
+  {
+   "name": "diag-g6.0-ie6.0-ei1.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 6.0,
+    "gain_ie": 6.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.5,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g6.0-ie6.0-ei2.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 6.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.5,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g6.0-ie8.0-ei1.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 6.0,
+    "gain_ie": 8.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.5,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g6.0-ie8.0-ei2.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 6.0,
+    "gain_ie": 8.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.5,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g6.0-ie12.0-ei1.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 6.0,
+    "gain_ie": 12.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.5,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g6.0-ie12.0-ei2.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 6.0,
+    "gain_ie": 12.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.5,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g7.0-ie6.0-ei1.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 7.0,
+    "gain_ie": 6.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.142857142857143,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g7.0-ie6.0-ei2.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 7.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.142857142857143,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g7.0-ie8.0-ei1.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 7.0,
+    "gain_ie": 8.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.142857142857143,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g7.0-ie8.0-ei2.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 7.0,
+    "gain_ie": 8.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.142857142857143,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g7.0-ie12.0-ei1.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 7.0,
+    "gain_ie": 12.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.142857142857143,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g7.0-ie12.0-ei2.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 7.0,
+    "gain_ie": 12.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 2.142857142857143,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g8.0-ie6.0-ei1.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 8.0,
+    "gain_ie": 6.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 1.875,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g8.0-ie6.0-ei2.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 8.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 1.875,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g8.0-ie8.0-ei1.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 8.0,
+    "gain_ie": 8.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 1.875,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g8.0-ie8.0-ei2.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 8.0,
+    "gain_ie": 8.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 1.875,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g8.0-ie12.0-ei1.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 8.0,
+    "gain_ie": 12.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 1.875,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g8.0-ie12.0-ei2.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 8.0,
+    "gain_ie": 12.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 1.875,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  }
+ ]
+}

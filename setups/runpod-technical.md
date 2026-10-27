@@ -19,6 +19,7 @@ Rationale, alternatives, and open items: `runpod-rationale.md`.
 - **GPU pod**: none currently running (ephemeral). Validated GPU classes in `EU-RO-1`:
   - `NVIDIA RTX 4090` (24 GB VRAM, Ada)
   - `NVIDIA RTX PRO 4000 Blackwell` (24 GB VRAM, Blackwell)
+  - `NVIDIA L4` (24 GB VRAM, Ada; the assembly task's fallback when no RTX 4090 is available)
   Pods are provisioned on demand and terminated immediately upon artifact delivery ($0.00/hr idle compute spend).
 - **Base image**: `runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404` (Ubuntu 24.04 LTS, Python 3.12, CUDA 12.8, PyTorch 2.8.0).
 - **Tooling**:
@@ -93,3 +94,38 @@ Verified in engine smoke test and video generation runs ([`setups/runpod-engine-
 - **NumPy 2.x Read-Only Buffer Flags**: On Ubuntu 24.04 / Python 3.12 containers running NumPy 2.x, numpy views produced during host-device synchronization default to `flags.writeable = False`. In-place slice updates (`dest[:] = v.cpu().numpy()`) require checking and re-enabling write flags (`dest.setflags(write=True)`).
 - **Windows OpenSSH 9.5 SCP Protocol**: OpenSSH 9.0+ defaults to SFTP. Connecting from Windows OpenSSH 9.5 against Runpod container `sshd` instances without active SFTP subsystems hangs indefinitely. Automation scripts must pass `-O` to force legacy SCP transport.
 
+## Running pod sessions
+
+The workflow of the assembly-association task (sessions s1 to s70, 2026-10-25 and 26); its scripts in
+`runpod-assembly-association/` are the reference implementation. Task reports link here and keep only
+their task-specific commands.
+
+1. **Stock and price:** Runpod MCP `list-gpu-types` (`include: AVAILABILITY`, `product: POD`,
+   `countryCodes: RO`, `minCudaVersion 12.8`, `cloud SECURE`); quote the hourly price before creating.
+   A create can be refused for capacity although the catalog lists stock; retry later or use another
+   card of the same architecture (RTX 4090 and L4 are both SM 89).
+2. **One architecture per batch:** the C++/CUDA backend build on the volume is architecture-specific;
+   the assembly runner parks and restores builds per architecture (`build_sm<arch>`). Parallel pods of
+   different GPU families race over the shared `build` directory, so never mix them in one batch.
+3. **Create:** `create-pod` with the base image, `dataCenterIds: ["EU-RO-1"]`, `cloud: "SECURE"`, the
+   GPU and `minCudaVersion 12.8`, `ports: ["22/tcp"]`, `startSsh: true`, the network volume at
+   `/workspace`, `disk 20`. Direct SSH (`ssh.direct` in `get-pod`) appears after 1 to 2 minutes; one
+   pod never got a runtime (s67), so terminate a pod still without one after about 5 minutes.
+4. **Upload once:** the volume is shared, so upload code and parameter files through one pod with
+   `scp -O` (Windows OpenSSH needs the legacy protocol; from PowerShell, since Git Bash rewrites remote
+   paths) and compare MD5 sums with the local files.
+5. **Check before running:** after any code change, run the task's module checks once on a pod (CPU and
+   GPU); the host has no torch. **Never upload code while sessions run:** they import from the volume.
+6. **Run detached:** start sessions with a runner that detaches and writes a `.finished` marker, never
+   through a long-lived SSH connection (a dropped connection once left a pod idle for 31 minutes). A pod
+   can run two sessions side by side when one does not saturate the GPU, or chain a second session
+   behind the first's marker.
+7. **Collect per pod:** one background collector per pod (`collect_pod_sessions.py <pods.csv> output
+   params`, CSV columns `letter,id,host,port,params`), so that each pod can be terminated as soon as its
+   own sessions are downloaded. Terminate only after the collector reports `PENDING none` (it exits
+   with code 1 otherwise); results remain on the volume and can be fetched with a later pod.
+8. **Terminate and verify:** `delete-pod` for each pod created (success is a 204 response), then
+   `list-pods` must return `[]`. Pods never stop themselves.
+9. **Cost:** record each session's pods and lifetimes in the task report; check `list-pod-billing`
+   before a new batch. Billing posts with a delay; estimates from lifetime x hourly price came out
+   above the billed amounts so far.

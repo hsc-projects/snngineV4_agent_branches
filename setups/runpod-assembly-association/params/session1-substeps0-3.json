@@ -1,0 +1,17 @@
+{
+  "session": "s1-substeps0-3",
+  "engine": {"n_neurons": 5000, "reservoir_shape": [1, 1, 1], "seed": 0, "engine_chem_dim": 32},
+  "defaults": {"video": {"enabled": false}},
+  "jobs": [
+    {"name": "s0-harness", "type": "substep0"},
+    {"name": "s1-I20-wi1.0", "type": "substep1", "params": {"inject_current": 20, "weights": {"w_intra_ee": 1.0}, "video": {"enabled": true}}},
+    {"name": "s1-I20-wi1.0-wee0.2", "type": "substep1", "params": {"inject_current": 20, "weights": {"w_intra_ee": 1.0, "w_ee": 0.2}}},
+    {"name": "s1-I40-wi1.0", "type": "substep1", "params": {"inject_current": 40, "weights": {"w_intra_ee": 1.0}}},
+    {"name": "s1-I40-wi1.0-wee0.2", "type": "substep1", "params": {"inject_current": 40, "weights": {"w_intra_ee": 1.0, "w_ee": 0.2}}},
+    {"name": "s1-I20-wi0.7", "type": "substep1", "params": {"inject_current": 20, "weights": {"w_intra_ee": 0.7}}},
+    {"name": "s1-I40-wi0.7-wee0.2", "type": "substep1", "params": {"inject_current": 40, "weights": {"w_intra_ee": 0.7, "w_ee": 0.2}}},
+    {"name": "s2-chemistry", "type": "substep2"},
+    {"name": "s3-plasticity", "type": "substep3"},
+    {"name": "s4-probe-d2", "type": "substep4", "params": {"protocol": {"pair_distance": 2.0, "max_c1_rounds": 10}}}
+  ]
+}

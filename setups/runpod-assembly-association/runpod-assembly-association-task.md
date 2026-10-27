@@ -1,7 +1,9 @@
 # Task: Minimal Version of the Main Feature (Assembly Association via Chemical Release and Gated Plasticity)
 
 > [!NOTE]
-> **Status: approved by the user; nothing implemented yet.** **[default]**
+> **Status: approved by the user; implementation in progress (see the report). Later decisions of
+> the user, listed under "Revisions agreed with the user" at the end, take precedence over the text
+> below where they differ.** **[default]**
 > marks a starting value the user adopted; the agent may change it (see
 > "Defaults"). The requirements and the protocol below are not the agent's to
 > change.
@@ -303,6 +305,32 @@ including distant ones, in the large reservoir, without pair-specific tuning.
 Record VRAM use and steps per second. If pairs beyond some distance are
 unreachable through existing synapses, report that threshold as a finding.
 
+### Substep 7: Assessment video (last)
+Once the minimal version works (or at the end of the work, on the best run so far), render
+one video in which the user can judge visually whether the association formed.
+- **3D view:** neurons as markers (A, B and C outlined), and the synapses whose permanent
+  weight changed (`w_perm` against the initial weights), drawn as lines coloured by the size
+  of the change, growing as the protocol runs. Reuse the line approach of the old code
+  (SNNgine3D `SynapseLineVisual` / `CudaLineVisual`: VisPy `LineVisual` with
+  `method='gl'`, `antialias=False`, width 1); use `connect='segments'` with two vertices per
+  synapse so that each synapse gets its own colour.
+- **Phase timeline:** a flat horizontal bar along the bottom, in the style of
+  `sleep_timeline.png`, with one coloured segment per protocol phase (gap, joint activation
+  with C1 release, C1-phase test, C2 stage, final test A alone), and a moving vertical
+  playhead showing the current simulation step, like a video player's progress bar.
+- Optional side panels: `A_g(t)` for A, B and C, and C1 / C2 along the A-B line.
+**Pass:** the user can tell from the video which phase is running, where synapses were
+reinforced (between A and B, not elsewhere), and whether B becomes active when A alone is
+stimulated in the final test.
+
+### Substep 8: Sparse assemblies (last; not fully formulated yet)
+Noted by the user on 2026-10-25; to be formulated with the user later. Substeps 1 to 7 treat
+every grid cell as an assembly (the intra-group boost of shortcut 1 is applied to every
+location group). In the intended setup only some grid locations are assemblies; the neurons
+between them are ordinary reservoir neurons without the boost. Fixed so far:
+- assemblies are separated by at least one non-assembly grid cell;
+- C is an assembly.
+
 ## Artifacts
 
 ```text
@@ -315,3 +343,18 @@ setups/runpod-assembly-association/
 ├── kernels/                                 # own CUDA kernels and build files, if written
 └── output/                                  # gitignored videos and telemetry
 ```
+
+## Revisions agreed with the user (2026-10-26)
+
+1. **Wiring:** the engine's connectivity is practically flat in space, so the harness rewires
+   synapses by distance (λ = 0.4 cells); distance is measured relative to the connection range.
+2. **Pass criterion of Substep 4:** A -> B (or the reverse) >= 0.5 in the final test, no runaway, at
+   most 10 % of all groups active outside A, B and the route; a few stray groups are acceptable,
+   whole-network activation is not. Control 2 (C <= 0.1) is recorded but no longer a pass condition.
+3. **C1 (provisional):** may be skipped in the minimal version, where current is injected directly
+   into A and B.
+4. **C2:** released in the short circuit state by every active neuron in proportion to its activity.
+5. **Controls:** control 1 concerns C2 while C1 is skipped; a joint-activation control is added (A
+   and B trained in alternating rounds must not become associated).
+6. **Energy (shortcut 2):** may take the form of a global fuel (C3) delivered where it is used.
+7. **Cost cap:** $90.

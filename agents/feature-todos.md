@@ -18,7 +18,14 @@ Each entry gets a priority: **high**, **mid**, or **low**.
   implemented and tuned on Runpod:
   - Task write-up: `setups/runpod-assembly-association/runpod-assembly-association-task.md`.
   - Context: `agents/main_feature/main-feature-readme-reconstruction.md`.
-  - Status: task approved; nothing implemented.
+  - Status: in progress (paused 2026-10-26, iteration 58). Substeps 0 to 3 pass. Substep 4 passes in
+    6 of 24 pairs at distance 4 under the user's revised criterion (a few stray groups allowed), with
+    C1 skipped (provisional) and C2 consolidating the short circuit; the associations need joint
+    activation (control). Open: pass rate, seed dependence, whole-network transfers, distance 6. Next
+    prepared step: the C3 fuel sweep. Substep 7 (assessment video) specified, not built. Cost about
+    $57 of a $90 cap.
+    Handoff: `setups/runpod-assembly-association/runpod-assembly-association-report.md`
+    ("Handoff for the next agent"); details in `tuning-log.md` (iterations 53 to 58).
 
 ## Completed
 

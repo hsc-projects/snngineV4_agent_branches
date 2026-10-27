@@ -1,0 +1,1507 @@
+{
+ "session": "s33b-seed0-N20k-intra-normalized",
+ "engine": {
+  "n_neurons": 20000,
+  "reservoir_shape": [
+   1,
+   1,
+   1
+  ],
+  "seed": 0,
+  "engine_chem_dim": 32,
+  "n_synapses": 2000
+ },
+ "defaults": {
+  "video": {
+   "enabled": false
+  }
+ },
+ "jobs": [
+  {
+   "name": "s1-T40-capnone-k8-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 10.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T40-capnone-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 10.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T40-capnone-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 10.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-T40-capnone-k12-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 10.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T40-capnone-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 10.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T40-capnone-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 10.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-T40-cap30-k8-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 10.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T40-cap30-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 10.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T40-cap30-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 10.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-T40-cap30-k12-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 10.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T40-cap30-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 10.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T40-cap30-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 10.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-T60-capnone-k8-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 15.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T60-capnone-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 15.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T60-capnone-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 15.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-T60-capnone-k12-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 15.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T60-capnone-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 15.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T60-capnone-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 15.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-T60-cap30-k8-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 15.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T60-cap30-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 15.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T60-cap30-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 15.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-T60-cap30-k12-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 15.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T60-cap30-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 15.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T60-cap30-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 15.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-T80-capnone-k8-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 20.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T80-capnone-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 20.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T80-capnone-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 20.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-T80-capnone-k12-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 20.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T80-capnone-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 20.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T80-capnone-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 20.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-T80-cap30-k8-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 20.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T80-cap30-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 20.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T80-cap30-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 20.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-T80-cap30-k12-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 20.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T80-cap30-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 20.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T80-cap30-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 20.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-T120-capnone-k8-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 30.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T120-capnone-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 30.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T120-capnone-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 30.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-T120-capnone-k12-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 30.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T120-capnone-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 30.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T120-capnone-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 30.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-T120-cap30-k8-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 30.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T120-cap30-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 30.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T120-cap30-k8-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 30.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-T120-cap30-k12-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 30.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-T120-cap30-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 30.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-T120-cap30-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee_total": 30.0,
+     "w_intra_ee_cap": 7.5
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "s1-uniformI25-k12-ie6-ei2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee": 6.25
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "n_groups": 343
+   }
+  },
+  {
+   "name": "diag-d2-uniformI25-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee": 6.25
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  },
+  {
+   "name": "diag-d3-uniformI25-k12-ie6-ei2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 2.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.1,
+     "w_intra_ee": 6.25
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "protocol": {
+     "pair_distance": 3.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   },
+   "kwargs": {
+    "radius": 1.0,
+    "n_pairs": 5
+   }
+  }
+ ]
+}

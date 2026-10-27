@@ -1,0 +1,141 @@
+{
+ "session": "s46-conn-survey",
+ "engine": {
+  "n_neurons": 20000,
+  "reservoir_shape": [
+   1,
+   1,
+   1
+  ],
+  "seed": 0,
+  "engine_chem_dim": 32,
+  "n_synapses": 2000
+ },
+ "defaults": {
+  "video": {
+   "enabled": false
+  }
+ },
+ "jobs": [
+  {
+   "name": "conn-N20k-S200",
+   "type": "conn_survey",
+   "params": {},
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 200,
+    "seed": 0
+   }
+  },
+  {
+   "name": "conn-N20k-S500",
+   "type": "conn_survey",
+   "params": {},
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 500,
+    "seed": 0
+   }
+  },
+  {
+   "name": "conn-N20k-S1000",
+   "type": "conn_survey",
+   "params": {},
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 1000,
+    "seed": 0
+   }
+  },
+  {
+   "name": "conn-N20k-S2000",
+   "type": "conn_survey",
+   "params": {},
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0
+   }
+  },
+  {
+   "name": "conn-N50k-S500",
+   "type": "conn_survey",
+   "params": {},
+   "engine": {
+    "n_neurons": 50000,
+    "n_synapses": 500,
+    "seed": 0
+   }
+  },
+  {
+   "name": "conn-N50k-S1000",
+   "type": "conn_survey",
+   "params": {},
+   "engine": {
+    "n_neurons": 50000,
+    "n_synapses": 1000,
+    "seed": 0
+   }
+  },
+  {
+   "name": "conn-N50k-S2000",
+   "type": "conn_survey",
+   "params": {},
+   "engine": {
+    "n_neurons": 50000,
+    "n_synapses": 2000,
+    "seed": 0
+   }
+  },
+  {
+   "name": "conn-N100k-S500",
+   "type": "conn_survey",
+   "params": {},
+   "engine": {
+    "n_neurons": 100000,
+    "n_synapses": 500,
+    "seed": 0
+   }
+  },
+  {
+   "name": "conn-N100k-S1000",
+   "type": "conn_survey",
+   "params": {},
+   "engine": {
+    "n_neurons": 100000,
+    "n_synapses": 1000,
+    "seed": 0
+   }
+  },
+  {
+   "name": "conn-N100k-S2000",
+   "type": "conn_survey",
+   "params": {},
+   "engine": {
+    "n_neurons": 100000,
+    "n_synapses": 2000,
+    "seed": 0
+   }
+  },
+  {
+   "name": "conn-N150k-S1000",
+   "type": "conn_survey",
+   "params": {},
+   "engine": {
+    "n_neurons": 150000,
+    "n_synapses": 1000,
+    "seed": 0
+   }
+  },
+  {
+   "name": "conn-N150k-S2000",
+   "type": "conn_survey",
+   "params": {},
+   "engine": {
+    "n_neurons": 150000,
+    "n_synapses": 2000,
+    "seed": 0
+   }
+  }
+ ]
+}

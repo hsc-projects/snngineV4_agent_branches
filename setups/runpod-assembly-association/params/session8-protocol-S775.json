@@ -1,0 +1,212 @@
+{
+ "session": "s8-protocol-S775",
+ "engine": {
+  "n_neurons": 5000,
+  "reservoir_shape": [
+   1,
+   1,
+   1
+  ],
+  "seed": 0,
+  "engine_chem_dim": 32,
+  "n_synapses": 775
+ },
+ "defaults": {
+  "video": {
+   "enabled": false
+  }
+ },
+ "jobs": [
+  {
+   "name": "s1-all125-seed0",
+   "type": "substep1",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 1.0,
+    "weights": {
+     "w_intra_ee": 15.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "n_groups": 125
+   }
+  },
+  {
+   "name": "s4-d1-th1.0",
+   "type": "substep4",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 1.0,
+    "weights": {
+     "w_intra_ee": 15.0
+    },
+    "plasticity": {
+     "theta1": 1.0,
+     "theta2": 1.0,
+     "soft1": 1.0,
+     "soft2": 1.0
+    },
+    "protocol": {
+     "pair_distance": 1.0,
+     "max_c1_rounds": 15
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   }
+  },
+  {
+   "name": "s4-d1-th3.0",
+   "type": "substep4",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 1.0,
+    "weights": {
+     "w_intra_ee": 15.0
+    },
+    "plasticity": {
+     "theta1": 3.0,
+     "theta2": 3.0,
+     "soft1": 3.0,
+     "soft2": 3.0
+    },
+    "protocol": {
+     "pair_distance": 1.0,
+     "max_c1_rounds": 15
+    },
+    "video": {
+     "enabled": true,
+     "frame_stride": 4
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   }
+  },
+  {
+   "name": "s4-d1-th6.0",
+   "type": "substep4",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 1.0,
+    "weights": {
+     "w_intra_ee": 15.0
+    },
+    "plasticity": {
+     "theta1": 6.0,
+     "theta2": 6.0,
+     "soft1": 6.0,
+     "soft2": 6.0
+    },
+    "protocol": {
+     "pair_distance": 1.0,
+     "max_c1_rounds": 15
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   }
+  },
+  {
+   "name": "s4-d2-th1.0",
+   "type": "substep4",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 1.0,
+    "weights": {
+     "w_intra_ee": 15.0
+    },
+    "plasticity": {
+     "theta1": 1.0,
+     "theta2": 1.0,
+     "soft1": 1.0,
+     "soft2": 1.0
+    },
+    "protocol": {
+     "pair_distance": 2.0,
+     "max_c1_rounds": 15
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   }
+  },
+  {
+   "name": "s4-d2-th3.0",
+   "type": "substep4",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 1.0,
+    "weights": {
+     "w_intra_ee": 15.0
+    },
+    "plasticity": {
+     "theta1": 3.0,
+     "theta2": 3.0,
+     "soft1": 3.0,
+     "soft2": 3.0
+    },
+    "protocol": {
+     "pair_distance": 2.0,
+     "max_c1_rounds": 15
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   }
+  },
+  {
+   "name": "s4-d2-th6.0",
+   "type": "substep4",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 1.0,
+    "weights": {
+     "w_intra_ee": 15.0
+    },
+    "plasticity": {
+     "theta1": 6.0,
+     "theta2": 6.0,
+     "soft1": 6.0,
+     "soft2": 6.0
+    },
+    "protocol": {
+     "pair_distance": 2.0,
+     "max_c1_rounds": 15
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   }
+  },
+  {
+   "name": "s1-20groups-seed1",
+   "type": "substep1",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 1.0,
+    "weights": {
+     "w_intra_ee": 15.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775,
+    "seed": 1
+   },
+   "kwargs": {
+    "n_groups": 20
+   }
+  }
+ ]
+}

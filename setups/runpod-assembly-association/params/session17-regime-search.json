@@ -1,0 +1,453 @@
+{
+ "session": "s17-regime-search",
+ "engine": {
+  "n_neurons": 5000,
+  "reservoir_shape": [
+   1,
+   1,
+   1
+  ],
+  "seed": 0,
+  "engine_chem_dim": 32,
+  "n_synapses": 775
+ },
+ "defaults": {
+  "video": {
+   "enabled": false
+  }
+ },
+ "jobs": [
+  {
+   "name": "diag-g4.0-wee0.05-ie4.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 4.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 3.75,
+     "w_ee": 0.05
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g4.0-wee0.05-ie16.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 16.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 3.75,
+     "w_ee": 0.05
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g4.0-wee0.15-ie4.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 4.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 3.75,
+     "w_ee": 0.15
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g4.0-wee0.15-ie16.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 16.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 3.75,
+     "w_ee": 0.15
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g4.0-wee0.47-ie4.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 4.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 3.75,
+     "w_ee": 0.47
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g4.0-wee0.47-ie16.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 16.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 3.75,
+     "w_ee": 0.47
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g8.0-wee0.05-ie4.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 8.0,
+    "gain_ie": 4.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 1.875,
+     "w_ee": 0.05
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g8.0-wee0.05-ie16.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 8.0,
+    "gain_ie": 16.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 1.875,
+     "w_ee": 0.05
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g8.0-wee0.15-ie4.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 8.0,
+    "gain_ie": 4.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 1.875,
+     "w_ee": 0.15
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g8.0-wee0.15-ie16.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 8.0,
+    "gain_ie": 16.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 1.875,
+     "w_ee": 0.15
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g8.0-wee0.47-ie4.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 8.0,
+    "gain_ie": 4.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 1.875,
+     "w_ee": 0.47
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g8.0-wee0.47-ie16.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 8.0,
+    "gain_ie": 16.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 1.875,
+     "w_ee": 0.47
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g12.0-wee0.05-ie4.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 12.0,
+    "gain_ie": 4.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 1.25,
+     "w_ee": 0.05
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g12.0-wee0.05-ie16.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 12.0,
+    "gain_ie": 16.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 1.25,
+     "w_ee": 0.05
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g12.0-wee0.15-ie4.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 12.0,
+    "gain_ie": 4.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 1.25,
+     "w_ee": 0.15
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g12.0-wee0.15-ie16.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 12.0,
+    "gain_ie": 16.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 1.25,
+     "w_ee": 0.15
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g12.0-wee0.47-ie4.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 12.0,
+    "gain_ie": 4.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 1.25,
+     "w_ee": 0.47
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "diag-g12.0-wee0.47-ie16.0",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 12.0,
+    "gain_ie": 16.0,
+    "gain_ei": 2.0,
+    "weights": {
+     "w_intra_ee": 1.25,
+     "w_ee": 0.47
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_synapses": 775
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  }
+ ]
+}

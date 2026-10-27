@@ -106,6 +106,17 @@ the distance-dependent connection probability, the synapse count per neuron
 and the delays; whether it exists in a given reservoir is part of what the
 experiment shows.
 
+**Later statements of the user (2026-10-26).**
+- *C₁ (tentative, "not 100 % sure"):* C₁ may mainly privilege assemblies tied to the STMM,
+  accumulating while the network dreams and activates groups at random. In the minimal version,
+  where current is injected straight into A and B, C₁ could be skipped if it does not help.
+- *C₂:* released in the short circuit situation, by the active neurons in proportion to their
+  activity (not by B alone).
+- *Energy (shortcut 2):* needed to keep the short circuit focused on the real route. Proposed
+  form: depletion is global and usage increases local availability; this could be a third
+  chemical, C₃, an energy fuel.
+- *Pass criterion:* catching a few stray assemblies is fine; whole-network activation is bad.
+
 ## Definitions
 
 - **seSNN**: the whole network, a spatially extended spiking neural network,

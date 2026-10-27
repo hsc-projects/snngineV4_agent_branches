@@ -1,0 +1,223 @@
+{
+ "session": "s31-N20k-determinism-imax",
+ "engine": {
+  "n_neurons": 20000,
+  "reservoir_shape": [
+   1,
+   1,
+   1
+  ],
+  "seed": 0,
+  "engine_chem_dim": 32,
+  "n_synapses": 2000
+ },
+ "defaults": {
+  "video": {
+   "enabled": false
+  }
+ },
+ "jobs": [
+  {
+   "name": "s1-S2000-g4.0-none-1",
+   "type": "substep1",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 3.75,
+     "w_ee": 0.2
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000
+   },
+   "kwargs": {
+    "n_groups": 20
+   }
+  },
+  {
+   "name": "diag-S2000-g4.0-ie4.0-none-1",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 4.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 3.75,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "s1-S2000-g4.0-none-2",
+   "type": "substep1",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 3.75,
+     "w_ee": 0.2
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000
+   },
+   "kwargs": {
+    "n_groups": 20
+   }
+  },
+  {
+   "name": "diag-S2000-g4.0-ie4.0-none-2",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 4.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 3.75,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    }
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "s1-S2000-g4.0-imax",
+   "type": "substep1",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 3.75,
+     "w_ee": 0.2
+    },
+    "i_max": 100.0
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000
+   },
+   "kwargs": {
+    "n_groups": 20
+   }
+  },
+  {
+   "name": "diag-S2000-g4.0-ie4.0-imax",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 4.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 3.75,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    },
+    "i_max": 100.0
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  },
+  {
+   "name": "s1-S2000-g4.0-imax-runaway",
+   "type": "substep1",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 6.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 3.75,
+     "w_ee": 0.2
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000
+   },
+   "kwargs": {
+    "n_groups": 20
+   }
+  },
+  {
+   "name": "diag-S2000-g4.0-ie4.0-imax-runaway",
+   "type": "diag_saturated_path",
+   "params": {
+    "k_inject": 8,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 4.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_intra_ee": 3.75,
+     "w_ee": 0.2
+    },
+    "protocol": {
+     "pair_distance": 2.0
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5
+   },
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000
+   },
+   "kwargs": {
+    "radius": 1.0
+   }
+  }
+ ]
+}

@@ -2,7 +2,7 @@
 
 | File | What it is |
 |---|---|
-| `runpod-technical.md` | Runpod environment: current configuration (region, volume, pods, credentials, containment plan) |
+| `runpod-technical.md` | Runpod environment: current configuration (region, volume, pods, credentials, containment plan) and how to run and collect pod sessions |
 | `runpod-rationale.md` | Runpod environment: decisions, reasoning, alternatives rejected, evidence, open items |
 | `pi-technical.md` | Pi host: current configuration (hardware, network, software, credentials) and how to operate it (flash, reach, sharing, pitfalls) |
 | `pi-rationale.md` | Pi host: decisions, reasoning, alternatives rejected, open items; its last block, "Where things stand", is where a new session starts |
@@ -24,6 +24,8 @@
 | `runpod-chem-diffusion/runpod-chem-diffusion-task.md` | Task write-up for Runpod headless 3D chemical source and volumetric diffusion video generation |
 | `runpod-chem-diffusion/runpod-chem-diffusion-report.md` | Execution report and quantitative diffusion telemetry for Runpod 3D chemical source and volumetric diffusion video generation |
 | `runpod-assembly-association/runpod-assembly-association-task.md` | Task write-up for the minimal version of the main feature: two assemblies associated through activity-proportional chemical release and chemical-gated plasticity, implemented and tuned on Runpod in a cost-efficient loop |
+| `runpod-assembly-association/runpod-assembly-association-report.md` | Report and handoff of the minimal-version work (results per substep, how to run a session, decisions) |
+| `runpod-assembly-association/tuning-log.md` | One entry per tuning iteration (hypothesis, change, result, decision); iterations 1 to 37 archived in `tuning-log-1-37.md` |
 | `runpod_find_combos.py` | Query live Runpod GraphQL API for in-stock, cost-optimal GPU/CPU options matching network volume constraints |
 | `.secrets/.env` | Gitignored credentials (e.g. `RUNPOD_API_KEY`) read at runtime by host tools |
 | `pi-smoke-test/task.md` | Task write-up for the Pi flash + SSH smoke test (two phases: write/flash the SD card, then SSH once the maintainer boots and connects the Pi) — done 2026-10-04, kept current |
