@@ -105,6 +105,10 @@ class GatedPlasticity:
             raise ValueError(f"unknown weight dependence {weight_dep}")
         self.weight_dep = weight_dep
 
+        # learning-rate scale on every learned change (a_plus, a_minus, a_pre); the protocol's
+        # rollback rule lowers it after a round that ignited (iteration 60)
+        self.rate_scale = 1.0
+
         self.w_perm = w_init.float().clone()
         self.w_fast = torch.zeros_like(self.w_perm)
         # synaptic normalization (iteration 48): each neuron's summed plastic input weight is kept
@@ -210,9 +214,9 @@ class GatedPlasticity:
         if learn:
             g1n = gate(c1_post, self.theta1, self.soft1)                 # (N,) per neuron
             if self.rule in ("stdp", "both"):
-                self.w_fast.add_(g1n[self.post] * self.timing_dw(spikes, t))
+                self.w_fast.add_(g1n[self.post] * self.timing_dw(spikes, t), alpha=self.rate_scale)
             if self.rule in ("pre_c1", "both"):
-                self.w_fast.add_(self.pre_c1_dw(spikes, g1n))
+                self.w_fast.add_(self.pre_c1_dw(spikes, g1n), alpha=self.rate_scale)
             if self.norm_factor:
                 self.normalize()
         if learn or consolidate:

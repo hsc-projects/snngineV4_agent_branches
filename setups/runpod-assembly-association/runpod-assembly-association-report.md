@@ -2,6 +2,46 @@
 
 ## Summary
 
+**Update (2026-10-28, iteration 65):** joint rounds without gaps (50 or 100 steps of injection, no
+pause) give 7 and 5 associations of 24 against 6, the same seed 0 pairs, and transfers come no faster:
+the gaps make no measurable difference. Cost about $88 of the $90 cap.
+
+**Update (2026-10-28, iteration 64):** a control with C2 held uniform (consolidation gate open
+everywhere) associates the same 6 pairs as activity-proportional C2, plus one: in the passing protocol
+C2 switches consolidation on but carries no spatial information. The minimal version shows association
+by activity-dependent learning plus a global consolidation signal, not chemical route selection. The
+Substep 7 assessment video is built (`assoc_assessment.py`) and rendered for two passing pairs. Cost
+about $87 of the $90 cap.
+
+**Update (2026-10-27, iteration 63):** short-term synaptic depression (`std`, new) at 7 x 7 x 7 cuts
+the ignitions (9 -> 4, 3, 2 of 24) but also the transfers (17 -> 10, 6, 5): 3, 3 and 2 associations
+against 6. Like the larger grid, it trades reach for containment. Every change tried in iterations 59
+to 63 that removes ignitions also removes most transfers. Cost about $86 of the $90 cap; no further
+session planned without the user's decision.
+
+**Update (2026-10-27, iteration 62):** in the 9 x 9 x 9 grid, slower `w_fast` decay, a doubled `a_pre`
+and 60 rounds do not extend the spread around A beyond 10 to 15 groups (best: 3 of 12 pairs, against 2).
+Inhibition proportional to each group's own activity (`local_inh`, new) leaves the 7 x 7 x 7 ignitions
+in place (at most 3 of 12 selected pairs, as before). Cost about $84 of the $90 cap.
+
+**Update (2026-10-27, iteration 61):** in a larger grid (9 x 9 x 9 and 11 x 11 x 11, same group size and
+wiring, A and B at least 2 cells from the surface) no transfer ignites: activity from A stays within
+10 to 16 groups around it. But it also no longer reaches B: 3 and 4 of 24 pairs associate at distance 4
+(6 at 7 x 7 x 7), 0 of 24 at distance 6. The ignitions were a finite-size effect, and at 7 x 7 x 7 they
+carried most transfers. Cost about $80 of the $90 cap.
+
+**Update (2026-10-27, iteration 60):** undoing a joint round whose test ignites and continuing with
+smaller learning steps (down to 1/16) adds one association at distance 4 (7 of 24) and none at distance
+6 (1 of 24). The other ignited pairs go from no transfer straight to an ignition at every step size,
+mostly one that does not reach B: propagation is all-or-none along the learning trajectory as well.
+Cost about $73 of the $90 cap.
+
+**Update (2026-10-27, iteration 59):** the C3 fuel (in the short circuit stage or also in the joint
+rounds) and slower growth leave the distance-4 result at 5 to 7 associations of 24 (6 without them).
+At distance 6 the protocol associates 1 pair of 24: nearly every transfer is a whole-network ignition.
+The outcome of a pair is fixed by whether its first transfer in the joint rounds is an ignition; the
+short circuit stage keeps or loses that transfer but does not narrow it. Cost about $70 of the $90 cap.
+
 **Status (2026-10-26, iteration 58): the minimal version passes in 6 of 24 pairs at distance 4 with
 all controls; the task's goal (any pair, larger distances) is not reached yet.** Substeps 0 to 3
 pass. On a distance-dependent wiring (the engine's own wiring is flat in space), two assemblies
@@ -28,7 +68,7 @@ agent that starts cold.
 
 ### Read first, in this order
 1. This section.
-2. `tuning-log.md`, iterations 53 to 58 (the current line of work), then 38 to 52 for why the earlier
+2. `tuning-log.md`, iterations 53 to 64 (the current line of work), then 38 to 52 for why the earlier
    approaches failed; iterations 1 to 37 are in `tuning-log-1-37.md`. Italic notes mark conclusions
    that later iterations superseded.
 3. The task file `runpod-assembly-association-task.md` (requirements, protocol, rules). Several of its
@@ -36,20 +76,28 @@ agent that starts cold.
 4. `agents/main_feature/main-feature-readme-reconstruction.md` (the concept).
 
 ### State
-- **No pods running** (`list-pods` returned `[]` after s70). All results up to s70 are in `output/`.
-- **Cost:** about $56.7 of the user's **$90** cap ($20.36 billed through s48; later sessions estimated
-  from pod lifetimes x $0.89/h, s64 x $0.59/h). Check `list-pod-billing` before the next session.
-- **The volume holds the C3 fuel code** (57 module checks pass on CPU and GPU); it has not been run
-  in a session yet. `assoc_protocol.py` changed afterwards in a comment only: upload it with the next
-  session and compare MD5 sums as usual.
-- **Nothing committed.** The user decides about commits.
+- **No pods running** (`list-pods` returned `[]` after s77, 2026-10-28). All results up to s77 are in
+  `output/`.
+- **Cost:** about $88 of the user's **$90** cap (s77 about $0.8). `list-pod-billing` read before s71 (2026-10-24 to
+  2026-10-27): $52.64 billed over 217 pods, below the running estimate of $56.7; s71 about $13, s72
+  about $2.6, s73 about $6.6, s74 about $3.6, s75 about $1.9 and s76 about $0.8 on top (estimated from
+  pod lifetimes x $0.89/h). Check `list-pod-billing` before the next session.
+- **The volume matches the repository** (64 module checks pass on CPU and GPU, s76; the final renderer
+  fix in `assoc_assessment.py` and its module check were copied to the volume afterwards and checked on
+  CPU only).
+- **Committed up to iteration 58** (commit 764fd45); iterations 59 to 64 are not committed. The user
+  decides about commits.
 - **Autonomy:** the user said "continue as you see fit" within the $90 cap (choose sessions, report).
 
 ### Open problems (from s69, 24 pairs at d 4)
 - **Pass rate:** 6 of 24; 9 pairs transfer but exceed the stray limit; 9 end without association
   (7 never transfer, 2 lose the transfer in consolidation).
-- **Seed dependence:** seed 0 5 of 12, seed 1 1 of 12.
-- **Distance 6, sparse layouts and the Substep 7 video:** not yet tried with this protocol.
+- **Seed dependence:** seed 0 5 of 12, seed 1 1 of 12 (unchanged by C3 or slower growth, s71).
+- **Distance 6** (s71): 1 of 24 associates; 14 transfer, almost all as ignitions (median 157 strays).
+- **Reach in a larger grid** (s73): without ignitions, activity from A levels off at 10 to 16 groups
+  around it; 5 or 6 of 24 pairs transfer at d 4, none at d 6. Slower decay, larger `a_pre` and 60
+  rounds do not move that plateau (s74).
+- **Sparse layouts:** not yet tried with this protocol (the Substep 7 video is built, iteration 64).
 
 ### The protocol that passes (iteration 56; `params/session69a-stage2.json`)
 - **Network:** N 20,000, S 2000, 7 x 7 x 7 location groups, every group an assembly (shortcut 1:
@@ -82,11 +130,71 @@ agent that starts cold.
    excitability, with or without wide spread. It does not change the outcome.
 5. **C2 favours the route only weakly:** proportional release 1.4 to 1.5 times higher on the route than
    in the off-path shell (saturating release 1.2 to 1.4), against a firing ratio of about 2.
-6. **Measurement notes:** with background input, every condition is a single trial; judge effects
+6. **The outcome is fixed in the joint rounds** (iteration 59): the short circuit stage keeps or loses
+   the first transfer with its strays (7 -> 6, 126 -> 122, 199 -> 195; or 179 -> lost) and narrowed one
+   in 24 pairs in two of nine C3 settings. A pair associates when its first transfer is contained
+   (3 to 15 strays) and fails when it is an ignition (60 to 260); at d 6 nearly every transfer is one.
+7. **C3 fuel does not change the pass rate** (iteration 59): in the stage, in the joint rounds, or both,
+   5 to 7 associations of 24 against 6 without it. C3 is 1.2 to 1.4 times higher on the route than in the
+   shell, but the firing ratio route / shell does not rise. Slower growth (a_pre 0.25) gives 5 in about
+   twice the rounds.
+8. **Measurement notes:** with background input, every condition is a single trial; judge effects
    across pairs (mean against standard error), not by counting pairs above a threshold (iteration 52).
    Pairs 3 and 5 of seed 0 never transfer; pairs 1, 8 and 10 of seed 0 transfer easily.
+9. **The ignitions are a finite-size effect, and they carried the reach** (iteration 61): with the same
+   group size and wiring in a 9^3 or 11^3 grid (`engine.n_delays` 16 / 20) and A, B at least 2 cells from
+   the surface (`protocol.pair_margin` 2), no transfer ignites (A-alone strays at most 39 to 49), but the
+   spread around A levels off at 10 to 16 groups after about 20 rounds and B mostly stays silent: 5 / 6
+   pairs transfer at d 4 (17 at 7^3), 3 / 4 associate (6), none at d 6.
+10. **The plateau is not set by `w_fast` decay or rate, and per-group feedback inhibition does not grade
+   the spread** (iteration 62): at 9^3, `tau_fast` 8000, `a_pre` 1.0 and 60 rounds leave the spread
+   around A at 10 to 15 groups from round 20 on (best 3 of 12 pairs against 2). At 7^3, `local_inh`
+   (-gain * max(0, A_g - 0.2) on the group's excitatory neurons, gain 5 to 40) keeps the ignitions
+   (48 to 243 strays) and trades one association for another (3, 3, 1 of 12 against 3).
+11. **Short-term depression trades reach for containment** (iteration 63): `std` (per-neuron resource,
+   U 0.1 to 0.4, tau_rec 200 to 800) cuts the ignitions at 7^3 d 4 (9 -> 4, 3, 2 of 24) and the
+   transfers with them (17 -> 10, 6, 5); 3, 3, 2 associations against 6, all among the pairs that
+   associated easily before.
+12. **Across iterations 59 to 63**, every change that removes ignitions (larger grid, depression) also
+   removes most transfers, and every change that keeps reach (C3, rollback, feedback inhibition) keeps
+   the ignitions: in this network, reaching B 4 cells away has so far needed propagation strong enough
+   to spread over the reservoir.
+13. **C2 carries no spatial information in the passing protocol** (iteration 64): with C2 held uniform
+   at a level that opens the consolidation gate everywhere, the same 6 pairs associate (plus s0p4),
+   with the same strays. Control 1 (no C2) fails by construction, since C2 is the only route to
+   `w_perm`. The permanent changes lie within about 2 cells of segment A-B (91 to 92 %) because the
+   activity did. The minimal version shows activity-dependent learning made permanent by a global
+   consolidation signal, not chemical route selection.
 
-### Next step (prepared, not run): the C3 fuel sweep (iteration 58)
+### Review after iteration 63 (2026-10-28)
+- **Diagnosis:** with boosted intra-group weights in every group and a connection range of 0.4 cells,
+  each location group is a bistable unit (off or fully on), weakly coupled to its neighbours. Activity
+  in such a lattice either stays near its source or sweeps outward in all directions; learning that
+  raises coupling around activity only moves the network between the two. This explains why every
+  change in iterations 59 to 63 traded containment for reach. Iteration 52 showed the other half: at
+  d 4, too few synapses link A and B to the middle of the route for their signals to add up there.
+- **Statistics:** with 24 single-trial pairs and a pass rate near 25 %, the binomial error is about
+  +-2 pairs; differences such as 6 / 7 / 3 associations are within noise. Use paired comparisons on the
+  same pairs, at least 48 pairs, repeated trials where noise is used, and a decision threshold fixed
+  before the run.
+
+### Successor task (2026-10-28)
+The user approved `sparse-assemblies-task.md`: sparse assemblies on the distance-dependent wiring, with
+the off-route ratio of the permanent strengthening as the number to reduce, the uniform-C2 control, and
+its own $30 cap. Not started; it waits for the user's go. The options below are kept for reference.
+
+### Next step: open, for the user to decide (after iteration 64)
+About $3 of the cap is left; no session is planned. Each needs the user's decision:
+- **Accept the current result** as the minimal version, described as in item 13, and commit.
+- **Redesign the substrate before retrying chemical route selection** (needs a cap increase and a
+  design discussion): sparse assemblies with ordinary neurons between them, a connection range of
+  about one cell or more (distance scaled with it, larger grid), then a cheap diagnostic first: does the
+  input to a middle group grow in proportion to the number of active sources? Only if it does can a
+  chemical mark where activity from A and B meets.
+- **Synaptic tagging for consolidation** (only synapses that carried pre -> post spikes in the short
+  circuit stage become permanent) is unlikely to help while that stage itself runs as an ignition.
+
+### C3 fuel sweep (iteration 58 plan; run in iteration 59, see the tuning log)
 - **Idea (the user's):** energy depletion is global and usage increases local availability, modelled
   as a third chemical C3 ("fuel"): a fixed total supply per step, delivered in proportion to recent
   local use, consumed by spikes. It should concentrate excitability on A, B and the route during the
@@ -131,7 +239,19 @@ this task:
 - Keep `runpod_assembly_runner.sh` with LF line endings. In module checks, region boundaries must not
   coincide with neuron positions (GPU rounding differs).
 
-### Code: options added in this work (all module-checked, 57 checks)
+### Code: options added in this work (all module-checked, 64 checks)
+- **Iteration 64:** `c2.uniform` (C2 held at a value in every voxel while released; control);
+  `video.kind` "assessment" (`assoc_assessment.py`: Substep 7 recorder and renderer, `render(...,
+  png_frames=[...])` for previews).
+- **Iteration 63:** `std` `{"U", "tau_rec"}` (short-term depression of each excitatory neuron's outgoing
+  weights, harness-side, reset at the start of every `run()` call).
+- **Iteration 62:** `local_inh` `{"gain", "a0"}` (each excitatory neuron gets -gain * max(0, A_g - a0) of
+  its own group every step, in every phase).
+- **Iteration 61:** engine `n_delays` (D instead of the engine's log-N rule; the grid follows as
+  int(D / sqrt(3)) cells per axis, e.g. D 16: 9^3, D 20: 11^3); `protocol.pair_margin` (A and B at least
+  this many cells from every face; `pair.margin_cells` in the result).
+- **Iteration 60:** `protocol.rollback` `{"factor", "min_scale"}` (undo a joint round whose test is not
+  bounded, continue with the learning rates times `factor`); `GatedPlasticity.rate_scale`.
 - **Protocol:** `criterion` ("bounded", default, or "contained"), `max_active_frac` 0.1;
   `control_modes` ("no_chemistry", "gating_off", "separate"); `inject_mode` ("joint" or "alternate",
   used by "separate"); `capture`; `accept_uncontained`; `oracle` (diagnostic); `bridges`; energy per
@@ -173,7 +293,13 @@ on `w_perm`; RTX 4090 (L4 as fallback); the oracle as a diagnostic; the M / Sh r
 C included; the C3 form (trace, floor, beta, cap, decay) in `FuelField`.
 
 ### Repository state
-Nothing committed. Untracked in this folder: `assoc_*.py` (new: `assoc_sweep_summary.py`,
+Iterations 59 to 64 (2026-10-27 and 28) are uncommitted: `params/session71-*.json` to
+`params/session76-*.json` and `assoc_assessment.py` (new); `assoc_sweep_summary.py`,
+`assoc_plasticity.py` (`rate_scale`), `assoc_protocol.py` (`protocol.rollback`, `pair_margin`,
+`local_inh`, `std`, `c2.uniform`, assessment video hook), `assoc_build.py`, `assoc_engine.py`,
+`assoc_queue.py` (`n_delays`), `test_assoc_modules.py` (64 checks),
+`tuning-log.md` and this report (modified). Everything below was committed in 764fd45. Before that
+commit, untracked in this folder: `assoc_*.py` (new: `assoc_sweep_summary.py`,
 `assoc_controls_summary.py`), `collect_pod_sessions.py`, `test_assoc_modules.py`,
 `runpod_assembly_runner.sh`, `wait_pod_session.py`, `params/`, this report, `tuning-log.md`,
 `tuning-log-1-37.md`, `output/.gitignore` (results under `output/` are gitignored). Modified (the
@@ -199,7 +325,14 @@ consolidation.
 | 48, 49, 53 | capture on successful transfer, synaptic normalization; revised pass criterion | 8 of 24 pairs associate; the gating-off control reproduces 6 of the 7 in seed 0 (independent of the chemistry) |
 | 54, 55, 57 | C1 skipped; C2 short circuit stage; energy as local fatigue | 3 to 6 associations in 10 to 12 pairs; fatigue defocuses |
 | 56 | the best setting without energy, with controls on 2 seeds | 6 of 24 pass; the associations need joint activation |
-| 58 | C3 fuel (global supply delivered where it is used) | implemented and module-checked, not run |
+| 58 | C3 fuel (global supply delivered where it is used) | implemented and module-checked |
+| 59 | C3 fuel in the short circuit stage or also in the joint rounds; slower growth; d 6 | 5 to 7 of 24 against 6; the outcome is fixed by whether the first transfer ignites; d 6: 1 of 24 |
+| 60 | rollback before ignition (undo the round, smaller steps down to 1/16) | d 4: 7 of 24; d 6: 1 of 24; growth goes from no transfer straight to an ignition, mostly one that misses B |
+| 61 | larger grid (9^3, 11^3; same group size and wiring), pairs 2 cells from the surface | no ignitions, but A's spread levels off at 10 to 16 groups: d 4 3 and 4 of 24, d 6 0 of 24 |
+| 62 | more reach at 9^3 (slower decay, larger a_pre, 60 rounds); per-group feedback inhibition at 7^3 | plateau unchanged (best 3 of 12 against 2); ignitions unchanged (3, 3, 1 of 12 against 3) |
+| 63 | short-term synaptic depression at 7^3 (U 0.1 to 0.4) | fewer ignitions (4, 3, 2) and fewer transfers (10, 6, 5): 3, 3, 2 of 24 against 6 |
+| 64 | uniform-C2 control; Substep 7 assessment video | uniform C2 associates the same 6 pairs (+1): C2 carries no spatial information; video built for two passing pairs |
+| 65 | joint rounds without gaps (50 + 0, 100 + 0) | 7 and 5 of 24 against 6, same pairs, no faster: gaps make no difference |
 
 ## Implementation
 
@@ -315,10 +448,19 @@ joint-activation control hold in all six (seed 0: 5 of 12, seed 1: 1 of 12). Set
 
 ## Substep 7: Assessment video
 
-**Summary:** specified (task file), not built. The line approach is settled: VisPy
-`LineVisual`, `method='gl'`, `connect='segments'`, two vertices per synapse, `antialias=False`,
-width 1. A milestone `A_g` video of a passing pair on the old wiring is in
-`output/s37-N20k-milestone-video/`.
+**Summary:** built in iteration 64 (`assoc_assessment.py`, `video.kind` "assessment") and rendered for
+two passing pairs of the s71 E0 setting: `output/s76-video-s0/s7-d4-s0-pair11-video_main.mp4` (35 s,
+A -> B 0.94, 3 strays) and `..._pair0-video_main.mp4` (55 s, A -> B 0.60, 6 strays). Each shows the
+neurons coloured by their group's A_g, A / B / C circled, the 1500 synapses with the largest permanent
+change as lines, A_g traces of A, B and C, and a phase timeline (joint activation, gap, C1-phase test,
+short circuit stage, final test) with a playhead; the view turns slowly.
+- **Deviation from the task:** lines are drawn with Pillow, not the VisPy `LineVisual`, to avoid a GL
+  context on the pod; content and one colour per synapse are as specified.
+- **Limit:** 726k and 1.16M synapses changed permanently; the 1500 drawn all sit at the weight bound
+  (0.91), so line colour does not vary, and they cluster on A and B. The telemetry's distance profile
+  (91 to 92 % of the changes within 2 cells of segment A-B) is the better summary of where weights
+  changed. A sample drawn across the whole changed set would show the tube around A-B.
+- A milestone `A_g` video of a passing pair on the old wiring is in `output/s37-N20k-milestone-video/`.
 
 ## Substep 8: Sparse assemblies
 
@@ -355,6 +497,13 @@ layouts are not yet tried with it. Layouts:
 | s66 | 5 × RTX 4090 | recheck under the revised criterion (24 protocol jobs with controls, one session chained; pods 20 to 29 min, partly idle) | about $1.6 (estimated) |
 | s67 | 3 × RTX 4090 (+ 1 Blackwell that never started) | C2 + energy sweep, stage 1 (192 jobs, 12 sessions, two chains per pod; pods 33 to 64 min) | about $2.4 (estimated) |
 | s68 | 5 × RTX 4090 | stage 1b: depleting energy, proportional C2 (90 jobs, two sessions per pod; pods 12 to 23 min) | about $1.2 (estimated) |
+| s77 | 3 × RTX 4090 | joint rounds without gaps (48 jobs, three sessions per pod; pods 15 to 19 min) | about $0.8 (estimated) |
+| s76 | 3 × RTX 4090 | uniform-C2 control (48 jobs) and the assessment video (2 jobs), three sessions per pod; pods 11 to 20 min | about $0.8 (estimated) |
+| s75 | 4 × RTX 4090 (capacity-limited) | short-term depression, 7^3 d 4 (72 jobs, three sessions per pod; pods 26 to 38 min) | about $1.9 (estimated) |
+| s74 | 9 × RTX 4090 | reach at 9^3 (36 jobs, one session per pod) and local inhibition at 7^3 (36 jobs, two per pod); pods 13 to 42 min | about $3.6 (estimated) |
+| s73 | 14 × RTX 4090 | larger grid, 9^3 d 4 / d 6 and 11^3 d 4 (72 jobs, one session per pod for memory; pods 31 to 38 min) | about $6.6 (estimated) |
+| s72 | 6 × RTX 4090 | rollback before ignition, d 4 and d 6 (96 jobs, two sessions per pod; pods 20 to 36 min) | about $2.6 (estimated) |
+| s71 | 14 + 3 × RTX 4090 | C3 fuel, slower growth, d 6 (246 jobs, two sessions per pod; 6 sessions rerun after a start-up race; pods about 58 and 21 min, about 35 min idle because of failed downloads) | about $13 (estimated) |
 | s69, s70 | 5 × RTX 4090 | stage 2 with controls (24 jobs) and shared-pool energy (50 jobs); C3 module checks on the last pod (pods 16 to 36 min) | about $1.8 (estimated) |
 
 Billing (`list-pod-billing`, day buckets 2026-10-25 and 2026-10-26) totals $20.36, which

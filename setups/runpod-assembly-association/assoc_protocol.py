@@ -19,12 +19,17 @@ from assoc_plasticity import GatedPlasticity, gate
 DEFAULTS = {
     "window": 20, "active": 0.5, "inactive": 0.1,
     "k_inject": 3, "inject_current": 20.0, "inject_steps": 50, "gap_steps": 50, "test_window": 100,
+    # round_inject_steps (iteration 65): injection length of the joint and C2 rounds only (the tests keep
+    # inject_steps); e.g. 100 with gap_steps 0 for continuous joint injection. None: inject_steps
+    "round_inject_steps": None,
     "weights": {"w_ee": None, "w_ei": None, "w_ie": None, "w_intra_ee": 1.0, "w_intra_ei": None},
     "vox_per_cell": 4,
     # which location groups are assemblies (assembly_layout); "all": every group (Substeps 1 to 7)
     "assemblies": {"layout": "all"},
     "c1": {"gain": 1.0, "k": 0.16, "decay": 0.002, "substeps": 1, "saturation": None},
-    "c2": {"gain": 1.0, "k": 0.16, "decay": 0.01, "substeps": 1, "saturation": None},
+    # c2.uniform (iteration 64, control): while C2 is released, C2 is held at this value in every voxel
+    # instead, so the consolidation gate carries no spatial information. None: off
+    "c2": {"gain": 1.0, "k": 0.16, "decay": 0.01, "substeps": 1, "saturation": None, "uniform": None},
     # A_g over excitatory neurons only, as the engine's G_firing_count_hist (user decision, iteration 18)
     "activity_exc_only": True,
     "c1_release_in_c2": True,
@@ -53,6 +58,15 @@ DEFAULTS = {
     # after each reset the network runs `warmup` steps without injection to reach its stationary state;
     # "targets": "ordinary" (iteration 52) gives it only to neurons outside assemblies (default "all")
     "bg": None,
+    # local activity-dependent inhibition (iteration 62), e.g. {"gain": 15, "a0": 0.2}: every step each
+    # excitatory neuron gets -gain * max(0, A_g - a0) of its own group (A_g as for the tests, window
+    # steps), in every phase; a local inhibitory pool that grows with the group's activity. None: off
+    "local_inh": None,
+    # short-term synaptic depression (iteration 63), e.g. {"U": 0.2, "tau_rec": 400}: each excitatory
+    # neuron has a resource x (1 at the start of every run() call), x -= U x per spike, recovering
+    # towards 1 with tau_rec steps; its outgoing weights are written to the engine times x every step
+    # (spikes in flight are scaled at arrival, a harness-side approximation). None: off
+    "std": None,
     "i_min": None,  # lower clamp on the summed input current (numerical safeguard), e.g. -60
     "i_max": None,  # upper clamp on the summed input current (numerical safeguard), e.g. 100
     # stop a phase in the step in which more than this fraction of all neurons fires: the engine
@@ -70,7 +84,16 @@ DEFAULTS = {
     "protocol": {"pair_distance": 2.0, "max_c1_rounds": 20, "c2_rounds": 5, "max_extra_c2_rounds": 10,
                  "c2_after_max_rounds": True, "strict_test": True, "controls": True,
                  "accept_uncontained": False, "criterion": "bounded", "max_active_frac": 0.1,
-                 "control_modes": ["no_chemistry", "gating_off"], "inject_mode": "joint"},
+                 "control_modes": ["no_chemistry", "gating_off"], "inject_mode": "joint",
+                 # rollback (iteration 60, user decision), e.g. {"factor": 0.5, "min_scale": 0.0625}: a
+                 # joint round whose test (A alone on w_fast) is not bounded, or which runs away itself,
+                 # is undone (w_fast restored) and repeated with the learning rates times `factor`; when
+                 # that would go below `min_scale` the joint rounds stop ("rollback_exhausted").
+                 # Rolled-back rounds count toward max_c1_rounds. Main run only (not the controls).
+                 "rollback": None,
+                 # pair_margin (iteration 61): A and B (and so the straight route) at least this many
+                 # cells from every face of the grid; 0 draws them anywhere (identical draws as before)
+                 "pair_margin": 0},
     "video": {"enabled": False, "frame_stride": 2, "fps": 30},
     "deadline": None,
     # diagnostic (iteration 43), e.g. {"radius": 1.0}: C1 and C2 held fixed, gates fully open within
@@ -190,7 +213,15 @@ class AssocRun:
             elif targets != "all":
                 raise ValueError(f"unknown bg targets {targets!r}")
             self.bg_gen = torch.Generator(device=dev).manual_seed(int(rng_seed) + 7919)
-        self.oracle = None       # (a, b) while C1 / C2 are held fixed along A-B (set_oracle)
+        li = self.p.get("local_inh")
+        self.local_inh = None    # (gain, a0, (N,) float mask of the neurons it acts on)
+        if li:
+            self.local_inh = (float(li["gain"]), float(li.get("a0", 0.0)), eng.exc.float().to(dev))
+        sd = self.p.get("std")
+        self.std = None          # (U, tau_rec, (N,) bool of the depressing neurons)
+        if sd:
+            self.std = (float(sd["U"]), float(sd["tau_rec"]), eng.exc.clone().to(dev))
+        self.oracle = None     # (a, b) while C1 / C2 are held fixed along A-B (set_oracle)
         self.spike_acc = None    # optional (N,) spike counter, incremented by run()
         self.input_acc = None    # optional (N,) sum of the synaptic input per step, filled by run()
         self.elig = None         # optional (S, N) bool: synapses that transmitted (pre then post) in run()
@@ -232,17 +263,30 @@ class AssocRun:
         d = (self.eng.group_cell[g0] - self.eng.group_cell[g1]).float()
         return float(torch.linalg.norm(d))
 
+    def face_margin(self, g: int) -> int:
+        """Cells between group g's cell and the nearest face of the grid (0: on the surface)."""
+        c = self.eng.group_cell[g].tolist()
+        return int(min(min(x, s - 1 - x) for x, s in zip(c, self.eng.seg)))
+
     def pick_pair(self, distance: float):
-        """A, B at (nearly) `distance` cells and C far from both, all three assemblies."""
+        """A, B at (nearly) `distance` cells, both at least protocol pair_margin cells from every face,
+        and C far from both, all three assemblies."""
         pool = torch.as_tensor(self.asm, device=self.eng.device)
         cells = self.eng.group_cell.float()[pool]
+        m = int(self.p["protocol"].get("pair_margin", 0))
+        hi = torch.tensor(self.eng.seg, device=cells.device, dtype=cells.dtype) - 1 - m
+        inner = ((cells >= m) & (cells <= hi)).all(dim=1)
+        idx = torch.nonzero(inner).view(-1)
+        if len(idx) < 2:
+            raise RuntimeError(f"fewer than 2 assemblies at margin {m}")
         for _ in range(100):
-            ia = int(self.rng.integers(len(pool)))
+            ia = int(idx[int(self.rng.integers(len(idx)))])
             d = torch.linalg.norm(cells - cells[ia], dim=1)
             err = (d - float(distance)).abs()
             err[ia] = float("inf")
+            err[~inner] = float("inf")
             cand = torch.nonzero(err <= err.min() + 1e-6).view(-1).tolist()
-            if cand:
+            if cand and bool(torch.isfinite(err.min())):
                 ib = int(self.rng.choice(cand))
                 dab = torch.minimum(d, torch.linalg.norm(cells - cells[ib], dim=1))
                 order = torch.argsort(dab, descending=True).tolist()
@@ -315,6 +359,10 @@ class AssocRun:
         clamp = p.get("i_min") is not None or p.get("i_max") is not None
         self.stopped = None
         n_run = steps
+        if self.std is not None:
+            std_u, std_tau, std_mask = self.std
+            std_x = torch.ones(eng.N, device=eng.device)
+            w_frozen = None if plastic else eng.read_weights()
         t0 = time.perf_counter()
         eng.diag_phase = header.replace(",", ";")
         for i in range(steps):
@@ -346,19 +394,30 @@ class AssocRun:
                     self.C2.release(counts, p["c2"]["gain"], p["c2"].get("saturation"))
                 self.C1.diffuse()
                 self.C2.diffuse()
+                if release2 and p["c2"].get("uniform") is not None:   # control: no spatial information
+                    self.C2.c.fill_(float(p["c2"]["uniform"]))
+            if self.std is not None:
+                std_x.sub_(std_u * std_x * (spikes & std_mask).float())
+                std_x.add_((1.0 - std_x) / std_tau)
             if plastic:
                 self.P.step(spikes, eng.t, self.vmap.sample(self.C1.c), self.vmap.sample(self.C2.c),
                             learn=learn, consolidate=consolidate)
-                eng.write_weights(self.P.effective() if write_weights is None else write_weights(self.P))
+                w_now = self.P.effective() if write_weights is None else write_weights(self.P)
+                eng.write_weights(w_now if self.std is None else w_now * std_x.view(1, -1))
             elif self.elig is not None:      # frozen phase (test): only record which synapses transmit
                 self.elig |= self.P.ltp_events(spikes, eng.t)
                 self.P.observe(spikes, eng.t)
+            if self.std is not None and not plastic:
+                eng.write_weights(w_frozen * std_x.view(1, -1))
             if energy:
                 self.E.step(counts)
                 eng.scale_current(self.E.excitability(self.vmap))
             if self.bg is not None:
                 mu, sigma = self.bg
                 eng.add_current_vector(mu + sigma * torch.randn(mu.shape, generator=self.bg_gen, device=mu.device))
+            if self.local_inh is not None:
+                g_inh, a0, mask = self.local_inh
+                eng.add_current_vector(-g_inh * torch.relu(a - a0)[eng.groups] * mask)
             if clamp:
                 eng.clamp_current(p.get("i_min"), p.get("i_max"))
             if i < inj_n:
@@ -369,6 +428,9 @@ class AssocRun:
             if vid is not None and i % stride == 0:
                 vid.add(a.cpu().numpy(), self.C1.c.cpu().numpy(), self.C2.c.cpu().numpy(),
                         f"{header}  step {i}/{steps}  t={eng.t}")
+        if self.std is not None:             # leave the undepressed weights in the engine
+            eng.write_weights(w_frozen if w_frozen is not None else
+                              (self.P.effective() if write_weights is None else write_weights(self.P)))
         torch.cuda.synchronize() if eng.device.type == "cuda" else None
         self.t_loop += time.perf_counter() - t0
         self.steps_run += n_run
@@ -658,6 +720,9 @@ class AssocRun:
 # ======================================================================== substeps
 
 def _video(run: AssocRun, marks: dict):
+    if run.p["video"].get("kind") == "assessment":   # Substep 7 (iteration 64)
+        from assoc_assessment import AssessmentRecorder
+        return AssessmentRecorder(run, marks)
     from assoc_video import AssocVideo
     cell = {k: tuple(int(x) for x in run.eng.group_cell[g].tolist()) for k, g in marks.items()}
     v = AssocVideo(run.eng.seg, cell, c_scale=max(run.p["plasticity"]["theta1"] * 3, 1.0))
@@ -990,6 +1055,7 @@ def substep4_protocol(eng, params: dict, out_prefix: str) -> dict:
     a, b, c = (tuple(params["pair"]) if params.get("pair") else run.pick_pair(pr["pair_distance"]))
     res = {"pair": {"A": a, "B": b, "C": c, "dist_AB_cells": run.group_dist(a, b),
                     "dist_C_cells": min(run.group_dist(a, c), run.group_dist(b, c)),
+                    "margin_cells": min(run.face_margin(a), run.face_margin(b)),
                     "direct": run.direct_stats(a, b)}}
     if pr.get("freeze_direct_AB"):  # diagnostic (iteration 37): direct A <-> B synapses not plastic
         run.frozen_pair = (a, b)
@@ -1050,7 +1116,8 @@ def protocol_body(run: AssocRun, a: int, b: int, c: int, video=False, out_prefix
         run.video = _video(run, {"A": a, "B": b, "C": c})
     run.reset_all()
     ia, ib = run.inject_idx_cached(a), run.inject_idx_cached(b)
-    rnd_len = p["inject_steps"] + p["gap_steps"]
+    rnd_inj = p.get("round_inject_steps") or p["inject_steps"]   # joint and C2 rounds only, not the tests
+    rnd_len = rnd_inj + p["gap_steps"]
     rounds, log = 0, []
     w0 = run.base_w.clone()
     c1_ok = False
@@ -1059,21 +1126,46 @@ def protocol_body(run: AssocRun, a: int, b: int, c: int, video=False, out_prefix
     run.set_noise_phase(True)
     snap = {}
     run.spike_acc = torch.zeros(eng.N, device=eng.device)
+    rb = pr.get("rollback")
+    if rb and pr.get("capture"):
+        raise ValueError("protocol.rollback and protocol.capture cannot be combined")
+    run.P.rate_scale = 1.0
+    n_rollbacks, rb_exhausted = 0, False
 
     def gates_at_inject_end():
         snap["gates"] = run.gate_profile(a, b, path)
         snap["sel"] = run.selectivity(a, b)      # spikes counted over this round's injection
         snap["chem"] = run.chem_profile(a, b)
 
+    def roll_back(saved) -> bool:
+        """Undo the last joint round and lower the learning rates; False once below min_scale."""
+        nonlocal n_rollbacks, rb_exhausted
+        run.P.w_fast = saved
+        eng.write_weights(run.P.effective())
+        n_rollbacks += 1
+        scale = run.P.rate_scale * float(rb.get("factor", 0.5))
+        if scale < float(rb.get("min_scale", 1.0 / 16)) - 1e-12:
+            rb_exhausted = True
+            return False
+        run.P.rate_scale = scale
+        return True
+
     while rounds < pr["max_c1_rounds"]:
         run.reset_dynamics()
         snap.clear()
         run.spike_acc.zero_()
-        at, ao, ns = run.run(rnd_len, inject=round_inject(pr, rounds, ia, ib), learn=True, release1=True,
-                             track=[a, b, c] + path,
+        saved = run.P.w_fast.clone() if rb else None
+        at, ao, ns = run.run(rnd_len, inject=round_inject(pr, rounds, ia, ib), inject_steps=rnd_inj, learn=True,
+                             release1=True, track=[a, b, c] + path,
                              header=f"{label} C1 round {rounds + 1}", on_inject_end=gates_at_inject_end,
                              energy=run.phase_energy("c1"))
         rounds += 1
+        if run.stopped is not None and rb:  # the training round ran away: undo it (rollback rule)
+            log.append({"round": rounds, "runaway": run.stopped, "spikes": ns, "scale": run.P.rate_scale,
+                        "rolled_back": True})
+            if roll_back(saved):
+                continue
+            break
         if run.stopped is not None:  # the training round itself ran away: stop before consolidation
             log.append({"round": rounds, "runaway": run.stopped, "spikes": ns,
                         "w_fast_abs_mean": float(run.P.w_fast.abs().mean()), "chem": run.chem_profile(a, b)})
@@ -1109,14 +1201,24 @@ def protocol_body(run: AssocRun, a: int, b: int, c: int, video=False, out_prefix
                     "test_A_to_B": t_ab, "w_fast_abs_mean": float(run.P.w_fast.abs().mean()),
                     "chem": run.chem_profile(a, b), "gates_inject_end": snap.get("gates"),
                     "sel_inject_end": snap.get("sel"), "chem_inject_end": snap.get("chem")})
+        if rb:
+            log[-1]["scale"] = run.P.rate_scale
+            log[-1]["rolled_back"] = not t_ab["bounded"]
+            if not t_ab["bounded"]:  # A alone ignites beyond the stray limit: undo the round
+                if roll_back(saved):
+                    continue
+                break
         if not t_ab[criterion_key(pr)] and t_ab["success"] and not pr.get("accept_uncontained"):
             runaway_round = rounds  # transfer only as part of activity spreading beyond the path
             break
         if t_ab["success"]:
             c1_ok = True
             break
+    final_scale, run.P.rate_scale = run.P.rate_scale, 1.0
     out = {"c1_rounds": rounds, "c1_test_passed": c1_ok, "c1_log": log, "path_groups": path,
            "runaway_round": runaway_round,
+           "rollback": ({"n": n_rollbacks, "exhausted": rb_exhausted, "final_scale": final_scale}
+                        if rb else None),
            "w_fast_after_c1": run.weight_change_stats(torch.zeros_like(w0), run.P.w_fast, a, b),
            "sel_w_fast_after_c1": run.weight_selectivity(a, b, run.P.w_fast)}
     c2_log = []
@@ -1128,7 +1230,8 @@ def protocol_body(run: AssocRun, a: int, b: int, c: int, video=False, out_prefix
             run.reset_dynamics()
             snap.clear()
             run.spike_acc.zero_()
-            at, ao, ns = run.run(rnd_len, inject=round_inject(pr, n_c2, ia, ib), learn=p["learn_in_c2"],
+            at, ao, ns = run.run(rnd_len, inject=round_inject(pr, n_c2, ia, ib), inject_steps=rnd_inj,
+                                 learn=p["learn_in_c2"],
                                  consolidate=True, release1=p["c1_release_in_c2"], release2=True, track=[a, b, c],
                                  header=f"{label} C2 round {n_c2 + 1}", on_inject_end=gates_at_inject_end,
                                  energy=run.phase_energy("c2"))

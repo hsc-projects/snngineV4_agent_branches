@@ -43,7 +43,7 @@ class AssocEngine:
 
     def __init__(self, device: torch.device, n_neurons: int, reservoir_shape=(1.0, 1.0, 1.0),
                  engine_chem_dim: int = 32, seed: int = 0, warmup_steps: int = 5,
-                 n_synapses: int | None = None, rewire: dict | None = None):
+                 n_synapses: int | None = None, rewire: dict | None = None, n_delays: int | None = None):
         np.random.seed(seed)
         torch.manual_seed(seed)
         from assoc_build import build_network
@@ -54,7 +54,8 @@ class AssocEngine:
         cd = int(engine_chem_dim)
         (self.network, self.element, self.simulator, self.sim_instance, self.backend) = build_network(
             device, n_neurons=int(n_neurons), n_synapses=n_synapses,
-            reservoir_shape=tuple(float(x) for x in reservoir_shape), chem_shape_hwd=(cd, cd, cd))
+            reservoir_shape=tuple(float(x) for x in reservoir_shape), chem_shape_hwd=(cd, cd, cd),
+            n_delays=n_delays)
         el = self.element
         cfg = el.config
         self.N, self.S, self.D, self.G = int(cfg.N), int(cfg.S), int(cfg.D), int(cfg.G)

@@ -44,8 +44,29 @@ class _MockGLTensorDict(dict):
 
 def build_network(device: torch.device, n_neurons: int, n_synapses: int | None = None,
                   reservoir_shape=(1.0, 1.0, 1.0), chem_shape_hwd=(32, 32, 32),
-                  spike_buffer_factor: int = 40):
-    """Returns (network, element, simulator, sim_instance, sim_backend)."""
+                  spike_buffer_factor: int = 40, n_delays: int | None = None):
+    """
+    Returns (network, element, simulator, sim_instance, sim_backend).
+
+    n_delays (iteration 61): the delay count D instead of the engine's log-N rule; the engine derives
+    the grid from D (int(D / sqrt(3)) cells per axis of a cubic reservoir), so this sets a larger grid
+    at a given group size (D 16: 9 x 9 x 9, D 20: 11 x 11 x 11). None: the engine's rule.
+    """
+    if n_delays is None:
+        return _build_network(device, n_neurons, n_synapses, reservoir_shape, chem_shape_hwd,
+                              spike_buffer_factor)
+    if not 2 <= int(n_delays) <= 20:
+        raise ValueError(f"n_delays {n_delays} outside the engine's range 2 to 20")
+    original = NetworkReservoirConfig.__dict__["_calc_delay_count"]
+    NetworkReservoirConfig._calc_delay_count = staticmethod(lambda n_neurons, **_: int(n_delays))
+    try:
+        return _build_network(device, n_neurons, n_synapses, reservoir_shape, chem_shape_hwd,
+                              spike_buffer_factor)
+    finally:
+        NetworkReservoirConfig._calc_delay_count = original
+
+
+def _build_network(device, n_neurons, n_synapses, reservoir_shape, chem_shape_hwd, spike_buffer_factor):
     patch_array_interfaces()
     patch_runtime_tensors()
     patch_large_scale_dataframe_sync()

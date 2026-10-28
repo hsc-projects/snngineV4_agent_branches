@@ -993,6 +993,159 @@ def weight_selectivity_per_synapse(dev):
     assert ws["M"]["n_ei"] == 0 and ws["M"]["dw_ei"] is None and ws["ratio"]["dw_ei"] is None
 
 
+def _rollback_params(**protocol):
+    pr = {"max_active_frac": 0.1, "c2_after_max_rounds": False, "accept_uncontained": True}
+    pr.update(protocol)
+    # rule pre_c1: one change per spike, linear in the rate scale ("both" adds the STDP change first and
+    # computes the presynaptic one from the updated weights, so halving the rates is not exactly linear)
+    return {"protocol": pr, "plasticity": {"rule": "pre_c1", "a_pre": 0.1, "theta1": -1.0, "soft1": 0.0}}
+
+
+@check
+def rollback_restores_fast_weights_and_scales_rate(dev):
+    from assoc_protocol import protocol_body
+    # rounds: steps 1-10, 21-30; tests: 11-20, 31-40. Neurons 0-9 fire once in each round (steps 3, 23);
+    # everything fires in test 1 (not bounded: group 3 active outside A = 0, B = 1 and the path)
+    fire = {3: list(range(10)), 23: list(range(10))}
+    fire.update({t: list(range(40)) for t in range(11, 21)})
+    _, ref = stub_run(dev, {3: list(range(10))}, **_rollback_params(max_c1_rounds=1))
+    protocol_body(ref, 0, 1, 3)                                  # one round, no rollback: reference w_fast
+    assert ref.P.w_fast.abs().sum() > 0
+    _, run = stub_run(dev, fire, **_rollback_params(max_c1_rounds=2, rollback={"factor": 0.5, "min_scale": 0.1}))
+    out = protocol_body(run, 0, 1, 3)
+    l0, l1 = out["c1_log"]
+    assert l0["rolled_back"] and l0["scale"] == 1.0 and not l1["rolled_back"] and l1["scale"] == 0.5, (l0, l1)
+    assert out["rollback"] == {"n": 1, "exhausted": False, "final_scale": 0.5}, out["rollback"]
+    assert out["c1_rounds"] == 2 and not out["c1_test_passed"] and run.P.rate_scale == 1.0
+    # round 1 undone, round 2 learned the same spikes at half the rate
+    assert torch.allclose(run.P.w_fast, 0.5 * ref.P.w_fast, atol=1e-7)
+
+
+@check
+def rollback_stops_at_min_scale_and_counts_rounds(dev):
+    from assoc_protocol import protocol_body
+    every_test = {t: list(range(40)) for t in range(1, 200) if ((t - 1) // 10) % 2 == 1}
+    rb = {"factor": 0.5, "min_scale": 0.25}
+    _, run = stub_run(dev, every_test, **_rollback_params(max_c1_rounds=10, rollback=rb))
+    out = protocol_body(run, 0, 1, 3)                            # scales 1, 0.5, 0.25, then below the minimum
+    assert out["c1_rounds"] == 3 and out["rollback"] == {"n": 3, "exhausted": True, "final_scale": 0.25}, out["rollback"]
+    assert [x["scale"] for x in out["c1_log"]] == [1.0, 0.5, 0.25] and not out["c1_test_passed"]
+    _, run = stub_run(dev, every_test, **_rollback_params(max_c1_rounds=2, rollback=rb))
+    out = protocol_body(run, 0, 1, 3)                            # the round cap counts rolled-back rounds
+    assert out["c1_rounds"] == 2 and out["rollback"] == {"n": 2, "exhausted": False, "final_scale": 0.25}
+    # a training round that runs away is undone too (no test after it), instead of ending the phase
+    _, run = stub_run(dev, {5: list(range(40))}, runaway_frac=0.5, **_rollback_params(max_c1_rounds=2, rollback=rb))
+    out = protocol_body(run, 0, 1, 3)
+    assert out["runaway_round"] is None and out["c1_log"][0]["rolled_back"] and "runaway" in out["c1_log"][0]
+    assert out["c1_rounds"] == 2 and out["rollback"]["n"] == 1 and out["c1_log"][1]["scale"] == 0.5
+
+
+@check
+def local_inhibition_scales_with_group_activity(dev):
+    eng, run = stub_run(dev, {1: list(range(10)) + [10, 11]}, local_inh={"gain": 10.0, "a0": 0.2})
+    mask = eng.exc.float()
+    mask[5] = 0.0                                                # as if neuron 5 were inhibitory: none
+    run.local_inh = (10.0, 0.2, mask)
+    run.run(1)
+    i = eng.input_current()                                      # group 0 all fired (A 1.0), group 1 2 of 10
+    want = torch.zeros(eng.N, device=dev)
+    want[:10] = -10.0 * 0.8
+    want[5] = 0.0
+    assert torch.allclose(i, want, atol=1e-5), i.tolist()
+
+
+@check
+def depression_scales_outgoing_weights_and_restores_them(dev):
+    eng, run = stub_run(dev, {1: [0, 2], 2: [0, 2]}, std={"U": 0.5, "tau_rec": 1e9})
+    mask = eng.exc.clone()
+    mask[2] = False                                              # as if neuron 2 were inhibitory
+    run.std = (0.5, 1e9, mask)
+    seen = {}
+    run.run(3, inject_steps=2, on_inject_end=lambda: seen.update(w=eng.weights.clone()))
+    want = torch.full((eng.S, eng.N), 0.5, device=dev)
+    want[:, 0] = 0.5 * 0.25                                      # two spikes at U 0.5, no recovery
+    assert torch.allclose(seen["w"], want, atol=1e-6), seen["w"][:, :3].tolist()
+    assert torch.allclose(eng.weights, torch.full_like(eng.weights, 0.5))   # undepressed after the run
+
+
+@check
+def round_injection_length_leaves_tests_unchanged(dev):
+    from assoc_protocol import protocol_body
+    _, run = stub_run(dev, {}, gap_steps=0, round_inject_steps=10, **_rollback_params(max_c1_rounds=2))
+    calls, real = [], run.run
+    def spy(steps, *a, **kw):
+        calls.append((kw.get("header", ""), steps, kw.get("inject_steps")))
+        return real(steps, *a, **kw)
+    run.run = spy
+    protocol_body(run, 0, 1, 3)
+    rounds = [c for c in calls if "C1 round" in c[0]]
+    tests = [c for c in calls if "C1 test" in c[0]]
+    assert rounds and all(c[1:] == (10, 10) for c in rounds), rounds    # continuous: no gap
+    assert tests and all(c[2] is None for c in tests), tests            # tests: default inject_steps
+
+
+@check
+def uniform_c2_holds_every_voxel_while_released(dev):
+    eng, run = stub_run(dev, {1: [0, 1, 2]}, c2={"uniform": 1.5})
+    run.run(2, release2=True)
+    assert torch.allclose(run.C2.c, torch.full_like(run.C2.c, 1.5))
+    run.C2.c.zero_()
+    run.run(1, release2=False)                                   # not released: untouched
+    assert float(run.C2.c.abs().max()) == 0.0
+
+
+@check
+def assessment_recorder_tracks_permanent_changes(dev):
+    import os
+    import tempfile
+    import numpy as np
+    eng, run = stub_run(dev, {})
+    eng.group_centroid = torch.stack([(torch.arange(eng.G, device=dev).float() + 0.5) / eng.G,
+                                      torch.full((eng.G,), 0.5, device=dev), torch.full((eng.G,), 0.5, device=dev)], 1)
+    from assoc_assessment import AssessmentRecorder, PHASE_INDEX
+    rec = AssessmentRecorder(run, {"A": 0, "B": 2, "C": 3})     # stub: injection in steps 0 to 4
+    a = np.zeros(eng.G, dtype=np.float32)
+    for st in (0, 2, 6):
+        rec.add(a, None, None, f"main C1 round 1  step {st}/10  t={st}")
+    for st in (0, 2):
+        rec.add(a, None, None, f"main C2 round 1  step {st}/10  t={20 + st}")
+    run.P.w_perm[1, 7] += 0.3                                    # consolidated during the C2 round
+    rec.add(a, None, None, "main final A->B  step 0/10  t=40")  # phase change: snapshot at frame 5
+    with tempfile.TemporaryDirectory() as tmp:
+        n = rec.write(os.path.join(tmp, "v.mp4"), fps=10)
+        d = np.load(os.path.join(tmp, "v.npz"))
+        assert n == 6 and os.path.getsize(os.path.join(tmp, "v.mp4")) > 0
+        J, G = PHASE_INDEX["joint"], PHASE_INDEX["gap"]
+        assert d["phase"].tolist() == [J, J, G, PHASE_INDEX["c2"], PHASE_INDEX["c2"], PHASE_INDEX["final"]]
+        assert d["pre"].tolist() == [7] and d["post"].tolist() == [int(run.P.post[1, 7])]
+        assert d["snap_frames"].tolist() == [0, 5] and abs(float(d["snap_dw"][-1][0]) - 0.3) < 1e-3
+        assert float(d["snap_dw"][0][0]) == 0.0                  # unchanged before the C2 round ended
+
+
+@check
+def pair_margin_keeps_pairs_off_the_surface(dev):
+    from assoc_protocol import AssocRun
+
+    def grid_run(margin):
+        eng = StubEngine(dev, N=250, G=125)                      # stub groups on a 5 x 5 x 5 grid
+        eng.seg = (5, 5, 5)
+        eng.group_cell = torch.stack(torch.meshgrid(*(torch.arange(5, device=dev),) * 3, indexing="ij"),
+                                     dim=-1).view(-1, 3)
+        return AssocRun(eng, {"protocol": {"pair_margin": margin}})
+
+    run = grid_run(1)
+    for _ in range(30):                                          # from the centre cell the nearest is sqrt(3)
+        a, b, c = run.pick_pair(2.0)
+        assert min(run.face_margin(a), run.face_margin(b)) >= 1 and abs(run.group_dist(a, b) - 2.0) < 0.3
+    run = grid_run(0)
+    assert min(min(run.face_margin(g) for g in run.pick_pair(2.0)[:2]) for _ in range(30)) == 0
+    try:
+        grid_run(2).pick_pair(2.0)                               # only the centre cell is 2 from every face
+        raise AssertionError("no error at margin 2")
+    except RuntimeError:
+        pass
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--device", default="cpu")

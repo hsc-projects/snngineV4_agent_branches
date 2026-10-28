@@ -183,14 +183,14 @@ def main():
     def get_engine(cfg: dict):
         key = (int(cfg["n_neurons"]), tuple(float(x) for x in cfg.get("reservoir_shape", (1, 1, 1))),
                int(cfg.get("seed", 0)), int(cfg.get("engine_chem_dim", 32)), cfg.get("n_synapses"),
-               json.dumps(cfg.get("rewire"), sort_keys=True))
+               json.dumps(cfg.get("rewire"), sort_keys=True), cfg.get("n_delays"))
         if key not in engines:
             for k in list(engines):
                 del engines[k]
             torch.cuda.empty_cache()
             t0 = time.time()
             eng = AssocEngine(device, n_neurons=key[0], reservoir_shape=key[1], seed=key[2], engine_chem_dim=key[3],
-                              n_synapses=key[4], rewire=cfg.get("rewire"))
+                              n_synapses=key[4], rewire=cfg.get("rewire"), n_delays=key[6])
             eng.build_seconds = time.time() - t0
             engines[key] = eng
             print(f"[*] engine built: N={eng.N} S={eng.S} D={eng.D} G={eng.G} seg={eng.seg} "
