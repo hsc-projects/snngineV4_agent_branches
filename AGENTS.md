@@ -26,7 +26,7 @@ writing it. This holds even when the user has already asked for "a rule
 about X" in general terms: the general request authorizes drafting a
 proposal, not writing the exact wording straight into the file.
 
-See `agents/common.md` for the Goal and shared Workflow rules.
+Before starting any task, read `agents/common.md` (the Goal and the shared Workflow rules); they apply to every task, whether or not its task file mentions them.
 
 ## History
 

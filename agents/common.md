@@ -158,6 +158,8 @@ GPU for simulation/visualization, and PyCUDA built with OpenGL interop
 enabled — which almost certainly requires a local build not available in
 this environment.
 
+Do not install packages into the system Python (the interpreter that `python` or `py` resolves to outside a virtual environment). Scripts that need only the standard library may run with it. Anything that needs packages runs in a virtual environment in its task folder (`setups/<task>/.venv`, created with `uv venv`; `.venv` is gitignored), with only the packages the task needs. On pods, use the volume's `/workspace/venv` (see `setups/runpod-technical.md`).
+
 Documentation is sparse/missing in places. When intent is unclear, ask the
 user — but do not expect real technical documentation to be provided; infer
 from code where possible.
@@ -200,6 +202,8 @@ sourced/verified, flag it to the user rather than assuming — don't research
 it inline, just add it to the main feature specification task (Track 2 or Track 3
 in `agents/main_feature/generate_specs_task/generate-main-feature-specs-task.md`).
 
+When writing ideas, formulas, parameter values or stop rules into task files or proposals, do not restrict the exploration space artificially: state each mechanism's intent first and give functional forms and numbers as starting points (`[default]`), so that the executing agent may use other forms or propose new approaches (logging the reason). Before a stop rule drops an idea, try alternative forms of it. Likewise, established terminology or a published mechanism must not replace our own concept where it does not fit; our own terms take priority there.
+
 ## Cloud and infrastructure work (`setups/`)
 
 **Git.** Never push, and never ask about pushing: the user pushes themselves,
@@ -226,6 +230,9 @@ reads it from the gitignored `setups/.secrets/` files.
 before guessing, and state what was measured and what was inferred. Run
 diagnostic checks yourself instead of asking the user to paste output, when
 the check is read-only.
+
+**Reports.** Commit status and other tasks' cost caps do not belong in a
+task's report or tuning log; git and the task files hold them.
 
 **Waiting.** Run anything that waits (a search, a flash, an approval prompt)
 in the background and say what is happening; a silent multi-minute foreground
