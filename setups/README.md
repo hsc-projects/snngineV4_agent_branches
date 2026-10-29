@@ -26,6 +26,9 @@
 | `runpod-assembly-association/runpod-assembly-association-task.md` | Task write-up for the minimal version of the main feature: two assemblies associated through activity-proportional chemical release and chemical-gated plasticity, implemented and tuned on Runpod in a cost-efficient loop |
 | `runpod-assembly-association/runpod-assembly-association-report.md` | Report and handoff of the minimal-version work (results per substep, how to run a session, decisions) |
 | `runpod-assembly-association/tuning-log.md` | One entry per tuning iteration (hypothesis, change, result, decision); iterations 1 to 37 archived in `tuning-log-1-37.md` |
+| `runpod-assembly-association/sparse-assemblies-task.md` | Successor task: sparse assemblies on distance-dependent wiring, with route selectivity and controls for each chemical field (variants S, L, K, E; not started) |
+| `runpod-assembly-association/assembly-association-glossary.md` | Our terms of the assembly-association work mapped to established terms in the literature, with sources |
+| `runpod-assembly-association/rate-model/rate-model-task.md` | Task write-up for a cheap group-level model to screen parameters before spiking runs; rounds 1 to 5 reported, none admitted |
 | `runpod_find_combos.py` | Query live Runpod GraphQL API for in-stock, cost-optimal GPU/CPU options matching network volume constraints |
 | `.secrets/.env` | Gitignored credentials (e.g. `RUNPOD_API_KEY`) read at runtime by host tools |
 | `pi-smoke-test/task.md` | Task write-up for the Pi flash + SSH smoke test (two phases: write/flash the SD card, then SSH once the maintainer boots and connects the Pi) — done 2026-10-04, kept current |

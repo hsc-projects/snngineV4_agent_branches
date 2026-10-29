@@ -68,7 +68,7 @@ agent that starts cold.
 
 ### Read first, in this order
 1. This section.
-2. `tuning-log.md`, iterations 53 to 64 (the current line of work), then 38 to 52 for why the earlier
+2. `tuning-log.md`, iterations 53 to 65 (the current line of work), then 38 to 52 for why the earlier
    approaches failed; iterations 1 to 37 are in `tuning-log-1-37.md`. Italic notes mark conclusions
    that later iterations superseded.
 3. The task file `runpod-assembly-association-task.md` (requirements, protocol, rules). Several of its
@@ -85,8 +85,6 @@ agent that starts cold.
 - **The volume matches the repository** (64 module checks pass on CPU and GPU, s76; the final renderer
   fix in `assoc_assessment.py` and its module check were copied to the volume afterwards and checked on
   CPU only).
-- **Committed up to iteration 58** (commit 764fd45); iterations 59 to 64 are not committed. The user
-  decides about commits.
 - **Autonomy:** the user said "continue as you see fit" within the $90 cap (choose sessions, report).
 
 ### Open problems (from s69, 24 pairs at d 4)
@@ -179,9 +177,9 @@ agent that starts cold.
   before the run.
 
 ### Successor task (2026-10-28)
-The user approved `sparse-assemblies-task.md`: sparse assemblies on the distance-dependent wiring, with
-the off-route ratio of the permanent strengthening as the number to reduce, the uniform-C2 control, and
-its own $30 cap. Not started; it waits for the user's go. The options below are kept for reference.
+The work continues in `sparse-assemblies-task.md` (approved by the user): sparse assemblies on the
+distance-dependent wiring, with route selectivity and controls for each chemical field. The options
+below are kept for reference.
 
 ### Next step: open, for the user to decide (after iteration 64)
 About $3 of the cap is left; no session is planned. Each needs the user's decision:
@@ -239,7 +237,9 @@ this task:
 - Keep `runpod_assembly_runner.sh` with LF line endings. In module checks, region boundaries must not
   coincide with neuron positions (GPU rounding differs).
 
-### Code: options added in this work (all module-checked, 64 checks)
+### Code: options added in this work (all module-checked, 65 checks)
+- **Iteration 65:** `round_inject_steps` (injection length of the joint and C2 rounds only; tests keep
+  their own).
 - **Iteration 64:** `c2.uniform` (C2 held at a value in every voxel while released; control);
   `video.kind` "assessment" (`assoc_assessment.py`: Substep 7 recorder and renderer, `render(...,
   png_frames=[...])` for previews).
@@ -291,22 +291,6 @@ Normalized intra-group input; `gain_ee_inter`; `learn_in_c2` false; the rewiring
 on `w_perm`; RTX 4090 (L4 as fallback); the oracle as a diagnostic; the M / Sh regions (`sel_radius`
 1); the stray limit counted as groups with A_g >= 0.5 outside A, B and the route (path radius 1 cell),
 C included; the C3 form (trace, floor, beta, cap, decay) in `FuelField`.
-
-### Repository state
-Iterations 59 to 64 (2026-10-27 and 28) are uncommitted: `params/session71-*.json` to
-`params/session76-*.json` and `assoc_assessment.py` (new); `assoc_sweep_summary.py`,
-`assoc_plasticity.py` (`rate_scale`), `assoc_protocol.py` (`protocol.rollback`, `pair_margin`,
-`local_inh`, `std`, `c2.uniform`, assessment video hook), `assoc_build.py`, `assoc_engine.py`,
-`assoc_queue.py` (`n_delays`), `test_assoc_modules.py` (64 checks),
-`tuning-log.md` and this report (modified). Everything below was committed in 764fd45. Before that
-commit, untracked in this folder: `assoc_*.py` (new: `assoc_sweep_summary.py`,
-`assoc_controls_summary.py`), `collect_pod_sessions.py`, `test_assoc_modules.py`,
-`runpod_assembly_runner.sh`, `wait_pod_session.py`, `params/`, this report, `tuning-log.md`,
-`tuning-log-1-37.md`, `output/.gitignore` (results under `output/` are gitignored). Modified (the
-documentation pass of 2026-10-26, applied with the user's go): the task file (status note,
-"Revisions agreed with the user"), `agents/feature-todos.md` (status line),
-`agents/main_feature/main-feature-readme-reconstruction.md` ("Later statements of the user"),
-`setups/README.md` (index rows), `setups/runpod-technical.md` ("Running pod sessions").
 
 ## History of approaches
 
@@ -471,7 +455,8 @@ short circuit stage, final test) with a playhead; the view turns slowly.
 Not checked for direct synapses. On the rewired network only surveys so far: propagation
 (iteration 45, all-or-none) and the bridge threshold diagnostic (iteration 51, no usable
 coincidence window). The current protocol (Substep 4) treats every group as an assembly; sparse
-layouts are not yet tried with it. Layouts:
+layouts are not yet tried with it; this continues in the successor task `sparse-assemblies-task.md`
+(approved 2026-10-28, not started). Layouts:
 `assemblies: {"layout": "lattice", "spacing": 2}` or
 `{"layout": "random", "count": 30, "min_gap": 1, "seed": 0}`.
 

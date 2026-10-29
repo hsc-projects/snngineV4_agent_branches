@@ -172,8 +172,7 @@ verdict per model and the cost.
 - Python: on the host, standard library only or a `.venv` in this folder (`agents/common.md`); on the
   pod, a virtual environment there.
 - Work only in this folder; import from the parent folder, do not change its files.
-- No commits without the user's go. Commit status and other tasks' caps do not belong in reports
-  (git and the task files hold them; user decision, 2026-10-29).
+- No commits without the user's go.
 - **Files:** this file, `rate-model-report.md`, `rate_model.py`, `test_rate_model.py`,
   `admission_test.py`, `s71_ground_truth.json`, the round 4 files named above, and for round 5
   `round5-report.md`, `round5_cross_check.py`, `round5_diag_popdensity.py`, `round5_diag_spiking.py`,

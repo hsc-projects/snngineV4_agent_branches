@@ -1,7 +1,8 @@
 # Task: Minimal Version of the Main Feature (Assembly Association via Chemical Release and Gated Plasticity)
 
 > [!NOTE]
-> **Status: approved by the user; implementation in progress (see the report). Later decisions of
+> **Status: approved by the user; work stopped after iteration 65 at 6 of 24 pairs (see the report);
+> continued in `sparse-assemblies-task.md`. Later decisions of
 > the user, listed under "Revisions agreed with the user" at the end, take precedence over the text
 > below where they differ.** **[default]**
 > marks a starting value the user adopted; the agent may change it (see
