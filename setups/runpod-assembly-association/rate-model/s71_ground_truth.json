@@ -1,0 +1,218 @@
+{
+  "s0p0": {
+    "seed": 0,
+    "pair_idx": 0,
+    "A": 249,
+    "B": 277,
+    "C": 35,
+    "dist_AB": 4.0,
+    "ground_truth": "contained"
+  },
+  "s0p1": {
+    "seed": 0,
+    "pair_idx": 1,
+    "A": 175,
+    "B": 179,
+    "C": 1,
+    "dist_AB": 4.0,
+    "ground_truth": "contained"
+  },
+  "s0p2": {
+    "seed": 0,
+    "pair_idx": 2,
+    "A": 332,
+    "B": 136,
+    "C": 196,
+    "dist_AB": 4.0,
+    "ground_truth": "ignition"
+  },
+  "s0p3": {
+    "seed": 0,
+    "pair_idx": 3,
+    "A": 208,
+    "B": 12,
+    "C": 336,
+    "dist_AB": 4.0,
+    "ground_truth": "none"
+  },
+  "s0p4": {
+    "seed": 0,
+    "pair_idx": 4,
+    "A": 215,
+    "B": 243,
+    "C": 7,
+    "dist_AB": 4.0,
+    "ground_truth": "contained"
+  },
+  "s0p5": {
+    "seed": 0,
+    "pair_idx": 5,
+    "A": 59,
+    "B": 255,
+    "C": 140,
+    "dist_AB": 4.0,
+    "ground_truth": "none"
+  },
+  "s0p6": {
+    "seed": 0,
+    "pair_idx": 6,
+    "A": 75,
+    "B": 271,
+    "C": 189,
+    "dist_AB": 4.0,
+    "ground_truth": "ignition"
+  },
+  "s0p7": {
+    "seed": 0,
+    "pair_idx": 7,
+    "A": 309,
+    "B": 113,
+    "C": 97,
+    "dist_AB": 4.0,
+    "ground_truth": "ignition"
+  },
+  "s0p8": {
+    "seed": 0,
+    "pair_idx": 8,
+    "A": 307,
+    "B": 303,
+    "C": 42,
+    "dist_AB": 4.0,
+    "ground_truth": "contained"
+  },
+  "s0p9": {
+    "seed": 0,
+    "pair_idx": 9,
+    "A": 270,
+    "B": 266,
+    "C": 1,
+    "dist_AB": 4.0,
+    "ground_truth": "ignition"
+  },
+  "s0p10": {
+    "seed": 0,
+    "pair_idx": 10,
+    "A": 318,
+    "B": 122,
+    "C": 6,
+    "dist_AB": 4.0,
+    "ground_truth": "contained"
+  },
+  "s0p11": {
+    "seed": 0,
+    "pair_idx": 11,
+    "A": 251,
+    "B": 279,
+    "C": 7,
+    "dist_AB": 4.0,
+    "ground_truth": "contained"
+  },
+  "s1p0": {
+    "seed": 1,
+    "pair_idx": 0,
+    "A": 230,
+    "B": 226,
+    "C": 0,
+    "dist_AB": 4.0,
+    "ground_truth": "none"
+  },
+  "s1p1": {
+    "seed": 1,
+    "pair_idx": 1,
+    "A": 277,
+    "B": 249,
+    "C": 7,
+    "dist_AB": 4.0,
+    "ground_truth": "none"
+  },
+  "s1p2": {
+    "seed": 1,
+    "pair_idx": 2,
+    "A": 216,
+    "B": 20,
+    "C": 287,
+    "dist_AB": 4.0,
+    "ground_truth": "ignition"
+  },
+  "s1p3": {
+    "seed": 1,
+    "pair_idx": 3,
+    "A": 18,
+    "B": 14,
+    "C": 342,
+    "dist_AB": 4.0,
+    "ground_truth": "none"
+  },
+  "s1p4": {
+    "seed": 1,
+    "pair_idx": 4,
+    "A": 195,
+    "B": 167,
+    "C": 0,
+    "dist_AB": 4.0,
+    "ground_truth": "ignition"
+  },
+  "s1p5": {
+    "seed": 1,
+    "pair_idx": 5,
+    "A": 15,
+    "B": 19,
+    "C": 339,
+    "dist_AB": 4.0,
+    "ground_truth": "none"
+  },
+  "s1p6": {
+    "seed": 1,
+    "pair_idx": 6,
+    "A": 51,
+    "B": 247,
+    "C": 195,
+    "dist_AB": 4.0,
+    "ground_truth": "ignition"
+  },
+  "s1p7": {
+    "seed": 1,
+    "pair_idx": 7,
+    "A": 223,
+    "B": 219,
+    "C": 4,
+    "dist_AB": 4.0,
+    "ground_truth": "ignition"
+  },
+  "s1p8": {
+    "seed": 1,
+    "pair_idx": 8,
+    "A": 96,
+    "B": 92,
+    "C": 294,
+    "dist_AB": 4.0,
+    "ground_truth": "ignition"
+  },
+  "s1p9": {
+    "seed": 1,
+    "pair_idx": 9,
+    "A": 334,
+    "B": 138,
+    "C": 245,
+    "dist_AB": 4.0,
+    "ground_truth": "contained"
+  },
+  "s1p10": {
+    "seed": 1,
+    "pair_idx": 10,
+    "A": 273,
+    "B": 277,
+    "C": 2,
+    "dist_AB": 4.0,
+    "ground_truth": "none"
+  },
+  "s1p11": {
+    "seed": 1,
+    "pair_idx": 11,
+    "A": 134,
+    "B": 138,
+    "C": 296,
+    "dist_AB": 4.0,
+    "ground_truth": "ignition"
+  }
+}
