@@ -34,7 +34,9 @@ Requires numpy (see the .venv in this folder). The spiking code (torch, CUDA) is
 
 from __future__ import annotations
 
+import json
 import math
+import os
 import time
 from dataclasses import dataclass, replace
 from typing import Dict, List, Optional, Tuple
@@ -44,8 +46,8 @@ import numpy as np
 from rate_model import (DERIVED, Spec, ChemicalFieldLattice, gate, path_groups, pick_pairs, group_distances,
                         lattice_coords, delay_count)
 
-KIND_EE, KIND_EE_INTRA, KIND_EI, KIND_IE, KIND_EI_INTER = 0, 1, 2, 3, 4
-PLASTIC_LUT = np.array([True, False, True, False, True])
+KIND_EE, KIND_EE_INTRA, KIND_EI, KIND_IE, KIND_EI_INTER, KIND_II = 0, 1, 2, 3, 4, 5
+PLASTIC_LUT = np.array([True, False, True, False, True, False])   # KIND_II: only in exported engine networks (round 6)
 W_LO, W_HI = 0.05, 1.0
 
 
@@ -62,6 +64,11 @@ class SpikeSpec(Spec):
     delay_offset: int = 0           # round 5 diagnostic: extra steps between a spike's delivery bucket and its arrival (0: as modelled)
     exc_r: Optional[float] = None   # round 5 diagnostic: fixed r of the excitatory neurons
     inh_r: Optional[float] = None   # round 5 diagnostic: fixed r of the inhibitory neurons (None: uniform per neuron, default_init)
+    export_dir: Optional[str] = None  # round 6: load the engine's network exported by round6_export_engine.py (seed unused)
+    # round 6, measured in the engine's built networks (round6-report.md): each inhibitory neuron also has
+    # inhibitory targets (I -> I, normalized weight w_ie, gain only), a fraction frac_I_to_I of its synapses.
+    # 0 reproduces rounds 4 and 5 (no I -> I synapses).
+    frac_I_to_I: float = 0.0
 
     @property
     def S_red(self) -> int:
@@ -74,6 +81,10 @@ class SpikeSpec(Spec):
     @property
     def S_ei(self) -> int:
         return self.S_red - self.S_ee
+
+    @property
+    def S_ii(self) -> int:
+        return int(round(self.S_red * self.frac_I_to_I))
 
     @property
     def N_red(self) -> int:
@@ -189,6 +200,26 @@ class SpikingNetwork:
         self.dist = group_distances(s.grid_dim)
         self.coords = lattice_coords(s.grid_dim)
         self.D = s.D
+        self.rng_inj = np.random.default_rng(self.seed + 7919)
+        self._inj_cache: Dict[int, np.ndarray] = {}
+        self.capture_raw = False                 # round 6: keep the unclamped summed input of the last step
+        if s.export_dir:
+            self._load_export(s.export_dir)
+            N = self.N
+        else:
+            N = self._build_own(rng)
+        # --- fields (cell lattice, as in round 3)
+        self.c1 = ChemicalFieldLattice(s.grid_dim, s.c1["k"], s.c1["decay"], vox_per_cell=s.vox_per_cell)
+        self.c2 = ChemicalFieldLattice(s.grid_dim, s.c2["k"], s.c2["decay"], vox_per_cell=s.vox_per_cell)
+        self.release_scale = 1.0 / (N / float(s.N))
+        self.fast_decay = math.exp(-1.0 / s.tau_fast) if s.tau_fast > 0 else 0.0
+        self._rev = None
+        self.reset_plasticity()
+        self.reset_dynamics()
+
+    def _build_own(self, rng: np.random.Generator) -> int:
+        """Neurons and synapses drawn by the model (rounds 4 and 5)."""
+        s, G = self.spec, self.G
         # --- neurons: excitatory first (sorted by group), then inhibitory; counts per group multinomial
         N = s.N_red
         nE_tot = int(round(s.exc_frac * N))
@@ -209,16 +240,91 @@ class SpikingNetwork:
         self.init_state = self.neurons.state()
         # --- synapses
         self._build_synapses(rng)
-        self.rng_inj = np.random.default_rng(self.seed + 7919)
-        self._inj_cache: Dict[int, np.ndarray] = {}
-        # --- fields (cell lattice, as in round 3)
-        self.c1 = ChemicalFieldLattice(s.grid_dim, s.c1["k"], s.c1["decay"], vox_per_cell=s.vox_per_cell)
-        self.c2 = ChemicalFieldLattice(s.grid_dim, s.c2["k"], s.c2["decay"], vox_per_cell=s.vox_per_cell)
-        self.release_scale = 1.0 / (N / float(s.N))
-        self.fast_decay = math.exp(-1.0 / s.tau_fast) if s.tau_fast > 0 else 0.0
-        self._rev = None
-        self.reset_plasticity()
-        self.reset_dynamics()
+        return N
+
+    def _load_export(self, path: str):
+        """
+        Round 6: the engine's own network, exported by round6_export_engine.py (same neuron order as the engine).
+        Neurons: the engine's a, b, c, d and post-warm-up v, u. Synapses: the engine's targets, delay buckets and
+        normalized weights; the engine weight is the normalized one times the gain of the synapse's kind (as
+        _build_synapses with syn_scale 1), checked against the exported engine weights.
+        """
+        s, G = self.spec, self.G
+        if abs(s.syn_scale - 1.0) > 1e-9 or abs(s.neuron_scale - 1.0) > 1e-9:
+            raise ValueError("an exported network is used at full size (syn_scale = neuron_scale = 1)")
+        meta = json.loads(open(os.path.join(path, "meta.json")).read())
+        ld = lambda k: np.load(os.path.join(path, f"{k}.npy"))
+        if int(meta["G"]) != G or int(meta["D"]) != self.D:
+            raise ValueError(f"export has G {meta['G']}, D {meta['D']}; spec has G {G}, D {self.D}")
+        # the engine numbers its location groups in another order: relabel every engine group to the model's
+        # lattice index x * dim^2 + y * dim + z of its grid cell (engine_to_model; pairs are mapped with it)
+        gc = ld("group_cell").astype(np.int64)
+        dim = s.grid_dim
+        self.engine_to_model = gc[:, 0] * dim * dim + gc[:, 1] * dim + gc[:, 2]
+        if np.unique(self.engine_to_model).size != G:
+            raise ValueError("engine group cells do not cover the lattice once each")
+        types = ld("types")
+        grp = self.engine_to_model[ld("groups").astype(np.int64)]
+        if (ld("model_flag") != 0).any():
+            raise ValueError("neurons with model flag != 0 (non-Izhikevich branch of update_N_state_)")
+        N = len(types)
+        self.N = N
+        self.isE = types == int(meta.get("type_exc", 2))
+        self.grp = grp
+        self.nE = np.bincount(grp[self.isE], minlength=G).astype(np.int64)
+        self.nI = np.bincount(grp[~self.isE], minlength=G).astype(np.int64)
+        self.nE_tot, self.nI_tot = int(self.nE.sum()), int(self.nI.sum())
+        abcd, vu = ld("abcd"), ld("init_vu")
+        self.neurons = Izhikevich(*(abcd[:, j].astype(F32).copy() for j in range(4)))
+        self.init_state = (vu[:, 0].astype(F32).copy(), vu[:, 1].astype(F32).copy())
+        self.neurons.set_state(*self.init_state)
+        post = ld("post")
+        if (post < 0).any():
+            raise ValueError("deleted synapses (-1) are not supported by the model")
+        self.S = S = post.shape[1]
+        self.post = np.ascontiguousarray(post.astype(np.int32))
+        bnd = ld("bnd").astype(np.int32)
+        self.bnd = np.ascontiguousarray(bnd)
+        delay = np.zeros(post.shape, dtype=np.int8)
+        cols = np.arange(S, dtype=np.int32)[None, :]
+        for r in range(1, self.D + 1):
+            delay += (cols >= bnd[:, r:r + 1]).astype(np.int8)
+        self.delay = delay
+        same = grp[self.post] == grp[:, None]
+        postE = self.isE[self.post]
+        preE = self.isE[:, None]
+        kind = np.full(post.shape, KIND_IE, dtype=np.int8)
+        kind[preE & postE & same] = KIND_EE_INTRA
+        kind[preE & postE & ~same] = KIND_EE
+        kind[preE & ~postE & same] = KIND_EI
+        kind[preE & ~postE & ~same] = KIND_EI_INTER
+        kind[~preE & ~postE] = KIND_II          # the engine builds inhibitory -> inhibitory synapses too
+        self.kind = kind
+        self.wp0 = np.ascontiguousarray(ld("w_norm").astype(F32))
+        self.wp = self.wp0.copy()
+        self.F = np.zeros((N, S), dtype=F32)
+        self.touched = np.zeros((N, S), dtype=bool)
+        self.gm = np.array([
+            s.gain * s.gain_ee_inter * s.w_inter_scale,
+            s.gain,
+            s.gain * s.gain_ei,
+            s.gain * s.gain_ie * s.w_inh_scale,
+            s.gain * s.gain_ei * s.ei_inter_scale,
+            s.gain], dtype=F32)                  # I -> I: set_gains applies neither gain_ei nor gain_ie
+        # the engine weights must equal normalized weight x kind gain at the derived gains (all factors 1)
+        if s.w_inter_scale == 1.0 and s.w_inh_scale == 1.0 and s.ei_inter_scale == 1.0:
+            dev = float(np.abs(ld("w_engine") - self.wp0 * self.gm[kind]).max())
+            if dev > 1e-5:
+                raise ValueError(f"engine weights differ from normalized x kind gain by up to {dev}")
+        self.kind_f, self.post_f = self.kind.reshape(-1), self.post.reshape(-1)
+        self.delay_f = self.delay.reshape(-1)
+        self.wp_f, self.F_f = self.wp.reshape(-1), self.F.reshape(-1)
+        self.touched_f = self.touched.reshape(-1)
+        self.export_meta = meta
+
+    def set_injection(self, g: int, idx: np.ndarray):
+        """Use these neurons as group g's injected neurons (round 6: the engine's choice, from the export)."""
+        self._inj_cache[int(g)] = np.sort(np.asarray(idx, dtype=np.int64))
 
     # -- construction ---------------------------------------------------------------------------------
     def _build_synapses(self, rng: np.random.Generator):
@@ -244,10 +350,18 @@ class SpikingNetwork:
             t = draw_targets(rng, pe, flat_I, G, self.i_start, self.nI)
             post[:eN, S_ee:] = t
             kind[:eN, S_ee:] = np.where(self.grp[t] == pg_E[:, None], KIND_EI, KIND_EI_INTER)
-        pi = np.broadcast_to(pg_I[:, None], (iN, S))
+        S_ii = s.S_ii
+        S_ie = S - S_ii
+        pi = np.broadcast_to(pg_I[:, None], (iN, S_ie))
         t = draw_targets(rng, pi, flat_E, G, self.e_start, self.nE)
-        post[eN:] = t
-        kind[eN:] = KIND_IE
+        post[eN:, :S_ie] = t
+        kind[eN:, :S_ie] = KIND_IE
+        if S_ii > 0:
+            pi = np.broadcast_to(pg_I[:, None], (iN, S_ii))
+            t = draw_targets(rng, pi, flat_I, G, self.i_start, self.nI)
+            self._fix_autapses(rng, t, (eN + np.arange(iN))[:, None], pi, flat_I, self.i_start, self.nI)
+            post[eN:, S_ie:] = t
+            kind[eN:, S_ie:] = KIND_II
         # delays: round((D - 1) * d / d_max) (assoc_engine.rewire_by_distance); synapses sorted by delay per neuron
         dmax = max(float(self.dist.max()), 1e-9)
         delay = np.rint((self.D - 1) * self.dist[self.grp[:, None], self.grp[post]] / dmax).astype(np.int8)
@@ -261,7 +375,7 @@ class SpikingNetwork:
         wp = np.empty((N, S), dtype=F32)
         wp[self.kind == KIND_EE] = s.w_ee
         wp[(self.kind == KIND_EI) | (self.kind == KIND_EI_INTER)] = s.w_ei
-        wp[self.kind == KIND_IE] = s.w_ie
+        wp[(self.kind == KIND_IE) | (self.kind == KIND_II)] = s.w_ie
         intra = self.kind == KIND_EE_INTRA
         indeg = np.bincount(self.post[intra].ravel(), minlength=N).astype(np.float64)
         self.intra_indeg = indeg
@@ -275,8 +389,9 @@ class SpikingNetwork:
             s.gain * s.gain_ee_inter * (s.S * (1.0 - s.frac_E_to_I) / max(S_ee, 1)) * s.w_inter_scale,
             s.gain,
             s.gain * s.gain_ei * (s.S * s.frac_E_to_I / max(S_ei, 1)),
-            s.gain * s.gain_ie * (s.S * s.frac_I_to_E / S) * s.w_inh_scale,
-            s.gain * s.gain_ei * (s.S * s.frac_E_to_I / max(S_ei, 1)) * s.ei_inter_scale], dtype=F32)
+            s.gain * s.gain_ie * (s.S * s.frac_I_to_E * (1.0 - s.frac_I_to_I) / max(S_ie, 1)) * s.w_inh_scale,
+            s.gain * s.gain_ei * (s.S * s.frac_E_to_I / max(S_ei, 1)) * s.ei_inter_scale,
+            s.gain * (s.S * s.frac_I_to_I / max(S_ii, 1))], dtype=F32)
         self.kind_f, self.post_f = self.kind.reshape(-1), self.post.reshape(-1)
         self.delay_f = self.delay.reshape(-1)
         self.wp_f, self.F_f = self.wp.reshape(-1), self.F.reshape(-1)
@@ -379,6 +494,8 @@ class SpikingNetwork:
         ids = np.repeat(base - (csum - cnt), cnt) + np.arange(tot)
         w = self.engine_weights(ids, fmult)
         arr = np.bincount(self.post_f[ids], weights=w, minlength=self.N)
+        if self.capture_raw:
+            self.last_input_raw = arr.astype(F32)
         sp = self.spec
         if sp.i_min is not None or sp.i_max is not None:
             np.clip(arr, sp.i_min, sp.i_max, out=arr)

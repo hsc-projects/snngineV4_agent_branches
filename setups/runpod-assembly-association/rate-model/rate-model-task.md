@@ -12,7 +12,7 @@
 > neither model is admitted**; both keep transferring and igniting on 9 x 9 x 9, where the spiking
 > network does not (`round4-popdensity-report.md`, `round4-spiking-report.md`). **Round 5 finished
 > (2026-10-29): neither model is admitted** (`round5-report.md`): model B at full size passes the 7 x 7 x 7
-> classes and the uniform-C2 check but still ignites too often on 9 x 9 x 9; model A has no fix. Raw
+> classes and the uniform-C2 check but still ignites too often on 9 x 9 x 9; model A has no fix. **Round 6 started (2026-10-30)**; see "Round 6" below. Raw
 > results of rounds 2 to 4 were left in the writing sessions' scratchpads, not in the repository; the
 > reports hold the numbers. **[default]** marks a starting value the agent may change (log the reason).
 
@@ -161,6 +161,58 @@ model A. Each model: own pod, **[default]** at most $3. Report in `round5-report
 section per model), with every result and its settings, the cause found or the causes ruled out, the
 verdict per model and the cost.
 
+## Round 6: the engine's own network in model B
+
+Intent: remove the one unexplained difference that round 5 found and that every later difference
+builds on. Model B at full size (2000 synapses per neuron) needs a fitted factor on inter-group
+E -> I weights (0.3 to match a single injected group, 0.5 in the fit), because without it a single
+injected group drives 2 to 3 times too many inhibitory spikes in neighbouring groups (about 1000
+spikes against 415). No origin was found in the engine code. With the factor, the 7 x 7 x 7 and the
+9 x 9 x 9 check cannot both be met: a sharp none -> ignition threshold lies between them. If model B
+reproduces the single-group response without a factor, the fitted factors and the conflict may
+disappear. Model B at full size is already 3 to 40 times cheaper than a GPU job (35 to 300 s per
+simulation on one vCPU). The cause may also lie in the engine itself (for example fewer E -> I
+synapses built than the configuration specifies); a cause of that kind changes how the spiking
+results are read and is also reported to the sparse task (`../sparse-assemblies-task.md`).
+
+1. **Export and structure audit.** On a GPU pod, build the engine's network as the spiking runs did
+   (7 x 7 x 7: N 20,000, S 2000, `rewire` lam 0.4, seeds 0 and 1, s71 parameters; 9 x 9 x 9:
+   N 42,500, D 16, s73 parameters) and export what the engine simulates: postsynaptic targets, the
+   weights as written into the engine (gains included) and the normalized weights, delay buckets,
+   each neuron's parameters (a, b, c, d), type, model flag (`N_flags` row 3), group and post-warm-up
+   state, the group cells, and the pair positions and injected neurons of each job. Before any
+   dynamics, compare the export with model B's own construction, per neuron type pair, within and
+   between groups: synapses per presynaptic neuron (model B assumes 400 E -> I of 2000, read from
+   the configuration code, not counted in the built network), inhibitory in-degree of neighbouring
+   groups, weights, delays, neuron parameters. Correct any difference in model B's construction;
+   prefer a derived correction, a fitted factor only with a stated reason. Add an option to model B
+   that loads the exported network instead of drawing its own.
+2. **Single-group response, step by step.** Run the A-alone test before learning in the engine and in
+   model B on the same exported network, with background input off. Compare, in this order, each
+   neuron's summed input current over the first steps (before float rounding can flip a spike: the
+   engine sums with `atomicAdd` in float32, so spike trains can diverge later for reasons unrelated
+   to the cause), then spikes per step, per group and per type. **[default]** pass: input currents
+   equal within float32 tolerance over the first steps; total spikes within 5 % and the same groups
+   active. The first differing quantity localizes the cause (neuron update, delivery order or timing,
+   input clamp, injection); fix it in model B.
+3. **Learning, then admission.** With the single-group response right and no inter-group E -> I
+   factor, compare the first rounds of learning with the spiking 9 x 9 x 9 reference
+   (`round5-report.md`, "Spiking reference"), then repeat the admission test (Substep 3) with at most
+   three free parameters, all named. Report per-pair kappa on the exported networks: they are the
+   same realizations as the spiking runs, so per-pair agreement is possible, though not guaranteed
+   (float rounding, step 2).
+4. **Check on the sparse substrate.** Admission covers the predecessor setup (every group an
+   assembly, lam 0.4). Before the model narrows any range for a family of the sparse task (S, L, K,
+   E), compare it with that family's first GPU screening run of its baseline (24 pairs): the classes
+   must lie within the binomial intervals of the spiking fractions.
+
+Model A is not part of this round; it stays parked unless the user asks.
+
+Each session needs the user's go. Compute: the export on one GPU pod (RTX 4090, EU-RO-1; minutes),
+written to the network volume (about 3 GB, not downloaded); model B on a CPU pod in EU-RO-1 as in
+round 5, reading the exports from the volume (to verify that a CPU pod can attach it; otherwise copy
+the exports there); **[default]** at most $3 for the round. Report in `round6-report.md`.
+
 ## Rules
 
 - **Only with the user's explicit go for each session.**
@@ -177,6 +229,8 @@ verdict per model and the cost.
   `admission_test.py`, `s71_ground_truth.json`, the round 4 files named above, and for round 5
   `round5-report.md`, `round5_cross_check.py`, `round5_diag_popdensity.py`, `round5_diag_spiking.py`,
   `s73_g9_d4_pairs.json` and the gitignored `output-round5/` (round 5 changes the round 4 model files
-  as needed). A round 4 agent
+  as needed); for round 6 `round6-report.md`, `round6_export_engine.py` (export and structure
+  audit), `round6_compare.py` (the step-2 comparison), the option of `spiking_group_model.py` that
+  loads an exported network, and the gitignored `output-round6/`. A round 4 agent
   changes only its own model's files; shared files (`rate_model.py`, `s71_ground_truth.json`) are read,
   not changed.
