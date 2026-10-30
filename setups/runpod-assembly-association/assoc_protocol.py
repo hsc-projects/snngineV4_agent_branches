@@ -22,14 +22,20 @@ DEFAULTS = {
     # round_inject_steps (iteration 65): injection length of the joint and C2 rounds only (the tests keep
     # inject_steps); e.g. 100 with gap_steps 0 for continuous joint injection. None: inject_steps
     "round_inject_steps": None,
-    "weights": {"w_ee": None, "w_ei": None, "w_ie": None, "w_intra_ee": 1.0, "w_intra_ei": None},
+    # inter_ee (sparse task S2 / S3): heavy-tailed initial inter-group E -> E weights, see
+    # AssocEngine.draw_inter_ee; the plasticity bounds then apply to plastic changes only. None: off
+    "weights": {"w_ee": None, "w_ei": None, "w_ie": None, "w_intra_ee": 1.0, "w_intra_ei": None,
+                "inter_ee": None},
     "vox_per_cell": 4,
     # which location groups are assemblies (assembly_layout); "all": every group (Substeps 1 to 7)
     "assemblies": {"layout": "all"},
-    "c1": {"gain": 1.0, "k": 0.16, "decay": 0.002, "substeps": 1, "saturation": None},
+    # c1.uniform (sparse task, control for S4 and L2 to L5): as c2.uniform, for C1. None: off
+    "c1": {"gain": 1.0, "k": 0.16, "decay": 0.002, "substeps": 1, "saturation": None, "uniform": None},
     # c2.uniform (iteration 64, control): while C2 is released, C2 is held at this value in every voxel
     # instead, so the consolidation gate carries no spatial information. None: off
-    "c2": {"gain": 1.0, "k": 0.16, "decay": 0.01, "substeps": 1, "saturation": None, "uniform": None},
+    # c2.no_injected (sparse task K5): neurons receiving injected current release no C2 (C1 unchanged)
+    "c2": {"gain": 1.0, "k": 0.16, "decay": 0.01, "substeps": 1, "saturation": None, "uniform": None,
+           "no_injected": False},
     # A_g over excitatory neurons only, as the engine's G_firing_count_hist (user decision, iteration 18)
     "activity_exc_only": True,
     "c1_release_in_c2": True,
@@ -52,6 +58,9 @@ DEFAULTS = {
     "gain_ie": 1.0,  # extra gain on inhibitory-to-excitatory synapses (times gain)
     "gain_ee_inter": 1.0,  # extra gain on excitatory-to-excitatory synapses between groups (times gain)
     "inter_norm": False,  # normalize those gains by the target's in-degree (AssocEngine.set_gains, iteration 45)
+    # sparse task S6: E -> I and I -> E synapses between different location groups additionally times these
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 1.0,
     "train_noise": None,  # e.g. {"pt": 0.01}: background input during training rounds only
     # fluctuating background current in every phase (iteration 46), e.g. {"mu_e": 2.5, "sigma_e": 6,
     # "mu_i": 2.5, "sigma_i": 6, "warmup": 100}: each step every neuron gets mu + sigma * N(0, 1);
@@ -67,6 +76,15 @@ DEFAULTS = {
     # towards 1 with tau_rec steps; its outgoing weights are written to the engine times x every step
     # (spikes in flight are scaled at arrival, a harness-side approximation). None: off
     "std": None,
+    # transmission (sparse task S4), e.g. {"gain": 1.0, "c1_half": 0.5, "u_ref": 0.9}: every step, E -> E
+    # synapses onto a neuron transmit times 1 + gain * C1 / (C1 + c1_half) * (1 - u), C1 at the neuron's
+    # voxel, u = min(1, A_g / u_ref) of its group (A_g as for the tests); no lasting change. None: off
+    "transmission": None,
+    # silent (sparse task S5), e.g. {"frac": 0.5, "v_half": -52.5, "v_width": 2.5, "unsilence_w": None,
+    # "seed": 0}: a fraction of the inter-group E -> E synapses transmit times
+    # sigmoid((v_post - v_half) / v_width) (about 0 at rest, 1 halfway to threshold); with unsilence_w set,
+    # a silent synapse whose effective weight exceeds it loses the gate for good. None: off
+    "silent": None,
     "i_min": None,  # lower clamp on the summed input current (numerical safeguard), e.g. -60
     "i_max": None,  # upper clamp on the summed input current (numerical safeguard), e.g. 100
     # stop a phase in the step in which more than this fraction of all neurons fires: the engine
@@ -171,7 +189,7 @@ class AssocRun:
         self.asm = list(range(eng.G)) if amask is None else torch.nonzero(amask).view(-1).tolist()
         self.is_asm = torch.ones(eng.G, dtype=torch.bool, device=dev) if amask is None else amask
         eng.set_gains(self.p["gain"], self.p["gain_ei"], self.p["gain_ie"], self.p["gain_ee_inter"],
-                      self.p["inter_norm"])
+                      self.p["inter_norm"], self.p["gain_ei_inter"], self.p["gain_ie_inter"])
         v = int(self.p["vox_per_cell"])
         self.dims = tuple(s * v for s in eng.seg)
         self.vmap = VoxelMap(eng.pos, eng.reservoir_shape, self.dims)
@@ -221,6 +239,18 @@ class AssocRun:
         self.std = None          # (U, tau_rec, (N,) bool of the depressing neurons)
         if sd:
             self.std = (float(sd["U"]), float(sd["tau_rec"]), eng.exc.clone().to(dev))
+        # per-step transmission factors (sparse task S4, S5); see transmission_factor
+        self.ee_mask = None      # (S, N) E -> E synapses (S4)
+        self.silent = None       # (S, N) silent synapses (S5); shrinks with unsilencing
+        if self.p.get("transmission"):
+            post = torch.clamp(eng.n_rep.long(), min=0)
+            self.ee_mask = eng.exc.view(1, -1) & eng.exc[post] & (eng.n_rep >= 0)
+        sl = self.p.get("silent")
+        if sl:
+            m = eng.inter_ee_mask()
+            gen = torch.Generator(device="cpu").manual_seed(int(sl.get("seed", 0)) + 15485863)
+            pick = torch.rand(m.shape, generator=gen).to(dev) < float(sl.get("frac", 0.5))
+            self.silent = m & pick
         self.oracle = None     # (a, b) while C1 / C2 are held fixed along A-B (set_oracle)
         self.spike_acc = None    # optional (N,) spike counter, incremented by run()
         self.input_acc = None    # optional (N,) sum of the synaptic input per step, filled by run()
@@ -235,6 +265,12 @@ class AssocRun:
         fixed = self.eng.intra_ee_mask() if (normed or (wi is not None and wi > 1.0)) else None
         P = GatedPlasticity(self.eng.n_rep, self.delays, self.eng.exc, self.base_w, self.eng.D,
                             fixed=fixed, **pp)
+        if self.p["weights"].get("inter_ee") is not None:
+            # heavy-tailed initial weights (S2 / S3): the bounds apply to plastic changes only
+            m = self.eng.inter_ee_mask()
+            P.lo = torch.where(m, torch.minimum(P.lo, self.base_w), P.lo)
+            P.hi = torch.where(m, torch.maximum(P.hi, self.base_w), P.hi)
+            P.bound = torch.where(m, torch.maximum(P.bound, self.base_w), P.bound)
         if getattr(self, "frozen_pair", None) is not None:
             P.plastic &= ~self.direct_mask(*self.frozen_pair)
         return P
@@ -325,6 +361,37 @@ class AssocRun:
 
     # ------------------------------------------------------------ stepping
 
+    def transmission_factor(self, a: torch.Tensor) -> torch.Tensor | None:
+        """
+        (S, N) multiplier on the weights written to the engine this step (sparse task S4, S5), or None.
+        S4: E -> E synapses onto a neuron times 1 + gain * C1 / (C1 + c1_half) * (1 - u), u = min(1, A_g / u_ref)
+        of the neuron's group (a: A_g of every group this step). S5: silent synapses times
+        sigmoid((v_post - v_half) / v_width).
+        """
+        if self.ee_mask is None and self.silent is None:
+            return None
+        eng = self.eng
+        post = torch.clamp(eng.n_rep.long(), min=0)
+        f = torch.ones(post.shape, device=eng.device)
+        tr = self.p.get("transmission")
+        if self.ee_mask is not None:
+            c1 = self.vmap.sample(self.C1.c)
+            u = torch.clamp(a / float(tr.get("u_ref", 0.9)), 0.0, 1.0)[eng.groups]
+            gn = 1.0 + float(tr.get("gain", 1.0)) * c1 / (c1 + float(tr["c1_half"])) * (1.0 - u)
+            f = torch.where(self.ee_mask, gn[post], f)
+        if self.silent is not None:
+            sl = self.p["silent"]
+            v = eng.states[2]                     # ROW_V
+            g = torch.sigmoid((v - float(sl.get("v_half", -52.5))) / float(sl.get("v_width", 2.5)))
+            f = torch.where(self.silent, f * g[post], f)
+        return f
+
+    def unsilence(self):
+        """S5 (b): silent synapses whose effective weight exceeds unsilence_w lose the gate for good."""
+        thr = self.p["silent"].get("unsilence_w") if self.silent is not None else None
+        if thr is not None:
+            self.silent &= ~(self.P.effective() > float(thr))
+
     def run(self, steps: int, inject=(), inject_steps: int | None = None, learn=False, consolidate=False,
             release1=False, release2=False, chem=True, energy=None, track=(), header="", write_weights=None,
             on_inject_end=None):
@@ -359,10 +426,25 @@ class AssocRun:
         clamp = p.get("i_min") is not None or p.get("i_max") is not None
         self.stopped = None
         n_run = steps
+        mod = self.ee_mask is not None or self.silent is not None     # S4 / S5: weights rewritten every step
+        std_x = None
         if self.std is not None:
             std_u, std_tau, std_mask = self.std
             std_x = torch.ones(eng.N, device=eng.device)
+        if self.std is not None or mod:
             w_frozen = None if plastic else eng.read_weights()
+        inj_mask = None
+        if release2 and p["c2"].get("no_injected") and len(inject):        # K5
+            inj_mask = torch.zeros(eng.N, dtype=torch.bool, device=eng.device)
+            for idx in inject:
+                inj_mask[idx] = True
+
+        def modulated(w, a_now):
+            if std_x is not None:
+                w = w * std_x.view(1, -1)
+            if mod:
+                w = w * self.transmission_factor(a_now)
+            return w
         t0 = time.perf_counter()
         eng.diag_phase = header.replace(",", ";")
         for i in range(steps):
@@ -391,9 +473,13 @@ class AssocRun:
                 if release1:
                     self.C1.release(counts, p["c1"]["gain"], p["c1"].get("saturation"))
                 if release2:
-                    self.C2.release(counts, p["c2"]["gain"], p["c2"].get("saturation"))
+                    c2_counts = (self.vmap.counts(spikes & ~inj_mask) if (inj_mask is not None and i < inj_n)
+                                 else counts)
+                    self.C2.release(c2_counts, p["c2"]["gain"], p["c2"].get("saturation"))
                 self.C1.diffuse()
                 self.C2.diffuse()
+                if release1 and p["c1"].get("uniform") is not None:   # control: no spatial information
+                    self.C1.c.fill_(float(p["c1"]["uniform"]))
                 if release2 and p["c2"].get("uniform") is not None:   # control: no spatial information
                     self.C2.c.fill_(float(p["c2"]["uniform"]))
             if self.std is not None:
@@ -402,13 +488,15 @@ class AssocRun:
             if plastic:
                 self.P.step(spikes, eng.t, self.vmap.sample(self.C1.c), self.vmap.sample(self.C2.c),
                             learn=learn, consolidate=consolidate)
+                if self.silent is not None:
+                    self.unsilence()
                 w_now = self.P.effective() if write_weights is None else write_weights(self.P)
-                eng.write_weights(w_now if self.std is None else w_now * std_x.view(1, -1))
+                eng.write_weights(modulated(w_now, a))
             elif self.elig is not None:      # frozen phase (test): only record which synapses transmit
                 self.elig |= self.P.ltp_events(spikes, eng.t)
                 self.P.observe(spikes, eng.t)
-            if self.std is not None and not plastic:
-                eng.write_weights(w_frozen * std_x.view(1, -1))
+            if (self.std is not None or mod) and not plastic:
+                eng.write_weights(modulated(w_frozen, a))
             if energy:
                 self.E.step(counts)
                 eng.scale_current(self.E.excitability(self.vmap))
@@ -428,7 +516,7 @@ class AssocRun:
             if vid is not None and i % stride == 0:
                 vid.add(a.cpu().numpy(), self.C1.c.cpu().numpy(), self.C2.c.cpu().numpy(),
                         f"{header}  step {i}/{steps}  t={eng.t}")
-        if self.std is not None:             # leave the undepressed weights in the engine
+        if self.std is not None or mod:      # leave the undepressed, unmodulated weights in the engine
             eng.write_weights(w_frozen if w_frozen is not None else
                               (self.P.effective() if write_weights is None else write_weights(self.P)))
         torch.cuda.synchronize() if eng.device.type == "cuda" else None
@@ -1420,8 +1508,11 @@ def prop_survey(eng, params: dict, out_prefix: str, n_pairs: int = 8) -> dict:
         for cond, inj in (("joint", (a, b)), ("A", (a,)), ("B", (b,)), ("none", ())):
             run.reset_dynamics()
             run.spike_acc.zero_()
+            s4 = bool(p.get("transmission"))      # S4 reads C1, released during the survey
+            if s4:
+                run.C1.reset()
             at, ao, ns = run.run(rnd, inject=[run.inject_idx_cached(g) for g in inj], track=[a, b] + path,
-                                 chem=False, header=f"survey {cond}")
+                                 chem=s4, release1=s4, header=f"survey {cond}")
             sel = run.selectivity(a, b)
             pm = at[:, 2:].max(axis=0) if path else np.zeros(1)
             row[cond] = {"M": sel["M"]["spikes_per_exc"], "Sh": sel["Sh"]["spikes_per_exc"],
@@ -1490,7 +1581,11 @@ def input_survey(eng, params: dict, out_prefix: str, n_pairs: int = 8) -> dict:
             run.reset_dynamics()
             run.spike_acc.zero_()
             run.input_acc.zero_()
-            run.run(n_steps, inject=[run.inject_idx_cached(g) for g in inj], chem=False, header=f"input {cond}")
+            s4 = bool(p.get("transmission"))      # S4 reads C1, released during the survey
+            if s4:
+                run.C1.reset()
+            run.run(n_steps, inject=[run.inject_idx_cached(g) for g in inj], chem=s4, release1=s4,
+                    header=f"input {cond}")
             I[cond] = run.input_acc / n_steps
             S[cond] = run.spike_acc.clone()
             # excitatory and inhibitory input separately (iteration 48): spikes x synaptic current, summed
@@ -1582,7 +1677,86 @@ def conn_survey(eng, params: dict, out_prefix: str) -> dict:
     return res
 
 
+def single_synapse_threshold(eng, params: dict, out_prefix: str, n_neurons: int = 200) -> dict:
+    """
+    Sparse task Substep 1: the smallest one-step current that fires a resting ordinary excitatory neuron,
+    with every synaptic weight zeroed (isolated neurons); scanned over `ss_currents`. Reported as current
+    and as the normalized inter-group E -> E weight that delivers it (current / (gain * gain_ee_inter)).
+    """
+    run = AssocRun(eng, params, rng_seed=eng.seed + 5)
+    p = run.p
+    cand = torch.nonzero(eng.exc & ~eng.assembly_of_neuron()).view(-1)
+    if cand.numel() == 0:
+        cand = torch.nonzero(eng.exc).view(-1)
+    rng = np.random.default_rng(eng.seed)
+    idx = cand[torch.as_tensor(np.sort(rng.choice(cand.numel(), size=min(n_neurons, cand.numel()), replace=False)),
+                               device=eng.device)]
+    currents = [float(x) for x in params.get("ss_currents", np.arange(2.0, 40.5, 0.5))]
+    saved = eng.read_weights()
+    eng.write_weights(torch.zeros_like(saved))
+    thr = torch.full((idx.numel(),), float("nan"), device=eng.device)
+    run.spike_acc = torch.zeros(eng.N, device=eng.device)
+    inj_current = p["inject_current"]
+    for cur in currents:
+        run.reset_dynamics()
+        eng.write_weights(torch.zeros_like(saved))
+        run.spike_acc.zero_()
+        p["inject_current"] = cur
+        run.run(20, inject=[idx], inject_steps=1, chem=False, header=f"single-step current {cur}")
+        fired = run.spike_acc[idx] > 0
+        thr = torch.where(fired & torch.isnan(thr), torch.full_like(thr, cur), thr)
+    p["inject_current"] = inj_current
+    run.spike_acc = None
+    eng.write_weights(saved)
+    ok = thr[~torch.isnan(thr)]
+    scale = float(p["gain"]) * float(p["gain_ee_inter"])
+    med = float(ok.median()) if ok.numel() else None
+    return {"n": int(idx.numel()), "n_fired": int(ok.numel()), "current_median": med,
+            "current_min": float(ok.min()) if ok.numel() else None,
+            "current_max": float(ok.max()) if ok.numel() else None,
+            "w_inter_ee_threshold": med / scale if med is not None else None, "gain_inter_ee": scale,
+            "pass": True}
+
+
+def hysteresis_test(eng, params: dict, out_prefix: str) -> dict:
+    """
+    Sparse task Substep 2 (c): a background current ramped up and then down over `hyst_levels` (mu, added
+    to every ordinary neuron, plus sigma * N(0, 1) with `hyst_sigma`), `hyst_steps` steps per level without
+    reset; mean spikes per step of ordinary excitatory neurons and of assembly neurons over the last
+    `hyst_measure` steps of each level. A loop (higher rate on the way down at the same mu) means
+    all-or-none propagation (Kusmierz et al. 2020).
+    """
+    run = AssocRun(eng, params, rng_seed=eng.seed + 6)
+    levels_up = [float(x) for x in params.get("hyst_levels", np.arange(0.0, 8.01, 0.5))]
+    levels = levels_up + levels_up[-2::-1]
+    steps, meas = int(params.get("hyst_steps", 300)), int(params.get("hyst_measure", 200))
+    sigma = float(params.get("hyst_sigma", 2.0))
+    ordinary = ~eng.assembly_of_neuron()
+    ord_e = ordinary & eng.exc
+    run.spike_acc = torch.zeros(eng.N, device=eng.device)
+    run.bg_gen = torch.Generator(device=eng.device).manual_seed(int(eng.seed) + 7919)
+    run.reset_dynamics()
+    rows = []
+    for mu in levels:
+        run.bg = (mu * ordinary.float(), sigma * ordinary.float())
+        run.run(steps - meas, chem=False, header=f"hysteresis mu {mu} settle")
+        run.spike_acc.zero_()
+        run.run(meas, chem=False, header=f"hysteresis mu {mu}")
+        rows.append({"mu": mu, "rate_ordinary_exc": _mean(run.spike_acc[ord_e]) / meas if bool(ord_e.any()) else None,
+                     "rate_assembly": _mean(run.spike_acc[~ordinary]) / meas if bool((~ordinary).any()) else None,
+                     "runaway": run.stopped is not None})
+    run.bg = None
+    run.spike_acc = None
+    n_up = len(levels_up)
+    loop = [rows[n_up - 1 + k]["rate_ordinary_exc"] - rows[n_up - 1 - k]["rate_ordinary_exc"]
+            for k in range(n_up) if rows[n_up - 1 - k]["rate_ordinary_exc"] is not None]
+    return {"levels": rows, "loop_area": float(sum(abs(x) for x in loop) * (levels_up[1] - levels_up[0]))
+            if len(levels_up) > 1 else 0.0, "loop_max": float(max(loop)) if loop else None, "pass": True}
+
+
 JOBS = {
+    "single_synapse_threshold": single_synapse_threshold,
+    "hysteresis": hysteresis_test,
     "conn_survey": conn_survey,
     "diag_saturated_path": diag_saturated_path,
     "prop_survey": prop_survey,

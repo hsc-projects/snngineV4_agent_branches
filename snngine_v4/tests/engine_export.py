@@ -94,12 +94,14 @@ def main(argv=None):
     arr["table_2_1"] = snk_tab[0:D + 1]           # excitatory -> inhibitory
     arr["table_2_2"] = snk_tab[D + 1:2 * (D + 1)]  # excitatory -> excitatory
 
-    # delivery probe: one neuron fires once (v above threshold at the start of a step), every other weight zero
+    # delivery probe: one neuron fires once (v above threshold at the start of a step), every other weight zero;
+    # regular-spiking neurons only (reset c below -60): chattering ones fire a burst after one forced spike
     types = arr["types"]
+    regular = eng.states[5].cpu().numpy() < -60.0
     rng = np.random.default_rng(a.seed + 11)
     k_half = max(1, a.probe_neurons // 2)
-    probe_ids = np.concatenate([rng.choice(np.nonzero(types == 1)[0], k_half, replace=False),
-                                rng.choice(np.nonzero(types == 2)[0], k_half, replace=False)])
+    probe_ids = np.concatenate([rng.choice(np.nonzero((types == 1) & regular)[0], k_half, replace=False),
+                                rng.choice(np.nonzero((types == 2) & regular)[0], k_half, replace=False)])
     arr["probe_ids"] = probe_ids
     for j, n in enumerate(probe_ids):
         eng.reset_dynamics()

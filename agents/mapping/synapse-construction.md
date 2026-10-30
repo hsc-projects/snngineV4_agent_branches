@@ -55,15 +55,19 @@ sorted by group (`NetworkReservoirConfig.sort_pos`; `NeuronFlags.cls_validate_da
    `fill_G_exp_ccsyn_per_src_type_and_delay_` fits a connection probability per group that falls with delay
    (`sigmoidal_connection_probability`, `roughly_optimize_connection_probabilities`) so that S synapses are spent,
    and writes cumulative expected counts per delay; a final correction sets the total to S, spread over the delay
-   buckets from the one with the most targets on, each bucket kept within its available targets
-   (`spread_ccsyn_correction`); the validator checks every bucket. `SynCounts` splits the
+   buckets starting at the one with the most targets and continuing upward with wrap-around to delay 0, each
+   bucket kept within its available targets (`spread_ccsyn_correction`); the validator checks that every row
+   is non-decreasing (the per-bucket caps are checked by `check_count_tables` on GPU builds). `SynCounts` splits the
    excitatory sources' counts by target type (S/5 and 4 S/5) and corrects buckets that would exceed the available
    targets (`output_correction`, `validate_sink_counts`).
 3. **Local targets** (`RepBackend.fill_N_rep`, `synapses.py:346`; kernel `k_set_locally_indexed_connections`,
    `connector.cu`), once per type connection: for each source neuron and delay, the bucket's slots (from the
    connection's cumulative counts, `cc_syn`) receive distinct random local indices within that delay's target
    neurons; the own index is excluded at delay 0 when source and target type are the same. Writes `N_rep` at
-   n S + s, the sort key (bucket start) and the neuron's `N_delays` column.
+   n S + s, the sort key (bucket start) and the neuron's `N_delays` column. The own index is located first
+   (`set_local_autapse_idcs_kernel`): per source group and delay, the local index of the group's first neuron
+   among that delay's target groups, or -1 if it is not among them or the delay has no target group (a central
+   group has none at the largest delays); `fill_tensors` checks that only delay 0 has one (`synapses.py:364`).
 4. **First sort** (`sort_N_rep`, `synapses.py:378`): each bucket's local indices in ascending order (keys keep the
    buckets in place).
 5. **Global targets** (`reindex_N_rep`, `synapses.py:390`; kernel `reindex_N_rep_`), once per type connection:

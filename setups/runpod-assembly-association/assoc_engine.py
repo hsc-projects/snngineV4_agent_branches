@@ -15,6 +15,7 @@ Engine facts used here (snngine_v4/nn/cuda_backend/src/simulation/snn_simulation
 
 from __future__ import annotations
 
+import math
 import os
 import sys
 
@@ -250,7 +251,7 @@ class AssocEngine:
     gain_map = None  # optional (S, N) per-synapse gain (gain by neuron-type pair), overrides gain
 
     def set_gains(self, gain: float = 1.0, gain_ei: float = 1.0, gain_ie: float = 1.0, gain_ee_inter: float = 1.0,
-                  inter_norm: bool = False):
+                  inter_norm: bool = False, gain_ei_inter: float = 1.0, gain_ie_inter: float = 1.0):
         """
         Synaptic current gains by neuron-type pair, identical for every pair of groups:
         excitatory-to-excitatory gain, excitatory-to-inhibitory gain * gain_ei,
@@ -261,9 +262,12 @@ class AssocEngine:
         inter_norm (iteration 45): those synapses additionally * mean in-degree / in-degree of their
         target (in-degree: the target's number of such synapses), so every excitatory neuron's
         summed gain over its inter-group excitatory inputs is the same (synaptic scaling).
+        gain_ei_inter / gain_ie_inter (sparse task S6): E -> I and I -> E synapses between different
+        location groups additionally times these (intra-group inhibition unchanged).
         """
         self.gain = float(gain)
-        if gain_ei == 1.0 and gain_ie == 1.0 and gain_ee_inter == 1.0 and not inter_norm:
+        if (gain_ei == 1.0 and gain_ie == 1.0 and gain_ee_inter == 1.0 and not inter_norm
+                and gain_ei_inter == 1.0 and gain_ie_inter == 1.0):
             self.gain_map = None
             return
         post = torch.clamp(self.n_rep.long(), min=0)
@@ -272,6 +276,10 @@ class AssocEngine:
         m = torch.full(post.shape, float(gain), device=self.device)
         m[pre_exc & ~post_exc] *= float(gain_ei)
         m[~pre_exc & post_exc] *= float(gain_ie)
+        if gain_ei_inter != 1.0 or gain_ie_inter != 1.0:
+            between = self.groups[post] != self.groups.view(1, -1)
+            m[pre_exc & ~post_exc & between] *= float(gain_ei_inter)
+            m[~pre_exc & post_exc & between] *= float(gain_ie_inter)
         if gain_ee_inter != 1.0 or inter_norm:
             intra_asm = (self.groups[post] == self.groups.view(1, -1)) & self.assembly_of_neuron().view(1, -1)
             inter = pre_exc & post_exc & ~intra_asm
@@ -309,8 +317,81 @@ class AssocEngine:
         self.states.copy_(self.init_states)
         self.states[ROW_I].zero_()
 
+    def inter_ee_mask(self) -> torch.Tensor:
+        """(S, N): excitatory-to-excitatory synapses outside assemblies (between groups, or within an
+        ordinary group): the synapses gain_ee_inter acts on."""
+        post = torch.clamp(self.n_rep.long(), min=0)
+        same = (self.groups[post] == self.groups.view(1, -1)) & self.assembly_of_neuron().view(1, -1)
+        return self.exc.view(1, -1) & self.exc[post] & ~same & (self.n_rep >= 0)
+
+    def draw_inter_ee(self, w: torch.Tensor, spec: dict) -> torch.Tensor:
+        """
+        Heavy-tailed initial weights on the inter-group E -> E synapses (sparse task, S2 and S3), drawn per
+        synapse with mean spec["mean"], then each presynaptic neuron's summed outgoing such weight scaled to
+        its count x mean (no hubs, as Hiratani et al. 2013). The plasticity bounds do not apply to them.
+        kind "lognormal": sigma; values above `cap` (if given) redrawn.
+        kind "powerlaw": a Pareto tail above `w_thr` (the single-synapse threshold, normalized weight),
+        P(w > x) = p (w_thr / x) ** alpha, with p chosen so that on average `lam_sup` synapses per neuron
+        exceed w_thr; the other synapses form a lognormal bulk (`sigma_bulk`) whose mean makes the overall
+        mean `mean`. (A single Pareto with mean 0.05 cannot put one synapse per neuron above 6.8.) The
+        per-neuron normalization then scales only the bulk, so the tail stays above w_thr.
+        """
+        tail_m = None
+        m = self.inter_ee_mask()
+        n = int(m.sum())
+        gen = torch.Generator(device="cpu").manual_seed(int(spec.get("seed", self.seed)) + 104729)
+        mean = float(spec["mean"])
+        if spec["kind"] == "lognormal":
+            s = float(spec["sigma"])
+            mu = math.log(mean) - s * s / 2
+            x = torch.exp(mu + s * torch.randn(n, generator=gen))
+            cap = spec.get("cap")
+            if cap is not None:
+                for _ in range(50):
+                    hi = x > float(cap)
+                    if not bool(hi.any()):
+                        break
+                    x[hi] = torch.exp(mu + s * torch.randn(int(hi.sum()), generator=gen))
+                x = torch.clamp(x, max=float(cap))
+        elif spec["kind"] == "powerlaw":
+            per_neuron = n / max(1, int(self.exc.sum()))
+            p_tail = float(spec["lam_sup"]) / per_neuron
+            w_thr, alpha = float(spec["w_thr"]), float(spec.get("alpha", 2.0))
+            cap = spec.get("cap")
+            tail_mean = w_thr * alpha / (alpha - 1) if cap is None else None
+            is_tail = torch.rand(n, generator=gen) < p_tail
+            t = w_thr * torch.rand(int(is_tail.sum()), generator=gen).clamp(min=1e-12).pow(-1.0 / alpha)
+            if cap is not None:
+                t = torch.clamp(t, max=float(cap))
+                tail_mean = float(t.mean()) if t.numel() else w_thr
+            bulk_mean = (mean - p_tail * tail_mean) / (1.0 - p_tail)
+            if bulk_mean <= 0:
+                raise ValueError(f"lam_sup {spec['lam_sup']} needs more than the mean {mean} in the tail")
+            sb = float(spec.get("sigma_bulk", 0.5))
+            x = torch.exp(math.log(bulk_mean) - sb * sb / 2 + sb * torch.randn(n, generator=gen))
+            x[is_tail] = t
+            tail_m = torch.zeros_like(m)
+            tail_m[m] = is_tail.to(m.device)
+        else:
+            raise ValueError(f"unknown inter_ee kind {spec['kind']!r}")
+        out = w.clone()
+        out[m] = x.to(w.device, w.dtype)
+        if spec.get("normalize_out", True):
+            # each presynaptic neuron's summed outgoing weight scaled to its count x mean; with a power-law
+            # tail only the bulk is scaled (to what the tail leaves, at least a tenth of its own sum)
+            pre_all = torch.arange(self.N, device=w.device).view(1, -1).expand_as(w)
+            bulk = m if tail_m is None else m & ~tail_m
+            cnt = torch.zeros(self.N, device=w.device).index_add_(0, pre_all[m], torch.ones_like(out[m]))
+            tail_sum = (torch.zeros(self.N, device=w.device) if tail_m is None else
+                        torch.zeros(self.N, device=w.device).index_add_(0, pre_all[tail_m], out[tail_m]))
+            bsum = torch.zeros(self.N, device=w.device).index_add_(0, pre_all[bulk], out[bulk])
+            target = torch.maximum(cnt * mean - tail_sum, 0.1 * bsum)
+            pre = pre_all[bulk]
+            out[bulk] = out[bulk] * (target[pre] / bsum[pre].clamp(min=1e-12))
+        return out
+
     def typed_weights(self, w_ee=None, w_ei=None, w_ie=None, w_intra_ee=None, w_intra_ei=None,
-                      w_intra_ee_total=None, w_intra_ee_cap=None):
+                      w_intra_ee_total=None, w_intra_ee_cap=None, inter_ee=None):
         """
         Global weights by neuron type (identical for every pair), plus the allowed intra-group
         boost (shortcut 1) for synapses whose pre and post sit in the same location group.
@@ -340,6 +421,8 @@ class AssocEngine:
             w[pre_exc & post_exc & same & valid] = float(w_intra_ee)
         if w_intra_ei is not None:
             w[pre_exc & ~post_exc & same & valid] = float(w_intra_ei)
+        if inter_ee is not None:        # sparse task S2 / S3 (default None: unchanged)
+            w = self.draw_inter_ee(w, inter_ee)
         return w
 
     def intra_ee_mask(self) -> torch.Tensor:

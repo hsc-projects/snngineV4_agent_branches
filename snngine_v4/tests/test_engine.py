@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -34,9 +35,9 @@ ENABLED = os.environ.get("SNN_ENGINE_TESTS") == "1"
 CONFIGS = {
     "small": (2000, 200, None, 0, (1, 1, 1)),
     "odd": (3001, 150, None, 1, (1, 1, 1)),
-    # "elongated": (3000, 150, 4, 2, (6, 1, 1)) -- left out: the engine's construction refuses this layout (its own
-    # check in synapses.py that autapse candidates appear only at delay 0 fails, with and without the fix in
-    # connector.cu; engine-tests run 2026-10-30), so the multi-group autapse search cannot be exercised yet
+    # several groups at delay 0, the own group not first among them (the autapse search in connector.cu), and source
+    # groups without any group at the last delays
+    "elongated": (3000, 150, 4, 2, (6, 1, 1)),
     "asm7": (20000, 2000, None, 0, (1, 1, 1)),
     "asm9": (42500, 2000, 16, 0, (1, 1, 1)),
 }
@@ -53,6 +54,7 @@ def export(name):
     n, s, d, seed, shape = CONFIGS[name]
     base = os.environ.get("SNN_ENGINE_EXPORT_DIR") or tempfile.mkdtemp(prefix="snn_engine_tests_")
     out = os.path.join(base, name)
+    shutil.rmtree(out, ignore_errors=True)       # a reused export directory: never test an older run's files
     cmd = [sys.executable, os.path.join(HERE, "engine_export.py"), "--n-neurons", str(n), "--n-synapses", str(s),
            "--seed", str(seed), "--out", out, "--reservoir-shape", *map(str, shape)] \
         + (["--n-delays", str(d)] if d else [])

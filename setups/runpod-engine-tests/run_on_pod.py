@@ -18,8 +18,10 @@ import time
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 KEY = os.path.join(REPO, "setups", ".secrets", "id_ed25519")
-NULL = "NUL" if os.name == "nt" else "/dev/null"
-OPTS = ["-i", KEY, "-o", "StrictHostKeyChecking=no", "-o", f"UserKnownHostsFile={NULL}", "-o", "LogLevel=ERROR",
+# pod host keys change with every pod: keep them in the gitignored results folder ("NUL" is a real file for
+# the ssh of Git Bash)
+KNOWN_HOSTS = os.path.join(HERE, "results", "known_hosts")
+OPTS = ["-i", KEY, "-o", "StrictHostKeyChecking=no", "-o", f"UserKnownHostsFile={KNOWN_HOSTS}", "-o", "LogLevel=ERROR",
         "-o", "ConnectTimeout=20"]
 
 
@@ -50,13 +52,17 @@ def main(argv=None):
     ap.add_argument("--timeout-min", type=float, default=90.0)
     a = ap.parse_args(argv)
     h, p = a.host, a.port
+    os.makedirs(os.path.dirname(KNOWN_HOSTS), exist_ok=True)
 
     remote_tgz = f"/root/engine-tests-{a.run}.tgz"
     scp(h, p, a.tree, f"root@{h}:{remote_tgz}")
     scp(h, p, os.path.join(HERE, "pod_run_tests.sh"), f"root@{h}:/root/pod_run_tests.sh")
     rc, out = ssh(h, p, f"sed -i 's/\\r$//' /root/pod_run_tests.sh && md5sum {remote_tgz}")
     print(out.strip())
-    start = (f"nohup bash /root/pod_run_tests.sh {remote_tgz} {a.run} {a.level} '{a.configs}' "
+    # a reused run name: remove the previous run's marker before starting, or the first poll reads it
+    # (";" not "&&": with "&&" the trailing "&" backgrounds a subshell that keeps the ssh channel open)
+    start = (f"rm -f /workspace/output/engine-tests/{a.run}/finished; "
+             f"nohup bash /root/pod_run_tests.sh {remote_tgz} {a.run} {a.level} '{a.configs}' "
              f"> /root/engine-tests-{a.run}.log 2>&1 < /dev/null & disown; echo started")
     rc, out = ssh(h, p, start)
     print(out.strip())

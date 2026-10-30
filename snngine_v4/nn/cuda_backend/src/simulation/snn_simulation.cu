@@ -209,9 +209,10 @@ __global__ void update_chemical_concentrations_(
 	// (a missing neighbour counts as the cell itself); cells with a positive source take the source value.
 	// Reads only C_old and writes only C_new (update_chemical_concentrations copies C_new back to C_old), so no
 	// cell is read after another thread has updated it.
-	const int j = blockIdx.x * blockDim.x + threadIdx.x;  // width
+	// x runs along depth, the contiguous index, so that a warp reads consecutive cells
+	const int k = blockIdx.x * blockDim.x + threadIdx.x;  // depth
 	const int i = blockIdx.y * blockDim.y + threadIdx.y;  // height
-	const int k = blockIdx.z * blockDim.z + threadIdx.z;  // depth
+	const int j = blockIdx.z * blockDim.z + threadIdx.z;  // width
 
 	if ((i >= grid_h) || (j >= grid_w) || (k >= grid_d))
 	{
@@ -416,13 +417,13 @@ SnnSimulation::SnnSimulation(
 	}
 	chem_k_val = chem_k_val_;
 	chem_depreciation = chem_depreciation_;
-    lp_update_chemical_concentrations = LaunchParameters(
-		chem_grid_w,
-		chem_grid_h,
+    lp_update_chemical_concentrations = LaunchParameters(  // x: depth, y: height, z: width
 		chem_grid_d,
-		chem_block_size,
-		chem_block_size,
-		chem_block_size
+		chem_grid_h,
+		chem_grid_w,
+		32,
+		4,
+		4
 	);
 }
 

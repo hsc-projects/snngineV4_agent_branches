@@ -64,8 +64,8 @@ inferred from surrounding Python and configuration boundaries.
     (`snn_construction_gpu.SnnRepresentation`), followed by CUDA sorting,
     reindexing (`snn_construction_gpu.reindex_N_rep`), the conversion of
     `N_rep` from the kernels' (N, S) row-major layout to the simulation's
-    (S, N) layout, and type connection weight initializations
-    (`type_conns.apply_init_weights`). Stage-by-stage description, array
+    (S, N) layout, and the initial weights by each synapse's (source type,
+    target type) connection. Stage-by-stage description, array
     layouts and the invariants of a correct build:
     `synapse-construction.md`. Tagged `hand-written-edge` + `cuda-adjacent`.
 

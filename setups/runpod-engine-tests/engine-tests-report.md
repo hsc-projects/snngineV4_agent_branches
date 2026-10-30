@@ -46,6 +46,8 @@ Found by the tests, not fixed: the engine's construction refuses an elongated re
 own check that autapse candidates appear only at delay 0 (`synapses.py`, after `fill_N_rep`), on both engines; the
 configuration is left out (`test_engine.py`), so the autapse-search fix in `connector.cu` is not exercised.
 
+Resolved in the next entry: the elongated reservoir, and a chemistry test that the old kernel fails.
+
 Test-suite errors fixed during the runs (no engine change): file ownership when unpacking a pack made on Windows;
 apt cannot lock a folder on the network volume (the package cache is now copied around a local apt cache); STDP
 probe neurons that chatter (a burst after one forced spike) gave extra updates (now regular-spiking neurons only,
@@ -53,3 +55,41 @@ spike counts checked); STDP probes started before the engine enables STDP (t > 2
 was too weak to detect the old construction; exact rounding ties (x.5) in the delay table (float32 in the engine,
 float64 in the check); one failing configuration erroring other configurations' cases and probe results lost when
 the probe script crashed late (results now saved before the risky probes, failures cached).
+
+## 2026-10-30: elongated reservoir, chemistry on a large grid
+
+Code: `wt3`/`wt4` = commit cc68e7a plus the empty-delay fix in the autapse search (`connector.cu`,
+`set_local_typed_delay_repr_idx_kernel`: a source group without target groups at a delay has no autapse there);
+`old` = engine at a102f3d (`pack_tree.sh head ... a102f3d`) with the current tests; `mut` = `wt3` without the
+`Ng_prev` update in the same function (mutation check). Tests: `elongated` (6 x 1 x 1, D 4) enabled and added to
+`quick`; the `small` probes' chemistry grid raised from 32 to 96 cells. Pods `7plq91xhi7aigr` (fixed),
+`l1tgmrg4ecfbvb` (old), `pkh1vrg9kdxqi2` (mutation), RTX PRO 4000 Blackwell, EU-RO-1, $0.57/h each, from 04:33 UTC.
+
+| run | code | configurations | result |
+|---|---|---|---|
+| `fixed-f3` | `wt3` | full | all pass except the `small` probes (grid 128, see below) |
+| `fixed-small4` | `wt4` | small | 49 tests, OK |
+| `old-a102f3d-3` | `old` | small, elongated | elongated: construction refused (`synapses.py:367`) |
+| `old-a102f3d-4` | `old` | small (grid 96) | 15 failures, including four chemistry tests |
+| `mut-ngprev` | `mut` | elongated | `targets_valid`: 219 autapses |
+
+Cause of the refusal: for a source group whose largest delays have no target groups (a central group of an
+elongated grid), the autapse search read `G_rep` from the next delay's or the next row's first entry; when that
+entry was the source group itself (a neighbour at delay 0 of the next group), it reported an autapse candidate at
+that delay, and the construction's own check stopped the build. With the fix the elongated network builds and
+passes every invariant; without the `Ng_prev` update it contains autapses, so both fixes in that function are now
+tested.
+
+Chemistry: a grid of 128 cells is refused by the engine itself (`finite_grid.py:150`, positions must stay below
+`max_z = 100`), so the probe uses 96 cells (1728 blocks of 8^3, more than the GPU runs at once). The old kernel,
+which updated `C_old` in place while other blocks read it as their border, fails: one step 8.2 % of cells wrong
+(by up to 22.6 on values of 0 to 100), two identical runs of ten steps differ in 86.7 % of cells (up to 1.47),
+ten steps 74 % wrong, the point source likewise. The rewritten kernel passes. The other two defects of the old
+kernel (barrier inside a branch, border cell of grids not a multiple of 8) still show no effect at grid 30.
+
+After a review of the suite (same day, pod `7plq91xhi7aigr`, 04:33 to about 04:54 UTC; all three pods about
+$0.35 together, estimated from the lifetimes; terminated, `list-pods` empty): the chemistry kernel's x now runs
+along depth, the contiguous index (blocks of 32 x 4 x 4; before, a warp's loads were 8 cells apart in memory);
+the delivery probe draws regular-spiking neurons only (a chattering neuron would fire a second time); probe and
+export folders are cleared before a build; a reused run name no longer reads the previous run's `finished`
+marker. `fixed-f5`: full, 49 tests OK (231 s); the same run name again with `quick`: 49 tests OK.

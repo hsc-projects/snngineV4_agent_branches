@@ -469,9 +469,22 @@ class StubEngine:
         self.states[self.row_i].zero_()
         return s
 
+    seed = 0
+
     def set_noise(self, **kw): self.noise = kw
     def set_gains(self, *a): pass
-    def typed_weights(self, **kw): return torch.full((self.S, self.N), 0.5, device=self.device)
+
+    def typed_weights(self, **kw):
+        w = torch.full((self.S, self.N), 0.5, device=self.device)
+        return self.draw_inter_ee(w, kw["inter_ee"]) if kw.get("inter_ee") else w
+
+    def inter_ee_mask(self):
+        from assoc_engine import AssocEngine
+        return AssocEngine.inter_ee_mask(self)
+
+    def draw_inter_ee(self, w, spec):
+        from assoc_engine import AssocEngine
+        return AssocEngine.draw_inter_ee(self, w, spec)
     def write_weights(self, w): self.weights.copy_(w)
     def read_weights(self): return self.weights.clone()
     def reset_dynamics(self): pass
@@ -578,6 +591,25 @@ def inter_group_gain_only_between_groups(dev):
     AssocEngine.set_gains(eng, 4.0, 1.0, 1.0, 2.0)
     in_asm = same & eng.assembly[eng.groups].view(1, -1)
     assert bool((eng.gain_map[in_asm] == 4.0).all()) and bool((eng.gain_map[~in_asm] == 8.0).all())
+
+
+@check
+def inter_group_inhibition_gains_only_between_groups(dev):
+    from assoc_engine import AssocEngine
+    eng = StubEngine(dev)          # n -> n+1, n -> n+2; groups of 10; positions 0, 2, 4, 6, 9 excitatory
+    r = torch.arange(eng.N, device=dev) % 10
+    eng.exc = (r == 0) | (r == 2) | (r == 4) | (r == 6) | (r == 9)
+    AssocEngine.set_gains(eng, 4.0, 1.0, 2.0, 1.0, False, 0.5, 0.25)
+    post = eng.n_rep.long()
+    pre_exc = eng.exc.view(1, -1).expand_as(post)
+    post_exc = eng.exc[post]
+    between = eng.groups[post] != eng.groups.view(1, -1)
+    ei, ie = pre_exc & ~post_exc, ~pre_exc & post_exc
+    assert bool((eng.gain_map[ie & between] == 4.0 * 2.0 * 0.25).all()) and bool((ie & between).any())
+    assert bool((eng.gain_map[ei & between] == 4.0 * 0.5).all()) and bool((ei & between).any())
+    assert bool((eng.gain_map[ie & ~between] == 8.0).all()) and bool((ei & ~between).any())
+    assert bool((eng.gain_map[ei & ~between] == 4.0).all())
+    assert bool((eng.gain_map[pre_exc & post_exc] == 4.0).all())
 
 
 @check
@@ -1092,6 +1124,110 @@ def uniform_c2_holds_every_voxel_while_released(dev):
     run.C2.c.zero_()
     run.run(1, release2=False)                                   # not released: untouched
     assert float(run.C2.c.abs().max()) == 0.0
+
+
+def _all_ordinary(eng):
+    eng.set_assemblies(torch.zeros(eng.G, dtype=torch.bool, device=eng.device))
+    return eng
+
+
+@check
+def inter_ee_lognormal_mean_cap_and_unclipped_bounds(dev):
+    eng = _all_ordinary(StubEngine(dev, N=400))
+    w0 = torch.full((eng.S, eng.N), 0.05, device=dev)
+    x = eng.draw_inter_ee(w0, {"kind": "lognormal", "sigma": 1.0, "mean": 0.05, "cap": 0.3,
+                               "normalize_out": False})
+    assert bool((x > 0).all()) and float(x.max()) <= 0.3 + 1e-6 and float(x.std()) > 0.01
+    y = eng.draw_inter_ee(w0, {"kind": "lognormal", "sigma": 1.0, "mean": 0.05})
+    assert torch.allclose(y.mean(dim=0), torch.full((eng.N,), 0.05, device=dev), atol=1e-5)   # no hubs
+    # initial weights above the plasticity bound 1 and below 0.05 stay as drawn (bounds act on changes)
+    from assoc_protocol import AssocRun
+    spec = {"kind": "lognormal", "sigma": 1.5, "mean": 1.0, "seed": 3, "normalize_out": False}
+    run = AssocRun(eng, {"weights": {"inter_ee": spec}, "assemblies": {"layout": "lattice", "spacing": 2}})
+    assert float(run.base_w.max()) > 1.0 and float(run.base_w.min()) < 0.05
+    assert torch.allclose(run.P.effective(), run.base_w)
+
+
+@check
+def inter_ee_powerlaw_tail_above_threshold(dev):
+    eng = _all_ordinary(StubEngine(dev, N=4000))                  # 2 inter-group synapses per neuron
+    w0 = torch.full((eng.S, eng.N), 0.05, device=dev)
+    spec = {"kind": "powerlaw", "lam_sup": 0.2, "w_thr": 6.8, "mean": 2.0, "cap": 50.0, "normalize_out": False}
+    x = eng.draw_inter_ee(w0, spec)
+    frac = float((x > 6.8).float().mean())
+    assert abs(frac - 0.1) < 0.015, frac                         # 0.2 per neuron of 2 synapses
+    assert abs(float(x.mean()) - 2.0) < 0.2, float(x.mean())
+    y = eng.draw_inter_ee(w0, dict(spec, normalize_out=True))
+    assert abs(float((y > 6.8).float().mean()) - frac) < 1e-6    # normalization scales the bulk only
+    try:
+        eng.draw_inter_ee(w0, dict(spec, mean=0.05, cap=None))
+        raise AssertionError("an infeasible tail must be refused")
+    except ValueError:
+        pass
+
+
+@check
+def k5_masks_injected_neurons_in_c2_release_only(dev):
+    out = {}
+    for k5 in (False, True):
+        eng, run = stub_run(dev, {1: [0, 1, 2], 2: [0, 1, 2]}, c2={"no_injected": k5})
+        run.run(2, inject=[torch.tensor([0, 1], device=dev)], inject_steps=2, release1=True, release2=True)
+        out[k5] = (float(run.C1.c.sum()), float(run.C2.c.sum()))
+    assert close(out[True][0], out[False][0])                     # C1 unchanged
+    assert close(out[True][1], out[False][1] / 3, tol=1e-4)       # C2 from neuron 2 only
+
+
+@check
+def uniform_c1_holds_every_voxel_while_released(dev):
+    eng, run = stub_run(dev, {1: [0, 1, 2]}, c1={"uniform": 0.7})
+    run.run(2, release1=True)
+    assert torch.allclose(run.C1.c, torch.full_like(run.C1.c, 0.7))
+    run.C1.c.zero_()
+    run.run(1, release1=False)
+    assert float(run.C1.c.abs().max()) == 0.0
+
+
+@check
+def s4_factor_is_one_without_c1_and_at_full_activity(dev):
+    eng, run = stub_run(dev, {}, transmission={"gain": 1.0, "c1_half": 0.5, "u_ref": 0.9})
+    a0 = torch.zeros(eng.G, device=dev)
+    assert torch.allclose(run.transmission_factor(a0), torch.ones(eng.S, eng.N, device=dev))   # C1 = 0
+    run.C1.c.fill_(1.0)
+    assert torch.allclose(run.transmission_factor(a0), torch.full((eng.S, eng.N), 1 + 1 / 1.5, device=dev))
+    assert torch.allclose(run.transmission_factor(torch.full((eng.G,), 0.9, device=dev)),
+                          torch.ones(eng.S, eng.N, device=dev))                                # u = 1
+    seen = {}
+    run.run(3, inject_steps=2, on_inject_end=lambda: seen.update(w=eng.weights.clone()))
+    assert float(seen["w"].max()) > 0.5 + 1e-3                                                 # modulated
+    assert torch.allclose(eng.weights, torch.full_like(eng.weights, 0.5))                       # restored
+
+
+@check
+def s5_silent_synapses_gated_by_voltage_and_unsilenced(dev):
+    eng = _all_ordinary(StubEngine(dev))
+    from assoc_protocol import AssocRun
+    run = AssocRun(eng, {"silent": {"frac": 1.0, "v_half": -52.5, "v_width": 2.5, "unsilence_w": 0.4}})
+    assert bool(run.silent.any()) and bool((run.silent == eng.inter_ee_mask()).all())
+    a0 = torch.zeros(eng.G, device=dev)
+    eng.states[2].fill_(-65.0)
+    f = run.transmission_factor(a0)
+    assert float(f[run.silent].max()) < 0.01 and bool((f[~run.silent] == 1).all())             # rest: silent
+    eng.states[2].fill_(-40.0)
+    assert float(run.transmission_factor(a0)[run.silent].min()) > 0.99                          # depolarized
+    run.unsilence()                                               # effective weight 0.5 > 0.4
+    assert not bool(run.silent.any())
+
+
+@check
+def hysteresis_and_threshold_jobs_run_and_restore(dev):
+    from assoc_protocol import hysteresis_test, single_synapse_threshold
+    eng = StubEngine(dev, fire={t: [10, 11] for t in range(1, 10 ** 4)})   # two ordinary neurons fire
+    lat = {"assemblies": {"layout": "lattice", "spacing": 2}}                 # groups 1 and 3 ordinary
+    r = hysteresis_test(eng, dict(lat, hyst_levels=[0.0, 1.0, 2.0], hyst_steps=10, hyst_measure=5), "")
+    assert [x["mu"] for x in r["levels"]] == [0.0, 1.0, 2.0, 1.0, 0.0]          # up, then down
+    assert close(r["levels"][0]["rate_ordinary_exc"], 2 / 20) and close(r["loop_area"], 0.0)
+    s = single_synapse_threshold(eng, dict(lat, ss_currents=[5.0, 10.0]), "", n_neurons=5)
+    assert s["n"] == 5 and torch.allclose(eng.weights, torch.full_like(eng.weights, 0.5))  # base weights back
 
 
 @check

@@ -72,7 +72,8 @@ __device__ int set_local_typed_delay_repr_idx_kernel(
 
 )
 {
-    if (g_N_count == 0)
+    // n_groups == 0: no group at this delay; G_rep[G_rep_idx0] would already belong to the next delay or row
+    if ((g_N_count == 0) || (n_groups <= 0))
     {
         return -1;
     }

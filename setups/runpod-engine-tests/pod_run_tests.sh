@@ -14,16 +14,16 @@ RUN="${2:?run name}"
 LEVEL="${3:-quick}"
 CONFIGS="${4:-}"
 case "$LEVEL" in
-    quick) [ -n "$CONFIGS" ] || CONFIGS="small,odd" ;;
+    quick) [ -n "$CONFIGS" ] || CONFIGS="small,odd,elongated" ;;
     full) ;;
     *) echo "level must be quick or full" >&2; exit 2 ;;
 esac
 W="/root/engine-tests/tree"
 OUT="/workspace/output/engine-tests/$RUN"
 CACHE="/workspace/engine-tests-cache"
+rm -f "$OUT/finished"
 rm -rf "$W"
 mkdir -p "$W" "$OUT" "$CACHE/builds" "$CACHE/apt"
-rm -f "$OUT/finished"
 T0=$(date +%s)
 : > "$OUT/summary.txt"
 log() { echo "[$(date -u +%H:%M:%S)] $*" | tee -a "$OUT/summary.txt"; }

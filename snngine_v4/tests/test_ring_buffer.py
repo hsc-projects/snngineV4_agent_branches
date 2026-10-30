@@ -1,8 +1,8 @@
 """
 The spike ring buffer of the simulation (snn_simulation.cu: update(), _update_sim_pointers, update_current_),
 transliterated to Python and replayed with synthetic spike counts (numpy only, no GPU). update_current_ must see
-exactly the spikes of the last D steps (times t - D + 1 .. t) every step, also when the write pointer rewinds at
-13 N spikes and under near-total activity. The transliteration follows the C++ statement by statement; a failure
+exactly the spikes of the last D steps (times t - D + 1 .. t) every step, also when the write pointer rewinds (at
+max(13, D) N spikes) and under near-total activity. The transliteration follows the C++ statement by statement; a failure
 here means the C++ logic fails in the same situation (confirm on the GPU with test_engine_probes.RingBuffer).
 
   PYTHONPATH=<repo root> python -m unittest discover -s snngine_v4/tests -p "test_ring_buffer.py" -v

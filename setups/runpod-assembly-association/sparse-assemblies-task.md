@@ -126,12 +126,14 @@ strengthening of ordinary neurons confined to the route, and the chemical fields
 | S3 | lognormal inter-group E -> E weights, sigma 1 and sigma 0.51 | Teramae et al. 2012; Teramae & Fukai 2014; Hiratani et al. 2013; Chambers & MacLean 2016; Omura et al. 2015 |
 | S4 | transient transmission gain where C1 is high, with a brake where local firing is high | Egelman, King, Montague 1998 (NO raises transmitter release nearby; depletion of external calcium as the brake) |
 | S5 | voltage-gated ("silent") inter-group E -> E synapses that transmit only while the postsynaptic neuron is depolarized, so input from A and B together can cross threshold where either alone does not | Wang et al. 2018 (silent synapses respond at -35 mV, not at -70 mV; conditioning, not pseudo-conditioning, makes them transmit) |
+| S6 | weaker inhibition between location groups: inter-group E -> I and / or I -> E gains lowered (`gain_ei_inter`, `gain_ie_inter`), intra-group inhibition unchanged | agent's proposal after Substep 2 (user decision, 2026-10-30): the route middle receives 60 to 100 times more inhibition than excitation under joint injection |
 | L0 | rule `both`, C1 skipped | predecessor |
 | L1 | BTSP-like rule gated by random plateau events | Bittner et al. 2017; Wu & Maass 2025; Milstein et al. 2021; Cone & Shouval 2021 |
 | L2 | BTSP-like rule gated by C1 | as L1; Gally et al. 1990 |
 | L3 | `pre_c1` with a sign set by the presynaptic rate | Krekelberg & Taylor 1997; Zhuo et al. 1993 (NO with weak tetanus: potentiation); Zhuo, Kandel & Hawkins 1994 (NO with 0.25 Hz stimulation: depression; with 50 Hz: potentiation); Krekelberg & Taylor 1996 (a diffusive rule that only potentiates, as in Gally et al. 1990 and Montague et al. 1991, gives uniform weights in most circumstances; the depression at low presynaptic rates supplies the competition) |
 | L4 | the better of L2 and L3 with a C1 threshold that falls each round until the first transfer | Montague 1996 (stringency); Steinbock et al. 1995 (fronts from two points first meet on the shortest path between them); field-geometry check (Substep 0) |
 | L5 | C1 is also released by synapses whose temporary weight (`w_fast`) has just increased, so the C1 bridge extends itself as learning proceeds | Montague et al. 1991 (strengthened synapses become sources of the substance, so changes in synaptic strength move through tissue faster than the substance diffuses) |
+| L6 | learned, local disinhibition (user decision, 2026-10-30): inhibitory synapses onto excitatory neurons weaken where C1 is high and the neuron receives excitation, together with L0's excitatory potentiation | Stöber, Lehr et al. 2020 (where feed-forward inhibition dominates, as in Substep 2, the excitatory route is unlocked by inhibitory LTD and neuromodulator-gated potentiation, each roughly doubling the postsynaptic potential) |
 | K0 | C2 as in the predecessor | predecessor |
 | K1 | lower C2 level, or C2 falling during the stage | Lehr et al. 2022; Montague 1996; Krekelberg & Taylor 1997 |
 | K2 | tags plus a per-neuron consolidation threshold | Clopath et al. 2008; Lehr et al. 2022; Frey & Morris 1997 (a weak tetanus gives lasting LTP when another input to the same neurons was strongly tetanized about 1 h before; the tag decays within 3 h); Nunes et al. 2024 (two weakly potentiated inputs cooperate: both are maintained, neither alone) |
@@ -192,7 +194,12 @@ editing and short checks; user decision, 2026-10-29).
   redrawn (Teramae et al. 2012: EPSPs above 20 mV, the distance from rest to threshold, redrawn; the
   strongest per neuron then about 10 mV);
   and sigma 0.51, mu -0.64 (Chambers & MacLean 2016). Strong synapses transmit on top of the noise
-  of the weak ones, so S3 needs background activity (Teramae & Fukai 2014).
+  of the weak ones, so S3 needs background activity (Teramae & Fukai 2014). With S0's mean (0.05) a
+  neuron's strongest synapse stays far below half the single-synapse threshold (6.8 predicted for an
+  ordinary excitatory neuron at the passing protocol's gains; at sigma 1 about 13 %, at most about 37 %
+  at any sigma), so S3 runs in two forms (user decision, 2026-10-30): **S3a** with S0's mean input;
+  **S3b** with Teramae's ratio of mean weight to threshold (about 4.5 %, mean about 0.31), inhibition
+  unchanged.
 - **L1, L2 (BTSP-like rule):** a gate event in a neuron (L1: a random plateau at a low rate; L2: C1
   above a threshold) opens a window; only synapses onto that neuron with presynaptic activity in the
   window change, weak ones up and strong ones down; no postsynaptic spike needed. The measured window
@@ -222,6 +229,19 @@ editing and short checks; user decision, 2026-10-29).
   depression term: potentiation alone, spread by a diffusing messenger, tends to uniform weights
   (Krekelberg & Taylor 1996), and too much release gives no stable structure; scan the gain against
   the release limit.
+- **L6** (approved by the user, 2026-10-30): intent: lower the feed-forward inhibition only where the route is
+  to form, by learning, instead of everywhere (S6). **[default]** form: during the joint rounds the
+  I -> E synapses onto an excitatory neuron (plastic for this rule only) are depressed by `a_inh`
+  (**[default]** equal to `a_pre`) per step, times the C1 gate at that neuron (C1 released as for L2
+  to L5) and times its excitatory input relative to its mean (a coincidence proxy: input from A and B
+  together raises it), down to a floor of **[default]** half the initial weight (an analogue chosen by
+  the agent, not derived; Stöber, Lehr et al. 2020 report about a doubling of the postsynaptic
+  potential); the excitatory potentiation of L0 runs alongside. The inhibitory changes are temporary
+  like `w_fast` and become permanent under C2 like the excitatory ones. Controls: uniform C1, and the
+  same depression without the coincidence factor. Substep 2 found the route middle's excitation far
+  below threshold even with inhibition cut to 5 % (S6), so L6 can only help together with excitatory
+  growth; it belongs to Substep 3, which under the present stop rule of Substep 2 does not run
+  (whether Substep 2 is rerun after the core-code fixes is pending).
 - **K1 to K7:** K2 tags a synapse when its `w_fast` change exceeds a threshold and consolidates a
   neuron's tags only if its summed change exceeds a threshold proportional to 1 / (C2 + epsilon).
   K3: C2 decays within a few steps and gates consolidation through a steep sigmoid, one threshold
@@ -255,9 +275,9 @@ report: the substrate then needs a change outside these variants, such as conduc
 synapses with slower excitation than inhibition (Chambers & MacLean 2016: tau_e 10 ms, tau_i 5 ms,
 inhibitory reversal -90 mV; needs new kernels).
 
-**3. Learning rule, L0 to L5.** On each kept substrate, d 4, all controls in the full decision;
+**3. Learning rule, L0 to L6.** On each kept substrate, d 4, all controls in the full decision;
 record whether each pair's first transfer is contained or an ignition. **Keep** a rule that raises
-transfers over L0 without more strays; L2 to L5 must also do worse under the uniform-C1 control.
+transfers over L0 without more strays; L2 to L6 must also do worse under the uniform-C1 control.
 If L5 ignites (strays rise) at every gain tried, report it and try a lower limit or a higher threshold
 before dropping it.
 
@@ -296,7 +316,7 @@ As in the predecessor (work only in this folder, no changes to `snngine_v4/`, po
 terminate pods after download, no commits without the user's go), plus:
 - **User decisions (2026-10-28):** K5, the BTSP-like rule and initial weights above the plasticity
   bound may all be tried.
-- **Cost:** own cap **$28** (preliminary; the user raises it when needed), standing approval within
+- **Cost:** own cap **$25** (preliminary; the user raises it when needed), standing approval within
   it. Spend only on runs that decide something; report the cost at the end of each substep and
   before the cap would be exceeded.
 - **Files:** this file, `sparse-assemblies-report.md`, `sparse-tuning-log.md`,

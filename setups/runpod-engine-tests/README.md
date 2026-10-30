@@ -14,7 +14,7 @@ network volume (other sessions import from there). The development host runs not
 
 ## Levels
 
-- `quick` (default): the small configurations (`small`, `odd`, for the construction tests and the probes), for
+- `quick` (default): the small configurations (`small`, `odd`, `elongated` (construction tests only)), for
   routine checks.
 - `full`: all configurations, adding the assembly networks 7 x 7 x 7 and 9 x 9 x 9 (85 million synapses) and the
   D 16 probes (`ring16`); after changes to the construction or the simulation, and before a commit.
