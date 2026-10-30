@@ -30,6 +30,7 @@
 | `runpod-assembly-association/assembly-association-glossary.md` | Our terms of the assembly-association work mapped to established terms in the literature, with sources |
 | `runpod-assembly-association/rate-model/rate-model-task.md` | Task write-up for a cheap group-level model to screen parameters before spiking runs; rounds 1 to 5 reported, none admitted |
 | `runpod-engine-benchmark/runpod-engine-benchmark-task.md` | Task write-up for checking the engine's correctness against analytic cases and a CPU reference, and benchmarking construction, engine and harness steps on a reference GPU (proposed) |
+| `runpod-engine-tests/README.md` | Running the engine's test suite (`snngine_v4/tests/`) on a Runpod GPU pod on a packed copy of the code (never the shared volume's code or build): pack, run, collect; `engine-tests-report.md` holds one entry per run |
 | `runpod_find_combos.py` | Query live Runpod GraphQL API for in-stock, cost-optimal GPU/CPU options matching network volume constraints |
 | `.secrets/.env` | Gitignored credentials (e.g. `RUNPOD_API_KEY`) read at runtime by host tools |
 | `pi-smoke-test/task.md` | Task write-up for the Pi flash + SSH smoke test (two phases: write/flash the SD card, then SSH once the maintainer boots and connects the Pi) — done 2026-10-04, kept current |

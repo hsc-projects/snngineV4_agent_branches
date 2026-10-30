@@ -199,95 +199,44 @@ __global__ void update_scatter_plot_(
 
 
 __global__ void update_chemical_concentrations_(
-	float *C_old, float *C_new, const float *C_source,
+	const float *C_old, float *C_new, const float *C_source,
 	int grid_w, int grid_h, int grid_d,
 	float k_val = 0.75f,
 	float depreciation = 0.1f)
 {
+	// One explicit diffusion step, layout (height, width, depth), index i * w * d + j * d + k:
+	// C_new = clamp(C_old + k_val * (sum of the 6 neighbours - 6 C_old) - depreciation, 0, 2000), edges reflecting
+	// (a missing neighbour counts as the cell itself); cells with a positive source take the source value.
+	// Reads only C_old and writes only C_new (update_chemical_concentrations copies C_new back to C_old), so no
+	// cell is read after another thread has updated it.
+	const int j = blockIdx.x * blockDim.x + threadIdx.x;  // width
+	const int i = blockIdx.y * blockDim.y + threadIdx.y;  // height
+	const int k = blockIdx.z * blockDim.z + threadIdx.z;  // depth
 
-	// original source: https://github.com/AdityaNair111/2D-3D-Heat-Flow-CUDA/blob/master/src/heat2D3D.cu
-	//
-	// C_new = C_old + sum[n in neighbors] k_val * (T_n - C_old) or C_source - depreciation
-
-
-	const int chem_block_size = 8;
-	__shared__ float Mat[chem_block_size + 2][chem_block_size + 2][chem_block_size + 2];
-
-	const int j = blockIdx.x * chem_block_size + threadIdx.x; // witdth
-	const int i = blockIdx.y * chem_block_size + threadIdx.y; // height
-	const int k = blockIdx.z * chem_block_size + threadIdx.z; // depth
-
-
-	if ((i <= grid_h) && (j <= grid_w) && (k <= grid_d))
+	if ((i >= grid_h) || (j >= grid_w) || (k >= grid_d))
 	{
-		const int grid_wd = grid_w * grid_d;
-		const int idx = i * grid_wd + j * grid_d + k;
-
-		const int j_mat = threadIdx.x + 1;
-		const int i_mat = threadIdx.y + 1;
-		const int k_mat = threadIdx.z + 1;
-
-//        printf("ccc");
-
-		// length <= BLOCK_SIZE
-		const int length_j = (blockIdx.x == (int)(grid_w / chem_block_size)) ? (grid_w % chem_block_size) : chem_block_size;
-		const int length_i = (blockIdx.y == (int)(grid_h / chem_block_size)) ? (grid_h % chem_block_size) : chem_block_size;
-		const int length_k = (blockIdx.z == (int)(grid_d / chem_block_size)) ? (grid_d % chem_block_size) : chem_block_size;
-
-		const float c_old = C_old[idx];
-
-		Mat[i_mat][j_mat][k_mat] = c_old;  // fill Mat[1: BLOCK_SIZE + 2][1: BLOCK_SIZE + 2][1: BLOCK_SIZE + 2] with C_old[i, j, k]
-
-		if (j_mat == 1)  // sum_block_border
-		{
-			// Mat[][0 or block-end][] "outside" C_old => fill Mat[][0 or block-end][] with C_old[, . +/- 1, ] (or else C_old[, .,]).
-			Mat[i_mat][0           ][k_mat] = (j == 0)                 ? c_old                                : C_old[idx - grid_d];  /// check j or j-1
-			Mat[i_mat][length_j + 1][k_mat] = (j >= grid_w - length_j) ? C_old[idx + (length_j - 1) * grid_d] : C_old[idx + length_j * grid_d];
-		}
-
-		if (i_mat == 1)
-		{
-			Mat[0           ][j_mat][k_mat] = (i == 0)                 ? c_old      							       : C_old[idx - grid_wd];  /// check j or j-1
-			Mat[1 + length_i][j_mat][k_mat] = (i >= grid_h - length_i) ? C_old[idx + (length_i - 1) * grid_wd] : C_old[idx + length_i * grid_wd];
-		}
-
-		if (k_mat == 1)
-		{
-			Mat[i_mat][j_mat][0           ] = (k < 1)                  ? c_old      			   : C_old[idx - 1];  /// check j or j-1
-			Mat[i_mat][j_mat][1 + length_k] = (k >= grid_d - length_k) ? C_old[idx + length_k - 1] : C_old[idx + length_k];
-		}
-
-		__syncthreads();
-
-		if ((i < grid_h) && (j < grid_w) && (k < grid_d))
-		{
-
-			//const float t_source = C_source[idx];
-			float c_new = C_source[idx];
-
-			if (!(c_new > 0.f)){
-				float sum_mat = (
-					Mat[i_mat + 1][j_mat	  ][k_mat    ]
-					+ Mat[i_mat - 1][j_mat	  ][k_mat    ]
-					+ Mat[i_mat    ][j_mat + 1][k_mat    ]
-					+ Mat[i_mat    ][j_mat - 1][k_mat    ]
-					+ Mat[i_mat	   ][j_mat 	  ][k_mat - 1]
-					+ Mat[i_mat	   ][j_mat	  ][k_mat + 1]
-				);
-
-				c_new = (fminf(2000.0f, fmaxf(0.0f, c_old + k_val * (sum_mat - 6 * c_old) - depreciation)));
-
-				// if (c_old > 1500){
-				// 	int max_ = fmaxf(0.0f, + k_val * (sum_mat - 6 * c_old) - depreciation);
-				// 	printf("\n %.2f = %.2f + %.2f * (%.2f - %.2f) - %.2f; max = %.2f, min = %.2f  ",
-				// 		   c_new, c_old, k_val, sum_mat, 6 * c_old, depreciation, max_, fminf(2000.0f, max_));
-				// }
-			}
-			C_new[idx] = c_new;
-			C_old[idx] = c_new;
-
-		}
+		return;
 	}
+
+	const int grid_wd = grid_w * grid_d;
+	const int idx = i * grid_wd + j * grid_d + k;
+
+	float c_new = C_source[idx];
+
+	if (!(c_new > 0.f))
+	{
+		const float c_old = C_old[idx];
+		const float sum_neighbours = (
+			C_old[(i > 0) ? idx - grid_wd : idx]
+			+ C_old[(i < grid_h - 1) ? idx + grid_wd : idx]
+			+ C_old[(j > 0) ? idx - grid_d : idx]
+			+ C_old[(j < grid_w - 1) ? idx + grid_d : idx]
+			+ C_old[(k > 0) ? idx - 1 : idx]
+			+ C_old[(k < grid_d - 1) ? idx + 1 : idx]
+		);
+		c_new = fminf(2000.0f, fmaxf(0.0f, c_old + k_val * (sum_neighbours - 6.f * c_old) - depreciation));
+	}
+	C_new[idx] = c_new;
 }
 
 
@@ -411,7 +360,10 @@ SnnSimulation::SnnSimulation(
 	G_syn_count_inh = G_syn_count_inh_;
 	G_syn_count_exc = G_syn_count_exc_;
 
-	reset_firing_times_ptr_threshold = 13 * N;
+	// the write pointer rewinds after this many spikes; it must be at least D N, so that new spikes written from
+	// the start of the buffer cannot reach spikes of the last D steps still being read (Simulation allocates at
+	// least (max(13, D) + 2) N entries)
+	reset_firing_times_ptr_threshold = max(13, D) * N;
 	reset_firing_count_idx_threshold = 2 * T;
 
     LAUNCH_PARAMETERS_B64(lp_update_state_, update_N_state_, N)
@@ -483,6 +435,9 @@ void SnnSimulation::update_chemical_concentrations(){
 		chem_k_val,
 		chem_depreciation
 	);
+	// the next step reads C_old: copy the new field back (C_new is the one rendered)
+	checkCudaErrors(cudaMemcpy(C_old, C_new,
+		sizeof(float) * (size_t)chem_grid_w * chem_grid_h * chem_grid_d, cudaMemcpyDeviceToDevice));
 }
 
 
@@ -725,12 +680,14 @@ __global__ void update_current_(
 						}
 
                         w2 = N_weights[idx];
+                        // the weight belongs to the presynaptic neuron: its type sets the bound (as in the clamp
+                        // below and in the postsynaptic branch above)
+                        int src_type = N_flags[pre_src_N + N_flags_row_type * N];
                         dw *= fabsf(w2) * (
-                                fabsf(min_w_inh) * (2 - n_type)
-                                + fabsf(max_w_exc) * (n_type - 1)
+                                fabsf(min_w_inh) * (2 - src_type)
+                                + fabsf(max_w_exc) * (src_type - 1)
                                 - fabsf(w2));
                         w2 = N_weights[idx] + dw;
-                        int src_type = N_flags[pre_src_N + N_flags_row_type * N];
                         N_weights[idx] = fminf(
                                 max_w_exc * (src_type - 1)
                                 + max_w_inh * (2 - src_type),

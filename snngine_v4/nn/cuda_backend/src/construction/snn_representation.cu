@@ -394,6 +394,41 @@ __device__ int roughly_optimize_connection_probabilities(
 	return j;
 }
 
+#define MAX_CCSYN_D 20  // NetworkReservoirConfig._calc_delay_count: D <= 20
+
+// Spread a correction `add` of one group's cumulative synapse counts (rows row0 .. row0 + D of `ccsyn`, stride G,
+// row row0 = 0) over its delay buckets, starting at bucket `delay0` and wrapping around, keeping every bucket
+// within [0, cap[d]] (cap: target neurons at delay d). Returns the part that did not fit (0: fully corrected).
+__device__ int spread_ccsyn_correction(
+	int* ccsyn, const int g, const int G, const int D, const int row0,
+	const int delay0, int add, const int* cap)
+{
+	if (D > MAX_CCSYN_D){
+		return add;
+	}
+	int bucket[MAX_CCSYN_D];
+	int prev = ccsyn[g + row0 * G];
+	for (int d = 0; d < D; d++){
+		const int cum = ccsyn[g + (row0 + d + 1) * G];
+		bucket[d] = cum - prev;
+		prev = cum;
+	}
+	for (int k = 0; (k < D) && (add != 0); k++){
+		const int d = (delay0 + k) % D;
+		const int change = (add > 0) ? min(add, max(0, cap[d] - bucket[d]))
+		                             : max(add, -max(0, bucket[d]));
+		bucket[d] += change;
+		add -= change;
+	}
+	int cum = ccsyn[g + row0 * G];
+	for (int d = 0; d < D; d++){
+		cum += bucket[d];
+		ccsyn[g + (row0 + d + 1) * G] = cum;
+	}
+	return add;
+}
+
+
 __global__ void fill_G_exp_ccsyn_per_src_type_and_delay_(
 	const int S,
 	const float fS,
@@ -525,44 +560,38 @@ __global__ void fill_G_exp_ccsyn_per_src_type_and_delay_(
 		// int res_exc = G_exp_ccsyn_per_src_type_and_delay[g + idx + G];
 
 		if ((expected_synapses_inh != S)){
-			int add = S - expected_synapses_inh;
-			if (expected_synapses_inh > S){
-				if (exp_inh_syn_with_max_targets < 1)
-				{
-					add = 0;
-					printf("\n(GPU: optimize_connection_probabilities) delay_inh(g=%d, exp_too_low=%d, max_targets=%d) = %d",
-					       g, exp_inh_syn_with_max_targets, max_inh_targets, delay_with_max_inh_targets);
-				}
-			} else if (exp_inh_syn_with_max_targets >= max_inh_targets){
-				add = 0;
-				printf("\n(GPU: optimize_connection_probabilities) delay_inh(g=%d, exp_too_high=%d, max_targets=%d) = %d",
-					   g, exp_inh_syn_with_max_targets, max_inh_targets, delay_with_max_inh_targets);
-			}
+			// spread over the delay buckets within their targets (a full or empty bucket with the most targets no
+			// longer blocks the correction; what does not fit is reported and fails the validator)
+			const int add = S - expected_synapses_inh;
 			if (add != 0){
-				for (int delay = delay_with_max_inh_targets; delay < D; delay++){
-					G_exp_ccsyn_per_src_type_and_delay[g + (delay + 1) * G] += add;
+				// inhibitory sources connect to excitatory targets
+				int cap[MAX_CCSYN_D];
+				for (int d = 0; (d < D) && (d < MAX_CCSYN_D); d++){
+					cap[d] = G_neuron_counts[d * G + ioffs_exc];
+				}
+				const int rest = spread_ccsyn_correction(
+					G_exp_ccsyn_per_src_type_and_delay, g, G, D, 0, delay_with_max_inh_targets, add, cap);
+				if (rest != 0){
+					printf("\n(GPU: ccsyn correction) inh g=%d: %d synapses do not fit the targets", g, rest);
 				}
 			}
 			// printf("\n(%d) %d -> %d ", g, expected_synapses_inh, G_exp_ccsyn_per_src_type_and_delay[g + idx + G]);
 		}
 
 		if (expected_synapses_exc != S){
-			int add = S - expected_synapses_exc;
-			if (expected_synapses_exc > S){
-				if (exp_exc_syn_with_max_targets < 1)
-				{
-					add = 0;
-					printf("\n(GPU: optimize_connection_probabilities) delay_exc(g=%d, exp_too_low=%d, max_targets=%d) = %d",
-						   g, exp_exc_syn_with_max_targets, max_exc_targets, delay_with_max_exc_targets);
-				}
-			} else if (exp_exc_syn_with_max_targets >= max_exc_targets){
-				add = 0;
-				printf("\n(GPU: optimize_connection_probabilities) delay_exc(g=%d, exp_too_high=%d, max_targets=%d) = %d",
-					   g, exp_exc_syn_with_max_targets, max_exc_targets, delay_with_max_exc_targets);
-			}
+			// as for the inhibitory sources above
+			const int add = S - expected_synapses_exc;
 			if (add != 0){
-				for (int delay = delay_with_max_exc_targets; delay < D; delay++){
-					G_exp_ccsyn_per_src_type_and_delay[ g + (delay + 2 + D) * G] += add;
+				// excitatory sources connect to targets of both types, not to themselves (delay 0)
+				int cap[MAX_CCSYN_D];
+				for (int d = 0; (d < D) && (d < MAX_CCSYN_D); d++){
+					cap[d] = G_neuron_counts[d * G + ioffs_exc] + G_neuron_counts[d * G + ioffs_inh]
+						- (((d == 0) && (G_neuron_counts[ioffs_inh - G] > 0)) ? 1 : 0);
+				}
+				const int rest = spread_ccsyn_correction(
+					G_exp_ccsyn_per_src_type_and_delay, g, G, D, D + 1, delay_with_max_exc_targets, add, cap);
+				if (rest != 0){
+					printf("\n(GPU: ccsyn correction) exc g=%d: %d synapses do not fit the targets", g, rest);
 				}
 			}
 			if (G_exp_ccsyn_per_src_type_and_delay[g + (2 * D + 1) * G] != S){
@@ -2210,8 +2239,8 @@ __global__ void fill_N_rep_snk_counts(
 		for (int s = 0; s < S; s++){
 			snk_N = N_rep[src_N + s * N];
 
-			if (snk_N == -1){
-				printf("\n %d", src_N);
+			if (snk_N < 0){  // deleted synapse (-1, -2)
+				continue;
 			}
 
 			atomicAdd(&N_rep_pre_synaptic_counts[snk_N + 1], 1);
@@ -2243,6 +2272,9 @@ __global__ void fill_unsorted_N_rep_pre_synaptic_idcs(
 			synapse_idx = src_N + s * N;
 
 			snk_N = N_rep[synapse_idx];
+			if (snk_N < 0){  // deleted synapse (-1, -2)
+				continue;
+			}
 			write_idx = N_rep_pre_synaptic_counts[snk_N];
 
 			while (synapse_idx != -1){
@@ -2283,6 +2315,9 @@ __global__ void fill_N_rep_pre_synaptic(
 			synapse_idx = src_N + s * N;
 
 			snk_N = N_rep[synapse_idx];
+			if (snk_N < 0){  // deleted synapse (-1, -2)
+				continue;
+			}
 			write_idx = N_rep_pre_synaptic_counts[snk_N];
 
 			while (N_rep_pre_synaptic_idcs[write_idx] != synapse_idx){
@@ -2459,15 +2494,18 @@ __global__ void remove_all_synapses_to_group_(
 	if (n < N)
 	{
 		for (int s = 0; s < S; s++){
-			if (N_flags[N_rep[n  + s * N] + N_flags_row_group * N] == group){
-				N_rep[n  + s * N] = -2;
+			const int snk_N = N_rep[n + s * N];
+			if ((snk_N >= 0) && (N_flags[snk_N + N_flags_row_group * N] == group)){
+				N_rep[n + s * N] = delete_synapse_value;
 			}
 		}
 
+		// the group's neurons: mark their entries of the presynaptic index
+		// (entry s2 lists synapse N_rep_pre_synaptic_idcs[s2], whose source is N_rep_pre_synaptic[s2])
 		if (N_flags[n + N_flags_row_group * N] == group){
 			int s_end2 = N_rep_pre_synaptic_counts[n + 1];
 			for (int s2 = N_rep_pre_synaptic_counts[n]; s2 < s_end2; s2++){
-				N_rep_pre_synaptic[N_rep_pre_synaptic_idcs[s2]] = -2;
+				N_rep_pre_synaptic[s2] = delete_synapse_value;
 			}
 		}
 	}
@@ -2510,8 +2548,9 @@ __global__ void nullify_all_weights_to_group_(
 	if (n < N)
 	{
 		for (int s = 0; s < S; s++){
-			if (N_flags[N_rep[n  + s * N] + N_flags_row_group * N] == group){
-				N_weights[n  + s * N] = 0.f;
+			const int snk_N = N_rep[n + s * N];
+			if ((snk_N >= 0) && (N_flags[snk_N + N_flags_row_group * N] == group)){
+				N_weights[n + s * N] = 0.f;
 			}
 		}
 

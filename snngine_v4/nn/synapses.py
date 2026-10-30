@@ -411,8 +411,13 @@ class Synapses(EngineElement):
                                         sort_keys=self.N_rep_buffer.data_ptr(),
                                         N_rep=self.N_rep.data_ptr())
 
-        # transpose the actual values
-        self.N_rep[:] = self.N_rep.gpu_values.T.reshape(self.N_rep.shape)
+        # transpose the actual values: the construction kernels write the
+        # memory as (N, S) row-major (index n * S + s), the tensor is (S, N)
+        # (index n + s * N, as the simulation reads it). Reinterpret the
+        # memory as (N, S) before transposing; .T.reshape((S, N)) is only a
+        # transpose for N == S and otherwise mixes the neurons' synapses.
+        assert self.N_rep.gpu_values.is_contiguous()
+        self.N_rep[:] = self.N_rep.gpu_values.reshape(N, S).T.contiguous()
         self.N_rep_buffer[:] = -1
         # self.print_allocated_memory(f'transposed')
 
@@ -435,7 +440,27 @@ class Synapses(EngineElement):
 
         self.N_rep_groups = N_rep_groups_gpu_temp.cpu()
 
-        type_conns.apply_init_weights(self.N_weights.gpu_values)
+        # initial weights by each synapse's (source type, target type): the
+        # final sort orders a neuron's synapses by delay over all its type
+        # connections, so they no longer lie in the slot ranges that
+        # type_conns.apply_init_weights writes by. In chunks of synapse rows,
+        # to keep the temporary type arrays small.
+        ntype = reservoir.N_flags.gpu_values[
+            reservoir.neuron_states.ntype_flag_index]
+        pre_type = ntype.view(1, -1)
+        rep = self.N_rep.gpu_values
+        weights = self.N_weights.gpu_values
+        weights.zero_()
+        rows = max(1, (1 << 24) // max(N, 1))
+        for s0 in range(0, S, rows):
+            post_type = ntype[rep[s0:s0 + rows].long()]
+            for gc in type_conns.conns:
+                m = (pre_type == int(gc.src.ntype)) & (post_type == int(gc.snk.ntype))
+                weights[s0:s0 + rows][m] = float(gc.w0)
+
+        # presynaptic index (each neuron's incoming synapses), read by the
+        # engine's STDP in update_current_
+        self.RepBackend.actualize_N_rep_pre_synaptic()
 
         # self.G_swap_tensor = self._G_swap_tensor()
         # self.N_relative_G_indices = self._N_relative_G_indices()

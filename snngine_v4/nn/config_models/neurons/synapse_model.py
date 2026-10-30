@@ -50,6 +50,12 @@ class LGroupExpCCSynPerSrcTypeAndDelay(DataFrameI32):
                 print(last_row)
                 print((last_row - S).abs())
                 raise AssertionError
+            # every delay bucket non-negative (cumulative rows non-decreasing)
+            rows = data[(D + 1) * (ntype_group.ntype - 1):
+                        (D + 1) * (ntype_group.ntype - 1) + D + 1, :]
+            if (rows[1:] < rows[:-1]).any():
+                print(rows)
+                raise AssertionError
 
 
 class LGroupExpExcCCSynPerSnkTypeAndDelay(DataFrameI32):

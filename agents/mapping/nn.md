@@ -62,9 +62,12 @@ inferred from surrounding Python and configuration boundaries.
     lookup tables). Calls `counts.fill_tensors()`, then runs the full
     representation generation sequence via `RepBackend`
     (`snn_construction_gpu.SnnRepresentation`), followed by CUDA sorting,
-    reindexing (`snn_construction_gpu.reindex_N_rep`), transpositions,
-    and type connection weight initializations (`type_conns.apply_init_weights`).
-    Tagged `hand-written-edge` + `cuda-adjacent`.
+    reindexing (`snn_construction_gpu.reindex_N_rep`), the conversion of
+    `N_rep` from the kernels' (N, S) row-major layout to the simulation's
+    (S, N) layout, and type connection weight initializations
+    (`type_conns.apply_init_weights`). Stage-by-stage description, array
+    layouts and the invariants of a correct build:
+    `synapse-construction.md`. Tagged `hand-written-edge` + `cuda-adjacent`.
 
 ### Simulation and GPU plot interop (`sim/`)
 

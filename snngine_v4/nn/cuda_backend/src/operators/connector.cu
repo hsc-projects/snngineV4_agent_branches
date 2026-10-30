@@ -123,6 +123,7 @@ __device__ int set_local_typed_delay_repr_idx_kernel(
         Ng_next = cc_snk[g + 1];
 
         result -= (Ng_start - Ng_prev);
+        Ng_prev = Ng_next;
 
         found = (N_autapse_idx >= Ng_start) && (N_autapse_idx < Ng_next);
         if (verbose)

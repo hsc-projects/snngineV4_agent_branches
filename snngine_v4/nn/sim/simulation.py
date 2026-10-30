@@ -53,6 +53,9 @@ class Simulation(EngineElement):
 
         self.Fired = self.zeros_f32(n_neurons)
         self.last_Fired = self.zeros_i32(n_neurons) - n_delays
+        # the CUDA simulation rewinds its spike pointer after max(13, D) N
+        # spikes (snn_simulation.cu), and one more step can be written
+        buffer_size_factor = max(buffer_size_factor, max(13, n_delays) + 2)
         self.Firing_times = self.zeros_f32((buffer_size_factor, n_neurons))
         self.Firing_idcs = self.zeros_i32((buffer_size_factor, n_neurons))
         self.Firing_counts = self.zeros_i32((1, t_sim_duration, n_neurons))

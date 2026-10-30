@@ -59,6 +59,13 @@ config/build architecture note). Suggested reading order:
     MIDI controller pipelines, tabular tensor dataframe synchronization, and the
     system-wide legacy cross-check against SNNgine3D.
 
+12. **`synapse-construction.md`** — how the synapses are built
+    (`Synapses.fill_tensors` and its kernels): terms, the memory layout of
+    every construction array (written by whom, read by whom), the pipeline
+    stage by stage, what the assembly harness's rewiring does on top, and
+    the invariants of a correct build, which `snngine_v4/tests/` checks.
+    Goes to kernel level on purpose (layout errors hide there).
+
 All planned subpackages in the horizontal mapping pass are now written.
 All subpackage write-ups have been migrated into this directory (with pointers retained in `architecture-snngine_v4.md`); see that file for top-level orchestration flow, confirmed CUDA/OpenGL interop details, and runtime memory invariants.
 

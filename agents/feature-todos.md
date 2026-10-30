@@ -40,6 +40,7 @@ Each entry gets a priority: **high**, **mid**, or **low**.
 
 ## Backlog
 
+- [mid] Engine STDP, update timing within a step: when a spike arrives at a neuron in exactly the step that neuron fires, the current delivered through that synapse may use its weight from before or after that step's potentiation (`update_current_`, `snngine_v4/nn/cuda_backend/src/simulation/snn_simulation.cu`). Only with the engine's STDP on, which the assembly harness does not use. Possible fix: a two-phase update (collect the changes during delivery, apply them after the step); cost: a weight-sized buffer or a list of changed synapses. Decide together with whether bitwise-reproducible runs are wanted (delivery already sums currents with float32 `atomicAdd`).
 - [high] Implement progressive automated testing suite — introduce an initial
   unit testing framework (e.g. pytest) covering headless, CPU-bound modules
   first (Pydantic config validation, construction element hierarchies,

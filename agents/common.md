@@ -78,9 +78,11 @@ a function of the discretized group-to-group delay, separately for
 inhibitory and excitatory connections. Probability decreases with delay,
 so nearby groups are favored over distant ones.
 
-Generating this connectivity on every network build is currently
-considered closed, but has been a source of past bugs and may require
-revisiting.
+Generating this connectivity has been a source of bugs. The construction
+pipeline, the memory layout of its arrays and the invariants of a correct
+build are in `agents/mapping/synapse-construction.md`; `snngine_v4/tests/`
+checks them. A change to construction code comes with a test there that
+fails before the change and passes after it.
 
 During network construction, the connectivity search is delay-dependent
 and uses randomness to find a valid neuron to connect to. This causes
@@ -146,17 +148,17 @@ We are in an exploratory/mapping phase: the goal is not to generate new code
 (except where it aids exploration) — make the content as easy as possible for
 cold agents to understand.
 
-Do not edit or modify any files in the core codebase (`snngine_v4/` or `snngine3d/`) until a local GPU is available again to test and verify that changes do not introduce regressions. Modifications must remain strictly confined to the specific task directory under `setups/` that the agent is actively working on (e.g. `setups/runpod-engine-smoke-test/`); do not modify files in other task directories.
+Core code (`snngine_v4/`, `snngine3d/`) changes only with the user's explicit approval for each change, and each change is tested on a Runpod GPU pod with `snngine_v4/tests/` (`setups/runpod-engine-tests/`) before it is used. Modifications must remain strictly confined to the specific task directory under `setups/` that the agent is actively working on (e.g. `setups/runpod-engine-smoke-test/`); do not modify files in other task directories.
 
 Explain findings rather than assuming shared context, and give the user room
 to confirm or correct your understanding as you go, rather than presenting
 conclusions as settled.
 
-Do not attempt to lint, test, or run the main script/application, regardless
-of phase (mapping/planning/building). This code needs a PyQt UI, an NVIDIA
-GPU for simulation/visualization, and PyCUDA built with OpenGL interop
-enabled — which almost certainly requires a local build not available in
-this environment.
+Do not lint, test, or run the main script/application or any tests on the
+development host, regardless of phase: the host is too weak, and the code
+needs an NVIDIA GPU and PyCUDA built with OpenGL interop. Tests and runs go
+to Runpod pods (`setups/runpod-engine-tests/README.md` for the engine
+tests).
 
 Do not install packages into the system Python (the interpreter that `python` or `py` resolves to outside a virtual environment). Scripts that need only the standard library may run with it. Anything that needs packages runs in a virtual environment in its task folder (`setups/<task>/.venv`, created with `uv venv`; `.venv` is gitignored), with only the packages the task needs. On pods, use the volume's `/workspace/venv` (see `setups/runpod-technical.md`).
 
@@ -171,6 +173,10 @@ Python code — not by reading kernel internals. Deep understanding of the
 simulation algorithm itself is deferred until the user provides the
 underlying source material (see `agents/main_feature/main-feature-references.md`). Avoid cluttering
 context with kernel-level detail not needed for the current pass.
+Exception: the network-construction pipeline (`snngine_v4/nn/synapses.py`
+and its construction kernels) is documented to kernel level, because the
+memory layout of arrays shared between kernels and Python is where its
+errors hide (`agents/mapping/synapse-construction.md`).
 
 When documenting code in `agents/mapping/`, favor tagging over restating
 what's easily inferable from the code itself (avoid re-describing what a
