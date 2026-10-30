@@ -44,7 +44,9 @@ takes from the engine decides which of them matter:
 Size of bug 1 at 7^3 (round 6): an excitatory neuron had about 318 inhibitory targets instead of 400, and
 about one neuron in five (whole location groups) none; an inhibitory neuron had about 326 synapses onto
 inhibitory neurons (none configured) and 1674 instead of 2000 onto excitatory ones. On the corrected network
-one injected group drives a median of about 870 spikes instead of about 470.
+one injected group drives a median of about 790 spikes instead of about 470 at 7^3, and about 970 instead of
+about 410 at 9^3 (A-alone test before learning, rewired, the archived parameters; `rate-model/round6-report.md`,
+"After the engine fixes").
 
 ## Affected results
 
@@ -57,7 +59,7 @@ All in `archive-pre-engine-fix/`.
 | s47 to s72, s74-inh, s75 to s77 (rewired 7^3) | quantitatively invalid; whether the conclusions hold is open |
 | s73-g9, s74-reach (9^3); s73-g11 (11^3) | invalid (bugs 1 to 3; bug 3 at 11^3 not established) |
 | rate model, rounds 1 to 5 | their ground truth (s71, s73) is invalid; not rerun (step 8) |
-| rate model, round 6 (`rate-model/round6-report.md`, not archived) | diagnosis valid; its 9^3 numbers and 7^3 E -> I weights predate fixes 2 and 3 |
+| rate model, round 6 (`rate-model/round6-report.md`, not archived) | diagnosis valid; steps 1 and 2 repeated on the fixed engine (rewired at lambda 0.4): model B with the configured composition matches it ("After the engine fixes") |
 | sparse SP0 (field geometry) | unaffected |
 | sparse SP1 to SP3 (7^3, rewired) | invalid, except probably the single-synapse threshold (isolated-neuron scan) |
 | chem-diffusion videos (`setups/runpod-chem-diffusion/`) | plume telemetry wrong (grids of 100 and more cells, bug 6); demo only, rerun only if the numbers are used |
@@ -83,8 +85,9 @@ Conclusions to re-examine (A1 to A8; the rerun report states the outcome of each
 - **A7.** Sparse report, Substep 2: "60 to 100 times more inhibition than excitation", no substrate showing
   summation, the stop rule: depend directly on the E/I composition.
 - **A8.** Rate model, round 5 ("over-propagates", neither model admitted): the models were closer to the
-  correct network than the engine (model B with the configured composition predicted 954.5 spikes at 9^3; the
-  corrected engine gives 961.5); the fitted factors (`ei_inter`, `w_inter`, `plast_scale`) compensated for bug 1.
+  correct network than the engine (model B with the configured composition predicted 954.5 spikes at 9^3 and 821
+  at 7^3; the fixed engine gives 970.5 and 791); the fitted factors (`ei_inter`, `w_inter`, `plast_scale`)
+  compensated for bug 1.
 
 Not explained by the fixes: the SP3 crash (illegal memory access at D 13, hysteresis job); keep the
 `runaway_frac` and `i_max` safeguards until its cause is found.
@@ -156,7 +159,11 @@ Not explained by the fixes: the SP3 crash (illegal memory access at D 13, hyster
 7. **Sparse substrate SP1 to SP3** (about $0.65; `sparse-assemblies-task.md`; generators
    `archive-pre-engine-fix/params/make_sparse_sp{1,2,3}.py`): decides the stop rule (A7).
 8. **Rate model**: no rerun of rounds 1 to 5; the results of steps 5 and 6 are the new ground truth for round 6
-   step 3 (model B with the configured composition; `rate-model/rate-model-task.md`) (A8).
+   step 3 (model B with the configured composition; `rate-model/rate-model-task.md`) (A8). Write the per-pair
+   classes of steps 5 and 6 in the format of `archive-pre-engine-fix/rate-model/s71_ground_truth.json` and
+   `s73_g9_d4_pairs.json`. Round 6 steps 1 and 2 were repeated on the fixed engine with rewiring at lambda 0.4
+   (`rate-model/round6-report.md`, "After the engine fixes"); if step 2 here chooses another wiring, repeat
+   them on that wiring before round 6 step 3.
 
 Can be dropped as superseded: s1 to s46; iterations 41 to 44, 46 to 52, 54, 55, 57, 59, 60, 62, 63 and 65;
 the s37 and s76 videos (re-render after step 5 if wanted).

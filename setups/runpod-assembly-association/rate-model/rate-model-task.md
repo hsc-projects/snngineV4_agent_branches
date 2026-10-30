@@ -3,9 +3,11 @@
 > [!IMPORTANT]
 > **Status (2026-10-30): on hold until the engine-fix rerun.** Round 6 found that the engine's synapse table was
 > transposed (`round6-report.md`), so the spiking ground truth of rounds 1 to 5 (s71, s73) came from scrambled
-> networks; their reports and ground-truth files are archived in `../archive-pre-engine-fix/rate-model/`. Round 6
-> step 3 resumes with the new ground truth from `../engine-fix-rerun-task.md` (its step 8). The history below is
-> unchanged.
+> networks; their reports and ground-truth files are archived in `../archive-pre-engine-fix/rate-model/`. On the
+> fixed engine, round 6 steps 1 and 2 were repeated: model B with the configured composition and no fitted
+> factor reproduces the single-group response at 7 x 7 x 7 and 9 x 9 x 9 (within 3.8 % and 1.6 %; report,
+> "After the engine fixes"). Round 6 step 3 resumes with the new ground truth from `../engine-fix-rerun-task.md`
+> (its step 8). The history below is unchanged except where it names the faulty engine's references.
 
 > [!NOTE]
 > **Status (2026-10-29): rounds 1 to 5 finished, no model admitted.** Rounds 1 to 3 (smooth rate models: generic
@@ -40,14 +42,17 @@ general (forms and parameters as options).
 1. `agents/common.md` (shared rules, including the Python rule).
 2. `../sparse-assemblies-task.md`: Terms, Setup, Variants, Method (the vocabulary used here).
 3. `../archive-pre-engine-fix/runpod-assembly-association-report.md`: "The protocol that passes" and "What is established".
-4. `../archive-pre-engine-fix/tuning-log.md`, iterations 56, 59, 61, 63 and 64 (the runs to compare against).
+4. `../archive-pre-engine-fix/tuning-log.md`, iterations 56, 59, 61, 63 and 64 (the runs rounds 1 to 5 compared against).
+   Items 3 and 4 came from the faulty engine: read them for the protocol and the measures, not for numbers;
+   the reference numbers now come from `../engine-fix-rerun-task.md` (its steps 5 and 6).
 5. `../archive-pre-engine-fix/rate-model/rate-model-report.md` (rounds 1 to 3, and "Review 2026-10-29"), `../archive-pre-engine-fix/rate-model/round4-popdensity-report.md`,
-   `../archive-pre-engine-fix/rate-model/round4-spiking-report.md` and `../archive-pre-engine-fix/rate-model/round5-report.md`.
+   `../archive-pre-engine-fix/rate-model/round4-spiking-report.md`, `../archive-pre-engine-fix/rate-model/round5-report.md`
+   and `round6-report.md`.
 6. Code: `../assoc_build.py` and `../assoc_engine.py` (network construction: neuron counts per type,
    synapses per neuron, weights, gains, intra-group input, `rewire_by_distance`), `../assoc_fields.py`
-   (`ChemicalField`, `FuelField`), `../assoc_protocol.py` (protocol, tests, strays), and the per-pair
-   outcomes of `python ../assoc_sweep_summary.py ../output "s71*" -v`. Results are in `../output/`
-   (gitignored; local only).
+   (`ChemicalField`, `FuelField`), `../assoc_protocol.py` (protocol, tests, strays). Per-pair outcomes of
+   spiking sessions: `python ../assoc_sweep_summary.py <output folder> "<session>*" -v`; the archived sessions'
+   results are in `../archive-pre-engine-fix/output/`, new ones in `../output/` (both gitignored; local only).
 
 ## Model
 
@@ -64,7 +69,10 @@ general (forms and parameters as options).
   target type's neurons there times exp(-d / lambda), own group included), once per realization
   (seed), not set to their expected values. This gives pairs at the same distance different
   couplings, as in the spiking network. The model cannot reproduce the spiking network's exact
-  realization, so per-pair agreement is not expected.
+  realization, so per-pair agreement is not expected. The rule follows the harness's wiring: rewiring
+  (revision 1 of `../runpod-assembly-association-task.md`) until `../engine-fix-rerun-task.md`, step 2,
+  decides it again; if the engine's own wiring is chosen, the models need its distance profile (new code,
+  or exported networks as in round 6).
 - **Transfer functions (round 3):** each population's rate as a function of its input is derived from
   its neuron model in the engine, in the same current units as the derived couplings: the
   steady-state firing rate of the excitatory and of the inhibitory Izhikevich neuron (the engine's
@@ -94,15 +102,17 @@ stop and report why before Substep 3.
 **3. Admission test** against the spiking runs, decided before use. Each pair is classified by its
 **first transfer in the joint rounds**: *contained* (at most 34 strays), *ignition* (more than 34)
 or *none* (no transfer); a pair that later loses the association keeps its first-transfer class.
-Spiking reference (s71 E0, d 4, 24 pairs, `../archive-pre-engine-fix/rate-model/s71_ground_truth.json`): 7 contained, 10 ignition,
-7 none. Requirements:
+Spiking reference: the rerun's protocol and grid comparison (`../engine-fix-rerun-task.md`, steps 5 and 6;
+their report names the ground-truth files). The references of rounds 1 to 5 (s71 E0: 7 contained, 10
+ignition, 7 none; iterations 61 and 64; `../archive-pre-engine-fix/rate-model/s71_ground_truth.json`) came
+from the faulty engine and are not used. Requirements:
 - **Class fractions:** over **[default]** 5 realizations x 24 pairs at d 4 on 7 x 7 x 7, each class's
-  fraction lies within the 95 % binomial interval of the spiking fraction (7/24, 10/24, 7/24).
-- **Grid size** (iteration 61): on 9 x 9 x 9 with pairs at least 2 cells from the surface, ignitions
-  fall to (nearly) zero and transfers drop clearly (spiking: 17 of 24 transfers on 7 x 7 x 7, 5 on
-  9 x 9 x 9; 9 and 0 ignitions).
-- **Uniform C2** (iteration 64): holding C2 uniform where released gives the same associations as
-  activity-dependent C2, within the uncertainty.
+  fraction lies within the 95 % binomial interval of the spiking fraction.
+- **Grid size:** the difference between 7 x 7 x 7 and 9 x 9 x 9 (pairs at least 2 cells from the surface)
+  that the rerun's step 6 finds, if any, is reproduced (on the faulty engine: ignitions fell to zero and
+  transfers dropped on 9 x 9 x 9, iteration 61).
+- **Uniform C2:** holding C2 uniform where released has the effect the rerun's step 5 finds (on the faulty
+  engine: the same associations as activity-dependent C2, iteration 64).
 Fit only the model's free parameters (at most three, named in the report), using the 12 pair
 positions of seed 0 and realizations 0 to 4; evaluate on all 24 pair positions with fresh realizations
 (5 to 9). Report, as information only, per-pair kappa against the
@@ -182,6 +192,12 @@ simulation on one vCPU). The cause may also lie in the engine itself (for exampl
 synapses built than the configuration specifies); a cause of that kind changes how the spiking
 results are read and is also reported to the sparse task (`../sparse-assemblies-task.md`).
 
+Outcome (`round6-report.md`): the cause was in the engine, a transposed synapse table that gave every built
+network the wrong composition; fixed on 2026-10-30, with the other engine fixes of that day
+(`../engine-fix-rerun-task.md`). Steps 1 and 2 were then repeated on the fixed engine ("After the engine
+fixes" in the report). The fitted factors and the `frac_I_to_I` option of rounds 5 and 6 described the
+faulty networks; model B uses the configured composition (its defaults).
+
 1. **Export and structure audit.** On a GPU pod, build the engine's network as the spiking runs did
    (7 x 7 x 7: N 20,000, S 2000, `rewire` lam 0.4, seeds 0 and 1, s71 parameters; 9 x 9 x 9:
    N 42,500, D 16, s73 parameters) and export what the engine simulates: postsynaptic targets, the
@@ -202,20 +218,29 @@ results are read and is also reported to the sparse task (`../sparse-assemblies-
    equal within float32 tolerance over the first steps; total spikes within 5 % and the same groups
    active. The first differing quantity localizes the cause (neuron update, delivery order or timing,
    input clamp, injection); fix it in model B.
-3. **Learning, then admission.** With the single-group response right and no inter-group E -> I
-   factor, compare the first rounds of learning with the spiking 9 x 9 x 9 reference
-   (`../archive-pre-engine-fix/rate-model/round5-report.md`, "Spiking reference"), then repeat the admission test (Substep 3) with at most
+3. **Learning, then admission** (waits for the rerun's steps 5 and 6, which give the spiking reference;
+   `../engine-fix-rerun-task.md`, step 8). With the single-group response right and no inter-group E -> I
+   factor, compare the first rounds of learning with the spiking 9 x 9 x 9 reference of the rerun (the
+   archived one, `../archive-pre-engine-fix/rate-model/round5-report.md`, "Spiking reference", came from the
+   faulty engine), then repeat the admission test (Substep 3) with at most
    three free parameters, all named. Report per-pair kappa on the exported networks: they are the
    same realizations as the spiking runs, so per-pair agreement is possible, though not guaranteed
-   (float rounding, step 2).
+   (float rounding, step 2). First point the admission code at the rerun's results; today it holds the
+   faulty engine's as constants: `SESSION` (protocol parameters, `session69a-stage2.json`) and
+   `REFERENCE_COUNTS` (7 / 10 / 7) in `admission_test.py`, `load_ground_truth` (`s71_ground_truth.json`),
+   the grid-size and uniform-C2 thresholds of its docstring and code (from 0 / 24 ignitions, 5 / 24
+   transfers, 6 and 7 of 24 associations), and the same names in `admission_spiking_group.py`,
+   `admission_popdensity.py`, `round5_*.py`, `round6_compare.py` (`spec_for`) and the module checks.
 4. **Check on the sparse substrate.** Admission covers the predecessor setup (every group an
-   assembly, lam 0.4). Before the model narrows any range for a family of the sparse task (S, L, K,
+   assembly, the wiring chosen in the rerun's step 2). Before the model narrows any range for a family of the sparse task (S, L, K,
    E), compare it with that family's first GPU screening run of its baseline (24 pairs): the classes
    must lie within the binomial intervals of the spiking fractions.
 
 Model A is not part of this round; it stays parked unless the user asks.
 
-Each session needs the user's go. Compute: the export on one GPU pod (RTX 4090, EU-RO-1; minutes),
+Each session needs the user's go. Compute: the export on one GPU pod (RTX 4090, EU-RO-1; minutes; the round
+ran on RTX PRO 4000 Blackwell pods instead; on the fixed engine, four builds at once (two 7 x 7 x 7, two
+9 x 9 x 9) exceeded its 24 GB, so the 9 x 9 x 9 builds run one at a time),
 written to the network volume (about 3 GB, not downloaded); model B on a CPU pod in EU-RO-1 as in
 round 5, reading the exports from the volume (to verify that a CPU pod can attach it; otherwise copy
 the exports there); **[default]** at most $3 for the round. Report in `round6-report.md`.
@@ -235,9 +260,10 @@ the exports there); **[default]** at most $3 for the round. Report in `round6-re
 - **Files:** this file, `../archive-pre-engine-fix/rate-model/rate-model-report.md`, `rate_model.py`, `test_rate_model.py`,
   `admission_test.py`, `../archive-pre-engine-fix/rate-model/s71_ground_truth.json`, the round 4 files named above, and for round 5
   `../archive-pre-engine-fix/rate-model/round5-report.md`, `round5_cross_check.py`, `round5_diag_popdensity.py`, `round5_diag_spiking.py`,
-  `../archive-pre-engine-fix/rate-model/s73_g9_d4_pairs.json` and the gitignored `output-round5/` (round 5 changes the round 4 model files
+  `../archive-pre-engine-fix/rate-model/s73_g9_d4_pairs.json` and the gitignored `../archive-pre-engine-fix/rate-model/output-round5/` (round 5 changes the round 4 model files
   as needed); for round 6 `round6-report.md`, `round6_export_engine.py` (export and structure
   audit), `round6_compare.py` (the step-2 comparison), the option of `spiking_group_model.py` that
-  loads an exported network, and the gitignored `output-round6/`. A round 4 agent
+  loads an exported network, and the gitignored `output-round6/`; after the engine fixes `round6_fixed_pod.sh`
+  (the repeat of steps 1 and 2 on a pod) and the gitignored `output-round6-fixed/`. A round 4 agent
   changes only its own model's files; shared files (`rate_model.py`, `../archive-pre-engine-fix/rate-model/s71_ground_truth.json`) are read,
   not changed.

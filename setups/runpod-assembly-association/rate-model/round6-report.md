@@ -10,7 +10,12 @@ produced it) and the pod logs. The exported network arrays (2.9 GB) stay on the 
 (inhibitory -> inhibitory synapses in the model's own construction); defaults reproduce rounds 4 and 5 (21 module
 checks pass, 3 skipped as before).
 
-**Summary.**
+**After the engine fixes (2026-10-30, last section):** on the fixed engine, model B with the configured
+composition and no fitted factor reproduces the engine's single-group response at 7^3 and 9^3 (medians within
+3.8 % and 1.6 %), and still reproduces every spike total exactly on the exported networks. Points (1), (3) and
+(4) below describe the faulty engine; step 3 waits for the rerun's ground truth.
+
+**Summary (before the engine fixes).**
 (1) The engine's built network differs from what model B assumed from the configuration code: excitatory neurons
 have about 328 E -> I synapses of 2000 (model B: 400), inhibitory neurons have about 328 **I -> I synapses**
 (model B: none; engine weight -1.76) and 1672 I -> E (model B: 2000); E -> I normalized weights are 0.45 or 0.47
@@ -114,6 +119,10 @@ targets; group means are about 300 or about 400.
 
 ## Open
 
+Superseded by the engine fixes ("After the engine fixes", last section): the composition was the transposed
+synapse table, now fixed, and the consequences for the spiking results are handled by
+`../engine-fix-rerun-task.md`. Kept as written at the time:
+
 - **7^3 composition.** Either model B takes the per-neuron numbers of inhibitory targets from an export of the
   engine's construction (it depends on N, S and the seed, not on lambda, since rewiring keeps each target's
   type), or the admission test uses exported engine networks as realizations (one GPU export takes 15 to 25 s of
@@ -189,10 +198,84 @@ The fixed engine was built on a copy of the repository on the pod's own disk, so
 - **Second error, confirmed:** initial weights follow the slot range of the configuration, not the target's type
   (`n_type_groups.apply_init_weights`, called after the final sort by delay). With the fix, at 7^3 1.93 M E -> I
   synapses carry 0.45 and 4.47 M carry the E -> E weight 0.47; 4.47 M E -> E synapses carry 0.45. The harness
-  overwrites E -> E weights (`w_ee`), not E -> I. Not fixed (needs approval).
+  overwrites E -> E weights (`w_ee`), not E -> I. Not fixed (needs approval). (Later fixed with the user's
+  approval, as was the 9^3 error above: commit f56ccf8, `setups/runpod-engine-tests/engine-tests-report.md`.)
 - With the configured composition, a single injected group drives about 870 to 960 spikes instead of about 415
   to 470 (model B with the configured composition predicted 954.5 at 9^3, step 1): the spiking protocol was
   tuned on the scrambled network and will need re-tuning.
 
 Cost: pod `e60j55jyp3xsda` (`rm6-fixtest`), RTX PRO 4000 Blackwell, EU-RO-1, $0.57/h, 00:02 to 00:08 UTC
 (2026-10-30), about $0.06 (estimated); terminated (delete 204, `list-pods` empty).
+
+## After the engine fixes (2026-10-30)
+
+Steps 1 and 2 repeated on the fixed engine (commit f051b62, all engine fixes of f56ccf8 and cc94dde), with the
+same params files, pairs and injected neurons as above (rewiring at lambda 0.4, revision 1 of the task). Engine
+built from a packed copy of the repository on the pod's own disk (`setups/runpod-engine-tests/pack_tree.sh`), not
+from the shared volume, whose engine was then still the old one (deployed later the same day: step 0 of
+`../engine-fix-rerun-report.md`). Results in
+`output-round6-fixed/` (gitignored). Session: `round6_fixed_pod.sh`, run on the pod after
+`setups/runpod-engine-tests/run_on_pod.py` has unpacked and built the copy (it chains the commands below).
+
+**Structure audit** (`round6_export_engine.py`, `round6_compare.py audit`; engine against model B's own network
+with the configured composition, means per presynaptic neuron):
+
+| quantity | engine 7^3 (s0) | model B 7^3 | engine 9^3 (s0) | model B 9^3 |
+|---|---|---|---|---|
+| E -> E within / between groups | 858.7 / 741.3 | 858.4 / 741.6 | 829.4 / 770.6 | 829.9 / 770.1 |
+| E -> I within / between groups | 211.8 / 188.2 | 211.0 / 189.0 | 204.6 / 195.4 | 204.4 / 195.6 |
+| I -> E within / between groups | 1073.0 / 927.0 | 1073.0 / 927.0 | 1038.5 / 961.5 | 1038.0 / 962.0 |
+| I -> I | 0 | 0 | 0 | 0 |
+| E inputs of an inhibitory neuron from groups at distance 1 | 365.2 | 365.7 | 365.6 | 366.2 |
+
+Every excitatory neuron has exactly 1600 E -> E and 400 E -> I synapses, every inhibitory neuron 2000 I -> E (all
+four networks); E -> I normalized weight 0.45 on every synapse; every delay follows round((D - 1) d / d_max)
+(agreement 1.0 for every type); no deleted synapses; E -> I synapses between groups at distance 1 match the
+rewiring rule (observed / expected 1.000, 1.000, 1.000). The composition of points (1) and (4) of the summary
+is gone.
+
+**Step 2, model B on the exported networks** (`round6_compare.py trace`):
+
+| network | tests | pass | spike totals equal | largest input difference | first spike-timing difference |
+|---|---|---|---|---|---|
+| 7^3 s0 | 24 | 24 | 24 | 0.033 | none |
+| 7^3 s1 | 24 | 24 | 24 | 0.043 | none |
+| 9^3 s0 | 24 | 24 | 24 | 0.025 | none |
+| 9^3 s1 | 24 | 24 | 24 | 0.024 | none |
+
+**Single-group response on model B's own networks** (`round6_compare.py single`, configured composition, no
+fitted factor, model defaults; seeds 0 to 3 at the engine's 24 pair positions per grid, 192 tests, against the
+engine's 48; medians with interquartile range; pass **[default]** within 5 %):
+
+| grid | engine spikes per test | model B | difference | engine inhibitory spikes outside the injected group | model B |
+|---|---|---|---|---|---|
+| 9^3 | 970.5 [868, 1035] | 954.5 [861, 1009] | 1.6 % | 712.5 [623, 807] | 722 [620, 788] |
+| 7^3 | 791 [714, 908] | 821 [722, 946] | 3.8 % | 538.5 [490, 687] | 578 [470, 704] |
+
+Both grids pass. Model B's numbers equal the "round 5 composition" rows of step 1 (same seeds and settings): the
+configured composition that rounds 4 and 5 assumed was right; the engine was not. A single injected group now
+drives about 790 to 970 spikes (about 470 and 410 on the faulty engine), with the parameters tuned on the
+faulty engine.
+
+Module checks on the pod: `test_spiking_group_model.py` 21 OK, `test_rate_model.py` 34 OK (1 skipped). Their
+intra-group in-degree references were then updated to these exports (858.7 at 7^3, 829.4 at 9^3; 892.7 and 867
+on the faulty engine), with the tolerance tightened to 2 %, and passed again on a second pod
+(`test_spiking_group_model.py` 21 OK, `test_rate_model.py` 34 OK (1 skipped), `test_popdensity_model.py` 15 OK).
+
+Consequences:
+
+- Model B with its defaults is the reduced network the admission test needs; the fitted factors of rounds 4 and
+  5 (`ei_inter_scale`, the plasticity and inhibition factors) and the round 6 option `frac_I_to_I` described the
+  faulty networks and are not used.
+- Step 3 (learning, then admission) waits for the rerun's ground truth (`../engine-fix-rerun-task.md`, steps 5,
+  6 and 8). If the rerun's step 2 replaces the rewiring with the engine's own wiring, these checks are repeated
+  on that wiring (model B then needs its distance profile).
+- 11^3 not checked (no export; the rerun's step 1 audits it).
+
+Cost: pod `s9o38cl9s4qvny` (`r6-fixed-engine`), RTX PRO 4000 Blackwell, 12 vCPU, EU-RO-1, Secure, $0.57/h,
+network volume `qze81dpw7q` (used only for the build cache and the results); created 10:20:42 UTC, terminated
+after the download (delete 204, `list-pods` empty), about 12 minutes, about $0.11 (estimated; billing not
+read). The first attempt ran four exports at once and a 9^3 build ran out of GPU memory (24 GB); the
+rerun built 9^3 one at a time. The check of the updated module checks: pod `6xcip3ngfxowrd` (`r6-test-check`), same
+type and price, created 10:33:15 UTC, about 4 minutes, about $0.04 (estimated); terminated (delete 204,
+`list-pods` empty).

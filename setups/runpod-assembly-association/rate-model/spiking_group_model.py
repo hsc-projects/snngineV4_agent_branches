@@ -65,9 +65,9 @@ class SpikeSpec(Spec):
     exc_r: Optional[float] = None   # round 5 diagnostic: fixed r of the excitatory neurons
     inh_r: Optional[float] = None   # round 5 diagnostic: fixed r of the inhibitory neurons (None: uniform per neuron, default_init)
     export_dir: Optional[str] = None  # round 6: load the engine's network exported by round6_export_engine.py (seed unused)
-    # round 6, measured in the engine's built networks (round6-report.md): each inhibitory neuron also has
-    # inhibitory targets (I -> I, normalized weight w_ie, gain only), a fraction frac_I_to_I of its synapses.
-    # 0 reproduces rounds 4 and 5 (no I -> I synapses).
+    # round 6: inhibitory neurons with inhibitory targets (I -> I, normalized weight w_ie, gain only), a fraction
+    # frac_I_to_I of their synapses, as measured in networks built by the engine before its fix of 2026-10-30
+    # (transposed synapse table, round6-report.md). 0 is the configured composition (rounds 4 and 5, the fixed engine).
     frac_I_to_I: float = 0.0
 
     @property

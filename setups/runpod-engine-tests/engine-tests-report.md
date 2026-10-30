@@ -117,3 +117,13 @@ swapped back. The neuron-update mutation fails `test_neuron_update_every_step` i
 neuron, by 0.02), while `test_reference` fails only for `odd`: in `small` and `elongated` the spike sets first
 differed at steps 22 and 21, beyond its step-20 limit, so it passed. The launch mutation fails four chemistry tests
 on the 30 x 22 x 38 grid (one step: 15.8 % of cells wrong, by up to 74.7) and none on the 96^3 cube.
+
+## 2026-10-30: commit f051b62 before its deployment to the network volume
+
+Code: `pack_tree.sh head` at f051b62 (engine and tests as committed; step 0 of
+`runpod-assembly-association/engine-fix-rerun-task.md`). Pod `nf30u221xzjwmt`, RTX PRO 4000 Blackwell, EU-RO-1,
+$0.57/h, shared with the deployment (cost in `runpod-assembly-association/engine-fix-rerun-report.md`).
+
+| run | code | level | result |
+|---|---|---|---|
+| `rerun0-f051b62-full` | f051b62 | full | 51 tests, OK (162 s; 236 s with the CUDA build, no cached build for its source hash) |

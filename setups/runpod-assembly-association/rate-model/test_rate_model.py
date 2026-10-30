@@ -119,13 +119,15 @@ class TestLatticeAndCounts(unittest.TestCase):
         self.assertTrue(28 <= statistics.mean(mins) <= 42, mins)
 
     def test_own_group_share_matches_measured_intra_group_synapses(self):
-        """archive-pre-engine-fix/tuning-log.md iteration 61 (s73): intra-group E-E synapses per excitatory neuron 867 (9^3), 851 (11^3)."""
-        for dim, measured in ((9, 867.0), (11, 851.0)):
+        """Intra-group E-E synapses per excitatory neuron in the fixed engine's builds (round6-report.md, "After the
+        engine fixes": exports g7-s0 and g9-s0, rewire lam 0.4): 858.7 (7^3), 829.4 (9^3). The faulty engine gave 867
+        (9^3) and 851 (11^3) (archive-pre-engine-fix/tuning-log.md iteration 61); 11^3 is not measured on the fixed one."""
+        for dim, measured in ((7, 858.7), (9, 829.4)):
             spec = Spec(grid_dim=dim, sample_sizes=False)
             n_exc, n_inh = group_sizes(spec, None)
             exp = expected_counts(spec, n_exc, n_inh, group_distances(dim))
             per_neuron = exp["EE"].diagonal().sum() / n_exc.sum()
-            self.assertLess(abs(per_neuron - measured) / measured, 0.05, f"{dim}^3: {per_neuron:.1f} vs {measured}")
+            self.assertLess(abs(per_neuron - measured) / measured, 0.02, f"{dim}^3: {per_neuron:.1f} vs {measured}")
 
 
 class TestDerivedConstants(unittest.TestCase):

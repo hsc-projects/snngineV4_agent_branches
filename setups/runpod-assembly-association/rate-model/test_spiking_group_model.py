@@ -9,8 +9,8 @@ model with the engine's code, not with the model's own formulas:
  2. the Izhikevich update equals a scalar float32 transliteration of update_N_state_;
  3. the neuron parameters equal the engine's `default_init`, executed from its source text;
  4. the sampled wiring follows rewire_by_distance (types kept, no autapses, group frequencies by distance shell
-    against an independent plain-Python computation, delays and delay buckets, in-degree against the engine's
-    measured 892.7 intra-group excitatory synapses per excitatory neuron);
+    against an independent plain-Python computation, delays and delay buckets, in-degree against the fixed
+    engine's measured 858.7 intra-group excitatory synapses per excitatory neuron);
  5. engine weights equal a numpy transliteration of typed_weights / set_gains / write_weights (times the
     reduction factor S_type / S'_type, divided out);
  6. spike rasters equal a plain-Python transliteration of the engine's update order (update_N_state_,
@@ -197,12 +197,13 @@ class TestWiring(unittest.TestCase):
         self.assertTrue((net.bnd[:, 0] == 0).all() and (net.bnd[:, -1] == net.S).all())
 
     def test_intra_group_indegree_matches_engine_measurement(self):
-        """Measured in the spiking 7^3 build (output/s47survey-rewired, S 2000): 892.7 intra-group E -> E synapses per
-        excitatory neuron; here in-degree / syn_scale."""
+        """Measured in the fixed engine's 7^3 build (round6-report.md, "After the engine fixes": export g7-s0, S 2000,
+        rewire lam 0.4): 858.7 intra-group E -> E synapses per excitatory neuron; here in-degree / syn_scale. (The
+        faulty engine gave 892.7, with 1681 instead of 1600 E -> E synapses per excitatory neuron.)"""
         net, s = self.net, self.spec
         kinds = (net.kind == KIND_EE_INTRA)
         per_neuron = kinds[:net.nE_tot].sum() / net.nE_tot / s.syn_scale
-        self.assertLess(abs(per_neuron - 892.7) / 892.7, 0.06, per_neuron)
+        self.assertLess(abs(per_neuron - 858.7) / 858.7, 0.02, per_neuron)
 
     def test_group_sizes(self):
         net = self.net
