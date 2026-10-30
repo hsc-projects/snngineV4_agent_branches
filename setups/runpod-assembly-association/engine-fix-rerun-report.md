@@ -173,3 +173,55 @@ Items 7 and 10 to 12 depend on variants (C3 fuel, rollback, depression, local in
 forms no association in 24 pairs; its transfers spread and the chemistry does not narrow them.
 
 Cost: about $1.39 (four pods, 30 to 40 minutes; estimated). Rerun so far: about $3.68 of the $20 cap.
+
+## Step 6: grid comparison (2026-10-30)
+
+Rewiring at lambda 0.4 in its step 3 regime, the passing protocol without controls (as s71 and s73), 24 pairs per
+row over network seeds 0 and 1, a strays limit of 34 groups at every size, pairs at least 2 cells from the
+surface at 9^3 and 11^3. Numbers in `engine-fix-rerun-log.md`, step 6.
+
+| | 7^3 | 9^3 | 11^3 |
+|---|---|---|---|
+| d 4: associations | **15 of 24** (step 5) | **11 of 24** | **0 of 24** |
+| d 4: strays at the C1-phase transfer, median | 180 of 343 groups | 426 of 729 | 853 of 1331 |
+| d 6: associations | 1 of 24 (4 transfers) | 0 of 24 (11 transfers) | not run |
+
+At d 4 every pair transfers within three joint rounds at every size, each time with about half of the reservoir
+active; the short circuit stage then narrows the transfer to the strays limit in 15 pairs at 7^3, in 11 at 9^3
+(to 24 to 33 strays, close to the limit) and in none at 11^3. At d 6 few pairs transfer at all.
+
+**A5** (item 9: the ignitions are a finite-size effect; at 9^3 no transfer ignites and B mostly stays silent):
+**falls.** On the corrected network every transfer at d 4 is an ignition at every size, 9^3 and 11^3 included;
+the associations come from the short circuit stage narrowing it, which works at 7^3 and 9^3 and fails at 11^3.
+
+**Item 12** (every change that removes ignitions removes most transfers; reach has needed spread over the
+reservoir): **holds in a changed form**: no transfer here comes without an ignition, but the chemistry turns
+many ignitions into bounded associations, up to 9^3.
+
+Cost: about $1.16 (two pods, about 54 minutes each; estimated).
+
+## Step 7: sparse substrate SP1 to SP3 (2026-10-30; the sparse task's stop rule pending)
+
+The archived generators, unchanged (the sparse layout, lattice spacing 2, on the settings of
+`session69a-stage2.json`), lambda 0.4 to 1.5. Numbers in `engine-fix-rerun-log.md`, step 7.
+
+- The single-synapse threshold is unchanged: a normalized inter-group E -> E weight of 8.125 (the isolated-neuron
+  scan does not depend on the wiring).
+- The excitation reaching the route middle under joint injection is as before (0.16 to 0.27 per step); the
+  inhibition is about three times stronger (-56 to -67 against -18 to -23), so the ratio is 200 to 350, not 60
+  to 100: the corrected network has its configured E -> I synapses.
+- S0, S1, S3a, S4, S5, and S6 on S0: no excitatory neuron in the route middle fires. S2 (with or without S6):
+  it fires a little, as much under A or B alone and off the route. S6 on S3b activates the reservoir.
+- S3b alone (lognormal weights, Teramae's ratio of mean to threshold) now leaves the reservoir quiet (on the
+  faulty engine it activated it at lambda 0.4), and the route middle fires slightly more under joint injection
+  than under A and B alone together and than off the route (0.012 against 0.009 and 0.006 at lambda 0.4; 0.037
+  against 0.028 and 0.024 at lambda 1.0): a weak sign of summation, at about one spike per 30 to 80 neurons
+  and round, its uncertainty not computed.
+
+**A7** (60 to 100 times more inhibition than excitation, no substrate showing summation, hence the stop rule):
+**changes.** The inhibition dominates even more (200 to 350 times); S0 to S6 still show no summation, except a
+weak one in S3b, which the faulty engine had hidden behind a reservoir-wide activation. Whether that is
+enough to lift the sparse task's stop rule of Substep 2 is the user's decision (`sparse-assemblies-task.md`).
+
+Cost: about $0.63 (the session pod, about 48 minutes, and a summary pod; estimated). Rerun so far: about $5.47
+of the $20 cap.

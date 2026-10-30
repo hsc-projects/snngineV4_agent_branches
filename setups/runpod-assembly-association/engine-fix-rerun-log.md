@@ -256,3 +256,78 @@ One entry per session of `engine-fix-rerun-task.md`: hypothesis, change, result,
   ($0.57/h; the summaries ran on it): about $1.39 (estimated); terminated (delete 204 each; `list-pods` then
   showed only the other session's `xt2eohm6688yx9`, still without a runtime).
 - **Decision:** the user's (report, step 5).
+
+## Step 6 (2 pods, 2026-10-30): grid comparison at lambda 0.4
+
+- **User decision:** steps 6 and 7 run on rewiring at lambda 0.4 only (the proposal after step 5).
+- **Change:** `params/rerun6{a..h}-grid-{g7-d6,g9-d4,g9-d6,g11-d4}-s{0,1}.json`: the E0 protocol of
+  `session71-d6-*`, `session73-g9-d4-*`, `session73-g9-d6-*` and `session73-g11-d4-*` (pairs 0 to 11 per network
+  seed, controls off; 9^3 and 11^3 with `pair_margin` 2 and the strays limit of 34 groups) with the step 3
+  regime (`gain_ee_inter` 2.4). 7^3 at d 4 is step 5's protocol run. Capacity allowed two pods only, so the
+  sessions run in chains: RTX PRO 4000 `fd1446nhjcye9n`: the four 9^3 sessions one after another, and the two
+  7^3 d 6 sessions alongside (20.4 of 24.5 GB); RTX PRO 4500 `5yxu1vwofwl1b4`: the two 11^3 sessions one after
+  another (one 11^3 session alone: 24.9 of 32.6 GB). From 14:25 UTC.
+- **Result** (`assoc_sweep_summary.py -v`, run on a pod: `output/rerun67-summary.txt`; 24 pairs per row, network
+  seeds 0 and 1; strays limit 34 groups at every size):
+
+  | grid, distance | transfers in the C1 phase | associations | strays of the C1-phase transfer -> final, median | lost / unbounded |
+  |---|---|---|---|---|
+  | 7^3, d 4 (step 5) | 24 | **15** | 180 -> 16 | 1 / 11 |
+  | 7^3, d 6 | 4 | **1** (s1p4) | 188 -> 23 | 1 / 2 |
+  | 9^3, d 4 | 24 | **11** | 426 -> 30 | 4 / 19 |
+  | 9^3, d 6 | 11 | **0** | 449 -> none | 10 / 1 |
+  | 11^3, d 4 | 24 | **0** | 853 -> none | 0 / 24 |
+
+  At d 4 every pair transfers within three joint rounds at every size, with about half of the reservoir active
+  (7^3: 180 of 343 groups; 9^3: 426 of 729; 11^3: 853 of 1331). The short circuit stage narrows 15 transfers to
+  the limit at 7^3 and 11 at 9^3 (to 24 to 33 strays, close to the limit), and none at 11^3, where every final
+  test stays unbounded. At d 6 few pairs transfer (4 at 7^3, 11 at 9^3) and almost none associates.
+- **Cost:** 2 pods, 14:23 / 14:24 to 15:17 UTC (RTX PRO 4000 $0.57/h, RTX PRO 4500 $0.72/h), about $1.16
+  (estimated; about 10 minutes of it idle after the last session, while I waited on slow checks from the host);
+  terminated (delete 204 each).
+
+## Step 7 (2026-10-30): sparse substrate SP1 to SP3 at lambda 0.4 and beyond
+
+- **Change:** `params/rerun7a-sp1-substrate.json`, written by the archived generator
+  `archive-pre-engine-fix/params/make_sparse_sp1.py` unchanged (run on a copy): the sparse layout (lattice,
+  spacing 2), Substep 1, the single-synapse threshold, propagation and input surveys and the hysteresis job at
+  lambda 0.4, 0.6, 1.0 and 1.5, on the settings of `session69a-stage2.json` (`gain_ee_inter` 0.6, as in the
+  archive: the sparse task's substrate is not the dense layout of step 3). SP2 and SP3 use SP1's measured
+  single-synapse threshold (8.125 on the faulty engine); they are generated after SP1 with the new value.
+  Pod RTX PRO 4500 `hmvovknqhcsygu` from 14:32 UTC.
+- **SP2, SP3:** `params/rerun7b-sp2-substrate.json` and `params/rerun7c-sp3-inhibition.json`, written by the
+  archived generators unchanged (SP1 measured the single-synapse threshold again at 8.125: a one-step current of
+  19.5 for every one of 200 ordinary excitatory neurons, at every lambda, as before the fix). SP1 to SP3 ran on
+  `hmvovknqhcsygu`, SP2 and SP3 side by side: 20, 48 and 102 jobs, all without error (the archive's SP3 crash, S3b
+  with both inter-group gains 0.2 at lambda 1.0, hysteresis job, did not recur: 12 of 12 pairs ran away instead).
+- **Result** (`rerun_sparse_summary.py`, new, run on a pod: `output/rerun7-summary.txt`; the archive's columns;
+  12 pairs at d 4 per setting; M / Sh spikes per excitatory neuron per round; E and Inh input per step to the
+  excitatory neurons of the route middle):
+
+  | substrate | lambda | M joint | M A + B | Sh joint | E in M joint / A | Inh in M joint | Inh / E | loop max |
+  |---|---|---|---|---|---|---|---|---|
+  | S0 / S1 | 0.4, 0.6, 1.0, 1.5 | 0 | 0 | 0 | 0.16 to 0.27 / 0.08 to 0.14 | -56 to -67 | 209 to 348 | 0 to 0.012 |
+  | S2, `lam_sup` 0.5 / 1 / 2 | 0.4 | 0 / 0.004 / 0.006 | 0 / 0.004 / 0.010 | 0.003 / 0.005 / 0.012 | 0.16 to 0.20 | -57 to -63 | 315 to 353 | 0.007 to 0.008 |
+  | S2, `lam_sup` 0.5 / 1 / 2 | 1.0 | 0.004 / 0.006 / 0.034 | 0.006 / 0.015 / 0.056 | 0.006 / 0.012 / 0.028 | 0.25 to 0.35 | -65 to -72 | 203 to 263 | 0 |
+  | S3a, sigma 1 and 0.51 | 0.4, 1.0 | 0 | 0 | 0 | as S0 | as S0 | as S0 | as S0 |
+  | S3b, sigma 1 | 0.4 | 0.012 | 0.009 | 0.006 | 1.47 / 0.71 | -66 | 45 | 0.195 |
+  | S3b, sigma 1 | 1.0 | 0.037 | 0.028 | 0.024 | 2.46 / 1.25 | -74 | 30 | 0 |
+  | S4, S5 | 0.4, 1.0 | 0 | 0 | 0 | 0.16 to 0.41 | -56 to -89 | 218 to 348 | 0 to 0.008 |
+  | S6 on S0 (inter-group E -> I or I -> E 0.05 to 0.5) | 0.4, 1.0 | 0 | 0 | 0 | 0.17 to 0.30 | -5 to -45 | 21 to 274 | 0 to 0.018 |
+  | S6 on S2 (`lam_sup` 1) | 0.4, 1.0 | 0.004 to 0.044 | 0.006 to 0.055 | 0.006 to 0.040 | 0.17 to 0.38 | -7 to -47 | 19 to 266 | 0 to 0.024 |
+  | S6 on S3b | 0.4, 1.0 | 0.1 to 18.8 | 0.1 to 38.3 | 0.07 to 19.4 | 3 to 230 | | | off-route assemblies at A_g 1 |
+
+  - Against the archive (entry 4 of `archive-pre-engine-fix/sparse-tuning-log.md`): the excitation reaching the
+    route middle is the same (0.16 to 0.27 per step against 0.17 to 0.29), the inhibition about three times
+    stronger (-56 to -67 against -18 to -23), so the ratio is 200 to 350 instead of 60 to 100: the corrected
+    network has its configured E -> I synapses (400 per excitatory neuron instead of about 318).
+  - S0, S1, S3a, S4, S5 and S6 on S0: no excitatory neuron in the route middle fires. S2: it fires a little, as
+    much under A or B alone (M A + B at least M joint) and as much off the route (Sh about M), as before.
+  - S3b: unlike the archive (where S3b at lambda 0.4 activated the whole reservoir), the reservoir stays quiet,
+    and M joint exceeds A + B (0.012 against 0.009 at lambda 0.4; 0.037 against 0.028 at lambda 1.0) and the
+    shell (0.006, 0.024): a weak sign of summation and selectivity, at rates of one spike per 30 to 80 neurons
+    and round; the uncertainty over 12 pairs is not computed. With S6 on top, S3b activates the reservoir.
+- **Cost:** step 7 pod 14:32 to about 15:20 UTC ($0.72/h, about 20 minutes of it idle after SP3 finished while I
+  waited on the step 6 sessions and slow host checks), about $0.58; the summary pod `czd5d3abd98ans` (RTX PRO 4000,
+  $0.57/h, 15:47 to about 15:52), about $0.05; both terminated (delete 204).
+- **Decision:** the user's (report, step 7; the sparse task's stop rule).

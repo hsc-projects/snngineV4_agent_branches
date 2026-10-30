@@ -1,0 +1,4876 @@
+{
+ "session": "rerun7c-sp3-inhibition",
+ "engine": {
+  "n_neurons": 20000,
+  "n_synapses": 2000,
+  "seed": 0,
+  "rewire": {
+   "lam": 0.4,
+   "seed": 0
+  }
+ },
+ "defaults": {
+  "video": {
+   "enabled": false
+  }
+ },
+ "jobs": [
+  {
+   "name": "sp3-lam0.4-S0-ei0.5-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.5,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S0-ei0.5-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.5,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S0-ei0.5-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.5,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S0-ei0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S0-ei0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S0-ei0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S0-ei0.05-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S0-ei0.05-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S0-ei0.05-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S0-ie0.5-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S0-ie0.5-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S0-ie0.5-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S0-ie0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S0-ie0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S0-ie0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.2,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S0-ie0.05-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.05
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S0-ie0.05-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.05
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S0-ie0.05-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.05,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S0-both0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S0-both0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S0-both0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S2-ei0.5-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.5,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S2-ei0.5-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.5,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S2-ei0.5-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.5,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S2-ei0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S2-ei0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S2-ei0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S2-ei0.05-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S2-ei0.05-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S2-ei0.05-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S2-ie0.5-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S2-ie0.5-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S2-ie0.5-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S2-ie0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S2-ie0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S2-ie0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.2,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S2-ie0.05-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.05
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S2-ie0.05-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.05
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S2-ie0.05-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.05,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S2-both0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S2-both0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S2-both0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S3b-ei0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S3b-ei0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S3b-ei0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S3b-ei0.05-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S3b-ei0.05-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S3b-ei0.05-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam0.4-S3b-both0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S3b-both0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam0.4-S3b-both0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S0-ei0.5-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.5,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S0-ei0.5-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.5,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S0-ei0.5-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.5,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S0-ei0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S0-ei0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S0-ei0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S0-ei0.05-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S0-ei0.05-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S0-ei0.05-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S0-ie0.5-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S0-ie0.5-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S0-ie0.5-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S0-ie0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S0-ie0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S0-ie0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.2,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S0-ie0.05-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.05
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S0-ie0.05-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.05
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S0-ie0.05-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.05,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S0-both0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S0-both0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S0-both0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": null
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S2-ei0.5-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.5,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S2-ei0.5-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.5,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S2-ei0.5-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.5,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S2-ei0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S2-ei0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S2-ei0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S2-ei0.05-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S2-ei0.05-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S2-ei0.05-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S2-ie0.5-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S2-ie0.5-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S2-ie0.5-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S2-ie0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S2-ie0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S2-ie0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.2,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S2-ie0.05-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.05
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S2-ie0.05-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.05
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S2-ie0.05-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.05,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S2-both0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S2-both0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S2-both0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "powerlaw",
+      "lam_sup": 1.0,
+      "w_thr": 8.125,
+      "mean": 0.05
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S3b-ei0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S3b-ei0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S3b-ei0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S3b-ei0.05-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S3b-ei0.05-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S3b-ei0.05-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.05,
+    "gain_ie_inter": 1.0,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "sp3-lam1.0-S3b-both0.2-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S3b-both0.2-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2
+   },
+   "kwargs": {
+    "n_pairs": 12
+   }
+  },
+  {
+   "name": "sp3-lam1.0-S3b-both0.2-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "gain_ei_inter": 0.2,
+    "gain_ie_inter": 0.2,
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  }
+ ],
+ "note": "step 7 (engine-fix-rerun-task.md): sparse SP3 as generated by the archived generator, unchanged (W_THR 8.125 re-measured by SP1)"
+}
