@@ -4,8 +4,8 @@
 > **2026-10-30: the results of iterations 1 to 65 came from an engine whose synapse table was transposed**
 > (every built network scrambled; fixed 2026-10-30). The report, the tuning logs and the parameter files are
 > archived in `archive-pre-engine-fix/` and are not evidence until `engine-fix-rerun-task.md` re-establishes
-> them. Revision 1 below rests on a finding of that bug (flat connectivity); the rerun's step 2 lets the user
-> decide it again. The requirements and the protocol of this task are unaffected.
+> them. Revision 1 below rests on a finding of that bug (flat connectivity); revision 8 records the user's
+> decision after the rerun's step 2. The requirements and the protocol of this task are unaffected.
 
 > [!NOTE]
 > **Status: approved by the user; work stopped after iteration 65 at 6 of 24 pairs on the faulty engine (see `archive-pre-engine-fix/`);
@@ -367,3 +367,8 @@ setups/runpod-assembly-association/
    and B trained in alternating rounds must not become associated).
 6. **Energy (shortcut 2):** may take the form of a global fuel (C3) delivered where it is used.
 7. **Cost cap:** $90.
+8. **Wiring after the engine fixes (2026-10-30; replaces the reason of revision 1):** the corrected
+   engine's connectivity falls with distance (effective λ about 4 cells; `engine-fix-rerun-report.md`,
+   step 2), so revision 1's reason no longer holds. The rerun's step 3 (operating regime) runs three
+   wirings: rewiring at λ = 0.4 (baseline), rewiring at λ = 1.0 and the engine's own wiring. The wiring of
+   the rerun's steps 4 to 7 is decided with the user after step 3.

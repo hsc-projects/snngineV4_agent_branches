@@ -5,9 +5,9 @@ dependence, so that every conclusion of the assembly-association work again rest
 network; state for each earlier conclusion whether it holds, changes or falls.
 
 > [!NOTE]
-> **Status (2026-10-30): in progress; steps 0 and 1 done, step 2 measured** (`engine-fix-rerun-report.md`): the
-> volume's checkout is a git clone at the corrected engine, its builds pass the audit at 7^3, 9^3 and 11^3, and
-> the wiring decision of step 2 waits for the user.
+> **Status (2026-10-30): in progress; steps 0 to 3 done** (`engine-fix-rerun-report.md`): the volume's checkout
+> is a git clone at the corrected engine, its builds pass the audit at 7^3, 9^3 and 11^3, step 3 ran three
+> wirings (revision 8 of `runpod-assembly-association-task.md`), and the wiring of steps 4 to 7 waits for the user.
 > Pod sessions run under a standing approval within the cost cap ("How to run"). The requirements, rules and
 > "Revisions agreed with the user" of `runpod-assembly-association-task.md` apply (revision 1, the rewiring,
 > rests on a finding of the bug and is decided again in step 2); `sparse-assemblies-task.md` applies to step 7.
@@ -107,6 +107,8 @@ Not explained by the fixes: the SP3 crash (illegal memory access at D 13, hyster
 - Cost: cap **$20** for the rerun, set by the user on 2026-10-30 ("for now"; the user raises it when needed),
   standing approval for pod sessions within it; this replaces the parent task's $90 cap for the rerun.
   **[default]** report the cost after every step and stop before a step would exceed the cap.
+- Summaries of large sessions (Substep 1 on 100 groups writes about 11 MB per session) run on a pod, on the
+  results on the volume, not on the development host (step 3: minutes and a stalled host there, 5 s on a pod).
 - Log every session in `engine-fix-rerun-log.md` (hypothesis, change, result, decision, as in the archived
   tuning log); each step ends with a section in `engine-fix-rerun-report.md`. Both are new files of this task.
 
@@ -157,8 +159,11 @@ Not explained by the fixes: the SP3 crash (illegal memory access at D 13, hyster
      archived templates).
 3. **Operating regime** (as s47regime and s48: `session47regime{a,b,c}-lam0.4.json`,
    `session48regime-lam0.4.json`): Substep 1 on 100 groups plus the saturation diagnostic, over `gain`,
-   `gain_ie`, `gain_ee_inter` and the intra-group total (A3). Also decide whether I -> I weights get their own
-   gain (`set_gains` scales them by `gain` only).
+   `gain_ie`, `gain_ee_inter` and the intra-group total (A3), on the three wirings the user chose after step 2
+   (revision 8 of `runpod-assembly-association-task.md`: rewiring at lambda 0.4 and 1.0 and the engine's own
+   wiring); summary: `rerun_regime_summary.py`. The wiring of steps 4 to 7 is decided with the user after this
+   step. (The question of a separate gain for I -> I weights is gone: the corrected engine builds no I -> I
+   synapses, step 1.)
 4. **Propagation survey** (as s53 and s54: `session53*-prop-*.json`, `session54*-prop2.json`): all-or-none
    propagation and pair-dependent thresholds in the new regime (A4).
 5. **Protocol** (as s69a: `session69a-stage2.json`, 24 pairs or more, with controls) and the uniform-C2 control

@@ -117,7 +117,8 @@ their task-specific commands.
    local files. The checkout is a git clone: code reaches it only as commits, in a bundle of the branch
    (`git bundle create`) that is pulled there, so that `git status` stays clean and records which commit the
    sessions import (as in step 0 of `runpod-assembly-association/engine-fix-rerun-task.md`). Uncommitted files
-   (parameter files, scripts under test) go outside the clone, e.g. to the pod's own disk.
+   (parameter files, scripts under test) go outside the clone: to the pod's own disk, or, when several pods
+   read them, to a folder of the volume such as `/workspace/engine-fix-rerun/params/`.
 5. **Check before running:** after any code change, run the task's module checks once on a pod (CPU and
    GPU); the host has no torch. **Never upload code while sessions run:** they import from the volume.
 6. **Run detached:** start sessions with a runner that detaches and writes a `.finished` marker, never

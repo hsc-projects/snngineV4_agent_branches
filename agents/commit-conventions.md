@@ -42,6 +42,11 @@ describe the doc change; there is nothing else to name.
 
 ## Commit process
 
+- **Check for stale docs first.** Before proposing a commit, and also when the user asks to commit
+  directly, check the docs that describe what the commit changes (the task file, its log and report,
+  indexes such as `setups/README.md` and `agents/feature-todos.md`, setup docs such as
+  `setups/runpod-technical.md`) and fix every passage the change has made stale, so the fixes go into the
+  same commit. The user may turn this check off; until the user says so, do it every time.
 - `git add` and `git commit` go in **one** shell call
   (`git add <files> && git commit -m "..."` in bash, or
   `git add <files>; if ($?) { git commit -m "..." }` in Windows PowerShell 5.1,

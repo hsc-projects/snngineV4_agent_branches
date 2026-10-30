@@ -72,6 +72,41 @@ Recommendation: keep rewiring, now on its own merits rather than because of bug 
 has no gain at which activity stays within a cell or two, which distinct routes need, and it gives assemblies
 almost no recurrent synapses. Keep lambda 0.4 as the baseline of steps 3 to 7 (the archived protocol, its
 distances and the rate model's exports use it) and run lambda 1.0 as a variant in step 3, since its wider
-reach may let A -> B transfers over 4 cells work at lower gains.
+reach may let A -> B transfers over 4 cells work at lower gains. *(Revised by step 3: with the inter-group
+gain raised instead of the global gain, the engine's own wiring has a regime as contained as rewiring's; the
+statement "no gain at which activity stays within a cell or two" holds only for the global gain of step 2.)*
 
 Cost: about $0.29 (one check pod, about $0.05; four session pods, about $0.24; estimated).
+
+## Step 3: operating regime (2026-10-30; wiring of steps 4 to 7 pending)
+
+Run on the three wirings the user chose (revision 8): 7^3, network seeds 0 and 1, 42 configurations each of gain,
+`gain_ee_inter`, `gain_ie` and the intra-group total; per configuration Substep 1 on 100 groups and the
+saturated-path diagnostic (6 pairs at d 4 and at d 6). A regime passes when nearly every group is recruited
+without spill and a path at the upper weight bound transmits while an untrained one does not (the archive's
+criteria). Numbers in `engine-fix-rerun-log.md`, step 3, and `output/rerun3-summary.txt`.
+
+| wiring | passing regimes (both seeds) | width of the passing region |
+|---|---|---|
+| engine's own | gain 4, `gain_ee_inter` 1.2 or 2.4: Substep 1 99 to 100 / 100, saturated path 6 / 6 at d 4 and d 6 | every `gain_ie` (2 to 8) and intra total (20, 40) |
+| rewired, lambda 1.0 | gain 4, total 40, `gain_ee_inter` 1.2 or 2.4: 97 to 100, 6 / 6 | `gain_ie` 2 or 8 at 1.2, every `gain_ie` at 2.4 |
+| rewired, lambda 0.4 | gain 4, total 40, `gain_ee_inter` 2.4 (`gain_ie` 2, 4) or 1.2 (`gain_ie` 2): 98 to 100, 6 / 6 | narrower: total 20 under-recruits, `gain_ie` 4 and 8 block at 1.2 |
+
+Every wiring has a regime that meets the archive's criteria. The engine's own wiring has the widest one; its
+failure, when the gains are pushed further (`gain_ee_inter` 4.8, or gain 8 with stronger inhibition), is
+wide-range spill (6 to 10 cells) and, at gain 8, runaways, where the rewired networks spill one to five
+cells. The diagnostic sets path weights to their upper bound: whether learning reaches such weights, and
+whether untrained routes stay selective, is for steps 4 and 5.
+
+**A3** (the regime tuned on the faulty engine: gain 4, `gain_ie` 2, `gain_ee_inter` 0.6, intra total 40):
+**changes.** It still recruits single groups without spill (98 to 100 of 100) in every wiring, but a saturated
+path transmits in at most 1 of 6 pairs at d 4 and in none at d 6; the inter-group gain has to be about doubled
+(1.2 to 2.4).
+
+**For the user (wiring of steps 4 to 7).** Proposal: take two wirings into step 4, the engine's own (gain 4,
+`gain_ee_inter` 1.2, `gain_ie` 2, total 40: the middle of its passing region) and rewiring at lambda 0.4 (gain
+4, `gain_ee_inter` 2.4, `gain_ie` 2, total 40: continuity with the archive and the rate model's exports), and
+drop lambda 1.0, which lies between the two without a property of its own in these measurements.
+
+Cost: about $1.41 (six session pods, about 15 to 24 minutes each, and a summary pod; estimated). Rerun so far:
+about $1.89 of the $20 cap.

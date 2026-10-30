@@ -144,3 +144,43 @@ One entry per session of `engine-fix-rerun-task.md`: hypothesis, change, result,
   (delete 204 each, `list-pods` empty). The first collector, started from Git Bash, failed (its `-F NUL` needs
   Windows OpenSSH); run from PowerShell it collected all four.
 - **Decision:** the user's (report, step 2).
+
+## Step 3 (6 session pods and 1 summary pod, 2026-10-30): operating regime on three wirings
+
+- **User decision:** step 3 runs rewiring at lambda 0.4 (baseline), at lambda 1.0 and the engine's own wiring
+  (revision 8 of `runpod-assembly-association-task.md`); the wiring of steps 4 to 7 is discussed after step 3.
+- **Hypothesis:** step 2 varied only `gain`; with the inter-group gain, the inhibitory gain and the intra-group
+  total varied as well, each wiring may have a regime in which a single group is recruited without spill, an
+  untrained path does not transmit and a saturated one does (the archive's criteria, iterations 40 and 41).
+- **Change:** parameter files `params/rerun3{a..f}-regime-{own,lam0.4,lam1.0}-s{0,1}.json` (7^3, network seeds
+  0 and 1), uploaded to `/workspace/engine-fix-rerun/params/` outside the clone (no code change; clone at
+  edc3c9e). Per configuration: Substep 1 on 100 groups and `diag_saturated_path` (radius 1, 6 pairs) at d 4 and
+  6. Grid: gain 4 with `gain_ee_inter` 0.3, 0.6, 1.2, 2.4, 4.8 x `gain_ie` 2, 4, 8 x intra total 20, 40; gain 8
+  with `gain_ee_inter` 0.3, 0.6, 1.2, 2.4 x `gain_ie` 2, 4, 8, total 40 (42 configurations, 126 jobs per
+  session, about 12 s per configuration). Pods a, b RTX PRO 4000, c to f RTX PRO 4500 (SM 120). The I -> I gain
+  question of the task is gone: the corrected engine builds no I -> I synapses (step 1).
+- **Summary:** `rerun_regime_summary.py` (run on a pod: on the host it did not finish in minutes and slowed the
+  host, 11 MB of results per session; on the pod 5 s); `output/rerun3-summary.txt` and `.json`.
+- **Result** (both seeds agree; Substep 1 pass of 100, saturated path transmitting at d 4 / d 6, fraction of 6
+  pairs; the untrained path transmits in no configuration below gain 8 except single pairs):
+
+  | wiring | configurations passing Substep 1 (>= 97) with a saturated path transmitting at d 4 and d 6 (>= 5 / 6) |
+  |---|---|
+  | engine's own | gain 4: `gain_ee_inter` 1.2 at every `gain_ie` (2, 4, 8) and total (20, 40): 100 / 100, 1.00 / 1.00; 2.4 likewise (99 to 100); gain 8: 1.2 with `gain_ie` 2 (98 to 100) |
+  | lambda 1.0 | gain 4, total 40: `gain_ee_inter` 1.2 with `gain_ie` 2 or 8, 2.4 with every `gain_ie` (97 to 100); gain 8: 1.2 with `gain_ie` 2 (96 to 100) |
+  | lambda 0.4 | gain 4, total 40: `gain_ee_inter` 1.2 with `gain_ie` 2, 2.4 with `gain_ie` 2 or 4 (98 to 100); gain 8: 1.2 with `gain_ie` 2 (98 to 99) |
+
+  - Recruitment: intra total 20 leaves groups under-recruited in the rewired networks (about 77 of 100 at
+    lambda 0.4, about 50 at lambda 1.0), none in the engine's own wiring; total 40 recruits every group.
+  - Spill begins at `gain_ee_inter` 2.4 with `gain_ie` 8 (1 to 12 groups), grows at 4.8 (all wirings) and at
+    gain 8 with `gain_ie` 4 or 8; in the engine's own wiring it then reaches 6 to 10 cells, in the rewired ones
+    1 to 5. Runaways only in the engine's own wiring
+    at gain 8, `gain_ee_inter` 2.4, `gain_ie` 4 or 8 (5 and 91 to 92 of 100 groups).
+  - The archived regime (gain 4, `gain_ee_inter` 0.6, `gain_ie` 2, total 40) passes Substep 1 (98 to 100) in
+    every wiring, but a saturated path transmits in at most 1 of 6 pairs at d 4 and none at d 6: on the
+    corrected network the inter-group gain must be about twice as high (1.2) for a learned path to carry.
+- **Cost:** session pods a 12:26 to 12:41 and b to 12:43 UTC (RTX PRO 4000, $0.57/h), c, d to 12:46 and e, f
+  to 12:50 (RTX PRO 4500, $0.72/h), summary pod 12:54 to 12:58 ($0.72/h): about $1.41 (estimated); all
+  terminated (delete 204 each; `list-pods` then showed only `xt2eohm6688yx9`, "rm6-precheck", an RTX 4090
+  created at 12:56 UTC by another session, not touched).
+- **Decision:** the user's (report, step 3).
