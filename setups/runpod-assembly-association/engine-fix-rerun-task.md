@@ -5,9 +5,9 @@ dependence, so that every conclusion of the assembly-association work again rest
 network; state for each earlier conclusion whether it holds, changes or falls.
 
 > [!NOTE]
-> **Status (2026-10-30): in progress; steps 0 to 4 done** (`engine-fix-rerun-report.md`): the volume's checkout
-> is a git clone at the corrected engine, its builds pass the audit at 7^3, 9^3 and 11^3, steps 3 and 4 ran three
-> wirings (revision 8 of `runpod-assembly-association-task.md`), and the wiring of steps 5 to 7 waits for the user.
+> **Status (2026-10-30): in progress; steps 0 to 5 done** (`engine-fix-rerun-report.md`): the volume's checkout
+> is a git clone at the corrected engine, its builds pass the audit at 7^3, 9^3 and 11^3, steps 3 to 5 ran the
+> wirings of revision 8 of `runpod-assembly-association-task.md`, and the wiring of steps 6 and 7 waits for the user.
 > Pod sessions run under a standing approval within the cost cap ("How to run"). The requirements, rules and
 > "Revisions agreed with the user" of `runpod-assembly-association-task.md` apply (revision 1, the rewiring,
 > rests on a finding of the bug and is decided again in step 2); `sparse-assemblies-task.md` applies to step 7.

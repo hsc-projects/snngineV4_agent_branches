@@ -217,3 +217,42 @@ One entry per session of `engine-fix-rerun-task.md`: hypothesis, change, result,
   (delete 204 each; `list-pods` then showed only `xt2eohm6688yx9`, another session's RTX 4090, still without a
   runtime since 12:56 UTC, not touched).
 - **Decision:** the user's (report, step 4).
+
+## Step 5 (4 pods, 2026-10-30): protocol and uniform-C2 control on two wirings
+
+- **User decisions:** step 5 runs the engine's own wiring and rewiring at lambda 0.4 (the proposal of steps 3 and
+  4; revision 8); vispy's sample data goes permanently onto the volume.
+- **Change (volume):** `/workspace/venv/settings/` created: vispy then keeps its data under
+  `/workspace/venv/settings/vispy/data` (`vispy.config['data_path']`, checked with vispy 0.17.0), and
+  `volume/stent.npz` was fetched there once; every pod since reports this path, so no pod downloads it again.
+- **Change (parameters):** `params/rerun5{a..h}-{proto,c2u}-{own,lam0.4}-s{0,1}.json` (7^3, network seeds 0 and
+  1, 12 pairs at d 4 each, pair_draw 0 to 11): the protocol with controls as `session69a-stage2.json`, and the
+  uniform-C2 control as `session76-c2u-*.json` (C2 held at 1.2 and 0.9), both with the step 3 regime
+  (`gain_ee_inter` 1.2 for the engine's own wiring, 2.4 for lambda 0.4; gain 4, `gain_ie` 2, intra total 40).
+  Four pods (2 RTX PRO 4000, 2 RTX PRO 4500), two sessions each, from 13:28 UTC.
+- **Summary:** `assoc_controls_summary.py` and `assoc_sweep_summary.py -v`, run on a pod
+  (`output/rerun5-summary.txt`). Both needed a fix for the rerun's jobs: the controls summary read only the
+  s69 job names (`pair<k>-seed<s>`; now also `-s<s>-pair<k>-`), and the sweep summary stopped on a C1 round
+  without a test (the engine's own wiring; now read as no test).
+- **Result, protocol with controls** (24 pairs per wiring; pass = an association, bounded, with controls 0, 1
+  and the separate-rounds control passing):
+
+  | wiring | transfers in the C1 phase | associations (pass) | strays of the C1-phase transfer -> final, median | lost / unbounded |
+  |---|---|---|---|---|
+  | rewired, lambda 0.4 (`gain_ee_inter` 2.4) | 24 of 24, in 2 to 3 rounds | **15** (9 at seed 0, 6 at seed 1), all controls passing | 180 -> 16 (every association at most half its C1-phase strays) | 1 / 11 |
+  | engine's own (`gain_ee_inter` 1.2) | 14 of 24, in 2 to 3 rounds | **0** | 197 -> none bounded | 7 / 7 |
+
+  Controls: without chemistry no pair transfers (B 0.00 in every pair of both wirings); trained in separate
+  rounds, no lambda 0.4 pair associates (one engine's-own pair transfers bounded in that control, s0p11,
+  where the main run does not associate); control 0 passes in every pair.
+- **Result, uniform C2** (C2 held at 1.2 or 0.9 where released, controls off; same 24 pairs): lambda 0.4: 0
+  associations at either level, every pair's final transfer unbounded (the same C1-phase transfers, 180
+  strays, are not narrowed); engine's own: 1 association at 1.2 (s1p4, 30 strays), none at 0.9.
+- **Interpretation:** on the corrected network the C1 phase gives every lambda 0.4 pair a transfer that
+  spreads over about half the reservoir, and the short circuit stage with activity-dependent C2 narrows 15 of
+  them to a bounded association; with C2 uniform, nothing is narrowed. The engine's own wiring transfers in
+  fewer pairs and never narrows.
+- **Cost:** 4 pods from 13:28 UTC: a, c, d until about 13:58 (1 x $0.57/h, 2 x $0.72/h), b until about 14:08
+  ($0.57/h; the summaries ran on it): about $1.39 (estimated); terminated (delete 204 each; `list-pods` then
+  showed only the other session's `xt2eohm6688yx9`, still without a runtime).
+- **Decision:** the user's (report, step 5).

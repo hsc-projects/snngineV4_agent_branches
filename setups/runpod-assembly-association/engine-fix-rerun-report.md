@@ -140,3 +140,36 @@ stands: step 5 on the engine's own wiring (`gain_ee_inter` 1.2) and on rewiring 
 (`gain_ee_inter` 2.4), without lambda 1.0.
 
 Cost: about $0.40 (three pods, about 12 minutes; estimated). Rerun so far: about $2.29 of the $20 cap.
+
+## Step 5: protocol and uniform-C2 control (2026-10-30; wiring of steps 6 and 7 pending)
+
+Run on the engine's own wiring and rewiring at lambda 0.4 (the user's choice), in their step 3 regimes, 7^3, 24
+pairs at d 4 (network seeds 0 and 1); the protocol with controls as s69a and the uniform-C2 control as s76.
+Numbers in `engine-fix-rerun-log.md`, step 5, and `output/rerun5-summary.txt`.
+
+| | rewired, lambda 0.4 | engine's own |
+|---|---|---|
+| associations passing every control | **15 of 24** | **0 of 24** |
+| transfers in the C1 phase | 24 (strays about 180) | 14 (strays about 200) |
+| with C2 uniform (1.2 / 0.9) | 0 / 0 (every transfer unbounded) | 1 / 0 |
+
+With rewiring at lambda 0.4, every pair transfers within three joint rounds, at first with about half of
+the reservoir active; the short circuit stage then narrows 15 transfers to bounded associations (median 16
+strays, every one at most half its C1-phase strays). Held uniform, C2 narrows none. Without chemistry no pair
+transfers, and A and B trained in separate rounds never associate. The engine's own wiring transfers in 14
+pairs, with about 200 strays, and the short circuit stage narrows none.
+
+**A6** (archived items, on the faulty engine): **changes.**
+- Item 2 (associations in a quarter to a third of the pairs, 6 of 24): **changes**: 15 of 24 at lambda 0.4.
+- Item 3 (the associations need joint activation): **holds**: the separate-rounds control never associates
+  at lambda 0.4.
+- Item 6 (the outcome is fixed in the joint rounds; the short circuit stage keeps or loses the first transfer
+  with its strays): **falls**: the stage narrows every association, from about 180 strays to about 16.
+- Item 13 (C2 carries no spatial information; uniform C2 gives the same associations): **falls**: with C2
+  uniform no pair associates; the spatial pattern of C2 is what narrows the transfer.
+Items 7 and 10 to 12 depend on variants (C3 fuel, rollback, depression, local inhibition) not rerun here.
+
+**For the user (wiring of steps 6 and 7).** Proposal: rewiring at lambda 0.4 only. The engine's own wiring
+forms no association in 24 pairs; its transfers spread and the chemistry does not narrow them.
+
+Cost: about $1.39 (four pods, 30 to 40 minutes; estimated). Rerun so far: about $3.68 of the $20 cap.

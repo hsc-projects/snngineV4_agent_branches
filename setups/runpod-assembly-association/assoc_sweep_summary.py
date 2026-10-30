@@ -53,7 +53,7 @@ for fn in sorted(glob.glob(os.path.join(base, pattern, "s4-*.json"))):
         continue
     main = r["main"]
     log = main["c1_log"]
-    t = log[-1]["test_A_to_B"] if log else None
+    t = log[-1].get("test_A_to_B") if log else None   # absent when the round was stopped before its test
     c1_ok = main["c1_test_passed"]
     fin = main["final"]
     assoc = [d for d in ("A_to_B", "B_to_A") if fin[d]["success"] and fin[d]["bounded"]]

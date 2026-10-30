@@ -371,5 +371,6 @@ setups/runpod-assembly-association/
    engine's connectivity falls with distance (effective λ about 4 cells; `engine-fix-rerun-report.md`,
    step 2), so revision 1's reason no longer holds. The rerun's step 3 (operating regime) runs three
    wirings: rewiring at λ = 0.4 (baseline), rewiring at λ = 1.0 and the engine's own wiring. After step 3
-   the user chose to run step 4 (propagation survey) on all three as well; the wiring of steps 5 to 7 is
-   decided with the user after step 4.
+   the user chose to run step 4 (propagation survey) on all three as well, and step 5 (protocol) on the
+   engine's own wiring and rewiring at λ = 0.4; the wiring of steps 6 and 7 is decided with the user after
+   step 5.

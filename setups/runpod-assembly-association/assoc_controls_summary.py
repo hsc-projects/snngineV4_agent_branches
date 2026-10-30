@@ -14,7 +14,11 @@ for f in sorted(glob.glob(os.path.join(base, sys.argv[2] if len(sys.argv) > 2 el
         continue
     r = json.load(open(f))
     m = re.search(r"pair(\d+)-seed(\d+)", os.path.basename(f))
-    pair, seed = int(m.group(1)), int(m.group(2))
+    if m:
+        pair, seed = int(m.group(1)), int(m.group(2))
+    else:  # rerun names: s4-d4-s<seed>-pair<k>-<configuration>
+        m = re.search(r"-s(\d+)-pair(\d+)-", os.path.basename(f))
+        seed, pair = int(m.group(1)), int(m.group(2))
     if "error" in r:
         print(f"seed {seed} pair {pair:2d} ERROR {r['error'].strip().splitlines()[-1]}")
         continue

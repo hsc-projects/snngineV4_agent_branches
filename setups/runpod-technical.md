@@ -11,6 +11,10 @@ Rationale, alternatives, and open items: `runpod-rationale.md`.
   `EU-RO-1`. Mount path on any pod: `/workspace`.
   Persistent layout:
   - `/workspace/venv`: Persistent Python 3.12 virtual environment (`--system-site-packages`).
+  - `/workspace/venv/settings/vispy/`: vispy's data and config folder (since 2026-10-30): vispy uses a writable
+    `settings` folder under `sys.prefix` instead of `~/.vispy` (`vispy/util/config.py`,
+    `_get_vispy_app_dir`; checked with vispy 0.17.0), so its sample data (`data/volume/stent.npz`) is shared
+    by every pod.
   - `/workspace/wheels`: Persistent binary wheel cache (e.g. `pycuda-2026.1-cp312-cp312-linux_x86_64.whl`).
   - `/workspace/output`: Remote simulation video outputs managed under a 5-video rolling retention policy.
   - `/workspace/snngineV4_cloud/snngineV4_agent_branches`: Persistent git clone of the branch (since 2026-10-30;
@@ -124,10 +128,10 @@ their task-specific commands.
 6. **Run detached:** start sessions with a runner that detaches and writes a `.finished` marker, never
    through a long-lived SSH connection (a dropped connection once left a pod idle for 31 minutes). A pod
    can run two sessions side by side when one does not saturate the GPU, or chain a second session
-   behind the first's marker. On a fresh pod, fetch vispy's sample data once before starting sessions side
-   by side (`python3 -c "from vispy import io; io.load_data_file('volume/stent.npz')"` in the venv): every
-   engine build reads it (`chem_volume.py`), and two first downloads at once collide in `/root/.vispy` and
-   stop a session in preflight (engine-fix rerun, steps 1 and 4).
+   behind the first's marker. Every engine build reads vispy's sample data (`volume/stent.npz`,
+   `chem_volume.py`); it lies on the volume (see the layout above), so no pod downloads it. Without it, two
+   first downloads at once on a fresh pod collide in `/root/.vispy` and stop a session in preflight
+   (engine-fix rerun, steps 1 and 4).
 7. **Collect per pod:** one background collector per pod (`collect_pod_sessions.py <pods.csv> output
    params`, CSV columns `letter,id,host,port,params`), so that each pod can be terminated as soon as its
    own sessions are downloaded. Run it from PowerShell: its ssh options (`-F NUL`) need Windows OpenSSH,

@@ -1,0 +1,1720 @@
+{
+ "session": "rerun5d-c2u-own-s1",
+ "note": "step 5 uniform-C2 control (engine-fix-rerun-task.md), as session76-c2u-*.json with gain_ee_inter 1.2 (step 3 regime), 12 pairs at d 4, C2 held at 1.2 and 0.9; 7^3, wiring own",
+ "engine": {
+  "n_neurons": 20000,
+  "n_synapses": 2000,
+  "seed": 1
+ },
+ "defaults": {
+  "video": {
+   "enabled": false
+  }
+ },
+ "jobs": [
+  {
+   "name": "s4-d4-s1-pair0-U12",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 1.2
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 0
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair1-U12",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 1.2
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 1
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair2-U12",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 1.2
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 2
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair3-U12",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 1.2
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 3
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair4-U12",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 1.2
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 4
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair5-U12",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 1.2
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 5
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair6-U12",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 1.2
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 6
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair7-U12",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 1.2
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 7
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair8-U12",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 1.2
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 8
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair9-U12",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 1.2
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 9
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair10-U12",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 1.2
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 10
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair11-U12",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 1.2
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 11
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair0-U09",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 0.9
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 0
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair1-U09",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 0.9
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 1
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair2-U09",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 0.9
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 2
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair3-U09",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 0.9
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 3
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair4-U09",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 0.9
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 4
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair5-U09",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 0.9
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 5
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair6-U09",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 0.9
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 6
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair7-U09",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 0.9
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 7
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair8-U09",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 0.9
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 8
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair9-U09",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 0.9
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 9
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair10-U09",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 0.9
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 10
+   }
+  },
+  {
+   "name": "s4-d4-s1-pair11-U09",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 1
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0
+    },
+    "c1": {
+     "gain": 0.0,
+     "decay": 0.003,
+     "saturation": 8.0,
+     "k": 0.16
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02,
+     "uniform": 0.9
+    },
+    "plasticity": {
+     "rule": "both",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ]
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 1.2,
+    "learn_in_c2": false,
+    "oracle": null,
+    "energy": {
+     "enabled": false
+    },
+    "pair_draw": 11
+   }
+  }
+ ]
+}
