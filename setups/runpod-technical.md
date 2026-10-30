@@ -126,7 +126,8 @@ their task-specific commands.
    behind the first's marker.
 7. **Collect per pod:** one background collector per pod (`collect_pod_sessions.py <pods.csv> output
    params`, CSV columns `letter,id,host,port,params`), so that each pod can be terminated as soon as its
-   own sessions are downloaded. Terminate only after the collector reports `PENDING none` (it exits
+   own sessions are downloaded. Run it from PowerShell: its ssh options (`-F NUL`) need Windows OpenSSH,
+   and Git Bash's own ssh fails on them. Terminate only after the collector reports `PENDING none` (it exits
    with code 1 otherwise); results remain on the volume and can be fetched with a later pod.
 8. **Terminate and verify:** `delete-pod` for each pod created (success is a 204 response), then
    `list-pods` must return `[]`. Pods never stop themselves.

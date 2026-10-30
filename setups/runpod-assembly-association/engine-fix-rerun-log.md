@@ -97,3 +97,50 @@ One entry per session of `engine-fix-rerun-task.md`: hypothesis, change, result,
   terminated (delete 204, `list-pods` empty).
 - **Next:** commit the code (the clone takes only commits), pull it into the volume's clone, run the four
   sessions on four pods.
+
+## Step 2 (pods `qvf2rifaldvrk2`, `qom2nz5qxv6qy9`, `s4z11qnj74ymb7`, `9ugmyma1756x7p`, 2026-10-30): wiring
+
+- **Hypothesis:** the engine's own wiring, now correct, falls with distance; whether its activity stays local
+  enough for distinct routes decides between it and rewiring (revision 1).
+- **Change:** commit edc3c9e pulled into the volume's clone (bundle, fast-forward; clean). Sessions
+  `rerun2a` to `rerun2d` (7^3 and 9^3, network seeds 0 and 1), started with `runpod_assembly_runner.sh start`,
+  about 100 s each; pods a and b RTX PRO 4000 Blackwell, c and d RTX PRO 4500 Blackwell (the 4000 had no
+  capacity left; both SM 120, checked before each start). Summary: `python rerun_wiring_summary.py output
+  "rerun2*"` (`output/rerun2-summary.json`).
+- **Result, connectivity** (E -> E synapses per group pair, median, at 1, 2, 4, 8 cells; effective lambda;
+  both seeds agree within a few synapses):
+
+  | wiring | 7^3 | lambda_eff 7^3 | 9^3 | lambda_eff 9^3 |
+  |---|---|---|---|---|
+  | engine's own | 457, 356, 222, 73 | 3.8 | 324, 264, 138, 41 | 4.0 |
+  | rewired, lambda 1.0 | 1495, 559, 95, 3 | 1.1 | 1291, 479, 79, 2 | 1.1 |
+  | rewired, lambda 0.4 | 1316, 135, 2, 0 | 0.46 | 1261, 130, 1, 0 | 0.42 |
+
+  The fit returns the rewired networks' lambda (0.42 to 0.46 for 0.4, 1.1 for 1.0), so the engine's own
+  wiring has an effective lambda of about 4 cells. At 9^3 the corner-to-corner pairs again hold more synapses
+  than the next distance (43 and 53 against 23).
+- **Result, intra-group E -> E synapses per excitatory neuron, over all groups** (min, median, max): engine's
+  own 7 / 13 / 18 (7^3), 6 / 10 / 14 to 16 (9^3); lambda 0.4 512 to 594 / 842 to 846 / 1161 to 1277 (7^3),
+  535 to 560 / 809 / 1197 to 1203 (9^3); lambda 1.0 50 to 64 / 121 to 123 / 263 to 333 (7^3), 50 to 51 / 103 /
+  278 to 287 (9^3). The ratio max / min is about 2.5 in the engine's own wiring and at lambda 0.4, 5 to 6.6 at
+  lambda 1.0.
+- **Result, activity** (Substep 1, 10 injected groups per job, archived regime with `gain` varied; spread =
+  the largest distance at which another group exceeds 0.1; both seeds similar):
+
+  | gain | engine's own, 7^3 / 9^3 | lambda 1.0, 7^3 / 9^3 | lambda 0.4, 7^3 / 9^3 |
+  |---|---|---|---|
+  | 2 to 8 | 0 / 0 | 0 / 0 | 0 / 0 (gain 2 and 3: 4 to 8 of 10 groups recruited) |
+  | 12 | 0 to 5 / 0 to 3 | 0 to 1 / 0 to 1 | 0 to 1 / 0 to 1 |
+  | 16 | 3 to 7 / 0 to 6 | 0 to 2 / 0 to 2 | 0 to 1 / 0 to 1 |
+  | 24 | 5 to 9 (one runaway) / 4 to 8 | 1 to 4 / 1 to 5 | 0 to 2 / 1 to 2 |
+
+  Mean peak activity of the groups at distance 1 at gain 16: engine's own 0.5 to 0.7, lambda 1.0 0.07 to
+  0.15, lambda 0.4 0.04 to 0.07; at gain 24: 0.6 to 0.8, about 0.2 to 0.3, 0.17 to 0.29. In the engine's own
+  wiring the injected group stays alone up to gain 8, and above it activity reaches across much of the grid
+  (spread up to 9 of at most 10 cells at 7^3, 8 of 14 at 9^3), with half of the groups still silent at gain 12
+  (bimodal); the rewired networks
+  stay within 1 to 2 cells at lambda 0.4 and within 1 to 5 at lambda 1.0 at every gain run.
+- **Cost:** 4 pods, 12:06 to about 12:12 UTC, 2 x $0.57/h and 2 x $0.72/h, about $0.24 (estimated); terminated
+  (delete 204 each, `list-pods` empty). The first collector, started from Git Bash, failed (its `-F NUL` needs
+  Windows OpenSSH); run from PowerShell it collected all four.
+- **Decision:** the user's (report, step 2).

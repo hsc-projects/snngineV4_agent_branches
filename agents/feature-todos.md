@@ -22,7 +22,8 @@ Each entry gets a priority: **high**, **mid**, or **low**.
     engine whose synapse table was transposed (fixed 2026-10-30); their results are archived in
     `setups/runpod-assembly-association/archive-pre-engine-fix/` and are not evidence until
     re-established. Next: `setups/runpod-assembly-association/engine-fix-rerun-task.md` (in progress:
-    steps 0 and 1 done, `engine-fix-rerun-report.md`).
+    steps 0 and 1 done, step 2 measured and waiting for the user's wiring decision,
+    `engine-fix-rerun-report.md`).
 
 ## Completed
 

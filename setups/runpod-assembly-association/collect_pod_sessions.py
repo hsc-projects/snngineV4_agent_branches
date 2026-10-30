@@ -32,7 +32,7 @@ while pending and time.time() < deadline:
         except Exception as e:
             print(L, "ssh error", e, flush=True)
             continue
-        if st == "RUNNING":
+        if st in ("RUNNING", ""):   # "": ssh failed, the session may still run
             continue
         sess = json.load(open(Path(sys.argv[3]) / r["params"]))["session"]
         ssh(r, f"cd {OUT} && tar czf {OUT}/{sess}.tgz {sess}", 300)

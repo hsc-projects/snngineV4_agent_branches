@@ -1,0 +1,2 @@
+# runpod_assembly_runner.sh writes its session logs here (on the volume's clone)
+logs/
