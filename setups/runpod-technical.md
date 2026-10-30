@@ -13,7 +13,8 @@ Rationale, alternatives, and open items: `runpod-rationale.md`.
   - `/workspace/venv`: Persistent Python 3.12 virtual environment (`--system-site-packages`).
   - `/workspace/wheels`: Persistent binary wheel cache (e.g. `pycuda-2026.1-cp312-cp312-linux_x86_64.whl`).
   - `/workspace/output`: Remote simulation video outputs managed under a 5-video rolling retention policy.
-  - `/workspace/snngineV4_cloud`: Persistent repository checkout with compiled C++/CUDA backend (`.so`).
+  - `/workspace/snngineV4_cloud/snngineV4_agent_branches`: Persistent git clone of the branch (since 2026-10-30;
+    the earlier uploaded copy is kept as `snngineV4_agent_branches.pre-f051b62`) with the compiled C++/CUDA backend (`.so`).
   - `/workspace/snngineV4_agent_branches`: Symlink pointing to `snngineV4_cloud/snngineV4_agent_branches`.
 - **CPU pod**: none currently exists.
 - **GPU pod**: none currently running (ephemeral). Validated GPU classes in `EU-RO-1`:
@@ -111,9 +112,12 @@ their task-specific commands.
    GPU and `minCudaVersion 12.8`, `ports: ["22/tcp"]`, `startSsh: true`, the network volume at
    `/workspace`, `disk 20`. Direct SSH (`ssh.direct` in `get-pod`) appears after 1 to 2 minutes; one
    pod never got a runtime (s67), so terminate a pod still without one after about 5 minutes.
-4. **Upload once:** the volume is shared, so upload code and parameter files through one pod with
-   `scp -O` (Windows OpenSSH needs the legacy protocol; from PowerShell, since Git Bash rewrites remote
-   paths) and compare MD5 sums with the local files.
+4. **Upload once:** the volume is shared, so upload through one pod with `scp -O` (Windows OpenSSH needs
+   the legacy protocol; from PowerShell, since Git Bash rewrites remote paths) and compare MD5 sums with the
+   local files. The checkout is a git clone: code reaches it only as commits, in a bundle of the branch
+   (`git bundle create`) that is pulled there, so that `git status` stays clean and records which commit the
+   sessions import (as in step 0 of `runpod-assembly-association/engine-fix-rerun-task.md`). Uncommitted files
+   (parameter files, scripts under test) go outside the clone, e.g. to the pod's own disk.
 5. **Check before running:** after any code change, run the task's module checks once on a pod (CPU and
    GPU); the host has no torch. **Never upload code while sessions run:** they import from the volume.
 6. **Run detached:** start sessions with a runner that detaches and writes a `.finished` marker, never

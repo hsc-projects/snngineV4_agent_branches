@@ -21,8 +21,8 @@ Each entry gets a priority: **high**, **mid**, or **low**.
   - Status: on hold until the rerun. Iterations 1 to 65 and the successor task's SP0 to SP3 ran on an
     engine whose synapse table was transposed (fixed 2026-10-30); their results are archived in
     `setups/runpod-assembly-association/archive-pre-engine-fix/` and are not evidence until
-    re-established. Next: `setups/runpod-assembly-association/engine-fix-rerun-task.md` (proposed,
-    waits for the user's go).
+    re-established. Next: `setups/runpod-assembly-association/engine-fix-rerun-task.md` (in progress:
+    steps 0 and 1 done, `engine-fix-rerun-report.md`).
 
 ## Completed
 

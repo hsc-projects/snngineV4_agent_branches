@@ -5,8 +5,9 @@ dependence, so that every conclusion of the assembly-association work again rest
 network; state for each earlier conclusion whether it holds, changes or falls.
 
 > [!NOTE]
-> **Status: proposed (2026-10-30); waits for the user's go.** Step 0 changes the engine that every session
-> imports from the network volume and needs the user's explicit approval. The requirements, rules and
+> **Status (2026-10-30): in progress; steps 0 and 1 done** (`engine-fix-rerun-report.md`): the volume's checkout
+> is a git clone at the corrected engine, and its builds pass the audit at 7^3, 9^3 and 11^3. Step 2 is next.
+> Each pod session needs the user's go. The requirements, rules and
 > "Revisions agreed with the user" of `runpod-assembly-association-task.md` apply (revision 1, the rewiring,
 > rests on a finding of the bug and is decided again in step 2); `sparse-assemblies-task.md` applies to step 7.
 > **[default]** marks a starting value the agent may change (log the reason).
@@ -95,7 +96,9 @@ Not explained by the fixes: the SP3 crash (illegal memory access at D 13, hyster
 ## How to run
 
 - Sessions as in the archived report's "How to run a session" (pod body, upload, module checks, start with
-  `runpod_assembly_runner.sh start`, collect with `collect_pod_sessions.py`), with these paths: new parameter
+  `runpod_assembly_runner.sh start`, collect with `collect_pod_sessions.py`), except that code reaches the
+  volume's checkout, a git clone since step 0, only as committed code (`setups/runpod-technical.md`, "Running
+  pod sessions", step 4), with these paths: new parameter
   files go to `params/` (named `rerun<step><letter>-<what>.json`, e.g. `rerun3a-regime.json`), built from the
   archived templates named in each step (`archive-pre-engine-fix/params/`); results to `output/` (gitignored).
 - Pods: one GPU architecture per batch (`setups/runpod-technical.md`); the user prefers more parallel pods and
@@ -115,14 +118,17 @@ Not explained by the fixes: the SP3 crash (illegal memory access at D 13, hyster
    (`runpod_assembly_runner.sh env` builds the backend when none is there), and run the module checks (`test_assoc_modules.py`,
    CPU and GPU). The engine itself is tested apart from the volume: `setups/runpod-engine-tests/` (`full`
    level, all tests pass on the commit being deployed). Done when both pass.
-1. **Build audit** at 7^3 (N 20 000, S 2000) and 9^3 (N 42 500, S 2000, D 16), unrewired and rewired (lambda
+1. **Build audit** at 7^3 (N 20 000, S 2000), 9^3 (N 42 500, S 2000, D 16) and 11^3 (N 77 600, S 2000, D 20;
+   added by the user, so that step 6 can use 11^3), unrewired and rewired (lambda
    0.4): per neuron, the synapses onto each type equal the configuration (excitatory neurons 400 onto
    inhibitory, inhibitory neurons none onto inhibitory), no autapses, delays by the rule; excitatory ->
-   excitatory synapses per group pair fall with distance. Tool: `rate-model/round6_export_engine.py --params
-   <file> --no-arrays` (structure audit of the harness's build), with parameter files from
-   `session71-d4-s0-p00.json` (7^3) and `session73-g9-d4-s0-a.json` (9^3), each also without `rewire`. The
-   unrewired engine build is also covered by the engine tests (`asm7`, `asm9`). Done when the audit passes on
-   both sizes; a failure stops the task and goes to the user.
+   excitatory synapses per group pair fall with distance. Tools: `rate-model/round6_export_engine.py --params
+   <file>` (export and structure audit of the harness's build; with the arrays, which the autapse and profile
+   checks need) and `rerun_build_audit.py` (the invariants of `snngine_v4/tests/network_invariants.py` on the
+   export), with parameter files from `session71-d4-s0-p00.json` (7^3), `session73-g9-d4-s0-a.json` (9^3) and
+   `session73-g11-d4-s0-a.json` (11^3), each also without `rewire`. The unrewired engine build at 7^3 and 9^3
+   is also covered by the engine tests (`asm7`, `asm9`). Done when the audit passes on all three sizes; a
+   failure stops the task and goes to the user.
 2. **Wiring decision** (revision 1; A1, A2). Rewiring by distance (lambda 0.4) was adopted because the engine's
    connectivity looked flat in space, which bug 1 produced. Measure the engine's own wiring against rewiring at
    7^3 and 9^3, on the wirings: unrewired, rewired at lambda 0.4, and **[default]** rewired at lambda 1.0.

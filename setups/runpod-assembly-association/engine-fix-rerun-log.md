@@ -27,3 +27,45 @@ One entry per session of `engine-fix-rerun-task.md`: hypothesis, change, result,
   (`rate-model/round6_fixed_pod.sh`). It ran from its own copy of the repository and wrote only the build cache
   and its results on the volume, not the checkout; terminated by its session.
 - **Decision:** step 0 done; step 1 waits for the user's go and cost cap.
+
+## Step 1 (pod `34wjdbsndwoo2f`, 2026-10-30): build audit at 7^3, 9^3 and 11^3
+
+- **User decision:** 11^3 added to the audit, so that step 6 can use it.
+- **Hypothesis:** the harness's builds on the corrected engine have the configured composition (excitatory
+  neurons 400 synapses onto inhibitory and 1600 onto excitatory neurons, inhibitory neurons 2000 onto excitatory
+  and none onto inhibitory), no autapses, delays by round((D - 1) d / d_max), and E -> E synapses per group pair
+  that fall with distance, unrewired and rewired (lambda 0.4), at all three sizes.
+- **Change:** parameter files `params/rerun1{a..f}-audit-g{7,9,11}-{unrewired,rewired}.json` (the first E0 job of
+  `session71-d4-s0-p00.json`, `session73-g9-d4-s0-a.json` and `session73-g11-d4-s0-a.json`; `rewire` removed for
+  the unrewired ones). The task named `round6_export_engine.py --no-arrays`, but its structure audit checks
+  neither autapses nor the distance profile, and without the arrays these cannot be checked afterwards. So the
+  export runs with arrays (on the pod's own disk) and the new `rerun_build_audit.py` applies
+  `snngine_v4/tests/network_invariants.py` to them (exact x.5 ties of the delay rule may round either way, as in
+  the engine tests); `rerun1_audit_pod.sh` chains the six builds and audits. Run from the volume's checkout
+  (f051b62, clean) and its SM 120 build.
+- **Result** (`output/rerun1/`): all six builds pass every check. The first attempt of 1a failed before its build:
+  the two 7^3 exports, started together on a fresh pod, both downloaded vispy's sample data (`volume/stent.npz`,
+  read by `chem_volume.py`) and one hit `FileExistsError` on `/root/.vispy/data/volume`; 1a then ran alone and
+  passed (log kept as `export_rerun1a-audit-g7-unrewired.race.log`).
+
+  | build | E -> E / E -> I / I -> E / I -> I per neuron | intra-group E -> E per excitatory neuron | E -> E per group pair at 1, 2, 3, 6 cells | control 0, spikes AB / BA |
+  |---|---|---|---|---|
+  | 7^3 unrewired | 1600 / 400 / 2000 / 0, every neuron | 13.3 | 515, 432, 336, 119 | 3428 / 3402 |
+  | 7^3 rewired | same | 858.7 | 3234, 264, 21, 0 | 788 / 1099 |
+  | 9^3 unrewired | same | 10.0 | 376, 298, 217, 81 | 3128 / 2678 |
+  | 9^3 rewired | same | 829.4 | 3091, 254, 20, 0 | 860 / 1135 |
+  | 11^3 unrewired | same | 8.0 | 295, 230, 165, 42 | 3577 / 2348 |
+  | 11^3 rewired | same | 810.3 | 3043, 249, 20, 0 | 1111 / 994 |
+
+  No autapses, no deleted synapses, delay buckets well formed. Delays follow the rule; in the unrewired 9^3 and
+  11^3 builds 32 650 and 313 946 synapses lie on exact x.5 ties rounded the other way (the engine computes in
+  float32, as the engine tests found), none in the rewired builds. The rewired builds' intra-group numbers equal
+  round 6's exports from the engine-test copy (858.7, 829.4), so the volume's build is the same engine.
+- **Noted, not a failure:** in the unrewired 9^3 and 11^3 builds the corner-to-corner pairs (largest distance)
+  have more E -> E synapses than the next distance (43.5 against 17 at 9^3, 45 against 7 at 11^3; 7^3: 47
+  against 52); not explained. The unrewired builds put few E -> E synapses inside the own group (8 to 13 per
+  excitatory neuron, against 810 to 860 rewired); the harness's `w_intra_ee_total` 40 is spread over them
+  (step 2). Control 0 (one pair, archived parameters): about 3000 spikes unrewired against about 1000 rewired.
+- **Cost:** 1 pod, RTX PRO 4000 Blackwell, $0.57/h, 11:22 to about 11:31 UTC, about $0.09 (estimated);
+  terminated (delete 204, `list-pods` empty).
+- **Decision:** step 1 passes at all three sizes; 11^3 is open for step 6. Step 2 next (needs the cost cap).
