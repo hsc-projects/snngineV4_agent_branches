@@ -25,6 +25,11 @@ Each entry gets a priority: **high**, **mid**, or **low**.
     steps 0 to 7 done, step 8 (rate model) and the sparse stop-rule decision open,
     `engine-fix-rerun-report.md`).
 
+- [mid] Engram avenue for the main feature (allocation by excitability, co-allocation window,
+  silent engrams, engram complex): literature and concept mapping only, no pods.
+  - Task: `agents/main_feature/generate_specs_task/engram_avenue/engram-avenue-task.md`.
+  - Status: proposed 2026-10-30, not started.
+
 ## Completed
 
 - [high] Horizontal mapping pass across `snngine_v4/` subpackages:

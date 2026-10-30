@@ -245,6 +245,19 @@ written to the network volume (about 3 GB, not downloaded); model B on a CPU pod
 round 5, reading the exports from the volume (to verify that a CPU pod can attach it; otherwise copy
 the exports there); **[default]** at most $3 for the round. Report in `round6-report.md`.
 
+## Backlog (after round 6)
+
+- An analytic propagation bound from neural-field theory: whether A-to-B spread exists for a given
+  lambda, synapse count, weights and noise, so that part of the wiring sweeps need no pod. If model B
+  falls short of admission, a mean-field reduction that keeps fluctuations (round 3's diagnosis: smooth
+  rate curves miss the spike-synchrony recruitment). Read first: Krüger and Stannat 2014 (front
+  propagation in stochastic neural fields), Farkhooi and Stannat 2017 (complete mean-field theory for
+  binary recurrent networks), Löcherbach 2017 (Hawkes-process mean-field limits), Lagzi, Atay and
+  Rotter 2018 (bifurcations of interacting spiking populations), Roxin, Brunel and Hansel 2005 (delays
+  and spatiotemporal dynamics). PDFs are in the Mendeley library (`E:\MEGA\Mendeley Library`); none
+  has a Markdown version in `archive/` yet (checked 2026-10-30). Decided with the user on 2026-10-31
+  as a backlog item, not a task of its own.
+
 ## Rules
 
 - **Only with the user's explicit go for each session.**
