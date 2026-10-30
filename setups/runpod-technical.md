@@ -124,7 +124,10 @@ their task-specific commands.
 6. **Run detached:** start sessions with a runner that detaches and writes a `.finished` marker, never
    through a long-lived SSH connection (a dropped connection once left a pod idle for 31 minutes). A pod
    can run two sessions side by side when one does not saturate the GPU, or chain a second session
-   behind the first's marker.
+   behind the first's marker. On a fresh pod, fetch vispy's sample data once before starting sessions side
+   by side (`python3 -c "from vispy import io; io.load_data_file('volume/stent.npz')"` in the venv): every
+   engine build reads it (`chem_volume.py`), and two first downloads at once collide in `/root/.vispy` and
+   stop a session in preflight (engine-fix rerun, steps 1 and 4).
 7. **Collect per pod:** one background collector per pod (`collect_pod_sessions.py <pods.csv> output
    params`, CSV columns `letter,id,host,port,params`), so that each pod can be terminated as soon as its
    own sessions are downloaded. Run it from PowerShell: its ssh options (`-F NUL`) need Windows OpenSSH,

@@ -370,5 +370,6 @@ setups/runpod-assembly-association/
 8. **Wiring after the engine fixes (2026-10-30; replaces the reason of revision 1):** the corrected
    engine's connectivity falls with distance (effective λ about 4 cells; `engine-fix-rerun-report.md`,
    step 2), so revision 1's reason no longer holds. The rerun's step 3 (operating regime) runs three
-   wirings: rewiring at λ = 0.4 (baseline), rewiring at λ = 1.0 and the engine's own wiring. The wiring of
-   the rerun's steps 4 to 7 is decided with the user after step 3.
+   wirings: rewiring at λ = 0.4 (baseline), rewiring at λ = 1.0 and the engine's own wiring. After step 3
+   the user chose to run step 4 (propagation survey) on all three as well; the wiring of steps 5 to 7 is
+   decided with the user after step 4.

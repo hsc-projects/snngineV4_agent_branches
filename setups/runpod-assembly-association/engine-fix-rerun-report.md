@@ -110,3 +110,33 @@ drop lambda 1.0, which lies between the two without a property of its own in the
 
 Cost: about $1.41 (six session pods, about 15 to 24 minutes each, and a summary pod; estimated). Rerun so far:
 about $1.89 of the $20 cap.
+
+## Step 4: propagation survey (2026-10-30; wiring of steps 5 to 7 pending)
+
+Run on all three wirings (the user's choice): 7^3, network seeds 0 and 1, `prop_survey` on 12 pairs at d 4 per
+configuration, gain 4, intra total 40, `gain_ee_inter` 0.6 to 3.6 x `gain_ie` 2, 4, 8, no learning, no
+chemistry. Numbers in `engine-fix-rerun-log.md`, step 4.
+
+| wiring | `gain_ee_inter` 0.6 to 2.4 | `gain_ee_inter` 3.6 |
+|---|---|---|
+| engine's own | every pair silent (median M 0.00) | 2 to 8 of 12 pairs explosive, 1 good pair per seed at `gain_ie` 8 |
+| rewired, lambda 1.0 | silent; at `gain_ie` 8 up to 3 pairs weakly active (M 0.05 to 0.2) | silent or weakly active (up to 5 pairs); 2 explosive at one seed |
+| rewired, lambda 0.4 | silent; at `gain_ie` 8 one pair weakly active | silent; at `gain_ie` 8 one pair weakly active |
+
+Without learning, joint activation of A and B does not make the neurons between them fire in any wiring within
+the regime region of step 3 (`gain_ee_inter` 1.2 to 2.4); the route has to be built by learning. Beyond that
+region the engine's own wiring jumps from silent to explosive, pair by pair; the rewired networks stay silent or
+weakly active.
+
+**A4** (all-or-none propagation with pair-dependent thresholds; pairs 3 and 5 never transfer, 1, 8 and 10
+easily): **changes.** On the corrected network no pair propagates untrained in the regime region, in any
+wiring: there are no easy pairs. The all-or-none, pair-dependent jump remains only in the engine's own wiring,
+above the regime region (`gain_ee_inter` 3.6). Whether learning then transfers some pairs more easily than
+others is for step 5.
+
+**For the user (wiring of steps 5 to 7).** Step 4 does not separate the wirings inside the regime region (all
+silent untrained); it shows again the engine's own wiring's sharper failure beyond it. The proposal of step 3
+stands: step 5 on the engine's own wiring (`gain_ee_inter` 1.2) and on rewiring at lambda 0.4
+(`gain_ee_inter` 2.4), without lambda 1.0.
+
+Cost: about $0.40 (three pods, about 12 minutes; estimated). Rerun so far: about $2.29 of the $20 cap.

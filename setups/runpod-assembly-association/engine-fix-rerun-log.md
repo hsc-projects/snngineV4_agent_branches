@@ -184,3 +184,36 @@ One entry per session of `engine-fix-rerun-task.md`: hypothesis, change, result,
   terminated (delete 204 each; `list-pods` then showed only `xt2eohm6688yx9`, "rm6-precheck", an RTX 4090
   created at 12:56 UTC by another session, not touched).
 - **Decision:** the user's (report, step 3).
+
+## Step 4 (3 pods, 2026-10-30): propagation survey on three wirings
+
+- **User decision:** step 4 runs all three wirings (it is cheap); the wiring of steps 5 to 7 is decided after
+  step 4 (revision 8).
+- **Question:** in the step 3 regime region, does activity propagate in a graded way between A and B under
+  joint injection (the path fires, nothing beyond A, B and the path), or all-or-none, with pair-dependent
+  thresholds (A4)?
+- **Change:** parameter files `params/rerun4{a..f}-prop-{own,lam0.4,lam1.0}-s{0,1}.json` (7^3, network seeds 0
+  and 1): `prop_survey`, 12 pairs at d 4, gain 4, intra total 40, energy off, `gain_ee_inter` 0.6, 0.9, 1.2,
+  1.8, 2.4, 3.6 x `gain_ie` 2, 4, 8; otherwise as `session54a-prop2.json`. Uploaded to
+  `/workspace/engine-fix-rerun/params/` (clone unchanged at edc3c9e). Only three of six pods could be created
+  (capacity), so each pod runs two sessions side by side: a RTX PRO 4000 (own), c and d RTX PRO 4500 (lambda
+  0.4, lambda 1.0), all SM 120, the volume's build checked as SM 120 before each start.
+- **First attempt:** four of the six sessions (a, c, d, e) stopped in preflight with exit code 3: two sessions
+  started together on a fresh pod both downloaded vispy's sample data (`volume/stent.npz`, read by
+  `chem_volume.py`) and collided on `/root/.vispy/data/volume` (as in step 1). Fetched once per pod, then
+  restarted; all six ended with exit code 0. No job of the failed attempts had run.
+- **Result** (`assoc_selectivity.py --propclass` and `--prop` on a pod: `output/rerun4-propclass.txt`,
+  `output/rerun4-prop.txt`; per job 12 pairs; good = the middle of the route fires under joint injection, M >=
+  0.2 spikes per excitatory neuron, with nothing beyond A, B and the route; silent = M < 0.05; explosive =
+  spread or runaway):
+  - Up to `gain_ee_inter` 2.4, at every `gain_ie`, every pair in every wiring is silent, except at `gain_ie` 8
+    in the rewired networks: 1 to 3 pairs between silent and good at lambda 1.0 (M 0.05 to 0.2), 1 pair at
+    lambda 0.4. Under joint injection without learning, the neurons between A and B do not fire; the median M
+    is 0.00 in every job.
+  - At `gain_ee_inter` 3.6 the engine's own wiring turns explosive in a pair-dependent way (2 to 8 of 12 pairs),
+    with one good pair per seed (`gain_ie` 8: pair 9 at seed 0, pair 5 at seed 1); the rewired networks stay
+    silent or weakly active (lambda 1.0, `gain_ie` 8: up to 5 pairs weakly active, 2 explosive at seed 1).
+- **Cost:** 3 pods, 13:07 to about 13:19 UTC (1 x $0.57/h, 2 x $0.72/h), about $0.40 (estimated); terminated
+  (delete 204 each; `list-pods` then showed only `xt2eohm6688yx9`, another session's RTX 4090, still without a
+  runtime since 12:56 UTC, not touched).
+- **Decision:** the user's (report, step 4).
