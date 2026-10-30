@@ -22,7 +22,7 @@ from popdensity_model import PopSpec, PopNetwork, izh_advance, class_params, cli
 HERE = os.path.dirname(os.path.abspath(__file__))
 PARENT = os.path.dirname(HERE)
 REPO = os.path.dirname(os.path.dirname(PARENT))
-SESSION = os.path.join(PARENT, "params", "session69a-stage2.json")
+SESSION = os.path.join(PARENT, "archive-pre-engine-fix", "params", "session69a-stage2.json")
 
 def izh_np(v, u, a, b, i):
     v = v + 0.5 * (0.04 * v * v + 5 * v + 140 - u + i)

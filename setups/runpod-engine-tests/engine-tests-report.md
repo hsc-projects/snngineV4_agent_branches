@@ -93,3 +93,27 @@ along depth, the contiguous index (blocks of 32 x 4 x 4; before, a warp's loads 
 the delivery probe draws regular-spiking neurons only (a chattering neuron would fire a second time); probe and
 export folders are cleared before a build; a reused run name no longer reads the previous run's `finished`
 marker. `fixed-f5`: full, 49 tests OK (231 s); the same run name again with `quick`: 49 tests OK.
+
+## 2026-10-30: step-by-step dynamics, non-cubic chemistry grid
+
+Two tests suggested by an independent review. `test_engine.Dynamics.test_neuron_update_every_step` and
+`test_delivery_every_step` check every step of the injected run from the engine's own state, input and spikes
+(the export now records them), so rounding does not accumulate and the whole run is checked; `test_reference`,
+which stops at the first step where the free-running spike sets differ, now prints that step. The `odd` probes use
+a chemistry grid of 30 x 22 x 38 (`AssocEngine(engine_chem_shape_hwd=...)`, `engine_probes.py --chem-shape`), so
+a mixed-up width and depth in the kernel's indexing or launch shows; a cube cannot tell them apart.
+`pack_tree.sh` packs the working tree's harness with `HARNESS=worktree` (the harness change was not committed).
+
+Pods `4vsns8xw1ab51i` (fixed) and `v1nq8p4axdhrco` (mutation), RTX PRO 4000 Blackwell, EU-RO-1, $0.57/h each,
+07:22 to about 07:28 UTC, about $0.12 together; terminated, `list-pods` empty.
+
+| run | code | level | result |
+|---|---|---|---|
+| `fable-f6` | working tree | full | 51 tests, OK; the free-running spike sets never differed within 100 steps (all five configurations) |
+| `fable-mut2` | working tree with two mutations | quick | 8 failures, as intended |
+
+Mutations: the neuron update `u += a (b v - u)` plus 0.02 every step, and the chemistry launch's width and depth
+swapped back. The neuron-update mutation fails `test_neuron_update_every_step` in all three configurations (every
+neuron, by 0.02), while `test_reference` fails only for `odd`: in `small` and `elongated` the spike sets first
+differed at steps 22 and 21, beyond its step-20 limit, so it passed. The launch mutation fails four chemistry tests
+on the 30 x 22 x 38 grid (one step: 15.8 % of cells wrong, by up to 74.7) and none on the 96^3 cube.

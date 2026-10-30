@@ -44,7 +44,8 @@ class AssocEngine:
 
     def __init__(self, device: torch.device, n_neurons: int, reservoir_shape=(1.0, 1.0, 1.0),
                  engine_chem_dim: int = 32, seed: int = 0, warmup_steps: int = 5,
-                 n_synapses: int | None = None, rewire: dict | None = None, n_delays: int | None = None):
+                 n_synapses: int | None = None, rewire: dict | None = None, n_delays: int | None = None,
+                 engine_chem_shape_hwd: tuple | None = None):
         np.random.seed(seed)
         torch.manual_seed(seed)
         from assoc_build import build_network
@@ -53,9 +54,11 @@ class AssocEngine:
         self.seed = int(seed)
         self.requested_S = n_synapses
         cd = int(engine_chem_dim)
+        # engine_chem_shape_hwd: a non-cubic engine C0 grid (height, width, depth) instead of engine_chem_dim^3
+        chem_hwd = tuple(int(x) for x in engine_chem_shape_hwd) if engine_chem_shape_hwd else (cd, cd, cd)
         (self.network, self.element, self.simulator, self.sim_instance, self.backend) = build_network(
             device, n_neurons=int(n_neurons), n_synapses=n_synapses,
-            reservoir_shape=tuple(float(x) for x in reservoir_shape), chem_shape_hwd=(cd, cd, cd),
+            reservoir_shape=tuple(float(x) for x in reservoir_shape), chem_shape_hwd=chem_hwd,
             n_delays=n_delays)
         el = self.element
         cfg = el.config
@@ -109,8 +112,10 @@ class AssocEngine:
 
     def rewire_by_distance(self, lam: float, seed: int = 0, autapse_tries: int = 20):
         """
-        Distance-dependent connectivity (tuning-log iteration 39). The engine's own rule is
-        practically flat in space (iteration 39 survey), so after construction every synapse gets a
+        Distance-dependent connectivity (archive-pre-engine-fix/tuning-log.md, iteration 39). Introduced
+        because the engine's connectivity looked flat in space (iteration 39 survey); that came from the
+        engine's transposed synapse table, fixed 2026-10-30 (engine-fix-rerun-task.md, step 2 decides
+        whether rewiring stays). After construction every synapse gets a
         new target: group drawn with probability proportional to (neurons of the target's type in
         the group) * exp(-d / lam), d = distance between the cell centres in cells, neuron uniform
         within the group. The target's type (excitatory / inhibitory) is kept, so inhibitory neurons

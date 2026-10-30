@@ -11,17 +11,21 @@ ideally biologically or physically plausible.
 > [!NOTE]
 > Successor of `runpod-assembly-association-task.md` (the minimal version, "the predecessor"): its
 > requirements, rules and "Revisions agreed with the user" apply unless stated here. Approved by the
-> user; **not started, waits for the user's go.** **[default]** marks a starting value the agent may
+> user. **SP0 to SP3 ran (2026-10-29 and 30) on the engine with the transposed synapse table; their report and
+> log are archived in `archive-pre-engine-fix/` (SP0, the field-geometry check without the engine, stays
+> valid). The task continues after `engine-fix-rerun-task.md`, whose step 7 reruns the SP1 to SP3
+> substrate.** **[default]** marks a starting value the agent may
 > change (log the reason). Formulas, functional forms and numbers in the variants are starting points, not
 > definitions: a variant is defined by its intent, and the agent may use other forms, or propose variants not
 > listed here, when they serve the goal better (log the reason and tell the user).
 
 ## Read first
 
-1. The predecessor's report, `runpod-assembly-association-report.md`: "Handoff for the next agent"
+1. The predecessor's report, `archive-pre-engine-fix/runpod-assembly-association-report.md` (results from the
+   faulty engine: read it for the method, not the numbers; see `engine-fix-rerun-task.md`): "Handoff for the next agent"
    (above all "The protocol that passes", "What is established", "Review after iteration 63", "How to
    run a session", "Code: options added in this work").
-2. `tuning-log.md`, iterations 53 to 65 (the current line of work), then 38 to 52.
+2. `archive-pre-engine-fix/tuning-log.md`, iterations 53 to 65 (the current line of work), then 38 to 52.
 3. The concept: `agents/main_feature/main-feature-readme-reconstruction.md`.
 4. The papers cited below, in `archive/primary_literature/` (PDF, and a folder with the Markdown
    version); their findings as read are in the two sections "Added 2026-10-28" (entries N40 to N46
@@ -79,7 +83,7 @@ strengthening of ordinary neurons confined to the route, and the chemical fields
   random (about 30, at least one free cell between assemblies).
 - **Grid:** 7 x 7 x 7, N 20,000 (58 neurons per group), S 2000; later 9 x 9 x 9 (N 20,000 or 42,500).
 - **Connection range:** lambda 0.4 cells (`rewire: {"lam": 0.4}`).
-- **Protocol:** the predecessor's passing protocol (iteration 56, `params/session69a-stage2.json`),
+- **Protocol:** the predecessor's passing protocol (iteration 56, `archive-pre-engine-fix/params/session69a-stage2.json`),
   with the boost on assembly cells only: joint rounds with rule `both` and C1 skipped, short circuit
   stage with C2, final test A alone on `w_perm`.
 
@@ -319,7 +323,7 @@ terminate pods after download, no commits without the user's go), plus:
 - **Cost:** own cap **$25** (preliminary; the user raises it when needed), standing approval within
   it. Spend only on runs that decide something; report the cost at the end of each substep and
   before the cap would be exceeded.
-- **Files:** this file, `sparse-assemblies-report.md`, `sparse-tuning-log.md`,
-  `params/sparse-*.json`, `output/sp*`, and the harness code the new options need (`assoc_*.py`,
+- **Files:** this file, `sparse-assemblies-report.md`, `sparse-tuning-log.md` (new files; the SP0 to SP3
+  versions are in `archive-pre-engine-fix/`), `params/sparse-*.json`, `output/sp*`, and the harness code the new options need (`assoc_*.py`,
   `test_assoc_modules.py`, `runpod_assembly_runner.sh`; user decision, 2026-10-29). New options default
   to off, so earlier parameter files reproduce their runs; every new option gets a module check.

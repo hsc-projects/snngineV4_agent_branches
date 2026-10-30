@@ -6,7 +6,7 @@ network volume (other sessions import from there). The development host runs not
 
 | file | what |
 |---|---|
-| `pack_tree.sh` | packs the code to test: `worktree` (the local working tree) or `head` (the engine as committed, with the working tree's tests and support files) |
+| `pack_tree.sh` | packs the code to test: `worktree` (the local working tree) or `head [REF]` (the engine as committed at REF, default HEAD, with the working tree's tests and support files); the assembly harness as committed at HEAD, or the working tree's with `HARNESS=worktree` |
 | `pod_run_tests.sh` | on the pod: unpacks to `/root/engine-tests/tree`, takes the CUDA backend from the build cache or builds it inside the copy (`runpod-engine-smoke-test/runpod_engine_test_runner.sh build`) and caches it, compiles the tests, runs them, writes a summary and a `finished` marker to `/workspace/output/engine-tests/<run>/` |
 | `run_on_pod.py` | on the host: uploads the pack and the pod script, starts the run detached, waits for the marker, downloads the results to `results/<run>/` and prints the summary |
 | `engine-tests-report.md` | one entry per run: code state, level, GPU, duration, cost, results |

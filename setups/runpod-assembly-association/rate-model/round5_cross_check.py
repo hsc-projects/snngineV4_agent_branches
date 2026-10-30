@@ -97,7 +97,7 @@ def b_test(net: SpikingNetwork, src: int):
 def dump_b(a):
     over = parse_set(a.set)
     spec = make_spec_B(over)
-    pairs_all = json.load(open(os.path.join(HERE, "s73_g9_d4_pairs.json")))
+    pairs_all = json.load(open(os.path.join(HERE, "..", "archive-pre-engine-fix", "rate-model", "s73_g9_d4_pairs.json")))
     seeds = [int(x) for x in a.seeds.split(",")]
     idx = [int(x) for x in a.pairs.split(",")]
     rounds = [int(x) for x in a.rounds.split(",")]

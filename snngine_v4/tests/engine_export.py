@@ -14,6 +14,8 @@ Writes DIR/network.npz (arrays below) and DIR/meta.json:
   probe_<k>_input (D + 1, N), probe_ids             delivery probe: neuron k fires once, all other weights zero;
                                                     synaptic input after each of D + 1 steps
   sim_fired, sim_offsets, sim_input, sim_inject     injected run: fired ids per step, synaptic input per step
+  sim_input_used, sim_v, sim_u, sim_v_init, sim_u_init   per step: the input the neuron update read, v and u after
+                                                     the step; v and u before the run (step-by-step checks)
 The headless build uses the assembly harness's builder (setups/runpod-assembly-association/assoc_engine.py), the
 only headless builder in the repository; its thalamic noise is switched off.
 """
@@ -121,16 +123,24 @@ def main(argv=None):
     members = np.nonzero((arr["groups"] == g) & (types == 2))[0]
     inj = np.sort(rng.choice(members, min(a.inject_k, len(members)), replace=False))
     inj_t = torch.as_tensor(inj, device=eng.device)
-    fired, inputs = [], []
+    fired, inputs, used, vs, us = [], [], [], [], []
+    arr["sim_v_init"] = eng.states[ROW_V].cpu().numpy().astype(np.float32)
+    arr["sim_u_init"] = eng.states[ROW_U].cpu().numpy().astype(np.float32)
     for t in range(a.sim_steps):
+        used.append(eng.states[ROW_I].cpu().numpy().copy())       # the input this step's neuron update reads
         sp = eng.step()
         fired.append(torch.nonzero(sp).view(-1).cpu().numpy().astype(np.int64))
         inputs.append(eng.states[ROW_I].cpu().numpy().copy())
+        vs.append(eng.states[ROW_V].cpu().numpy().copy())
+        us.append(eng.states[ROW_U].cpu().numpy().copy())
         if t < a.inject_steps:
             eng.add_current(inj_t, a.inject_current)
     arr["sim_fired"] = np.concatenate(fired) if fired else np.zeros(0, np.int64)
     arr["sim_offsets"] = np.cumsum([0] + [len(f) for f in fired]).astype(np.int64)
     arr["sim_input"] = np.stack(inputs).astype(np.float32)
+    arr["sim_input_used"] = np.stack(used).astype(np.float32)
+    arr["sim_v"] = np.stack(vs).astype(np.float32)
+    arr["sim_u"] = np.stack(us).astype(np.float32)
     arr["sim_inject"] = inj
     meta.update({"sim_steps": a.sim_steps, "inject_current": a.inject_current, "inject_steps": a.inject_steps,
                  "seconds": time.time() - t0})

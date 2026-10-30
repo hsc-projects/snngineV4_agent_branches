@@ -11,7 +11,7 @@ with the model's own formulas:
  3. sampled synapse counts: per-neuron totals exact, mean over realizations within 5 % of the expected counts
     (summed over groups at the same distance), group sizes multinomial;
  4. own-group share of E -> E synapses against the measured 867 / 851 intra-group synapses per excitatory
-    neuron of the 9^3 / 11^3 spiking builds (tuning-log.md, iteration 61);
+    neuron of the 9^3 / 11^3 spiking builds (archive-pre-engine-fix/tuning-log.md, iteration 61);
  5. every derived constant against the spiking source (params JSON, assoc_*.py, snngine_v4 config), parsed;
  6. the coupling matrices against the engine's weight formulas (typed_weights, set_gains) applied to a small
     synthetic network with explicit synapses;
@@ -44,7 +44,7 @@ from dataclasses import replace
 HERE = os.path.dirname(os.path.abspath(__file__))
 PARENT = os.path.dirname(HERE)
 REPO = os.path.dirname(os.path.dirname(PARENT))
-SESSION = os.path.join(PARENT, "params", "session69a-stage2.json")
+SESSION = os.path.join(PARENT, "archive-pre-engine-fix", "params", "session69a-stage2.json")
 
 
 def read(path):
@@ -58,7 +58,7 @@ class TestLatticeAndCounts(unittest.TestCase):
         c = lattice_coords(7)
         self.assertEqual(c.shape, (343, 3))
         self.assertEqual(tuple(c[5 * 49 + 4 * 7 + 3]), (5, 4, 3))
-        gt = json.load(open(os.path.join(HERE, "s71_ground_truth.json"), encoding="utf-8"))
+        gt = json.load(open(os.path.join(HERE, "..", "archive-pre-engine-fix", "rate-model", "s71_ground_truth.json"), encoding="utf-8"))
         d = group_distances(7)
         for k, v in gt.items():
             self.assertAlmostEqual(d[v["A"], v["B"]], 4.0, places=9, msg=k)
@@ -119,7 +119,7 @@ class TestLatticeAndCounts(unittest.TestCase):
         self.assertTrue(28 <= statistics.mean(mins) <= 42, mins)
 
     def test_own_group_share_matches_measured_intra_group_synapses(self):
-        """tuning-log.md iteration 61 (s73): intra-group E-E synapses per excitatory neuron 867 (9^3), 851 (11^3)."""
+        """archive-pre-engine-fix/tuning-log.md iteration 61 (s73): intra-group E-E synapses per excitatory neuron 867 (9^3), 851 (11^3)."""
         for dim, measured in ((9, 867.0), (11, 851.0)):
             spec = Spec(grid_dim=dim, sample_sizes=False)
             n_exc, n_inh = group_sizes(spec, None)
@@ -221,7 +221,7 @@ class TestDerivedConstants(unittest.TestCase):
         self.assertEqual(Spec().D, 13)
         for dim, n_del in ((9, 16), (11, 20)):
             self.assertEqual(Spec(grid_dim=dim).D, n_del)
-            p = json.load(open(os.path.join(PARENT, "params", f"session73-g{dim}-d4-s0-a.json")))
+            p = json.load(open(os.path.join(PARENT, "archive-pre-engine-fix", "params", f"session73-g{dim}-d4-s0-a.json")))
             self.assertEqual(p["jobs"][0]["engine"]["n_delays"], n_del)
             self.assertEqual(int(n_del / math.sqrt(3)), dim)
 

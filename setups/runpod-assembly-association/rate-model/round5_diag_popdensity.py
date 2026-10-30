@@ -2,7 +2,7 @@
 round5_diag_popdensity.py
 
 Round 5, model A (population density): the C1 stage of the protocol on 9 x 9 x 9 for the 24 pair positions of the
-spiking s73 d 4 runs (s73_g9_d4_pairs.json), recording per round the quantities the spiking job JSONs hold
+spiking s73 d 4 runs (../archive-pre-engine-fix/rate-model/s73_g9_d4_pairs.json), recording per round the quantities the spiking job JSONs hold
 (training-round spikes, others_max and path_max of the training round, and for the A-alone test after each round the
 groups active outside A, B and the route, B's maximum and the spikes), so that round_by_round comparison with
 output-round5/compare_traces.py is possible. Same output layout as round5_diag_spiking.py.
@@ -119,7 +119,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
     GRID = a.grid
     over = parse_set(a.set)
-    pairs_all = json.load(open(os.path.join(HERE, "s73_g9_d4_pairs.json")))
+    pairs_all = json.load(open(os.path.join(HERE, "..", "archive-pre-engine-fix", "rate-model", "s73_g9_d4_pairs.json")))
     if "-" in a.pairs and "," not in a.pairs:
         lo, hi = a.pairs.split("-")
         idx = list(range(int(lo), int(hi) + 1))

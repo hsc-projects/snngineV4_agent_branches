@@ -2,7 +2,7 @@
 round5_diag_spiking.py
 
 Round 5, model B: runs the C1 stage of the protocol on 9 x 9 x 9 (or another grid) for the 24 pair positions of
-the spiking s73 d 4 runs (s73_g9_d4_pairs.json; group indices x * dim^2 + y * dim + z as in the engine) and records the
+the spiking s73 d 4 runs (../archive-pre-engine-fix/rate-model/s73_g9_d4_pairs.json; group indices x * dim^2 + y * dim + z as in the engine) and records the
 per-round quantities that the spiking job JSONs hold, so that the two can be compared round by round:
 training-round spikes, others_max / path_max of the training round, and for the A-alone test after each round
 the groups active outside A, B and the route, B's maximum, the spikes and the mean |w_fast|.
@@ -98,7 +98,7 @@ def _calib_job(args):
 
 
 def calib_main(a, over):
-    pairs_all = json.load(open(os.path.join(HERE, "s73_g9_d4_pairs.json")))
+    pairs_all = json.load(open(os.path.join(HERE, "..", "archive-pre-engine-fix", "rate-model", "s73_g9_d4_pairs.json")))
     if GRID == 9:
         groups = sorted({p["A"] for p in pairs_all} | {p["B"] for p in pairs_all})
     else:
@@ -137,7 +137,7 @@ def main(argv=None):
     GRID = a.grid
     if a.calib:
         return calib_main(a, over)
-    pairs_all = json.load(open(os.path.join(HERE, "s73_g9_d4_pairs.json")))
+    pairs_all = json.load(open(os.path.join(HERE, "..", "archive-pre-engine-fix", "rate-model", "s73_g9_d4_pairs.json")))
     if "-" in a.pairs and "," not in a.pairs:
         lo, hi = a.pairs.split("-")
         idx = list(range(int(lo), int(hi) + 1))

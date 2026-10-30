@@ -34,9 +34,9 @@ import numpy as np
 # test_rate_model.py re-reads each source and compares.
 # --------------------------------------------------------------------------------------------------
 DERIVED: Dict[str, Tuple[object, str]] = {
-    "n_neurons": (20000, "params/session69a-stage2.json engine.n_neurons (line 4)"),
-    "S": (2000, "params/session69a-stage2.json engine.n_synapses (line 5)"),
-    "lam": (0.4, "params/session69a-stage2.json engine.rewire.lam (line 8); assoc_engine.py rewire_by_distance (line 109; kern line 128, target probabilities line 141)"),
+    "n_neurons": (20000, "archive-pre-engine-fix/params/session69a-stage2.json engine.n_neurons (line 4)"),
+    "S": (2000, "archive-pre-engine-fix/params/session69a-stage2.json engine.n_synapses (line 5)"),
+    "lam": (0.4, "archive-pre-engine-fix/params/session69a-stage2.json engine.rewire.lam (line 8); assoc_engine.py rewire_by_distance (line 109; kern line 128, target probabilities line 141)"),
     "exc_ratio": ((1, 4), "snngine_v4/nn/config_models/reservoir/n_type_groups.py:145-146 gen_factors [1, 4] "
                           "(inhibitory : excitatory); neuron counts n_type_groups.py:150-160"),
     "frac_E_to_I": (0.2, "n_type_groups.py:278-307 generate_uniform_connections (excitatory synapses split by gen_factors 1 : 4: 400 onto "
@@ -44,48 +44,48 @@ DERIVED: Dict[str, Tuple[object, str]] = {
     "frac_I_to_E": (1.0, "n_type_groups.py:278-307 (inhibitory neurons: one connection type, I -> E only)"),
     "w_ei": (0.45, "assoc_build.py:84 NTypeGroupConnInit(src=1, snk=0, w0=0.45): excitatory -> inhibitory built weight"),
     "w_ie": (-0.44, "assoc_build.py:83 NTypeGroupConnInit(src=0, snk=1, w0=-0.44): inhibitory -> excitatory built weight"),
-    "w_ee": (0.05, "params/session69a-stage2.json weights.w_ee (line 29): excitatory -> excitatory weight set by "
+    "w_ee": (0.05, "archive-pre-engine-fix/params/session69a-stage2.json weights.w_ee (line 29): excitatory -> excitatory weight set by "
                    "assoc_engine.py typed_weights (line 330)"),
-    "w_intra_ee_total": (40.0, "params/session69a-stage2.json weights.w_intra_ee_total (line 30); "
+    "w_intra_ee_total": (40.0, "archive-pre-engine-fix/params/session69a-stage2.json weights.w_intra_ee_total (line 30); "
                                "assoc_engine.py:334-337 (per-synapse weight = total / in-degree)"),
-    "gain": (4.0, "params/session69a-stage2.json gain (line 24); assoc_engine.py:272 (m = gain)"),
-    "gain_ei": (1.0, "params/session69a-stage2.json gain_ei; assoc_engine.py:273"),
-    "gain_ie": (2.0, "params/session69a-stage2.json gain_ie (line 25); assoc_engine.py:274"),
-    "gain_ee_inter": (0.6, "params/session69a-stage2.json gain_ee_inter (line 74); assoc_engine.py:276-278 (not on "
+    "gain": (4.0, "archive-pre-engine-fix/params/session69a-stage2.json gain (line 24); assoc_engine.py:272 (m = gain)"),
+    "gain_ei": (1.0, "archive-pre-engine-fix/params/session69a-stage2.json gain_ei; assoc_engine.py:273"),
+    "gain_ie": (2.0, "archive-pre-engine-fix/params/session69a-stage2.json gain_ie (line 25); assoc_engine.py:274"),
+    "gain_ee_inter": (0.6, "archive-pre-engine-fix/params/session69a-stage2.json gain_ee_inter (line 74); assoc_engine.py:276-278 (not on "
                            "intra-assembly synapses)"),
-    "i_min": (-100.0, "params/session69a-stage2.json i_min (line 27); assoc_protocol.py:359 clamp; assoc_engine.py clamp_current"),
-    "i_max": (100.0, "params/session69a-stage2.json i_max; assoc_protocol.py:359 clamp"),
-    "k_inject": (12, "params/session69a-stage2.json k_inject (line 22); assoc_protocol.py:299"),
-    "inject_current": (20.0, "params/session69a-stage2.json inject_current; assoc_protocol.py:21 (injection in run())"),
+    "i_min": (-100.0, "archive-pre-engine-fix/params/session69a-stage2.json i_min (line 27); assoc_protocol.py:359 clamp; assoc_engine.py clamp_current"),
+    "i_max": (100.0, "archive-pre-engine-fix/params/session69a-stage2.json i_max; assoc_protocol.py:359 clamp"),
+    "k_inject": (12, "archive-pre-engine-fix/params/session69a-stage2.json k_inject (line 22); assoc_protocol.py:299"),
+    "inject_current": (20.0, "archive-pre-engine-fix/params/session69a-stage2.json inject_current; assoc_protocol.py:21 (injection in run())"),
     "inject_steps": (50, "assoc_protocol.py:21 DEFAULTS inject_steps"),
     "gap_steps": (50, "assoc_protocol.py:21 DEFAULTS gap_steps"),
     "test_window": (100, "assoc_protocol.py:21 DEFAULTS test_window"),
     "window": (20, "assoc_protocol.py:20 DEFAULTS window (A_g window)"),
     "active": (0.5, "assoc_protocol.py:20 DEFAULTS active"),
     "inactive": (0.1, "assoc_protocol.py:20 DEFAULTS inactive"),
-    "a_pre": (0.5, "params/session69a-stage2.json plasticity.a_pre"),
-    "a_plus": (0.5, "params/session69a-stage2.json plasticity.a_plus"),
-    "a_minus": (0.5, "params/session69a-stage2.json plasticity.a_minus"),
-    "tau_fast": (2000.0, "params/session69a-stage2.json plasticity.tau_fast; assoc_plasticity.py:88 exp(-1/tau)"),
-    "kappa": (0.05, "params/session69a-stage2.json plasticity.kappa"),
-    "theta1": (-1.0, "params/session69a-stage2.json plasticity.theta1 (C1 gate open everywhere)"),
-    "soft1": (0.0, "params/session69a-stage2.json plasticity.soft1"),
-    "theta2": (0.6, "params/session69a-stage2.json plasticity.theta2"),
-    "soft2": (0.6, "params/session69a-stage2.json plasticity.soft2"),
+    "a_pre": (0.5, "archive-pre-engine-fix/params/session69a-stage2.json plasticity.a_pre"),
+    "a_plus": (0.5, "archive-pre-engine-fix/params/session69a-stage2.json plasticity.a_plus"),
+    "a_minus": (0.5, "archive-pre-engine-fix/params/session69a-stage2.json plasticity.a_minus"),
+    "tau_fast": (2000.0, "archive-pre-engine-fix/params/session69a-stage2.json plasticity.tau_fast; assoc_plasticity.py:88 exp(-1/tau)"),
+    "kappa": (0.05, "archive-pre-engine-fix/params/session69a-stage2.json plasticity.kappa"),
+    "theta1": (-1.0, "archive-pre-engine-fix/params/session69a-stage2.json plasticity.theta1 (C1 gate open everywhere)"),
+    "soft1": (0.0, "archive-pre-engine-fix/params/session69a-stage2.json plasticity.soft1"),
+    "theta2": (0.6, "archive-pre-engine-fix/params/session69a-stage2.json plasticity.theta2"),
+    "soft2": (0.6, "archive-pre-engine-fix/params/session69a-stage2.json plasticity.soft2"),
     "w_lo": (0.05, "assoc_plasticity.py:63 w_exc=(0.05, 1.0)"),
     "w_hi": (1.0, "assoc_plasticity.py:63 w_exc=(0.05, 1.0)"),
     "c1": ({"gain": 0.0, "k": 0.16, "decay": 0.003, "saturation": 8.0},
-           "params/session69a-stage2.json c1"),
+           "archive-pre-engine-fix/params/session69a-stage2.json c1"),
     "c2": ({"gain": 1.0, "k": 0.02, "decay": 0.01, "saturation": None},
-           "params/session69a-stage2.json c2"),
+           "archive-pre-engine-fix/params/session69a-stage2.json c2"),
     "vox_per_cell": (4, "assoc_protocol.py:26 DEFAULTS vox_per_cell"),
-    "max_c1_rounds": (30, "params/session69a-stage2.json protocol.max_c1_rounds"),
-    "c2_rounds": (5, "params/session69a-stage2.json protocol.c2_rounds"),
-    "max_extra_c2_rounds": (5, "params/session69a-stage2.json protocol.max_extra_c2_rounds"),
-    "max_active_frac": (0.1, "params/session69a-stage2.json protocol.max_active_frac; "
+    "max_c1_rounds": (30, "archive-pre-engine-fix/params/session69a-stage2.json protocol.max_c1_rounds"),
+    "c2_rounds": (5, "archive-pre-engine-fix/params/session69a-stage2.json protocol.c2_rounds"),
+    "max_extra_c2_rounds": (5, "archive-pre-engine-fix/params/session69a-stage2.json protocol.max_extra_c2_rounds"),
+    "max_active_frac": (0.1, "archive-pre-engine-fix/params/session69a-stage2.json protocol.max_active_frac; "
                              "assoc_protocol.py:477 (limit = int(frac * G) = 34)"),
-    "pair_distance": (4.0, "params/session69a-stage2.json protocol.pair_distance"),
-    "neurons_per_group": (20000 / 343, "N / G = 20000 / 343 = 58.3 (tuning-log.md iteration 61 "
+    "pair_distance": (4.0, "archive-pre-engine-fix/params/session69a-stage2.json protocol.pair_distance"),
+    "neurons_per_group": (20000 / 343, "N / G = 20000 / 343 = 58.3 (archive-pre-engine-fix/tuning-log.md iteration 61 "
                                        "'group size mean 58.3'; the 9^3 and 11^3 builds keep 58.3)"),
     "delay_rule": ("round((D - 1) * d / d_max)", "assoc_engine.py:165"),
     "D_rule": ("int(min(20, max(log10(N) * (1 + sqrt(log10(N))), 2)))",
@@ -286,7 +286,7 @@ class Spec:
     @property
     def D(self) -> int:
         """Delay count: explicit n_delays; else the engine's rule for N when it gives this grid; else (larger grids
-        are built with assoc_build.build_network(n_delays=...), params/session73-*.json: 16 for 9^3, 20 for 11^3)
+        are built with assoc_build.build_network(n_delays=...), archive-pre-engine-fix/params/session73-*.json: 16 for 9^3, 20 for 11^3)
         the smallest D whose grid int(D / sqrt(3)) equals grid_dim."""
         if self.n_delays is not None:
             return int(self.n_delays)
@@ -301,7 +301,7 @@ class Spec:
 
     @classmethod
     def from_session(cls, path: str, job: int = 0, **over) -> "Spec":
-        """Derive the spec from a spiking session file (e.g. params/session69a-stage2.json)."""
+        """Derive the spec from a spiking session file (e.g. archive-pre-engine-fix/params/session69a-stage2.json)."""
         with open(path) as f:
             d = json.load(f)
         j = d["jobs"][job]

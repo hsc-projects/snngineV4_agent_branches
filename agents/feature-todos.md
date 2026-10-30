@@ -18,14 +18,11 @@ Each entry gets a priority: **high**, **mid**, or **low**.
   implemented and tuned on Runpod:
   - Task write-up: `setups/runpod-assembly-association/runpod-assembly-association-task.md`.
   - Context: `agents/main_feature/main-feature-readme-reconstruction.md`.
-  - Status: in progress (paused 2026-10-26, iteration 58). Substeps 0 to 3 pass. Substep 4 passes in
-    6 of 24 pairs at distance 4 under the user's revised criterion (a few stray groups allowed), with
-    C1 skipped (provisional) and C2 consolidating the short circuit; the associations need joint
-    activation (control). Open: pass rate, seed dependence, whole-network transfers, distance 6. Next
-    prepared step: the C3 fuel sweep. Substep 7 (assessment video) specified, not built. Cost about
-    $57 of a $90 cap.
-    Handoff: `setups/runpod-assembly-association/runpod-assembly-association-report.md`
-    ("Handoff for the next agent"); details in `tuning-log.md` (iterations 53 to 58).
+  - Status: on hold until the rerun. Iterations 1 to 65 and the successor task's SP0 to SP3 ran on an
+    engine whose synapse table was transposed (fixed 2026-10-30); their results are archived in
+    `setups/runpod-assembly-association/archive-pre-engine-fix/` and are not evidence until
+    re-established. Next: `setups/runpod-assembly-association/engine-fix-rerun-task.md` (proposed,
+    waits for the user's go).
 
 ## Completed
 
@@ -41,12 +38,15 @@ Each entry gets a priority: **high**, **mid**, or **low**.
 ## Backlog
 
 - [mid] Engine STDP, update timing within a step: when a spike arrives at a neuron in exactly the step that neuron fires, the current delivered through that synapse may use its weight from before or after that step's potentiation (`update_current_`, `snngine_v4/nn/cuda_backend/src/simulation/snn_simulation.cu`). Only with the engine's STDP on, which the assembly harness does not use. Possible fix: a two-phase update (collect the changes during delivery, apply them after the step); cost: a weight-sized buffer or a list of changed synapses. Decide together with whether bitwise-reproducible runs are wanted (delivery already sums currents with float32 `atomicAdd`).
-- [high] Implement progressive automated testing suite — introduce an initial
-  unit testing framework (e.g. pytest) covering headless, CPU-bound modules
-  first (Pydantic config validation, construction element hierarchies,
-  reflection helpers in `utils/field_utils.py`, and spatial geometry models),
-  progressively expanding toward mocked pipeline execution and GPU/CUDA kernel
-  verification as environment capabilities permit.
+- [high] Extend the automated test suite — the engine's GPU tests exist
+  (`snngine_v4/tests/`, run on Runpod pods through `setups/runpod-engine-tests/`:
+  construction invariants, delivery, dynamics against a numpy reference,
+  presynaptic index, STDP, spike buffer, chemistry, inputs, synapse removal).
+  Still missing: unit tests of the headless, CPU-bound modules (Pydantic config
+  validation, construction element hierarchies, reflection helpers in
+  `utils/field_utils.py`, spatial geometry models); the kernels without a
+  caller (`swap_groups`, `calculate_avg_group_weight`) and the plot kernels;
+  a routine run (e.g. before every commit that touches `snngine_v4/`).
 - [high] Implement progressive linting and code quality checks — establish
   standalone static analysis tooling (e.g. ruff, flake8, or mypy) independent
   of IDE inspections, starting with pure-Python headless subpackages (config,

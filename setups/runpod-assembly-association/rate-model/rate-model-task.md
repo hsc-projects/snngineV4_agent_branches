@@ -1,5 +1,12 @@
 # Task: Rate Model for Screening the Assembly-Association Parameters
 
+> [!IMPORTANT]
+> **Status (2026-10-30): on hold until the engine-fix rerun.** Round 6 found that the engine's synapse table was
+> transposed (`round6-report.md`), so the spiking ground truth of rounds 1 to 5 (s71, s73) came from scrambled
+> networks; their reports and ground-truth files are archived in `../archive-pre-engine-fix/rate-model/`. Round 6
+> step 3 resumes with the new ground truth from `../engine-fix-rerun-task.md` (its step 8). The history below is
+> unchanged.
+
 > [!NOTE]
 > **Status (2026-10-29): rounds 1 to 5 finished, no model admitted.** Rounds 1 to 3 (smooth rate models: generic
 > sigmoid, derived couplings, then transfer functions derived from the engine's Izhikevich neurons)
@@ -10,8 +17,8 @@
 > (population density) and model B (reduced spiking network)**; see "Round 4" below. The smooth rate
 > model is no longer a candidate for screening; its code is kept. **Round 4 finished (2026-10-29):
 > neither model is admitted**; both keep transferring and igniting on 9 x 9 x 9, where the spiking
-> network does not (`round4-popdensity-report.md`, `round4-spiking-report.md`). **Round 5 finished
-> (2026-10-29): neither model is admitted** (`round5-report.md`): model B at full size passes the 7 x 7 x 7
+> network does not (`../archive-pre-engine-fix/rate-model/round4-popdensity-report.md`, `../archive-pre-engine-fix/rate-model/round4-spiking-report.md`). **Round 5 finished
+> (2026-10-29): neither model is admitted** (`../archive-pre-engine-fix/rate-model/round5-report.md`): model B at full size passes the 7 x 7 x 7
 > classes and the uniform-C2 check but still ignites too often on 9 x 9 x 9; model A has no fix. **Round 6 started (2026-10-30)**; see "Round 6" below. Raw
 > results of rounds 2 to 4 were left in the writing sessions' scratchpads, not in the repository; the
 > reports hold the numbers. **[default]** marks a starting value the agent may change (log the reason).
@@ -32,10 +39,10 @@ general (forms and parameters as options).
 
 1. `agents/common.md` (shared rules, including the Python rule).
 2. `../sparse-assemblies-task.md`: Terms, Setup, Variants, Method (the vocabulary used here).
-3. `../runpod-assembly-association-report.md`: "The protocol that passes" and "What is established".
-4. `../tuning-log.md`, iterations 56, 59, 61, 63 and 64 (the runs to compare against).
-5. `rate-model-report.md` (rounds 1 to 3, and "Review 2026-10-29"), `round4-popdensity-report.md`,
-   `round4-spiking-report.md` and `round5-report.md`.
+3. `../archive-pre-engine-fix/runpod-assembly-association-report.md`: "The protocol that passes" and "What is established".
+4. `../archive-pre-engine-fix/tuning-log.md`, iterations 56, 59, 61, 63 and 64 (the runs to compare against).
+5. `../archive-pre-engine-fix/rate-model/rate-model-report.md` (rounds 1 to 3, and "Review 2026-10-29"), `../archive-pre-engine-fix/rate-model/round4-popdensity-report.md`,
+   `../archive-pre-engine-fix/rate-model/round4-spiking-report.md` and `../archive-pre-engine-fix/rate-model/round5-report.md`.
 6. Code: `../assoc_build.py` and `../assoc_engine.py` (network construction: neuron counts per type,
    synapses per neuron, weights, gains, intra-group input, `rewire_by_distance`), `../assoc_fields.py`
    (`ChemicalField`, `FuelField`), `../assoc_protocol.py` (protocol, tests, strays), and the per-pair
@@ -87,7 +94,7 @@ stop and report why before Substep 3.
 **3. Admission test** against the spiking runs, decided before use. Each pair is classified by its
 **first transfer in the joint rounds**: *contained* (at most 34 strays), *ignition* (more than 34)
 or *none* (no transfer); a pair that later loses the association keeps its first-transfer class.
-Spiking reference (s71 E0, d 4, 24 pairs, `s71_ground_truth.json`): 7 contained, 10 ignition,
+Spiking reference (s71 E0, d 4, 24 pairs, `../archive-pre-engine-fix/rate-model/s71_ground_truth.json`): 7 contained, 10 ignition,
 7 none. Requirements:
 - **Class fractions:** over **[default]** 5 realizations x 24 pairs at d 4 on 7 x 7 x 7, each class's
   fraction lies within the 95 % binomial interval of the spiking fraction (7/24, 10/24, 7/24).
@@ -113,7 +120,7 @@ module-check style and admission test (Substeps 2 and 3 unchanged). Each is buil
 own agent, in its own files, so both can run at the same time.
 
 - **Model A, population density** (files `popdensity_model.py`, `test_popdensity_model.py`,
-  `admission_popdensity.py`, report `round4-popdensity-report.md`). Intent: a group-level model that
+  `admission_popdensity.py`, report `../archive-pre-engine-fix/rate-model/round4-popdensity-report.md`). Intent: a group-level model that
   keeps what the smooth curves lost: the finite number of neurons per group (about 58, of them 12
   injected), the resulting fluctuations, refractoriness and synchronous recruitment.
   **[default]** form: a finite-size stochastic population model per group and type, in which a density
@@ -121,7 +128,7 @@ own agent, in its own files, so both can run at the same time.
   gives a firing hazard and the number of spiking neurons per step is drawn binomially from it. Other
   population-density forms are allowed if they serve the intent (log the reason).
 - **Model B, reduced spiking network** (files `spiking_group_model.py`, `test_spiking_group_model.py`,
-  `admission_spiking_group.py`, report `round4-spiking-report.md`). Intent: keep spikes and synchrony at
+  `admission_spiking_group.py`, report `../archive-pre-engine-fix/rate-model/round4-spiking-report.md`). Intent: keep spikes and synchrony at
   a cost far below the GPU runs. **[default]** form: the engine's Izhikevich neurons, update and input
   clamp, with fewer neurons per group and synapses per neuron, weights scaled so that each neuron's
   mean input and the injected group's drive match the full network, connectivity drawn with
@@ -139,7 +146,7 @@ network does not (iteration 61: 5 of 24 transfers, no ignition; activity from A 
 order below is a starting point; follow the evidence.
 
 1. **Setup parity.** Compare each model's 9 x 9 x 9 runs with the spiking ones
-   (`../params/session73-*.json`, `../tuning-log.md` iteration 61): about 58 neurons per group
+   (`../archive-pre-engine-fix/params/session73-*.json`, `../archive-pre-engine-fix/tuning-log.md` iteration 61): about 58 neurons per group
    (N 42,500), delay count D 16 (about 1.1 steps per cell), `pair_margin` 2, stray limit 34 groups,
    30 rounds, injection, test duration, runaway check (round 2 noted that the runaway stop is not
    modelled). List every difference and remove it before anything else.
@@ -157,7 +164,7 @@ order below is a starting point; follow the evidence.
    three free parameters per model, as before. Repeat the admission test (Substep 3) with the fix.
 
 Model B first (closest to the spiking network, so its divergence is the most informative), then
-model A. Each model: own pod, **[default]** at most $3. Report in `round5-report.md` (one file, a
+model A. Each model: own pod, **[default]** at most $3. Report in `../archive-pre-engine-fix/rate-model/round5-report.md` (one file, a
 section per model), with every result and its settings, the cause found or the causes ruled out, the
 verdict per model and the cost.
 
@@ -197,7 +204,7 @@ results are read and is also reported to the sparse task (`../sparse-assemblies-
    input clamp, injection); fix it in model B.
 3. **Learning, then admission.** With the single-group response right and no inter-group E -> I
    factor, compare the first rounds of learning with the spiking 9 x 9 x 9 reference
-   (`round5-report.md`, "Spiking reference"), then repeat the admission test (Substep 3) with at most
+   (`../archive-pre-engine-fix/rate-model/round5-report.md`, "Spiking reference"), then repeat the admission test (Substep 3) with at most
    three free parameters, all named. Report per-pair kappa on the exported networks: they are the
    same realizations as the spiking runs, so per-pair agreement is possible, though not guaranteed
    (float rounding, step 2).
@@ -225,12 +232,12 @@ the exports there); **[default]** at most $3 for the round. Report in `round6-re
   pod, a virtual environment there.
 - Work only in this folder; import from the parent folder, do not change its files.
 - No commits without the user's go.
-- **Files:** this file, `rate-model-report.md`, `rate_model.py`, `test_rate_model.py`,
-  `admission_test.py`, `s71_ground_truth.json`, the round 4 files named above, and for round 5
-  `round5-report.md`, `round5_cross_check.py`, `round5_diag_popdensity.py`, `round5_diag_spiking.py`,
-  `s73_g9_d4_pairs.json` and the gitignored `output-round5/` (round 5 changes the round 4 model files
+- **Files:** this file, `../archive-pre-engine-fix/rate-model/rate-model-report.md`, `rate_model.py`, `test_rate_model.py`,
+  `admission_test.py`, `../archive-pre-engine-fix/rate-model/s71_ground_truth.json`, the round 4 files named above, and for round 5
+  `../archive-pre-engine-fix/rate-model/round5-report.md`, `round5_cross_check.py`, `round5_diag_popdensity.py`, `round5_diag_spiking.py`,
+  `../archive-pre-engine-fix/rate-model/s73_g9_d4_pairs.json` and the gitignored `output-round5/` (round 5 changes the round 4 model files
   as needed); for round 6 `round6-report.md`, `round6_export_engine.py` (export and structure
   audit), `round6_compare.py` (the step-2 comparison), the option of `spiking_group_model.py` that
   loads an exported network, and the gitignored `output-round6/`. A round 4 agent
-  changes only its own model's files; shared files (`rate_model.py`, `s71_ground_truth.json`) are read,
+  changes only its own model's files; shared files (`rate_model.py`, `../archive-pre-engine-fix/rate-model/s71_ground_truth.json`) are read,
   not changed.

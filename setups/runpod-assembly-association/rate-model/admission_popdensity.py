@@ -40,7 +40,7 @@ from popdensity_model import PopNetwork, PopSpec
 from rate_model import pick_pairs, run_pair_protocol
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SESSION = os.path.join(os.path.dirname(HERE), "params", "session69a-stage2.json")
+SESSION = os.path.join(os.path.dirname(HERE), "archive-pre-engine-fix", "params", "session69a-stage2.json")
 WORKERS = 1
 
 

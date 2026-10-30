@@ -6,7 +6,7 @@ criteria are those of admission_test.py (imported, not changed): class fractions
 joint rounds against the 95 % Clopper-Pearson intervals of the spiking 7 / 10 / 7 of 24; 9 x 9 x 9 check;
 uniform-C2 check; per-pair kappa as information.
 
-Modes (numpy; results to --out as JSON, numbers are copied into round4-spiking-report.md):
+Modes (numpy; results to --out as JSON, numbers are copied into ../archive-pre-engine-fix/rate-model/round4-spiking-report.md):
   calib   single-group activation against the spiking runs (spikes, A_max, spill, inhibitory spikes outside)
   sanity  Substep 2: activation, quiet network, spread under joint injection
   fit     class fractions on the 12 seed-0 positions x realizations 0..4 for lists of the free parameters

@@ -38,11 +38,14 @@ case "$MODE" in
 esac
 
 mkdir -p "$TMP/setups/runpod-assembly-association" "$TMP/setups/runpod-engine-tests"
-# the harness as committed: other sessions may have work in progress in it
-for f in $(git ls-files 'setups/runpod-assembly-association/assoc_*.py'); do git show "HEAD:$f" > "$TMP/$f"; done
+# the harness as committed (other sessions may have work in progress in it), or HARNESS=worktree for the working
+# tree's (a test that needs a harness change not yet committed)
+for f in $(git ls-files 'setups/runpod-assembly-association/assoc_*.py'); do
+    if [ "${HARNESS:-HEAD}" = worktree ]; then cp "$f" "$TMP/$f"; else git show "HEAD:$f" > "$TMP/$f"; fi
+done
 tar -cf - "${EXCLUDES[@]}" setups/runpod-chem-diffusion setups/runpod-engine-smoke-test | tar -xf - -C "$TMP"
 cp setups/runpod-engine-tests/pod_run_tests.sh "$TMP/setups/runpod-engine-tests/"
-{ echo "mode: $MODE"; echo "head: $(git rev-parse HEAD)"; [ "$MODE" = head ] && echo "engine: $(git rev-parse "$REF")"; echo "packed: $(date -u +%Y-%m-%dT%H:%M:%SZ)";
+{ echo "mode: $MODE"; echo "head: $(git rev-parse HEAD)"; [ "$MODE" = head ] && echo "engine: $(git rev-parse "$REF")"; echo "harness: ${HARNESS:-HEAD}"; echo "packed: $(date -u +%Y-%m-%dT%H:%M:%SZ)";
   echo "uncommitted changes in snngine_v4: $(git status --porcelain snngine_v4 | wc -l)"; } > "$TMP/PACK_INFO"
 
 mkdir -p "$(dirname "$OUT")"

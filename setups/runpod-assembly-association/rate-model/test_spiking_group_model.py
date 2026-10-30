@@ -43,7 +43,7 @@ from spiking_group_model import (SpikeSpec, SpikingNetwork, Izhikevich, neuron_p
 HERE = os.path.dirname(os.path.abspath(__file__))
 PARENT = os.path.dirname(HERE)
 REPO = os.path.dirname(os.path.dirname(PARENT))
-SESSION = os.path.join(PARENT, "params", "session69a-stage2.json")
+SESSION = os.path.join(PARENT, "archive-pre-engine-fix", "params", "session69a-stage2.json")
 KERNEL = os.path.join(REPO, "snngine_v4", "nn", "cuda_backend", "src", "simulation", "snn_simulation.cu")
 PRESETS = os.path.join(REPO, "snngine_v4", "nn", "config_models", "neurons", "presets", "izhikevich_presets.py")
 

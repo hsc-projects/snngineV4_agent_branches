@@ -46,6 +46,8 @@ def main(argv=None):
     ap.add_argument("--n-synapses", type=int, required=True)
     ap.add_argument("--n-delays", type=int, default=None)
     ap.add_argument("--chem-dim", type=int, default=32)
+    ap.add_argument("--chem-shape", type=int, nargs=3, default=None, metavar=("H", "W", "D"),
+                    help="non-cubic chemistry grid instead of --chem-dim")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--ring-fraction", type=float, default=0.9)
     ap.add_argument("--ring-steps", type=int, default=60)
@@ -57,7 +59,8 @@ def main(argv=None):
 
     t0 = time.time()
     eng = AssocEngine(torch.device("cuda:0"), n_neurons=a.n_neurons, seed=a.seed, n_synapses=a.n_synapses,
-                      rewire=None, n_delays=a.n_delays, engine_chem_dim=a.chem_dim)
+                      rewire=None, n_delays=a.n_delays, engine_chem_dim=a.chem_dim,
+                      engine_chem_shape_hwd=tuple(a.chem_shape) if a.chem_shape else None)
     N, S, D, G = eng.N, eng.S, eng.D, eng.G
     el, sim = eng.element, eng.backend
     syn = el.synapses

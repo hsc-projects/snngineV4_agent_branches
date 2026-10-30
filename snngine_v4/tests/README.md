@@ -10,7 +10,7 @@ recomputations, the simulation with an independent numpy reference. Background a
 | `reference_dynamics.py` | numpy reference of the neuron update and spike delivery |
 | `engine_export.py` | builds one network on the GPU and exports it, with a delivery probe and an injected run |
 | `test_network_invariants.py` | the checks and the reference on synthetic networks, including mutations that reproduce known construction errors (numpy only) |
-| `test_engine.py` | the checks, the probe and the reference on engine builds of several configurations (GPU; skipped unless `SNN_ENGINE_TESTS=1`) |
+| `test_engine.py` | the checks, the probe and the reference on engine builds of several configurations: the reference free-running, and step by step from the engine's own state (GPU; skipped unless `SNN_ENGINE_TESTS=1`) |
 | `test_ring_buffer.py` | the simulation's spike ring buffer transliterated to Python and replayed with synthetic spike counts (numpy only) |
 | `engine_probes.py` | records probes of the other CUDA paths on one GPU build: presynaptic index, STDP, ring buffer under near-total activity, chemistry, thalamic and sensory input, synapse removal |
 | `test_engine_probes.py` | tests on those probes (GPU; skipped unless `SNN_ENGINE_TESTS=1`) |

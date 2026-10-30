@@ -1,7 +1,14 @@
 # Task: Minimal Version of the Main Feature (Assembly Association via Chemical Release and Gated Plasticity)
 
+> [!IMPORTANT]
+> **2026-10-30: the results of iterations 1 to 65 came from an engine whose synapse table was transposed**
+> (every built network scrambled; fixed 2026-10-30). The report, the tuning logs and the parameter files are
+> archived in `archive-pre-engine-fix/` and are not evidence until `engine-fix-rerun-task.md` re-establishes
+> them. Revision 1 below rests on a finding of that bug (flat connectivity); the rerun's step 2 lets the user
+> decide it again. The requirements and the protocol of this task are unaffected.
+
 > [!NOTE]
-> **Status: approved by the user; work stopped after iteration 65 at 6 of 24 pairs (see the report);
+> **Status: approved by the user; work stopped after iteration 65 at 6 of 24 pairs on the faulty engine (see `archive-pre-engine-fix/`);
 > continued in `sparse-assemblies-task.md`. Later decisions of
 > the user, listed under "Revisions agreed with the user" at the end, take precedence over the text
 > below where they differ.** **[default]**
@@ -339,6 +346,7 @@ setups/runpod-assembly-association/
 ├── runpod-assembly-association-task.md      # this file
 ├── runpod-assembly-association-report.md    # report, one section per substep (created during the work)
 ├── tuning-log.md                            # one entry per tuning iteration
+├── archive-pre-engine-fix/                  # report, logs, parameter files of iterations 1 to 65 (faulty engine)
 ├── params/                                  # parameter files (one per run or sweep)
 ├── *.py, runpod_assembly_runner.sh          # harness, chemistry, plasticity, runner
 ├── kernels/                                 # own CUDA kernels and build files, if written

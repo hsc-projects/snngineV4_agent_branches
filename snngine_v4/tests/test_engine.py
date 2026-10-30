@@ -164,8 +164,44 @@ class Dynamics(unittest.TestCase):
                     scale = max(1.0, float(np.abs(ex["sim_input"][t]).max()))
                     np.testing.assert_allclose(ex["sim_input"][t], ref_in[t], atol=1e-4 * scale,
                                                err_msg=f"{name}: input at step {t}")
+                print(f"\n{name}: spike sets of engine and reference first differ at step {first} "
+                      f"of {len(eng_fired)}", flush=True)
                 self.assertTrue(first is None or first >= 20, f"{name}: spike sets differ from step {first}")
                 self.assertGreater(len(ex["sim_fired"]), 0, f"{name}: injected run without spikes")
+
+    def test_neuron_update_every_step(self):
+        """Every step of the injected run from the engine's own v, u and input before it: the reference's spike set
+        equals the engine's exactly and its v, u agree within float32 rounding (the GPU fuses multiply-adds). Each
+        step starts from the engine's state, so rounding does not accumulate and the whole run is checked, also
+        after the spike sets of the free-running comparison (test_reference) have diverged."""
+        for name in selected():
+            with self.subTest(config=name):
+                ex = export(name)
+                net = ReferenceNetwork(ex["post"], ex["bnd"], ex["w"], ex["abcd"], ex["sim_v_init"], ex["sim_u_init"])
+                offs = ex["sim_offsets"]
+                v_prev, u_prev = ex["sim_v_init"], ex["sim_u_init"]
+                for t in range(len(offs) - 1):
+                    net.v[:], net.u[:] = v_prev, u_prev
+                    fired = net.neuron_step(ex["sim_input_used"][t])
+                    np.testing.assert_array_equal(np.sort(fired), np.sort(ex["sim_fired"][offs[t]:offs[t + 1]]),
+                                                  err_msg=f"{name}: spike set at step {t}")
+                    np.testing.assert_allclose(net.v, ex["sim_v"][t], rtol=1e-4, atol=5e-3, err_msg=f"{name}: v, step {t}")
+                    np.testing.assert_allclose(net.u, ex["sim_u"][t], rtol=1e-4, atol=5e-3, err_msg=f"{name}: u, step {t}")
+                    v_prev, u_prev = ex["sim_v"][t], ex["sim_u"][t]
+
+    def test_delivery_every_step(self):
+        """Every step of the injected run: the synaptic input the engine delivers equals the reference's delivery of
+        the engine's own spikes of the last D steps (within float32 summation rounding), over the whole run."""
+        for name in selected():
+            with self.subTest(config=name):
+                ex = export(name)
+                net = ReferenceNetwork(ex["post"], ex["bnd"], ex["w"], ex["abcd"], ex["sim_v_init"], ex["sim_u_init"])
+                offs = ex["sim_offsets"]
+                for t in range(len(offs) - 1):
+                    exp = net.deliver(ex["sim_fired"][offs[t]:offs[t + 1]])
+                    scale = max(1.0, float(np.abs(ex["sim_input"][t]).max()))
+                    np.testing.assert_allclose(ex["sim_input"][t], exp, atol=1e-4 * scale,
+                                               err_msg=f"{name}: input at step {t}")
 
 
 if __name__ == "__main__":

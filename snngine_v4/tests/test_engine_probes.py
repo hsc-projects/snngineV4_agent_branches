@@ -30,12 +30,15 @@ from reference_dynamics import ReferenceNetwork   # noqa: E402
 ENABLED = os.environ.get("SNN_ENGINE_TESTS") == "1"
 F32 = np.float32
 
-# name: (n_neurons, n_synapses, n_delays or None, chem_dim, seed); chem_dim 96 needs more blocks of 8^3 cells
-# than a GPU runs at once (a block that reads its neighbours' cells after they were updated shows; the grid's
-# max_z = 100 limits the size), 30 is not a multiple of the kernel's 8-cell blocks
+# name: (n_neurons, n_synapses, n_delays or None, chemistry grid, seed); the grid is an edge length (cube) or
+# (height, width, depth). 96^3 needs more thread blocks than a GPU runs at once (a block that read its
+# neighbours' cells after they were updated would show; the grid's max_z = 100 limits the size); 30 x 22 x 38
+# has three different sizes, none a multiple of the kernel's block (32 x 4 x 4), so a mixed-up axis in the
+# kernel's indexing or launch shows (a cube cannot tell width from depth)
 # "ring16": D 16 as in the 9 x 9 x 9 assembly networks, where 90 % activity reaches the spike buffer's rewind in
 # fewer than D steps
-CONFIGS = {"small": (2000, 200, None, 96, 0), "odd": (3001, 150, None, 30, 1), "ring16": (8000, 200, 16, 32, 2)}
+CONFIGS = {"small": (2000, 200, None, 96, 0), "odd": (3001, 150, None, (30, 22, 38), 1),
+           "ring16": (8000, 200, 16, 32, 2)}
 _cache: dict = {}
 
 
@@ -49,7 +52,8 @@ def probes(name):
     out = os.path.join(base, f"probes_{name}")
     shutil.rmtree(out, ignore_errors=True)       # a reused export directory: never test an older run's files
     cmd = [sys.executable, os.path.join(HERE, "engine_probes.py"), "--n-neurons", str(n), "--n-synapses", str(s),
-           "--chem-dim", str(chem), "--seed", str(seed), "--out", out] + (["--n-delays", str(d)] if d else [])
+           "--seed", str(seed), "--out", out] + (["--n-delays", str(d)] if d else []) \
+        + (["--chem-shape", *map(str, chem)] if isinstance(chem, tuple) else ["--chem-dim", str(chem)])
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
     failed = f"probes {name} failed:\n{proc.stdout[-3000:]}\n{proc.stderr[-3000:]}" if proc.returncode != 0 else None
     if not os.path.exists(os.path.join(out, "probes.npz")):

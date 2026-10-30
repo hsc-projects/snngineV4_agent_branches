@@ -2,7 +2,7 @@
 admission_test.py
 
 Substep 3 of rate-model-task.md (round 2): admission test of the rate model against the spiking runs
-(s71 E0, d 4, 24 pairs; s71_ground_truth.json).
+(s71 E0, d 4, 24 pairs; ../archive-pre-engine-fix/rate-model/s71_ground_truth.json).
 
 Each pair is classified by its first transfer in the joint rounds: contained (A alone activates B with at
 most 34 groups active outside A, B and the route), ignition (more), or none. Spiking reference:
@@ -29,7 +29,7 @@ Usage (numpy, see the .venv in this folder):
   python admission_test.py sanity --theta T --beta B --tau U --out RESULT.json --realizations 0,1
   python admission_test.py grid  --theta T --beta B --tau U --out RESULT.json
   python admission_test.py uniform --theta T --beta B --tau U --out RESULT.json
-Results go to --out (outside the repository when possible); numbers are copied into rate-model-report.md.
+Results go to --out (outside the repository when possible); numbers are copied into ../archive-pre-engine-fix/rate-model/rate-model-report.md.
 """
 
 from __future__ import annotations
@@ -49,13 +49,13 @@ import numpy as np
 from rate_model import RateNetwork, Spec, pick_pairs, run_pair_protocol
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SESSION = os.path.join(os.path.dirname(HERE), "params", "session69a-stage2.json")
+SESSION = os.path.join(os.path.dirname(HERE), "archive-pre-engine-fix", "params", "session69a-stage2.json")
 CLASSES = ("contained", "ignition", "none")
 REFERENCE_COUNTS = {"contained": 7, "ignition": 10, "none": 7}      # s71 E0, 24 pairs
 
 
 def load_ground_truth() -> Dict[str, dict]:
-    with open(os.path.join(HERE, "s71_ground_truth.json")) as f:
+    with open(os.path.join(HERE, "..", "archive-pre-engine-fix", "rate-model", "s71_ground_truth.json")) as f:
         return json.load(f)
 
 
@@ -288,7 +288,7 @@ def sanity(theta, beta, tau, realizations, out_path, n_groups=5, log=print, **ov
 
 def grid_check(theta, beta, tau, realizations, n_pairs, out_path, seven=None, log=print) -> dict:
     """9 x 9 x 9, pairs >= 2 cells from the surface, 24 pairs per realization (pair_margin 2)."""
-    # stray limit kept at 34 groups as in the spiking 9^3 runs (max_active_frac 0.0467, params/session73-g9-*.json)
+    # stray limit kept at 34 groups as in the spiking 9^3 runs (max_active_frac 0.0467, archive-pre-engine-fix/params/session73-g9-*.json)
     spec9 = make_spec(theta, beta, tau, grid_dim=9, max_active_frac=34 / 729)
     pairs = pick_pairs(spec9, n_pairs, margin=2, seed=0)
     res = run_set(spec9, pairs, realizations, label="9^3", log=log)
