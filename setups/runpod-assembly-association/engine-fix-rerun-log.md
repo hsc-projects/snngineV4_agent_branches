@@ -69,3 +69,31 @@ One entry per session of `engine-fix-rerun-task.md`: hypothesis, change, result,
 - **Cost:** 1 pod, RTX PRO 4000 Blackwell, $0.57/h, 11:22 to about 11:31 UTC, about $0.09 (estimated);
   terminated (delete 204, `list-pods` empty).
 - **Decision:** step 1 passes at all three sizes; 11^3 is open for step 6. Step 2 next (needs the cost cap).
+
+## Step 2, preparation (pod `niud1pnq6zsbun`, 2026-10-30): spread measurement and parameter files
+
+- **User decision:** cost cap $20 for the rerun.
+- **Change (code):** `assoc_protocol.py`: `activity_by_distance` (the peak activity of every other group during a
+  Substep 1 run, by cell distance from the injected group, rounded as in `conn_survey`; `spread_cells`, the
+  largest distance at which a group exceeds `inactive`) in every row of `substep1_activation`;
+  `intra_ee_per_group` (A2: intra-group E -> E synapses per excitatory neuron of every group, summarized as
+  `network.intra_ee_per_exc_neuron_by_group`); `s1_groups` (injected groups per job, default 5). Module check
+  `activity_by_distance_and_intra_density_per_group` (and `intra_ee_mask` on the stub engine). Host summary:
+  `rerun_wiring_summary.py` (effective lambda by a log-linear fit over distances 1 to d_max - 1, the largest
+  left out because of the corner pairs of step 1; spread per job).
+- **Check** (from a copy of the harness on the pod's disk, the clone untouched): module checks 74 / 74 on CPU
+  and CUDA; `conn-g7-s0-unrewired` and `s1-g7-s0-unrewired-gain4` ran (session 45 s, the Substep 1 job 1.1 s).
+  Unrewired 7^3: effective lambda 3.8 cells (rewiring: 0.4). At gain 4 every injected group is fully recruited
+  (A_max 1.0, about 3000 spikes, all of them its own) and no excitatory neuron of any other group fires
+  (`others_max` 0, every distance 0): a neighbouring group's neuron receives about 11 synapses from the
+  injected group (515 per group pair over about 46 excitatory neurons) against about 70 with rewiring.
+- **Change (parameters):** so that the comparison reaches the gains at which the engine's own wiring
+  propagates, `gain` runs over 2, 3, 4, 6, 8, 12, 16 and 24 instead of the **[default]** three values around 4
+  (a Substep 1 job takes about a second). `params/rerun2{a..d}-wiring-g{7,9}-s{0,1}.json`: per network seed
+  (0, 1) and size (7^3, 9^3), the three wirings (unrewired, lambda 0.4, lambda 1.0), each with `conn_survey`
+  and `substep1` at the eight gains (10 injected groups per job), archived regime otherwise (the first E0 job of
+  `session71-d4-s0-p00.json` and `session73-g9-d4-s0-a.json`).
+- **Cost:** 1 pod, RTX PRO 4000 Blackwell, $0.57/h, 11:42 to about 11:47 UTC, about $0.05 (estimated);
+  terminated (delete 204, `list-pods` empty).
+- **Next:** commit the code (the clone takes only commits), pull it into the volume's clone, run the four
+  sessions on four pods.

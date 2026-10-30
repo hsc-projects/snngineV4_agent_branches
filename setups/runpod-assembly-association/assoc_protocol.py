@@ -915,9 +915,42 @@ def substep0_harness(eng, params: dict, out_prefix: str) -> dict:
     return res
 
 
+def activity_by_distance(gmax: torch.Tensor, group_cell: torch.Tensor, src: int, inactive: float,
+                         active: float) -> dict:
+    """
+    Spread of one run (engine-fix-rerun-task.md, step 2): the peak activity A_g of every group other than `src`,
+    by cell distance from `src` (rounded to whole cells, as conn_survey): per distance the number of groups, the
+    mean and largest peak, and how many exceed `inactive` and reach `active`. `spread_cells`: the largest
+    distance at which a group exceeds `inactive` (0: none does).
+    """
+    cells = group_cell.float()
+    d = torch.cdist(cells[src:src + 1], cells).view(-1).round().long()
+    g = gmax.float()
+    other = torch.ones_like(d, dtype=torch.bool)
+    other[src] = False
+    by_d = {}
+    for k in torch.unique(d[other]).tolist():
+        v = g[other & (d == k)]
+        by_d[str(k)] = {"groups": int(v.numel()), "mean": float(v.mean()), "max": float(v.max()),
+                        "n_above_inactive": int((v > inactive).sum()), "n_active": int((v >= active).sum())}
+    above = other & (g > inactive)
+    return {"by_distance": by_d, "spread_cells": int(d[above].max()) if bool(above.any()) else 0,
+            "n_above_inactive": int(above.sum()), "n_active": int((other & (g >= active)).sum())}
+
+
+def intra_ee_per_group(eng) -> torch.Tensor:
+    """(G,) excitatory -> excitatory synapses within the own group per excitatory neuron of each group (A2 of
+    engine-fix-rerun-task.md); 0 for a group without excitatory neurons or outside the assemblies."""
+    per_neuron = eng.intra_ee_mask().sum(dim=0).float()
+    tot = torch.zeros(eng.G, device=eng.device).index_add_(0, eng.groups, per_neuron)
+    n_exc = torch.bincount(eng.groups[eng.exc], minlength=eng.G).float()
+    return tot / n_exc.clamp(min=1)
+
+
 def substep1_activation(eng, params: dict, out_prefix: str, n_groups: int = 5) -> dict:
     run = AssocRun(eng, params, rng_seed=eng.seed + 1)
     p = run.p
+    n_groups = int(params.get("s1_groups", n_groups))
     pool = np.asarray(run.asm)
     groups = pool[run.rng.choice(len(pool), size=min(n_groups, len(pool)), replace=False)].tolist()
     st = eng.structure_report()
@@ -947,17 +980,25 @@ def substep1_activation(eng, params: dict, out_prefix: str, n_groups: int = 5) -
                      "pass": runaway is None and a_max >= p["active"] and float(ao.max()) <= p["inactive"],
                      "size": int(eng.group_size[g]), "exc_size": int(eng.group_exc_size[g]),
                      "intra_ee_from_injected": int(intra[:, inj].sum()),
-                     "intra_ee_per_exc_neuron": float(in_g.sum()) / max(1, int(eng.group_exc_size[g]))})
+                     "intra_ee_per_exc_neuron": float(in_g.sum()) / max(1, int(eng.group_exc_size[g])),
+                     "spread": activity_by_distance(run.last_group_max, eng.group_cell, g, p["inactive"],
+                                                    p["active"])})
     counts = {"n_groups": len(rows), "n_pass": sum(r["pass"] for r in rows),
               "n_under_recruited": sum(r["A_max"] < p["active"] for r in rows),
               "n_spill": sum(r["others_max"] > p["inactive"] for r in rows),
               "n_runaway": sum(r["runaway"] is not None for r in rows),
               "spilling_groups": [r["group"] for r in rows if r["others_max"] > p["inactive"]],
-              "under_recruited_groups": [r["group"] for r in rows if r["A_max"] < p["active"]]}
+              "under_recruited_groups": [r["group"] for r in rows if r["A_max"] < p["active"]],
+              "spread_cells": [r["spread"]["spread_cells"] for r in rows]}
+    ig = intra_ee_per_group(eng)
+    ig = ig[torch.bincount(eng.groups[eng.exc], minlength=eng.G) > 0]
+    network = {k: st[k] for k in ("N", "S", "requested_S", "D", "G", "group_size_mean",
+                                  "intra_group_ee_synapses_per_exc_neuron")}
+    network["intra_ee_per_exc_neuron_by_group"] = {"min": float(ig.min()), "median": float(ig.median()),
+                                                   "max": float(ig.max())}
     return {"groups": rows, "pass": all(r["pass"] for r in rows) and base["others_max"] <= p["inactive"],
             "counts": counts, "baseline": base, "noise": eng.noise, "k_inject": p["k_inject"], "gain": eng.gain,
-            "network": {k: st[k] for k in ("N", "S", "requested_S", "D", "G", "group_size_mean",
-                                           "intra_group_ee_synapses_per_exc_neuron")},
+            "network": network,
             "timing": {"steps": run.steps_run, "loop_s": run.t_loop}}
 
 

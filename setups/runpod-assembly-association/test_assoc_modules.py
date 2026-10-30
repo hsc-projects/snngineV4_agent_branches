@@ -482,6 +482,10 @@ class StubEngine:
         from assoc_engine import AssocEngine
         return AssocEngine.inter_ee_mask(self)
 
+    def intra_ee_mask(self):
+        from assoc_engine import AssocEngine
+        return AssocEngine.intra_ee_mask(self)
+
     def draw_inter_ee(self, w, spec):
         from assoc_engine import AssocEngine
         return AssocEngine.draw_inter_ee(self, w, spec)
@@ -1280,6 +1284,25 @@ def pair_margin_keeps_pairs_off_the_surface(dev):
         raise AssertionError("no error at margin 2")
     except RuntimeError:
         pass
+
+
+@check
+def activity_by_distance_and_intra_density_per_group(dev):
+    from assoc_protocol import activity_by_distance, intra_ee_per_group
+    cells = torch.tensor([[x, 0, 0] for x in range(5)], device=dev)          # 5 groups along x
+    gmax = torch.tensor([0.9, 0.6, 0.05, 0.2, 0.0], device=dev)
+    r = activity_by_distance(gmax, cells, 0, inactive=0.1, active=0.5)
+    assert sorted(r["by_distance"]) == ["1", "2", "3", "4"] and r["spread_cells"] == 3, r
+    d1 = r["by_distance"]["1"]
+    assert d1["groups"] == 1 and close(d1["mean"], 0.6) and close(d1["max"], 0.6), r
+    assert d1["n_above_inactive"] == 1 and d1["n_active"] == 1, r
+    assert r["by_distance"]["2"]["n_above_inactive"] == 0 and r["n_above_inactive"] == 2 and r["n_active"] == 1
+    r = activity_by_distance(gmax, cells, 2, inactive=0.1, active=0.5)       # from the middle: 1, 3 and 0, 4
+    assert r["by_distance"]["1"]["groups"] == 2 and close(r["by_distance"]["1"]["mean"], 0.4), r
+    assert close(r["by_distance"]["2"]["max"], 0.9) and r["spread_cells"] == 2 and r["n_active"] == 2, r
+    # stub: neuron i -> i + 1, i + 2 (mod 40), groups of 10: 9 + 8 synapses stay inside each group
+    eng = StubEngine(dev)
+    assert torch.allclose(intra_ee_per_group(eng), torch.full((4,), 1.7, device=dev)), intra_ee_per_group(eng)
 
 
 def main():

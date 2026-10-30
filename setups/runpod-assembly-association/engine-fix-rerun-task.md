@@ -103,8 +103,9 @@ Not explained by the fixes: the SP3 crash (illegal memory access at D 13, hyster
   archived templates named in each step (`archive-pre-engine-fix/params/`); results to `output/` (gitignored).
 - Pods: one GPU architecture per batch (`setups/runpod-technical.md`); the user prefers more parallel pods and
   more data points per parameter over sequential minimal sessions, within the cost cap.
-- Cost: the cap is set by the user with the go (**[default]** report the cost after every step and stop
-  before a step would exceed the cap).
+- Cost: cap **$20** for the rerun, set by the user on 2026-10-30 ("for now"; the user raises it when needed),
+  standing approval for pod sessions within it; this replaces the parent task's $90 cap for the rerun.
+  **[default]** report the cost after every step and stop before a step would exceed the cap.
 - Log every session in `engine-fix-rerun-log.md` (hypothesis, change, result, decision, as in the archived
   tuning log); each step ends with a section in `engine-fix-rerun-report.md`. Both are new files of this task.
 
@@ -135,14 +136,16 @@ Not explained by the fixes: the SP3 crash (illegal memory access at D 13, hyster
    - **Connectivity** (`conn_survey`, as s46 and s47: `session46-conn-survey.json`,
      `session47survey-rewired.json`): excitatory -> excitatory synapses per group pair against cell distance;
      fit exp(-d / lambda) to the unrewired profile to give the engine's effective lambda.
-   - **Activity spread** (`substep1`, as s47regime: `session47regime{a,b,c}-lam0.4.json`): `substep1_activation`
-     reports only the largest activity outside the injected group (`others_max`); add the peak activity of every
-     other group, summarized by cell distance from the injected group (a harness change, with a check in
-     `test_assoc_modules.py`). The regime is tuned only in step 3, so run each wiring at **[default]** three
-     values of `gain` around the archived 4, and compare the wirings where the injected group is recruited
+   - **Activity spread** (`substep1`, as s47regime: `session47regime{a,b,c}-lam0.4.json`): besides the largest
+     activity outside the injected group (`others_max`), `substep1_activation` reports the peak activity of
+     every other group by cell distance from the injected group (`spread` per row, `activity_by_distance`;
+     added for this step, module-checked). The regime is tuned only in step 3, so run each wiring at
+     **[default]** three values of `gain` around the archived 4 (run: 2 to 24, since the engine's own wiring
+     does not propagate at 4; log, step 2), and compare the wirings where the injected group is recruited
      (`A_max` >= `active`) without runaway. Spread decides more than synapse counts: it says whether assemblies
      stay local and routes can be selective (`sparse-assemblies-task.md`). The same output gives the
-     intra-group density per group (`intra_ee_per_exc_neuron`; A2: does it still vary about threefold?).
+     intra-group density over all groups (`network.intra_ee_per_exc_neuron_by_group`; A2: does it still vary
+     about threefold?). Summary on the host: `rerun_wiring_summary.py`.
    - **Report**, per wiring and size: effective lambda, spread (the largest distance at which other groups
      exceed `inactive`, and the activity by distance), intra-group density.
    - **Decision (the user's)**: the engine's own wiring if its activity stays local enough for distinct
