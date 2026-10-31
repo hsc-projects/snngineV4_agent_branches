@@ -1809,6 +1809,11 @@ def hysteresis_test(eng, params: dict, out_prefix: str) -> dict:
     reset; mean spikes per step of ordinary excitatory neurons and of assembly neurons over the last
     `hyst_measure` steps of each level. A loop (higher rate on the way down at the same mu) means
     all-or-none propagation (Kusmierz et al. 2020).
+    A level that runs away (`runaway_frac`) ends the ramp: the engine is not stepped on in a state where nearly
+    every neuron fires each step (the engine's spike buffer rewinds at max(13, D) N spikes; the illegal memory
+    access of the archive's SP3 and of the rerun's rerun7k hysteresis jobs is suspected to come from this, not
+    verified), the remaining levels are recorded without rates, and the loop is computed over the measured
+    levels only (review of 2026-10-31).
     """
     run = AssocRun(eng, params, rng_seed=eng.seed + 6)
     levels_up = [float(x) for x in params.get("hyst_levels", np.arange(0.0, 8.01, 0.5))]
@@ -1821,21 +1826,34 @@ def hysteresis_test(eng, params: dict, out_prefix: str) -> dict:
     run.bg_gen = torch.Generator(device=eng.device).manual_seed(int(eng.seed) + 7919)
     run.reset_dynamics()
     rows = []
+    ended_at = None
     for mu in levels:
+        if ended_at is not None:           # the ramp ended in a runaway: not measured
+            rows.append({"mu": mu, "rate_ordinary_exc": None, "rate_assembly": None, "runaway": None,
+                         "not_measured": True})
+            continue
         run.bg = (mu * ordinary.float(), sigma * ordinary.float())
         run.run(steps - meas, chem=False, header=f"hysteresis mu {mu} settle")
+        stopped = run.stopped is not None
         run.spike_acc.zero_()
-        run.run(meas, chem=False, header=f"hysteresis mu {mu}")
-        rows.append({"mu": mu, "rate_ordinary_exc": _mean(run.spike_acc[ord_e]) / meas if bool(ord_e.any()) else None,
-                     "rate_assembly": _mean(run.spike_acc[~ordinary]) / meas if bool((~ordinary).any()) else None,
-                     "runaway": run.stopped is not None})
+        if not stopped:
+            run.run(meas, chem=False, header=f"hysteresis mu {mu}")
+            stopped = run.stopped is not None
+        rows.append({"mu": mu,
+                     "rate_ordinary_exc": _mean(run.spike_acc[ord_e]) / meas if (bool(ord_e.any()) and not stopped) else None,
+                     "rate_assembly": _mean(run.spike_acc[~ordinary]) / meas if (bool((~ordinary).any()) and not stopped) else None,
+                     "runaway": stopped})
+        if stopped:
+            ended_at = mu
     run.bg = None
     run.spike_acc = None
     n_up = len(levels_up)
     loop = [rows[n_up - 1 + k]["rate_ordinary_exc"] - rows[n_up - 1 - k]["rate_ordinary_exc"]
-            for k in range(n_up) if rows[n_up - 1 - k]["rate_ordinary_exc"] is not None]
-    return {"levels": rows, "loop_area": float(sum(abs(x) for x in loop) * (levels_up[1] - levels_up[0]))
-            if len(levels_up) > 1 else 0.0, "loop_max": float(max(loop)) if loop else None, "pass": True}
+            for k in range(n_up) if rows[n_up - 1 - k]["rate_ordinary_exc"] is not None
+            and rows[n_up - 1 + k]["rate_ordinary_exc"] is not None]
+    return {"levels": rows, "ended_by_runaway_at": ended_at,
+            "loop_area": float(sum(abs(x) for x in loop) * (levels_up[1] - levels_up[0])) if len(levels_up) > 1 else 0.0,
+            "loop_max": float(max(loop)) if loop else None, "pass": True}
 
 
 JOBS = {

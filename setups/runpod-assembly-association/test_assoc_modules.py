@@ -1253,6 +1253,26 @@ def hysteresis_and_threshold_jobs_run_and_restore(dev):
 
 
 @check
+def hysteresis_ramp_ends_at_a_runaway(dev):
+    """A level that runs away ends the ramp; later levels are not stepped, the loop uses measured levels only."""
+    from assoc_protocol import hysteresis_test
+    fire = {t: [10, 11] for t in range(1, 10 ** 4)}
+    for t in range(21, 10 ** 4):                                             # from step 21 on, everything fires
+        fire[t] = list(range(40))
+    eng = StubEngine(dev, fire=fire)
+    lat = {"assemblies": {"layout": "lattice", "spacing": 2}, "runaway_frac": 0.5}
+    r = hysteresis_test(eng, dict(lat, hyst_levels=[0.0, 1.0, 2.0], hyst_steps=10, hyst_measure=5), "")
+    rows = r["levels"]
+    assert [x["mu"] for x in rows] == [0.0, 1.0, 2.0, 1.0, 0.0]
+    assert rows[0]["runaway"] is False and close(rows[0]["rate_ordinary_exc"], 2 / 20)   # steps 1 to 10: quiet
+    assert rows[1]["runaway"] is False and rows[2]["runaway"] is True                   # step 21 lies in level 2.0
+    assert rows[2]["rate_ordinary_exc"] is None and r["ended_by_runaway_at"] == 2.0
+    assert eng.t == 21                                                                   # not stepped after the stop
+    assert all(x.get("not_measured") and x["rate_ordinary_exc"] is None for x in rows[3:])
+    assert r["loop_max"] is None and close(r["loop_area"], 0.0)                          # no level measured both ways
+
+
+@check
 def assessment_recorder_tracks_permanent_changes(dev):
     import os
     import tempfile

@@ -9,8 +9,14 @@
 > not its pattern; a matched-level control is to follow. On the sparse substrate S3b (step 4) model B equals the
 > engine on identical weights and reproduces the substrate decision (`round6-report.md`, "Step 3", "Fit", "Step 4").
 > Open: the sparse task's learning rules (L1 to L6) in model B, each checked against its family's first baseline
-> run before the model narrows any range. The engine's 9 x 9 x 9 build is not reproducible between processes
-> (report, "Step 4"). Round 6 has spent about $8.42 (user's limit about $9).
+> run before the model narrows any range. The first baselines exist: L0 and L1 associate at most 1 of 24 pairs at
+> 7 x 7 x 7 and 9 x 9 x 9 (L0 on S3b with I -> E 0.5 runs away, even with the rollback rule;
+> `../sparse-tuning-log.md`, entries 2 and 3). Model B gates C1 with a fixed theta1, as the harness does; at
+> 9 x 9 x 9 that selects the route for only about one joint round, since C1 accumulates (entry 4), so the sparse
+> task tries four gate forms (`../sparse-assemblies-task.md`, "C1 gate of L2 to L5"). Model B needs them too,
+> checked first against the spiking readouts of each form (the sparse task's stage A); then it can pre-screen
+> gate form, f and rule before the spiking stage B. The engine's 9 x 9 x 9 build is not reproducible between processes
+> (report, "Step 4"). Round 6 has spent about $8.42 (user's limit about $19, raised by $10 on 2026-10-31).
 
 > [!NOTE]
 > **Status (2026-10-30): on hold until the engine-fix rerun.** Round 6 found that the engine's synapse table was
@@ -260,7 +266,8 @@ ran on RTX PRO 4000 Blackwell pods instead; on the fixed engine, four builds at 
 9 x 9 x 9) exceeded its 24 GB, so the 9 x 9 x 9 builds run one at a time),
 written to the network volume (about 3 GB, not downloaded); model B on a CPU pod in EU-RO-1 as in
 round 5, reading the exports from the volume (to verify that a CPU pod can attach it; otherwise copy
-the exports there); **[default]** at most $3 for the round. Report in `round6-report.md`.
+the exports there); **[default]** at most $3 for the round; raised by the user to about $9 and, on
+2026-10-31, to about $19. Report in `round6-report.md`.
 
 ## Backlog (after round 6)
 

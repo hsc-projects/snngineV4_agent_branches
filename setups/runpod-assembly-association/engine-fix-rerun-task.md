@@ -10,6 +10,10 @@ network; state for each earlier conclusion whether it holds, changes or falls.
 > wirings of revision 8 of `runpod-assembly-association-task.md`; step 7 gives the sparse task its substrate,
 > S3b with inter-group I -> E gain 0.5, which sums at 4 lambda only (user decisions, 2026-10-31). Step 8 ran in the rate model's
 > round 6 (model B admitted with `kappa` 0.045); A1 to A8 are in the report's "Conclusions A1 to A8".
+> **Review of 2026-10-31 (report, "Review"): A6 items 6 and 13 are reopened** until the matched uniform-C2 control
+> (`params/rerun5i`, `rerun5j`) has run, since every association of steps 5 and 6 came from a C2 round cut by the
+> runaway stop; the strays limit is 10 % of all groups (user default); the stage's end is a to-do for the end of the
+> minimal task.
 > Pod sessions run under a standing approval within the cost cap ("How to run"). The requirements, rules and
 > "Revisions agreed with the user" of `runpod-assembly-association-task.md` apply (revision 1, the rewiring,
 > rests on a finding of the bug and is decided again in step 2); `sparse-assemblies-task.md` applies to step 7.

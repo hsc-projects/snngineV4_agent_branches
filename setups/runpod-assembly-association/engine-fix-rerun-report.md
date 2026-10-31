@@ -171,6 +171,15 @@ pairs, with about 200 strays, and the short circuit stage narrows none.
   uniform no pair associates; the spatial pattern of C2 is what narrows the transfer.
 Items 7 and 10 to 12 depend on variants (C3 fuel, rollback, depression, local inhibition) not rerun here.
 
+> [!WARNING]
+> **Items 6 and 13 reopened (review of 2026-10-31, user decision; "Review" below).** Every association here comes
+> from a pair whose first C2 round was stopped by the `runaway_frac` safeguard after 13 to 18 of its 100 steps (20
+> of 24 pairs); the 4 pairs whose stage ran all 5 rounds consolidated 98 % of `w_fast` and ended unbounded. The
+> uniform-C2 control at 1.2 and 0.9 consolidated 0.51 to 0.60 and 0.28 to 0.36 of `w_fast` everywhere, against
+> 0.26 on the route and 0.08 off it in the activity-dependent runs, so it is not a matched control. Whether the
+> narrowing is spatial (the route's head start in C2) or an amount is decided by the matched control
+> (`params/rerun5i`, `rerun5j`), not yet run.
+
 **For the user (wiring of steps 6 and 7).** Proposal: rewiring at lambda 0.4 only. The engine's own wiring
 forms no association in 24 pairs; its transfers spread and the chemistry does not narrow them.
 
@@ -191,6 +200,13 @@ surface at 9^3 and 11^3. Numbers in `engine-fix-rerun-log.md`, step 6.
 At d 4 every pair transfers within three joint rounds at every size, each time with about half of the reservoir
 active; the short circuit stage then narrows the transfer to the strays limit in 15 pairs at 7^3, in 11 at 9^3
 (to 24 to 33 strays, close to the limit) and in none at 11^3. At d 6 few pairs transfer at all.
+
+*Under the task's own limit of 10 % of all groups (revision 2; 34, 72 and 133 groups; the user's default since the
+review of 2026-10-31) the same final tests give **15, 17 and 6 of 24** associations at 7^3, 9^3 and 11^3 (final strays
+at 11^3: 72, 76, 76, 80, 102, 111, then 138 and above). The decline with size is gentler, and its cause is partly
+the stop criterion itself: the runaway stop fires when half of all neurons fire in one step, after 15 steps at 7^3
+and 9^3 but 17 to 20 at 11^3, so 11^3 consolidates more (0.37 of `w_fast` on the route, 0.15 off it, against 0.26
+and 0.08) and ends with more strays ("Review").*
 
 **A5** (item 9: the ignitions are a finite-size effect; at 9^3 no transfer ignites and B mostly stays silent):
 **falls.** On the corrected network every transfer at d 4 is an ignition at every size, 9^3 and 11^3 included;
@@ -259,8 +275,104 @@ rewiring at lambda 0.4) instead of ground-truth files. Without fitted parameters
 1 to 2 associations against 11). With one fitted parameter, the consolidation rate `kappa` 0.045 (the protocol's
 0.05 x 0.9, fitted on seed 0's pairs), it is: 17 and 8 associations of 24 against the spiking 15 and 11, both
 within the spiking 95 % intervals, the decrease from 7^3 to 9^3 reproduced, held-out pairs (seed 1) with Cohen's
-kappa 0.83 and 0.82, and the uniform-C2 control at 0 against 0. Not covered: 11^3 and the engine's own wiring;
-round 6 step 4 (a check on the sparse substrate) is open there.
+kappa 0.83 and 0.82, and the uniform-C2 control at 0 against 0. Round 6 step 4 (2026-10-31, "Step 4" there) added
+the coverage: on identical weights model B equals the engine on the sparse substrate S3b (141 of 144 survey
+conditions with identical spike counts) and reproduces step 7's substrate decision; at 11^3 and on the engine's own
+wiring at 7^3 it finds no association, as the spiking runs. The sparse task's learning rules are not in it.
+
+## Review (2026-10-31)
+
+Review of steps 0 to 8 by a third agent, from the task files, the code and the per-pair results of steps 5 and 6
+(`output/rerun5*`, `output/rerun67.tgz`); decisions by the user on 2026-10-31.
+
+**Finding: the C2 stage's narrowing is produced by the runaway stop.** In the protocol of steps 5 and 6 the first
+C2 round is stopped by `runaway_frac` 0.5 after 13 to 18 of its 100 steps (7^3: 20 of 24 pairs; 9^3: 23; 11^3:
+17), so consolidation runs for about 15 steps. In those steps C2 (release gain 1 per spike, k 0.02, decay 0.01)
+has risen past the gate (soft, 0.6 to 1.2) first at A, B and the route, which are injected and already connected,
+and later where the ignition arrives; the route is consolidated about three times more than the rest. In a full
+round C2 reaches 17 to 30 at its peak and a mean of 1 to 2.5, so the gate is open wherever activity passed, and
+the pairs whose stage ran all 5 rounds consolidated 98 % of `w_fast` everywhere and ended unbounded.
+
+| 7^3, d 4, lambda 0.4 (step 5) | consolidated share of `w_fast`, route / off-route (synapses onto excitatory neurons) | final strays |
+|---|---|---|
+| activity-dependent C2, stopped pairs (20) | 0.26 / 0.08 | median 16; 15 of 24 bounded |
+| uniform C2 at 1.2 | 0.51 to 0.60 / the same | about 200; none |
+| uniform C2 at 0.9 | 0.28 to 0.36 / the same | about 250; none |
+| any run with 5 full rounds (4 pairs, both settings) | 0.98 / 0.98 | 50 to 110; none |
+
+The uniform control of step 5 therefore consolidated four to seven times more off-route weight than the
+activity-dependent runs and does not decide whether C2's spatial pattern matters or only the consolidated amount.
+The rate model's fit (`kappa` 0.045 against 0.05, round 6) acts on the same quantity. The stop also sets the size
+effect of step 6: it fires when half of all neurons fire in one step, later at 11^3 (17 to 20 steps) than at 7^3
+and 9^3 (15), so 11^3 consolidates more (0.37 / 0.15) and ends with more strays.
+
+**Decisions (user, 2026-10-31).**
+
+1. A6 items 6 and 13 are **reopened** until a matched uniform-C2 control has run: C2 held at 0.67, 0.74 and 0.84,
+   levels whose gate consolidates 0.08, 0.16 and 0.26 of `w_fast` over 15 steps (1 - (1 - 0.05 g)^15, g the soft
+   gate), the off-route and route shares above. Parameter files `params/rerun5i-c2u-matched-lam0.4-s0.json` and
+   `rerun5j-...-s1.json` (36 jobs each, the 24 pairs of step 5); about $1 on two pods. Bounded associations at some
+   level mean the narrowing is an amount and item 13 holds again; none means the route's head start in C2 is
+   spatial information, and the report says so with evidence.
+2. **Strays limit: 10 % of all groups** (revision 2; the user's default for now, 2026-10-31). Steps 5 and 6 used 34
+   groups at every size; both counts are given in step 6. The sparse task's stage 2 at 11^3 uses 0.1
+   (`max_active_frac`), not 0.0256.
+3. **The end of the C2 stage is a to-do for the end of the minimal task** (user, 2026-10-31): a global stop at
+   half the reservoir firing is a numerical safeguard, not a mechanism, and under the task's requirements the
+   stage needs an end that is part of the model (candidates exist in the sparse task's K family: K1 falling C2,
+   K3 short-lived C2 with a steep gate, K6 a consolidation budget). Not changed now; the current protocol and the
+   sparse task's Substep 3 keep the stop.
+4. **Hysteresis crash (`snn_simulation.cu:969`, step 7).** Hypothesis, not verified on the engine: `hysteresis_test`
+   ramps the background without a reset between levels, so after the runaway stop ends one `run()` call the next
+   level keeps stepping a network in which nearly every neuron fires each step, and at D 13 the spike buffer's
+   rewind threshold (13 N) is reached; the engine tests cover 90 % activity at D 16, not this. Fixed in the harness
+   (2026-10-31): a level that runs away ends the ramp, the remaining levels are recorded as not measured, and the
+   loop is computed over the measured levels only (module check `hysteresis_ramp_ends_at_a_runaway`). An engine
+   test at full activity and D 13 would confirm the cause (core test code; the user decides).
+
+**Smaller points.** Control 1 ("no chemistry") sets the C2 gain to 0, so `w_perm` never changes and the strict
+final test equals control 0 by construction; step 5's "without chemistry no pair transfers" is that, not evidence
+(taken up in `sparse-tuning-log.md`, entry 3). The corner-to-corner
+surplus of E -> E synapses in the unrewired builds (step 1) fits the construction's final count correction landing
+in the last delay bucket, the largest distance; it does not reach the rewired networks. Model B was admitted on
+counts within 10 strays of the limit, so its counts near the limit carry that margin; the run-to-run variation
+noted in round 6 ("counts vary by 1 to 2") is not the model's but the engine's (below).
+
+**Results of the two sessions that ran alongside the review** (commits 23985fc and fabf0e7, 2026-10-31), as far
+as they bear on the rerun:
+
+- **Rate model, round 6 step 4.** Model B is deterministic and equals the engine on identical weights. The engine's
+  9^3 build is not reproducible from process to process (two exports of the same parameter files differ in their
+  rewired targets, about 0.05 % of the delay counts, and in control-0 spike counts); the 7^3 build is. Step 6's
+  per-pair results at 9^3 are therefore one realization each, reproducible as distributions only; the cause lies in
+  the engine's rewiring with 16 delays (not investigated; engine). `round6_compare.py` (`spec_for`) still fixes the
+  stray limit at 34 groups at every size above 7^3, which differs from decision 2; at 11^3 model B's final strays lie
+  below the spiking ones (median 6 and 26 fewer), so under the 10 % limit (133) it will show associations there, as
+  the spiking runs do (6 of 24), and its 11^3 agreement should be recounted at that limit. The round 6 report records
+  the uniform-C2 control's weakness and waits for the matched control (decision 1) to check model B at the same levels.
+- **Sparse task, Substep 3 stage 1** (`sparse-tuning-log.md`, entries 2 to 4). On S3b with inter-group I -> E gain
+  0.5 at lambda 1.0 and d 4, L0 and the BTSP-like L1 associate at most 1 of 24 pairs (9^3, L0 with the rollback
+  rule) and none at 7^3; on S0 none. The joint rounds transfer in 0 to 2 pairs of 24 per setting, so on this
+  substrate the stage before C2 is what limits the sparse task, and the finding above (C2 rounds cut by the stop)
+  does not bear on its counts. At 7^3 L0's training round itself runs away on S3b (`w_fast` 0.03 to 0.33 in one
+  round), which the rollback rule contains at 9^3. The thresholded C1 readout separates the route middle at 9^3 (f 1.2
+  after round 3: 0.84 of the middle open against 0.05 of the shell), but C1 grows about ninefold between rounds 3 and
+  10, so a fixed `theta1` is selective around one round only (the sparse task's question, entry 4). Decisions 2 and 3
+  are applied there (10 % limit; the stop stays); entry 3 attributes the review's points to the user: the review is
+  the agent's, the decisions the user's.
+
+**Open after the review** (who acts is the user's call):
+
+1. Run the matched uniform-C2 control (`params/rerun5i`, `rerun5j`; two pods, about $1), then decide A6 items 6 and
+   13 from it (decision 1) and record the outcome here; the rate model then checks model B at the same C2 levels
+   (`rate-model/round6-report.md`, "Step 4", "Open").
+2. Rate model: `round6_compare.py` (`spec_for`) takes the stray limit from decision 2 (10 % of all groups) instead of
+   34 at every size, and the 11^3 agreement is recounted at that limit.
+3. Engine: the 9^3 build (rewiring with 16 delays) differs from process to process; an engine item, not yet in
+   `agents/feature-todos.md`.
+4. The end of the C2 stage as a model mechanism (decision 3): at the end of the minimal task.
+5. An engine test at full activity and D 13 for the cause of the hysteresis crash (decision 4): core test code, if
+   the user decides so.
 
 ## Conclusions A1 to A8
 
@@ -270,7 +382,7 @@ round 6 step 4 (a check on the sparse substrate) is open there.
 | A2 | intra-group density varies about threefold | changes: it varies about 2.5-fold on the corrected engine, so not an artifact of bug 1 | step 2 |
 | A3 | the regime: gain 4, `gain_ie` 2, `gain_ee_inter` 0.6, intra total 40 | changes: single groups are still recruited without spill, but a saturated path transmits only with `gain_ee_inter` about doubled (1.2 to 2.4) | step 3 |
 | A4 | all-or-none propagation with pair-dependent thresholds | changes: untrained, no pair propagates in the regime region in any wiring; the all-or-none jump remains only in the engine's own wiring, at `gain_ee_inter` 3.6 | step 4 |
-| A5 | the ignitions are a finite-size effect | falls: every transfer at d 4 ignites at 7^3, 9^3 and 11^3 (about 180, 420 and 850 strays) | step 6 |
-| A6 | archived items 2, 3, 6 and 13 | changes: 15 of 24 pairs associate at 7^3 (lambda 0.4), C2's narrowing carries spatial information (uniform C2: 0 of 24); item 3 holds, items 6 and 13 fall | step 5 |
+| A5 | the ignitions are a finite-size effect | falls: every transfer at d 4 ignites at 7^3, 9^3 and 11^3 (about 180, 420 and 850 strays); associations after the stage: 15, 11, 0 of 24 at a limit of 34 groups, 15, 17, 6 at 10 % of groups | step 6 |
+| A6 | archived items 2, 3, 6 and 13 | changes: 15 of 24 pairs associate at 7^3 (lambda 0.4); item 3 holds; **items 6 and 13 reopened** (review of 2026-10-31): the narrowing came from C2 rounds cut by the runaway stop, and the uniform-C2 control was not matched in consolidated amount | step 5; review |
 | A7 | 60 to 100 times more inhibition than excitation, no substrate sums, the sparse task stops | changes: 200 to 350 times; S3b sums at 4 lambda, twice as strongly with inter-group I -> E gain 0.5, not beyond; the stop rule does not apply | step 7 |
 | A8 | the rate model over-propagates, neither model admitted | changes: model B with the configured composition no longer over-propagates; without fitted parameters it under-associates at 9^3 (1 to 2 of 24 against 11), with `kappa` 0.045 it is admitted at 7^3 and 9^3, d 4, lambda 0.4 | step 8 |

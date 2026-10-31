@@ -225,6 +225,21 @@ editing and short checks; user decision, 2026-10-29).
 - **L4:** the C1 threshold starts at a value taken from the field-geometry check, the same for all
   pairs (no knowledge of where A and B are), and falls by **[default]** 10 % per round until the first
   transfer, then stays.
+- **C1 gate of L2 to L5** (user decision, 2026-10-31, after Substep 3's first screenings, `sparse-tuning-log.md`
+  entries 2 to 4): at 9 x 9 x 9 a threshold just above the off-route level separates the route middle (1.2 times
+  the shell's mean C1 after joint round 3: 0.84 of M open against 0.05 of Sh, on S3b with I -> E 0.5), but C1
+  accumulates through the rounds (ninefold from round 3 to round 10) and its contrast flattens, so a fixed
+  threshold selects for about one round. Four gate forms, in order of their expected chance: **G1** relative to
+  C1's reservoir mean (open where C1 is at least f times the field's mean; uses no knowledge of A and B); **G2** a
+  shorter-lived C1 (lengths of about 2 and 1 cell) with a fixed threshold; **G3** C1 above the neuron's own slow
+  average of C1 (open where C1 is rising); **G4** the fixed threshold above, the reference. Under G1 and G3, L4's
+  falling threshold becomes a falling f. **[default]** parameters, the same in the harness and in the rate
+  model: G1 f 1.5, 1.75, 2.0 and 2.5 times the reservoir's mean C1 (the data put the route's threshold at about
+  1.9 times it in the early rounds); G2 decay 0.0025 and 0.01 at k 0.16 (lengths of 8 and 4 voxels, 2 and 1
+  cells), with f as for G4; G3 the neuron's C1 against an exponential average of its own C1 with a time
+  constant of 150 steps (one and a half joint rounds), open where C1 is at least f times that average, f 1.1,
+  1.25 and 1.5; G4 f 1.1, 1.2 and 1.35 times the shell's mean C1 at the round used (entry 4's readout). The
+  gate's softness (`soft1`) stays 0 in the readouts.
 - **L5:** intent: let learning itself extend the C1 bridge. A synapse that is strengthened releases
   C1, which can gate the next synapses further along, so the region of change can move towards the
   route middle faster than diffusion alone carries C1. **[default]** form: per step, each synapse's
@@ -345,6 +360,12 @@ terminate pods after download, no commits without the user's go), plus:
     L1 and L2 (BTSP-like, gated by random plateaus or by C1), and L5 (a C1 bridge extended by learning), then L4, L0 and L6; L1, L2, L3 and L5
     also on S0 at the same lambda and distances, since at 10 lambda the route middle is silent on every
     substrate.
+  - Gate forms (2026-10-31, "C1 gate of L2 to L5"): all four are tried, in a funnel. Stage A: each form's
+    thresholded readout under L0 with the rollback rule (9 x 9 x 9, 6 pairs, both substrates); a form passes if
+    after some joint round at least half of M is open and Sh at most half of M's fraction. Stage B: L3 under every
+    passing form and G4 (24 pairs, both substrates); L2 and L5 under the forms where L3 does best. Stage C: full
+    decisions for the candidates that beat L0 without more strays, without the "no chemistry" control (its C2
+    gain is 0, so its final test equals control 0 by construction).
 - **Cost:** own cap **$25** (preliminary; the user raises it when needed), standing approval within
   it. Spend only on runs that decide something; report the cost at the end of each substep and
   before the cap would be exceeded.
