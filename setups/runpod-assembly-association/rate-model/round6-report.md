@@ -15,7 +15,8 @@ composition and no fitted factor reproduces the engine's single-group response a
 3.8 % and 1.6 %), and still reproduces every spike total exactly on the exported networks. Points (1), (3) and
 (4) below describe the faulty engine.
 
-**Step 3, admission (2026-10-30, section "Step 3" at the end): not admitted.** At the rerun's settings, with no
+**Step 3, admission (2026-10-30 and 31, section "Step 3" at the end): admitted with one fitted parameter,
+the consolidation rate `kappa` 0.045 ("Fit"); without it, not admitted:** At the rerun's settings, with no
 fitted parameter, model B on the rerun's own networks meets the class fractions at 7^3 and the uniform-C2
 requirement, but not the grid size: at 9^3 it finds 1 association of 24 where the spiking runs find 11 (7^3:
 16 against 15). Its first transfers agree at both sizes; its final strays exceed the spiking ones by about 12 at
@@ -394,3 +395,62 @@ Cost: pod `qf0ofpysmtt5b3` (`rm6-strays`), RTX PRO 4500 Blackwell, 28 vCPU (cgro
 file missing from the bundle (about 5 minutes). Three pods created and deleted within a minute before it, while
 choosing a type (`free` and `nproc` inside the container report the host's resources, not the pod's): about
 $0.03. Round 6 after the engine fixes: about $4.20; with the two pods before the fixes about $4.47.
+
+### Fit: the consolidation rate kappa (2026-10-31)
+
+One free parameter (Substep 3 allows three): `kappa`, the rate at which C2 consolidation moves the fast weight change
+into the permanent weight (spiking protocol 0.05). It acts only in the C2 stage, so the first transfer, which
+already agrees, is unchanged; model B takes it as a setting (`--set kappa=...`). Before the fit, model B's protocol
+values (built by `round6_compare.py spec_for` from the archived `session69a-stage2.json`) were compared with the
+rerun's params files: they differ only in `gain_ee_inter` (set explicitly) and the 9^3 stray fraction (set by
+`spec_for`), so the excess of final strays is not a configuration difference. Session `round6_fit_pod.sh` (jobs
+size : seeds : settings, all at once on one pod), summary `round6_fit_summary.py` (stdlib); results in
+`output-round6-fit/` (gitignored). Spiking reference: the per-job results of steps 5 and 6 (9^3 in
+`../output/rerun67.tgz`).
+
+**Scan on seed 0's 12 pairs** (spiking: 9 associations at 7^3, 6 at 9^3; kappa 0.05 from "Final strays"):
+
+| kappa | associations 7^3 / 9^3 | best final strays, model B minus spiking, median, 7^3 / 9^3 | pairs with a successful final test, 7^3 / 9^3 |
+|---|---|---|---|
+| 0.025 | 1 / 1 | -10 / 2 | 2 / 3 |
+| 0.035 | 7 / 5 | -8 / -12 | 9 / 8 |
+| 0.045 | 10 / 4 | -1 / 2 | 12 / 10 |
+| 0.05 | 10 / 1 | 4 / 12 | 12 / 10 |
+
+Lower `kappa` lowers the final strays, but below about 0.04 the final tests begin to fail (the permanent weights no
+longer carry the transfer). Chosen (rule set before the scan: median near 0 at 9^3, 7^3 within about 5): **0.045**
+(factor 0.9 on the protocol's value).
+
+**Test with kappa 0.045:** seed 1's 12 pairs at both sizes (held out), and C2 held uniform (1.2) at 7^3 on both
+seeds.
+
+| | spiking | model B | agreement | Cohen's kappa |
+|---|---|---|---|---|
+| 7^3 associations, held out (12) | 6 | 7 | 0.92 | 0.83 |
+| 9^3 associations, held out (12) | 5 | 4 | 0.92 | 0.82 |
+| 7^3 associations, all 24 | 15 | 17 | 0.92 | 0.81 |
+| 9^3 associations, all 24 | 11 | 8 | 0.79 | 0.57 |
+| 7^3 associations, uniform C2 (24) | 0 | 0 | 1.00 | (one class) |
+
+Best final strays on the held-out pairs: median difference -1 at 7^3 (-4 to 4) and 3 at 9^3 (-12 to 13).
+
+**Admission (Substep 3) with kappa 0.045: pass.**
+
+- Class fractions: the first-transfer classes do not depend on `kappa` (all 24 ignition at both sizes in every
+  run, spiking the same); within the intervals as before.
+- Grid size: associations over the 24 pairs within the 95 % Clopper-Pearson intervals of the spiking counts at
+  both sizes (7^3: 17, interval 10 to 19 around 15; 9^3: 8, interval 7 to 16 around 11), and the decrease from 7^3
+  to 9^3 is reproduced (15 -> 11 spiking, 17 -> 8 model B).
+- Uniform C2: 0 associations, as in the spiking runs (at most 3 required).
+
+Limits: two realizations (the rerun's own networks) instead of the default 5, and the held-out pairs lie on seed 1's
+network, not on fresh realizations; 9^3 at 8 is near the interval's lower end, and model B's counts vary by 1 to 2
+between runs on identical inputs. Covered: d 4, rewiring at lambda 0.4, the rerun's protocol. Not covered: 11^3
+(spiking 0 of 24), the engine's own wiring, and the sparse substrate (step 4, required before the model narrows any
+range of the sparse task).
+
+Cost: three scan pods (`rm6-fit-k025`, `-k035`, `-k045`: `ho938gxctm7t7z`, `g25dstr2ms967e`, `s45wqgvnd19ii4`) and
+a test pod (`rm6-fit-test`, `2ud5rcuy1lfb2l`), RTX PRO 4500 Blackwell, $0.72/h each; scan 01:49 to about 02:21 UTC,
+test 02:21 to about 03:05 UTC (its exports took 12 minutes); about $1.70 (estimated; billing not yet posted), all
+terminated (delete 204, `list-pods` empty). Round 6 after the engine fixes: about $5.90; with the two pods before
+the fixes about $6.17.

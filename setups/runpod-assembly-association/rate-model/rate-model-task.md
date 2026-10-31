@@ -1,14 +1,13 @@
 # Task: Rate Model for Screening the Assembly-Association Parameters
 
 > [!IMPORTANT]
-> **Status (2026-10-31): round 6 step 3 done, model B not admitted.** On the rerun's own networks, with the
-> rerun's settings and no fitted parameter, model B meets the 7 x 7 x 7 class fractions and the uniform-C2
-> requirement but not the grid size: at 9 x 9 x 9 it finds 1 association of 24 where the spiking runs find 11
-> (7 x 7 x 7: 16 against 15). The final strays (`round6-report.md`, "Step 3", "Final strays") show a near-miss:
-> model B's final strays exceed the spiking ones by about 12 at 9 x 9 x 9 and 4 at 7 x 7 x 7, while the first
-> transfer agrees; the excess arises between the first transfer and the final tests. Next step for the user to
-> decide: a fit (Substep 3) with a parameter that acts there. Round 6 has spent about $4.47, above its
-> **[default]** $3 (raised by the user to about $8 on 2026-10-31).
+> **Status (2026-10-31): round 6 step 3 done, model B admitted** with one fitted parameter, the C2
+> consolidation rate `kappa` 0.045 (the protocol's 0.05 x 0.9): on the rerun's own networks it reproduces the
+> associations at 7 x 7 x 7 and 9 x 9 x 9 within the spiking intervals (17 and 8 against 15 and 11 of 24; held-out
+> pairs: Cohen's kappa 0.83 and 0.82) and the uniform-C2 control (0 against 0) (`round6-report.md`, "Step 3",
+> "Fit"). Without the fit it is not admitted (9 x 9 x 9: 1 to 2 associations against 11). Covered: d 4, rewiring at
+> lambda 0.4; not covered: 11 x 11 x 11, the engine's own wiring. Next: round 6 step 4 (check on the sparse
+> substrate) before the model narrows any range. Round 6 has spent about $6.17 (user's limit about $8).
 
 > [!NOTE]
 > **Status (2026-10-30): on hold until the engine-fix rerun.** Round 6 found that the engine's synapse table was
@@ -207,8 +206,8 @@ network the wrong composition; fixed on 2026-10-30, with the other engine fixes 
 (`../engine-fix-rerun-task.md`). Steps 1 and 2 were then repeated on the fixed engine ("After the engine
 fixes" in the report). The fitted factors and the `frac_I_to_I` option of rounds 5 and 6 described the
 faulty networks; model B uses the configured composition (its defaults). Step 3 (report, "Step 3"): not
-admitted at the rerun's settings without fitted parameters; the grid-size requirement fails (9 x 9 x 9
-associations 1 against 11). The admission ran with new scripts on the rerun's summaries
+admitted at the rerun's settings without fitted parameters (9 x 9 x 9 associations 1 against 11); admitted
+with the consolidation rate `kappa` fitted to 0.045. The admission ran with new scripts on the rerun's summaries
 (`round6_regime_precheck.py`, `round6_admission_compare.py`); the constants of `admission_test.py` and the
 other round 4 and 5 scripts listed in step 3 still hold the faulty engine's references.
 
@@ -293,7 +292,7 @@ the exports there); **[default]** at most $3 for the round. Report in `round6-re
   loads an exported network, and the gitignored `output-round6/`; after the engine fixes `round6_fixed_pod.sh`
   (the repeat of steps 1 and 2 on a pod) and the gitignored `output-round6-fixed/`; for step 3
   `round6_regime_precheck.py`, `round6_admission_compare.py`, `round6_precheck_pod.sh`, `round6_grid_pod.sh`,
-  `round6_strays_pod.sh` and the gitignored `output-round6-precheck/`, `output-round6-grid/` and
-  `output-round6-strays/`. A round 4 agent
+  `round6_strays_pod.sh`, `round6_fit_pod.sh`, `round6_fit_summary.py` and the gitignored
+  `output-round6-precheck/`, `output-round6-grid/`, `output-round6-strays/` and `output-round6-fit/`. A round 4 agent
   changes only its own model's files; shared files (`rate_model.py`, `../archive-pre-engine-fix/rate-model/s71_ground_truth.json`) are read,
   not changed.
