@@ -459,3 +459,39 @@ One entry per session of `engine-fix-rerun-task.md`: hypothesis, change, result,
   activating the reservoir; E -> I 0.5 is close. All forms sum only at 4 lambda (lambda 1.0, d 4): not at 6.7
   lambda (lambda 0.6) and not at 10 lambda (11^3, d 10), where the route middle stays silent. S4 on S3b
   activates the reservoir, S5 on S3b silences the route.
+
+## Matched uniform-C2 control (2026-10-31; the review's open item 1)
+
+- **Hypothesis** (the review of 2026-10-31, report "Review"): step 5's uniform-C2 control (C2 held at 1.2 and 0.9)
+  consolidated four to seven times more off-route weight than the activity-dependent runs, so it does not decide
+  whether C2's spatial pattern narrows the transfer or only the consolidated amount.
+- **Change:** `params/rerun5i-c2u-matched-lam0.4-s0.json`, `rerun5j-...-s1.json` (committed with the review):
+  step 5's protocol at lambda 0.4, 7^3, the 24 pairs of step 5, C2 held at 0.67, 0.74 and 0.84, levels whose gate
+  consolidates 0.08, 0.16 and 0.26 of `w_fast` over the about 15 steps of a cut C2 round.
+- **Rule (the user's decision 1 in the review, fixed before the run):** bounded associations at some level mean
+  the narrowing is an amount and A6 item 13 holds again; none means the route's head start in C2 is spatial
+  information.
+- **Runs:** pod `5h73qrybj757gj` (RTX PRO 4000, $0.57/h) from 06:51 UTC, both sessions from the clone at 21c93c5
+  (the parameter files as committed; their checksums match after line endings), both without error, finished
+  07:16 UTC.
+- **Result** (`assoc_sweep_summary.py -v` and `assoc_controls_summary.py` on the pod: `output/rerun5-matched-summary.txt`;
+  the 24 pairs of step 5, every one transferring in the joint rounds, 180 strays median, as in step 5):
+
+  | C2 held at | associations | lost | unbounded | associated pairs (final strays) |
+  |---|---|---|---|---|
+  | 0.67 (gate moves 0.08 of `w_fast`, the off-route share) | 0 | 20 | 4 | |
+  | 0.74 (0.16) | 1 | 19 | 4 | s0 pair 8 (17) |
+  | 0.84 (0.26, the route share) | 2 | 0 | 22 | s1 pairs 0 (30), 1 (23) |
+  | activity-dependent C2 (step 5) | 15 | 1 | 8 | median 16 strays |
+
+  (Final outcome per pair, from the per-pair lines; the summary's own "unbd" column also counts pairs that end
+  associated.)
+
+  - A uniform level low enough to keep the transfer bounded loses it (0.67, 0.74); one high enough to keep it
+    makes it unbounded (0.84). No uniform level comes near the activity-dependent C2's 15 of 24.
+- **Rule, applied as written:** bounded associations occur at 0.74 and 0.84 (1 and 2 of 24), so the rule's literal
+  verdict is "the narrowing is an amount" (A6 item 13 holds again). The rule's binary form does not fit an
+  outcome of 1 to 2 against 15: by count, C2's spatial pattern accounts for most of the narrowing. Which reading
+  the report records is the user's decision.
+- **Cost:** about $0.35 (estimated; the pod 06:51 to about 07:28 UTC, terminated, delete 204). Rerun so far about
+  $6.35 of the $20 cap.

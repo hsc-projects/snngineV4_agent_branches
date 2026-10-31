@@ -38,6 +38,8 @@ user decision after tuning iteration 13), or "both". Sparse task, Substep 3:
   The changes go into w_fast like the other rules'.
 `track_increase` (L5): keep each step's positive learned change of w_fast, summed per postsynaptic neuron,
 in `increase_post` (the harness releases C1 from it).
+`theta1_rel` (gate form G1): theta1 is read as a factor of the current mean C1 over all neurons, in the learning
+gate, the consolidation gate and L2's C1 events alike.
 """
 
 from __future__ import annotations
@@ -79,7 +81,7 @@ class GatedPlasticity:
                  consolidate_ee_only: bool = False, weight_dep: str = "mult",
                  norm_factor: float | None = None,
                  rate_thr: float | None = None, rate_tau: float = 100.0,
-                 btsp: dict | None = None, track_increase: bool = False):
+                 btsp: dict | None = None, track_increase: bool = False, theta1_rel: bool = False):
         self.S, self.N = n_rep.shape
         self.D = int(D)
         self.dev = n_rep.device
@@ -138,6 +140,9 @@ class GatedPlasticity:
                 self.Id = torch.zeros(self.S, self.N, device=self.dev)
         self.track_increase = bool(track_increase)
         self.increase_post = torch.zeros(self.N, device=self.dev)
+        # theta1_rel (gate form G1 of the sparse task): theta1 is a factor times the current mean C1 over all
+        # neurons, so the C1 gate follows the field's level without knowing where A and B are
+        self.theta1_rel = bool(theta1_rel)
         self.a_pre = float(a_pre)
         self.pre_post_gate = bool(pre_post_gate)
         # consolidate only synapses onto excitatory neurons (excitatory-to-inhibitory changes stay
@@ -254,9 +259,10 @@ class GatedPlasticity:
         dw = torch.where(self.lo < 0, -dw, dw)
         return torch.where(self.plastic, dw, torch.zeros_like(dw))
 
-    def btsp_step(self, spikes: torch.Tensor, t: int, c1_post: torch.Tensor):
+    def btsp_step(self, spikes: torch.Tensor, t: int, c1_post: torch.Tensor, th1: float | None = None):
         """L1 / L2: traces, gate events and, at the end of each event's window, the weight change."""
         b, t = self.btsp, int(t)
+        th1 = self.theta1 if th1 is None else th1
         sf = spikes.float()
         self.xp.mul_(self.dec_p).add_(sf)
         self.xd.mul_(self.dec_d).add_(sf)
@@ -264,7 +270,7 @@ class GatedPlasticity:
         if b["gate"] == "plateau":
             new = free & (torch.rand(self.N, generator=self.gen, device=self.dev) < float(b["plateau_rate"]))
         else:
-            new = free & (self.c1_prev < self.theta1) & (c1_post >= self.theta1)
+            new = free & (self.c1_prev < th1) & (c1_post >= th1)
         self.c1_prev = c1_post.clone()
         after = int(b["window"]) - int(b["before"])
         self.ev_eval = torch.where(new, torch.full_like(self.ev_eval, t + after), self.ev_eval)
@@ -339,10 +345,11 @@ class GatedPlasticity:
         consolidate:  move w_fast into w_perm where C1 and C2 gates are both on.
         w_fast decays every step unless both flags are False (frozen test phase).
         """
+        th1 = self.theta1 * float(c1_post.mean()) if (self.theta1_rel and c1_post is not None) else self.theta1
         if learn:
             before = self.w_fast.clone() if self.track_increase else None
             self.rate.mul_(self.rate_decay).add_(spikes.float(), alpha=1.0 - self.rate_decay)
-            g1n = gate(c1_post, self.theta1, self.soft1)                 # (N,) per neuron
+            g1n = gate(c1_post, th1, self.soft1)                         # (N,) per neuron
             if self.rule in ("stdp", "both"):
                 self.w_fast.add_(g1n[self.post] * self.timing_dw(spikes, t), alpha=self.rate_scale)
             if self.rule in ("pre_c1", "both"):
@@ -350,7 +357,7 @@ class GatedPlasticity:
             if self.rule == "pre_c1_signed":
                 self.w_fast.add_(self.pre_c1_signed_dw(spikes, g1n), alpha=self.rate_scale)
             if self.rule == "btsp":
-                self.btsp_step(spikes, t, c1_post)
+                self.btsp_step(spikes, t, c1_post, th1)
             if self.norm_factor:
                 self.normalize()
             if before is not None:
@@ -361,7 +368,7 @@ class GatedPlasticity:
             self.increase_post.zero_()
         if learn or consolidate:
             if consolidate:
-                g12 = (gate(c1_post, self.theta1, self.soft1)
+                g12 = (gate(c1_post, th1, self.soft1)
                        * gate(c2_post, self.theta2, self.soft2))[self.post] * self.consolidate_mask
                 moved = self.kappa * g12 * self.w_fast
                 self.w_perm.add_(moved)

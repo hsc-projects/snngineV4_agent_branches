@@ -872,6 +872,35 @@ def c1_open_fractions_of_middle_and_shell(dev):
 
 
 @check
+def c1_open_against_reservoir_mean_and_own_slow_average(dev):
+    eng, run = region_stub(dev)
+    assert run.C1_slow is None and "C1_open_mean" not in run.selectivity(0, 5)          # off by default
+    from assoc_protocol import AssocRun
+    run = AssocRun(eng, {"sel_radius": 0.5, "k_inject": 2, "c1_open_mean": [1.0, 4.0],
+                         "c1_open_rise": {"tau": 10.0, "f": [1.0, 2.0]}})
+    vm, vs = run.regions(0, 5)["voxel"]
+    run.C1.c.zero_()
+    run.C1.c[vm] = 3.0                                               # middle 3, shell and the rest 0
+    mean = float(run.C1.c.mean())
+    sel = run.selectivity(0, 5)
+    g1 = sel["C1_open_mean"]
+    assert close(g1[0]["M"], 1.0) and g1[0]["Sh"] == 0.0             # 3 >= 1 x mean (mean < 3)
+    assert (g1[1]["M"] == 1.0) == (3.0 >= 4.0 * mean)
+    # G3: the slow average follows C1 with time constant tau; a step in C1 opens until the average catches up
+    run.C1_slow.copy_(run.C1.c)
+    run.C1.c[vm] = 6.0
+    g3 = run.selectivity(0, 5)["C1_open_rise"]
+    assert close(g3[1]["M"], 1.0), g3                                # 6 >= 2 x 3
+    run.C1_slow.zero_()
+    for _ in range(40):                                              # the update run() applies after diffusion
+        run.C1_slow.add_(run.C1.c - run.C1_slow, alpha=1.0 / 10.0)
+    g3 = run.selectivity(0, 5)["C1_open_rise"]
+    assert close(g3[0]["M"], 1.0) and g3[1]["M"] == 0.0, g3          # average 6 (1 - e^-4) = 5.89: f 1 open, f 2 shut
+    run.reset_all()
+    assert float(run.C1_slow.abs().max()) == 0.0                     # reset with C1
+
+
+@check
 def propagation_survey_counts(dev):
     from assoc_protocol import prop_survey
     # 7 groups along x, every neuron fires every step: identical activity in all three conditions,
@@ -1366,6 +1395,24 @@ def _btsp_run(p, fire, c1_of_t, steps):
         spikes = torch.zeros(3, dtype=torch.bool, device=p.dev)
         spikes[fire.get(t, [])] = True
         p.step(spikes, t, c1_of_t(t), c1_of_t(t), learn=True, consolidate=False)
+
+
+@check
+def theta1_rel_gates_relative_to_the_mean_c1(dev):
+    # C1 6 at neurons 0 and 1, 0 at 2: mean 4. Neuron 0 fires; rule pre_c1 changes 0 -> 1 (synapse (0, 0)) when the
+    # gate is open at both ends. theta1 1.2 -> threshold 4.8: open at 0 and 1; theta1 2.0 -> 8: shut everywhere
+    for scale in (1.0, 10.0):                                        # relative: the field's level does not matter
+        c1 = torch.tensor([6.0, 6.0, 0.0], device=dev) * scale
+        for th, opened in ((1.2, True), (2.0, False)):
+            p = make_plasticity(dev, rule="pre_c1", a_pre=0.1, theta1=th, soft1=0.0, theta1_rel=True)
+            p.fast_decay = 1.0
+            run_spikes(p, {0: [0]}, 1, c1, c1)
+            assert (float(p.w_fast[0, 0]) > 0) == opened, (scale, th, p.w_fast)
+            assert float(p.w_fast[1, 0]) == 0.0                     # 0 -> 2: gate shut at neuron 2
+    p = make_plasticity(dev, rule="pre_c1", a_pre=0.1, theta1=1.2, soft1=0.0)   # off: absolute threshold 1.2
+    p.fast_decay = 1.0
+    run_spikes(p, {0: [0]}, 1, torch.tensor([1.5, 1.5, 0.0], device=dev), torch.zeros(3, device=dev))
+    assert float(p.w_fast[0, 0]) > 0
 
 
 @check

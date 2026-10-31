@@ -1,0 +1,621 @@
+{
+ "session": "sparse5o-L3open-s3b-g9-s1-p12-17",
+ "engine": {
+  "n_neurons": 42500,
+  "n_synapses": 2000,
+  "seed": 1,
+  "rewire": {
+   "lam": 1.0,
+   "seed": 1
+  },
+  "n_delays": 16
+ },
+ "defaults": {
+  "video": {
+   "enabled": false
+  }
+ },
+ "jobs": [
+  {
+   "name": "s4-d4-s1-pair12-L3open-s3b-g9",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 42500,
+    "n_synapses": 2000,
+    "seed": 1,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 1
+    },
+    "n_delays": 16
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "c1": {
+     "gain": 1.0,
+     "k": 0.16,
+     "decay": 0.01,
+     "saturation": null
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02
+    },
+    "plasticity": {
+     "rule": "pre_c1_signed",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6,
+     "rate_thr": 9e-05,
+     "rate_tau": 100.0,
+     "weight_dep": "upper",
+     "theta1_rel": false
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ],
+     "pair_margin": 2,
+     "rollback": {
+      "factor": 0.5,
+      "min_scale": 0.0625
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "learn_in_c2": false,
+    "oracle": null,
+    "pair_draw": 12,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5,
+    "c1_open_mean": null,
+    "c1_open": null
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "s4-d4-s1-pair13-L3open-s3b-g9",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 42500,
+    "n_synapses": 2000,
+    "seed": 1,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 1
+    },
+    "n_delays": 16
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "c1": {
+     "gain": 1.0,
+     "k": 0.16,
+     "decay": 0.01,
+     "saturation": null
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02
+    },
+    "plasticity": {
+     "rule": "pre_c1_signed",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6,
+     "rate_thr": 9e-05,
+     "rate_tau": 100.0,
+     "weight_dep": "upper",
+     "theta1_rel": false
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ],
+     "pair_margin": 2,
+     "rollback": {
+      "factor": 0.5,
+      "min_scale": 0.0625
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "learn_in_c2": false,
+    "oracle": null,
+    "pair_draw": 13,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5,
+    "c1_open_mean": null,
+    "c1_open": null
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "s4-d4-s1-pair14-L3open-s3b-g9",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 42500,
+    "n_synapses": 2000,
+    "seed": 1,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 1
+    },
+    "n_delays": 16
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "c1": {
+     "gain": 1.0,
+     "k": 0.16,
+     "decay": 0.01,
+     "saturation": null
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02
+    },
+    "plasticity": {
+     "rule": "pre_c1_signed",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6,
+     "rate_thr": 9e-05,
+     "rate_tau": 100.0,
+     "weight_dep": "upper",
+     "theta1_rel": false
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ],
+     "pair_margin": 2,
+     "rollback": {
+      "factor": 0.5,
+      "min_scale": 0.0625
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "learn_in_c2": false,
+    "oracle": null,
+    "pair_draw": 14,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5,
+    "c1_open_mean": null,
+    "c1_open": null
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "s4-d4-s1-pair15-L3open-s3b-g9",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 42500,
+    "n_synapses": 2000,
+    "seed": 1,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 1
+    },
+    "n_delays": 16
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "c1": {
+     "gain": 1.0,
+     "k": 0.16,
+     "decay": 0.01,
+     "saturation": null
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02
+    },
+    "plasticity": {
+     "rule": "pre_c1_signed",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6,
+     "rate_thr": 9e-05,
+     "rate_tau": 100.0,
+     "weight_dep": "upper",
+     "theta1_rel": false
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ],
+     "pair_margin": 2,
+     "rollback": {
+      "factor": 0.5,
+      "min_scale": 0.0625
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "learn_in_c2": false,
+    "oracle": null,
+    "pair_draw": 15,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5,
+    "c1_open_mean": null,
+    "c1_open": null
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "s4-d4-s1-pair16-L3open-s3b-g9",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 42500,
+    "n_synapses": 2000,
+    "seed": 1,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 1
+    },
+    "n_delays": 16
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "c1": {
+     "gain": 1.0,
+     "k": 0.16,
+     "decay": 0.01,
+     "saturation": null
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02
+    },
+    "plasticity": {
+     "rule": "pre_c1_signed",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6,
+     "rate_thr": 9e-05,
+     "rate_tau": 100.0,
+     "weight_dep": "upper",
+     "theta1_rel": false
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ],
+     "pair_margin": 2,
+     "rollback": {
+      "factor": 0.5,
+      "min_scale": 0.0625
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "learn_in_c2": false,
+    "oracle": null,
+    "pair_draw": 16,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5,
+    "c1_open_mean": null,
+    "c1_open": null
+   },
+   "kwargs": {}
+  },
+  {
+   "name": "s4-d4-s1-pair17-L3open-s3b-g9",
+   "type": "substep4",
+   "engine": {
+    "n_neurons": 42500,
+    "n_synapses": 2000,
+    "seed": 1,
+    "rewire": {
+     "lam": 1.0,
+     "seed": 1
+    },
+    "n_delays": 16
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "c1": {
+     "gain": 1.0,
+     "k": 0.16,
+     "decay": 0.01,
+     "saturation": null
+    },
+    "c2": {
+     "gain": 1.0,
+     "decay": 0.01,
+     "saturation": null,
+     "k": 0.02
+    },
+    "plasticity": {
+     "rule": "pre_c1_signed",
+     "a_pre": 0.5,
+     "pre_post_gate": true,
+     "a_plus": 0.5,
+     "a_minus": 0.5,
+     "tau_fast": 2000.0,
+     "kappa": 0.05,
+     "theta1": -1.0,
+     "theta2": 0.6,
+     "soft1": 0.0,
+     "soft2": 0.6,
+     "rate_thr": 9e-05,
+     "rate_tau": 100.0,
+     "weight_dep": "upper",
+     "theta1_rel": false
+    },
+    "protocol": {
+     "pair_distance": 4.0,
+     "max_c1_rounds": 30,
+     "c2_rounds": 5,
+     "max_extra_c2_rounds": 5,
+     "controls": false,
+     "accept_uncontained": true,
+     "criterion": "bounded",
+     "max_active_frac": 0.1,
+     "c2_after_max_rounds": false,
+     "control_modes": [
+      "no_chemistry",
+      "separate"
+     ],
+     "pair_margin": 2,
+     "rollback": {
+      "factor": 0.5,
+      "min_scale": 0.0625
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "learn_in_c2": false,
+    "oracle": null,
+    "pair_draw": 17,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "gain_ei_inter": 1.0,
+    "gain_ie_inter": 0.5,
+    "c1_open_mean": null,
+    "c1_open": null
+   },
+   "kwargs": {}
+  }
+ ],
+ "note": "sparse task Substep 3, stage C (entry 7): uniform-C1 control: L3 with the C1 gate open everywhere (theta1 -1), S3b with inter-group I -> E gain 0.5, 9^3, lambda 1.0, d 4, seed 1, pairs 12 to 17"
+}

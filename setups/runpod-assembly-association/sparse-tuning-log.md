@@ -93,10 +93,12 @@ Sessions and code changes of `sparse-assemblies-task.md` after the engine fixes 
   seed 0 in four sessions of 6 per substrate. Strays limit 10 % of all groups (`max_active_frac` 0.1, 72 groups;
   the user's default since 2026-10-31; entry 2's 7^3 runs used the same 10 %, 34 groups).
   `sparse_c1_levels.py` now also gives C1 in M and Sh at the end of each round's injection.
-- **Points of the user's review of 2026-10-31 that bear on Substep 3:** the C2 stage's narrowing comes from its
-  first round being cut by the runaway stop (`runaway_frac`) after about 15 steps; the stop stays in Substep 3
-  for now (its end is a to-do of the minimal task). The "no chemistry" control sets C2's gain to 0, so its final
-  test equals control 0 by construction and adds nothing to a full decision.
+- **Points of the review of 2026-10-31 (a third agent's; the decisions are the user's) that bear on Substep 3:**
+  the C2 stage's narrowing comes from its first round being cut by the runaway stop (`runaway_frac`) after about
+  15 steps; by the user's decision the stop stays in Substep 3 for now (its end is a to-do of the minimal task).
+  The "no chemistry" control sets C2's gain to 0, so its final test equals control 0 by construction and adds
+  nothing to a full decision. On this substrate the joint rounds transfer in 0 to 2 of 24 pairs, so the stage
+  before C2 limits Substep 3, and the stop does not bear on its counts.
 - **Rule (fixed before the run):** a C1 threshold can separate the route if C1 in M exceeds C1 in Sh by at least
   1.5 (median over pairs) after some joint round; then L2, L3 and L5 get thresholds between the two at that
   round. Otherwise the C1-gated rules are not screened at this length, and a shorter C1 length is the next
@@ -166,3 +168,128 @@ Sessions and code changes of `sparse-assemblies-task.md` after the engine fixes 
   of Sh's) would keep the separation; that is a change to the rules' gate (user's decision).
 - **Cost:** pod 05:54 to about 06:16 UTC, about $0.27 (estimated); terminated (delete 204, `list-pods` empty).
   Substep 3 so far about $4.14 of the sparse task's $25.
+
+## Entry 5 (Substep 3, stage A, 2026-10-31): readouts of the four gate forms
+
+- **Hypothesis:** at least one gate form keeps the route middle separated through the joint rounds, where a fixed
+  threshold (G4) does so for about one round (entry 4).
+- **Change (code, not yet committed; the sessions run from a copy of the clone with the changed files):** protocol
+  options `c1_open_mean` (G1: open where C1 >= f times the reservoir's mean C1) and `c1_open_rise` (G3: open where
+  C1 >= f times an exponential average of C1 at the same voxel, time constant `tau`), both off by default; module
+  check `c1_open_against_reservoir_mean_and_own_slow_average`; `sparse_c1_levels.py` prints all three readouts.
+- **Runs:** `params/sparse3w` to `sparse3B`: entry 4's L0 with the rollback rule at 9^3, both substrates, pairs 0 to
+  5, at most 10 joint rounds, with the parameters of the sparse task ("C1 gate of L2 to L5"): C1 decay 0.0011
+  (G1, G3, G4 readouts), 0.0025 and 0.01 (G2, with G4's and G1's readouts).
+- **Rule (fixed before the run),** per form and substrate, entry 4's: a form passes if after some joint round, at
+  some f, the median open fraction is at least 0.5 in M and at most half of M's in Sh. Since G4 already passes
+  around one round, a form is better than G4 if it passes in at least three of the readout rounds 1, 3, 5 and 10.
+- **Runs:** three pods (RTX PRO 4500, $0.72/h) from 06:51 UTC, `fp6tq4xpucurj6`, `ndxmdx621csjoe`, `2212kcea90px6g`, two
+  sessions each, from a copy of the clone at 21c93c5 with the changed files; preflight 82 of 82 module checks on CPU
+  and CUDA (the new one and the review's hysteresis check included); all six without error; no pair transferred.
+- **Result** (`output/sparse3-stageA-gA.txt`, `-gB.txt`, `-gC.txt`; medians over 6 pairs; open fraction M / Sh):
+  - G3 (C1 against the voxel's own slow average, tau 150): no separation; M and Sh open alike (1 / 1 through round
+    5 at every f, 0.91 / 0.91 at f 1.1 after round 10 on S3b).
+  - G1 and G2 pass in single rounds, at different f. With one f, as a gate has (best f per setting; rounds out of 1,
+    3, 5 and 10 that pass):
+
+  | C1 decay (length) | S3b with I -> E 0.5, G1 | S0, G1 |
+  |---|---|---|
+  | 0.0011 (3 cells) | f 2: rounds 3, 5 (1.00 / 0.49, 0.73 / 0.12) | f 2.5: round 3 (0.96 / 0.24) |
+  | 0.0025 (2 cells) | f 2: rounds 3, 5 (1.00 / 0.50, 0.90 / 0.15) | f 2: rounds 5, 10 (1.00 / 0.49, 0.62 / 0.09) |
+  | 0.01 (1 cell) | f 2.5: rounds 1, 3 (1.00 / 0.38, 0.77 / 0.14) | **f 2.5: rounds 1, 3, 5, 10** (1.00 / 0.49, 1.00 / 0.38, 0.91 / 0.26, 0.62 / 0.12) |
+
+  - Why: on S3b with I -> E 0.5 C1 jumps as L0's activity rises (Sh's mean C1 times 3 to 4 from round 5 to round 10
+    at every length), on S0 it grows slowly at the 1-cell length (0.23, 0.52, 0.69, 0.87 after rounds 1, 3, 5, 10).
+    G4's readout (f times Sh's current mean) separates at f 1.1 to 1.2 in every round and setting, but that
+    reference follows the field with knowledge of the regions; as a fixed theta1 it is the one-round gate of entry 4.
+- **Rule:** with one f per gate, only G1 with the 1-cell C1 (G2) on S0 passes at least three rounds; it is the one
+  form better than G4. On S3b with I -> E 0.5 no form does. G3 does not pass at all. Stage B per the funnel: L3
+  under G1 with the 1-cell C1 (f 2.5) and under G4, both substrates.
+- **Cost:** three pods 06:51 to about 07:20 UTC, about $1.05 (estimated); terminated (delete 204). Substep 3 so far
+  about $5.19 of the sparse task's $25.
+
+## Entry 6 (Substep 3, stage B, 2026-10-31): L3 under G1 (1-cell C1) and under G4
+
+- **Hypothesis:** L3 (presynaptic rate times C1, depression below the rate threshold), which needs no spike in the
+  route middle, builds the route where its C1 gate separates it; with G1 at the 1-cell length on S0 (entry 5: route
+  middle open, shell at most half as much, in every readout round) better than with G4's fixed threshold.
+- **Change (code, not yet committed; the sessions run from a copy):** plasticity option `theta1_rel` (G1: theta1 is
+  a factor times the current mean C1 over all neurons, in the learning gate, the consolidation gate and L2's C1
+  events); module check `theta1_rel_gates_relative_to_the_mean_c1`.
+- **Runs:** `params/sparse4a` to `sparse4p`: entry 3's protocol at 9^3 (lambda 1.0, d 4, rollback rule, 30 joint
+  rounds, C2 stage, strays limit 10 %), L3 = rule `pre_c1_signed` (`rate_thr` 9e-5, `rate_tau` 100, `weight_dep`
+  "upper", `a_pre` 0.5, gate at both ends), soft1 0, pairs 0 to 23 of seed 0 in four sessions of 6 per setting:
+  G1 with C1 decay 0.01 and theta1 2.5 x mean C1, on S3b with I -> E 0.5 and on S0; G4 with the default C1 (decay
+  0.0011) and theta1 2.32 (S3b) and 1.26 (S0), 1.2 times Sh's mean C1 after round 3 (entry 4).
+- **Rule (fixed before the run):** a setting is a candidate for the full decision if it has more associations than
+  L0 on the same substrate at 9^3 (entry 3: 1 of 24 on S3b, 0 on S0) without higher median final strays; G1 is
+  better than G4 if it has more associations on the same substrate. Then L2 and L5 run under the better form.
+- **Runs:** eight pods (RTX PRO 4500, $0.72/h) from 07:15 UTC, two sessions each, from a copy of the clone at
+  21c93c5 with the changed files; all 16 sessions without error, the last at 07:45 UTC.
+- **Result** (`assoc_sweep_summary.py -v` and `sparse_c1_levels.py` on the last pod: `output/sparse4-stageB-summary.txt`;
+  24 pairs per setting):
+
+  | setting (9^3, lambda 1.0, d 4) | transfers | associations (final strays) | joint rounds | rollbacks |
+  |---|---|---|---|---|
+  | L3 under G1, 1-cell C1, S3b with I -> E 0.5 | 5 | **4** (16, 28, 62, 38; median 33) | 30 in 18 pairs; transfers after 3, 4, 5, 11, 19 | 3 pairs (1 exhausted) |
+  | L3 under G1, 1-cell C1, S0 | 0 | 0 | 30 | none |
+  | L3 under G4 (theta1 2.32), S3b with I -> E 0.5 | 0 | 0 | 30 (one 22) | 3 pairs (1 exhausted) |
+  | L3 under G4 (theta1 1.26), S0 | 0 | 0 | 30 | none |
+  | L0 with rollback, S3b with I -> E 0.5 (entry 3) | 2 | 1 (61) | | 21 pairs, 17 exhausted |
+
+  - Under G1 the gate stays selective through all 30 rounds in the runs themselves (median open fraction M / Sh at
+    2.5 times the mean C1: S3b 1.00 / 0.55, 0.42, 0.37 after rounds 1, 3, 5, then 0.98 to 0.93 / 0.35 to 0.37;
+    S0 1.00 / 0.68 to 0.47). On S3b with I -> E 0.5, L3 does not run away as L0 does (rollback in 3 of 24 pairs,
+    against 21).
+  - Pair 15 (seed 0) associates under both L0 and L3; the other three of L3's are new.
+- **Rule:** L3 under G1 on S3b with I -> E 0.5 is a candidate for the full decision (4 against L0's 1, median final
+  strays 33 against 61), and G1 is better than G4 there (4 against 0). On S0 no setting associates. 4 of 24 is a
+  screening count, not yet significant: the full decision (48 pairs, two seeds, controls) decides.
+- **Cost:** eight pods 07:15 to about 07:37 to 07:47 UTC, about $2.70 (estimated); all terminated (delete 204).
+  Substep 3 so far about $7.89 of the sparse task's $25.
+
+## Entry 7 (Substep 3, stage C, 2026-10-31): full decision for L3 under G1 on S3b with I -> E 0.5
+
+- **Hypothesis:** entry 6's 4 of 24 is a real gain over L0, and it needs C1's spatial pattern and the joint
+  activation of A and B.
+- **Runs:** `params/sparse5a` to `sparse5t`, all at 9^3, lambda 1.0, d 4, as entry 6:
+  - main: L3 under G1 (1-cell C1, theta1 2.5 x mean C1), seeds 0 and 1, pairs 0 to 23 each, with control 0 and
+    the separate-rounds control in every job (`protocol.controls`; not the "no chemistry" control, which equals
+    control 0 by construction);
+  - uniform-C1 control, as the user decided on 2026-10-31: the gate open everywhere (theta1 -1, the same C1 and
+    everything else), the same 48 pairs; under G1 a uniform C1 would shut the gate everywhere and test nothing;
+  - L0 with the rollback rule on seed 1 (seed 0 is entry 3's), the baseline for the paired comparison.
+- **Rule (fixed before the run),** over the 48 pairs, paired by pair (McNemar's exact one-sided test on the
+  discordant pairs, p < 0.05): L3 under G1 is kept if (1) it associates more pairs than L0 and (2) more than with
+  the gate open everywhere, (3) the separate-rounds control associates fewer pairs than the main run, and (4) its
+  median final strays are not above L0's (L0 with associations) or the gate-open run's. Control 0 must hold in
+  every associated pair. If kept, it goes to stage 2 (11^3, d 10); otherwise the report says which condition
+  failed.
+- **Runs:** ten pods (RTX PRO 4500, $0.72/h) from 08:24 UTC, two sessions each, from a copy of the clone at 21c93c5
+  with the changed files. The gate-open sessions finished by 08:42. At 08:48:27 Runpod terminated every pod of the
+  account (the account had run out of funds; audit log, actor "runpod"): the eight main sessions and the four L0
+  sessions were cut after 2 to 5 of their 6 jobs; their partial outputs are kept on the volume as `-killed` and not
+  used. The twelve sessions were rerun on six pods from 09:51 UTC, all without error, the last at 10:37.
+- **Result** (`sparse_decision.py`, new, and the sweep and controls summaries on the last pod:
+  `output/sparse5-stageC-decision.txt`; 48 pairs, seeds 0 and 1, paired by pair):
+
+  | run | associations | median final strays |
+  |---|---|---|
+  | L3 under G1, 1-cell C1 (main) | **11 of 48** (seed 0: 4, seed 1: 7) | 42 |
+  | separate-rounds control (in the main jobs) | 0 of 48 | |
+  | gate open everywhere (uniform-C1 control) | 0 of 48 | |
+  | L0 with the rollback rule | 1 of 48 (seed 0, pair 15) | 61 |
+
+  - Paired, McNemar's exact one-sided test: main against L0 10 to 0, p 0.001; against the gate-open control 11 to
+    0, p 0.0005; against the separate-rounds control 11 to 0, p 0.0005. Control 0 holds in every associated pair.
+  - Main's associated pairs (final strays): seed 0 pairs 0 (16), 3 (28), 8 (62), 15 (38), the same pairs and
+    strays as in entry 6's screening; seed 1 pairs 2 (37), 3 (44), 5 (55), 7 (42), 15 (57), 16 (39), 19 (47). 15
+    pairs transferred in the joint rounds, 4 of them lost in the C2 stage; none unbounded.
+- **Rule:** all four conditions hold: more associations than L0 (p 0.001) and than with the gate open everywhere
+  (p 0.0005), fewer under separate rounds (p 0.0005), median final strays 42 against L0's 61 (the gate-open run has
+  none). L3 under G1 with the 1-cell C1 is **kept** at 4 lambda, on S3b with inter-group I -> E gain 0.5: the first
+  association in the sparse task that needs both C1's spatial pattern and the joint activation of A and B. It goes
+  to stage 2 (11^3, d 10). Route selectivity (`R_off`, pass criterion 3) was not measured in these runs.
+- **Cost:** the first ten pods about $2.45 (four until about 08:37 to 08:42, six until the termination at 08:48),
+  the six rerun pods about $2.75 (09:51 to about 10:20 to 10:37 UTC), about $5.20 in all (estimated); all
+  terminated (delete 204, `list-pods` empty). Substep 3 so far about $13.10 of the sparse task's $65.

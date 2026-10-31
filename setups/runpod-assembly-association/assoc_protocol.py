@@ -93,6 +93,12 @@ DEFAULTS = {
     # c1_open (sparse task, Substep 3), e.g. [1.0, 1.2, 1.5]: the selectivity telemetry also records, per
     # factor f, the fraction of M and Sh voxels whose C1 is at least f times Sh's mean C1. None: off
     "c1_open": None,
+    # c1_open_mean (gate form G1), e.g. [1.5, 2.0]: as c1_open, against f times the reservoir's mean C1. None: off
+    # c1_open_rise (gate form G3), e.g. {"tau": 150, "f": [1.1, 1.5]}: as c1_open, against f times an
+    # exponential average of C1 at the same voxel with time constant tau steps (updated after each diffusion
+    # step, reset with C1). None: off
+    "c1_open_mean": None,
+    "c1_open_rise": None,
     "i_min": None,  # lower clamp on the summed input current (numerical safeguard), e.g. -60
     "i_max": None,  # upper clamp on the summed input current (numerical safeguard), e.g. 100
     # stop a phase in the step in which more than this fraction of all neurons fires: the engine
@@ -207,6 +213,7 @@ class AssocRun:
         c1, c2 = self.p["c1"], self.p["c2"]
         self.C1 = ChemicalField(self.dims, dev, k=c1["k"], decay=c1["decay"], substeps=c1["substeps"])
         self.C2 = ChemicalField(self.dims, dev, k=c2["k"], decay=c2["decay"], substeps=c2["substeps"])
+        self.C1_slow = torch.zeros_like(self.C1.c) if self.p.get("c1_open_rise") else None   # G3 readout
         e = self.p["energy"]
         if e.get("mode", "local") == "fuel":     # iteration 58: C3 fuel (FuelField)
             self.E = FuelField(self.dims, dev, **{k: e[k] for k in ("supply", "decay", "consume", "tau",
@@ -354,6 +361,8 @@ class AssocRun:
     def reset_all(self):
         self.C1.reset()
         self.C2.reset()
+        if self.C1_slow is not None:
+            self.C1_slow.zero_()
         if self.oracle is not None:
             self.apply_oracle()
         self.E.reset()
@@ -508,6 +517,8 @@ class AssocRun:
                     self.C2.release(c2_counts, p["c2"]["gain"], p["c2"].get("saturation"))
                 self.C1.diffuse()
                 self.C2.diffuse()
+                if self.C1_slow is not None:
+                    self.C1_slow.add_(self.C1.c - self.C1_slow, alpha=1.0 / float(p["c1_open_rise"]["tau"]))
                 if release1 and p["c1"].get("uniform") is not None:   # control: no spatial information
                     self.C1.c.fill_(float(p["c1"]["uniform"]))
                 if release2 and p["c2"].get("uniform") is not None:   # control: no spatial information
@@ -830,6 +841,16 @@ class AssocRun:
                 th = float(f) * out["Sh"]["C1"]
                 om, osh = _mean((self.C1.c[vm] >= th).float()), _mean((self.C1.c[vs] >= th).float())
                 out["C1_open"].append({"f": float(f), "M": om, "Sh": osh, "ratio": _ratio(om, osh)})
+        vm, vs = R["voxel"][0], R["voxel"][1]
+
+        def fractions(ref: torch.Tensor, f: float) -> dict:
+            om, osh = _mean((self.C1.c[vm] >= f * ref[vm]).float()), _mean((self.C1.c[vs] >= f * ref[vs]).float())
+            return {"f": float(f), "M": om, "Sh": osh, "ratio": _ratio(om, osh)}
+        if self.p.get("c1_open_mean"):        # gate form G1: against the reservoir's mean C1
+            ref = torch.full_like(self.C1.c, float(self.C1.c.mean()))
+            out["C1_open_mean"] = [fractions(ref, f) for f in self.p["c1_open_mean"]]
+        if self.C1_slow is not None:          # gate form G3: against the voxel's own slow average
+            out["C1_open_rise"] = [fractions(self.C1_slow, f) for f in self.p["c1_open_rise"]["f"]]
         return out
 
     def weight_selectivity(self, a: int, b: int, dw: torch.Tensor) -> dict:

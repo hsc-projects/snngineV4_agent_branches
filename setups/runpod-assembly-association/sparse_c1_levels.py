@@ -7,7 +7,8 @@ A, at the midpoint of the segment A-B, and the field's mean and maximum, after j
 30 (the telemetry `chem` of each round's log entry, after the round's gap), and the ratio midpoint / A; and C1
 in the route middle M and the off-route shell Sh at the end of the round's injection (`sel_inject_end`), with
 their ratio; and with the protocol option `c1_open`, the thresholded readout: the fraction of M and Sh voxels at
-C1 >= f times Sh's mean C1, per factor f.
+C1 >= f times Sh's mean C1 (`c1_open`, gate form G4), the reservoir's mean C1 (`c1_open_mean`, G1) or the voxel's
+own slow average of C1 (`c1_open_rise`, G3), per factor f.
 
   python sparse_c1_levels.py OUTPUT_DIR "SESSION_GLOB" [...]
 """
@@ -20,6 +21,8 @@ import os
 import sys
 
 ROUNDS = (1, 3, 5, 10, 20, 30)
+READOUTS = {"C1_open": "Sh's mean (G4)", "C1_open_mean": "the reservoir's mean (G1)",
+            "C1_open_rise": "the voxel's own slow average (G3)"}
 
 
 def median(xs):
@@ -35,8 +38,8 @@ def main(argv=None):
     root = argv[0]
     f = lambda x: "-" if x is None else f"{x:.4g}"
     for pattern in argv[1:]:
-        per_round = {r: {"A": [], "mid": [], "mean": [], "max": [], "M": [], "Sh": [], "M/Sh": [], "open": {}}
-                     for r in ROUNDS}
+        per_round = {r: {"A": [], "mid": [], "mean": [], "max": [], "M": [], "Sh": [], "M/Sh": [],
+                         "open": {k: {} for k in READOUTS}} for r in ROUNDS}
         n = 0
         for path in sorted(glob.glob(os.path.join(root, pattern, "s4-*.json"))):
             if path.endswith(".summary.json"):
@@ -60,10 +63,11 @@ def main(argv=None):
                     d["Sh"].append(sel["Sh"]["C1"])
                     if sel["Sh"]["C1"] > 0:
                         d["M/Sh"].append(sel["M"]["C1"] / sel["Sh"]["C1"])
-                for row in sel.get("C1_open") or []:
-                    o = d["open"].setdefault(row["f"], {"M": [], "Sh": []})
-                    o["M"].append(row["M"])
-                    o["Sh"].append(row["Sh"])
+                for key in READOUTS:
+                    for row in sel.get(key) or []:
+                        o = d["open"][key].setdefault(row["f"], {"M": [], "Sh": []})
+                        o["M"].append(row["M"])
+                        o["Sh"].append(row["Sh"])
         print(f"### {pattern}: {n} pairs; medians over the pairs still in the joint rounds")
         print(f"  {'round':>5} {'pairs':>5} {'C1 at A':>9} {'C1 mid':>9} {'mid / A':>8} {'C1 mean':>9} {'C1 max':>9}"
               f" {'C1 in M':>9} {'C1 in Sh':>9} {'M / Sh':>7}")
@@ -73,10 +77,12 @@ def main(argv=None):
             print(f"  {rnd:>5} {len(d['A']):>5} {f(a):>9} {f(mid):>9} {f(mid / a if a and mid is not None else None):>8} "
                   f"{f(median(d['mean'])):>9} {f(median(d['max'])):>9} {f(median(d['M'])):>9} {f(median(d['Sh'])):>9}"
                   f" {f(median(d['M/Sh'])):>7}")
-        if any(per_round[r]["open"] for r in ROUNDS):
-            print("  thresholded readout (c1_open): open fraction of M / Sh voxels at C1 >= f x Sh's mean, medians")
+        for key, label in READOUTS.items():
+            if not any(per_round[r]["open"][key] for r in ROUNDS):
+                continue
+            print(f"  thresholded readout ({key}): open fraction of M / Sh voxels at C1 >= f x {label}, medians")
             for rnd in ROUNDS:
-                rows = per_round[rnd]["open"]
+                rows = per_round[rnd]["open"][key]
                 if rows:
                     cells = []
                     for fac in sorted(rows):

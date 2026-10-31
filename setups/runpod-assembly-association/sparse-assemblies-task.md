@@ -16,7 +16,9 @@ ideally biologically or physically plausible.
 > valid). The task continues after `engine-fix-rerun-task.md`, whose step 7 reran the SP1 to SP3
 > substrate on the fixed engine: S3b at lambda 1.0 with the inter-group I -> E gain at 0.5 sums and is the
 > substrate of Substep 3, which runs in two stages, 4 lambda then 10 lambda (user decisions, 2026-10-31;
-> "Rules"; `engine-fix-rerun-report.md`, step 7).** **[default]** marks a starting value the agent may
+> "Rules"; `engine-fix-rerun-report.md`, step 7). Stage 1 keeps L3 under gate form G1 (C1 relative to its
+> reservoir mean, 1-cell C1) at 4 lambda: 11 of 48 pairs against L0's 1, none with the gate open everywhere or
+> under separate rounds (`sparse-tuning-log.md`, entry 7); stage 2 (11 x 11 x 11, d 10) next.** **[default]** marks a starting value the agent may
 > change (log the reason). Formulas, functional forms and numbers in the variants are starting points, not
 > definitions: a variant is defined by its intent, and the agent may use other forms, or propose variants not
 > listed here, when they serve the goal better (log the reason and tell the user).
@@ -366,8 +368,8 @@ terminate pods after download, no commits without the user's go), plus:
     passing form and G4 (24 pairs, both substrates); L2 and L5 under the forms where L3 does best. Stage C: full
     decisions for the candidates that beat L0 without more strays, without the "no chemistry" control (its C2
     gain is 0, so its final test equals control 0 by construction).
-- **Cost:** own cap **$25** (preliminary; the user raises it when needed), standing approval within
-  it. Spend only on runs that decide something; report the cost at the end of each substep and
+- **Cost:** own cap **$65** (preliminary; $25, raised by $40 by the user on 2026-10-31; the user raises it when
+  needed), standing approval within it. Spend only on runs that decide something; report the cost at the end of each substep and
   before the cap would be exceeded.
 - **Files:** this file, `sparse-assemblies-report.md`, `sparse-tuning-log.md` (new files; the SP0 to SP3
   versions are in `archive-pre-engine-fix/`), `params/sparse-*.json`, `output/sp*`, and the harness code the new options need (`assoc_*.py`,
