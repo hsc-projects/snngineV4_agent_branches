@@ -22,8 +22,8 @@ Each entry gets a priority: **high**, **mid**, or **low**.
     (done, steps 0 to 8; conclusions A1 to A8 in `engine-fix-rerun-report.md`):
     the protocol associates 15 of 24 pairs at 7^3 and 11 of 24 at 9^3 (the faulty engine's results are
     archived in `setups/runpod-assembly-association/archive-pre-engine-fix/`). Next: the sparse task's
-    Substep 3 on S3b with a milder S6: L3 under gate form G1 kept at 4 lambda (11 of 48 pairs), stage 2 at 10
-    lambda next (`sparse-assemblies-task.md`,
+    Substep 3 on S3b with a milder S6: L3 under gate form G1 kept at 4 lambda (11 of 48 pairs); its distance
+    limit is 4 lambda (1 of 48 at 6 lambda, not significant; none at 8 or 10 lambda) (`sparse-assemblies-task.md`,
     `sparse-tuning-log.md`).
 
 - [mid] Engram avenue for the main feature (allocation by excitability, co-allocation window,

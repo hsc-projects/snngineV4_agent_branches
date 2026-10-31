@@ -18,7 +18,10 @@ ideally biologically or physically plausible.
 > substrate of Substep 3, which runs in two stages, 4 lambda then 10 lambda (user decisions, 2026-10-31;
 > "Rules"; `engine-fix-rerun-report.md`, step 7). Stage 1 keeps L3 under gate form G1 (C1 relative to its
 > reservoir mean, 1-cell C1) at 4 lambda: 11 of 48 pairs against L0's 1, none with the gate open everywhere or
-> under separate rounds (`sparse-tuning-log.md`, entry 7); stage 2 (11 x 11 x 11, d 10) next.** **[default]** marks a starting value the agent may
+> under separate rounds (`sparse-tuning-log.md`, entry 7), route selectivity R_off median 0.22; at 10 lambda (11 x 11 x
+> 11, d 10) it associates no pair, so it is kept at 4 lambda only (entry 9). Its distance limit is 4 lambda: 1 of
+> 48 pairs at 6 lambda, not more than its controls (p 0.5), and none of 24 at 8 lambda (entries 10 and 11). L2 and
+> L5 under G1 do not beat it (entry 8).** **[default]** marks a starting value the agent may
 > change (log the reason). Formulas, functional forms and numbers in the variants are starting points, not
 > definitions: a variant is defined by its intent, and the agent may use other forms, or propose variants not
 > listed here, when they serve the goal better (log the reason and tell the user).

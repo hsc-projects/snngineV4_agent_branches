@@ -293,3 +293,142 @@ Sessions and code changes of `sparse-assemblies-task.md` after the engine fixes 
 - **Cost:** the first ten pods about $2.45 (four until about 08:37 to 08:42, six until the termination at 08:48),
   the six rerun pods about $2.75 (09:51 to about 10:20 to 10:37 UTC), about $5.20 in all (estimated); all
   terminated (delete 204, `list-pods` empty). Substep 3 so far about $13.10 of the sparse task's $65.
+
+## Entry 8 (Substep 3, stage B continued, 2026-10-31): L2 and L5 under G1 at 4 lambda
+
+- **Hypothesis:** with the gate form that made L3 work (G1, 1-cell C1, theta1 2.5 x mean C1), the BTSP-like rule
+  gated by C1 (L2) and L3 with C1 released by learning (L5) also associate, possibly more than L3.
+- **Runs:** `params/sparse6a` to `sparse6l`, 9^3, lambda 1.0, d 4, S3b with inter-group I -> E gain 0.5, seed 0,
+  pairs 0 to 23, no controls, everything else as entry 7's main run: L2a (`btsp`, gate "c1", binary), L2b (`btsp`,
+  gate "c1", continuous, `rate` 0.5), L5 (L3 with `l5` {gain 1, c1_min 0}: release where L3 strengthens, which G1
+  already confines to where C1 is above 2.5 times its mean, so no further threshold). From the clone at a3ec320.
+- **Rule (fixed before the run):** a rule is a candidate for its own full decision if it associates more of the
+  24 pairs than L3 under G1 on the same pairs (entry 7, seed 0: 4) without higher median final strays (L3: 33).
+- **Runs:** six pods (RTX PRO 4500, $0.72/h) from 12:00 UTC, two sessions each, from the clone at a3ec320 (the volume's
+  clone brought from 21c93c5); all 12 sessions without error, the last at 12:29 UTC.
+- **Result** (`output/sparse6-entry8-summary.txt`; 24 pairs, seed 0):
+
+  | rule under G1 (9^3, d 4, S3b with I -> E 0.5) | transfers | associations | joint rounds, rollbacks |
+  |---|---|---|---|
+  | L2a, BTSP gated by C1, binary | 0 | 0 | 30 in every pair, none |
+  | L2b, BTSP gated by C1, continuous | 0 | 0 | 30 in every pair, none |
+  | L5, L3 with C1 released by learning | 2 | 1 (pair 15, 34 strays) | 4 to 16 in 8 pairs; rollback exhausted in 6 |
+  | L3 (entry 7, seed 0, the same pairs) | 5 | 4 (median 33) | |
+
+  - L2 changes nothing that transfers: with the gate events at C1 rising through 2.5 times its mean, the binary
+    and the continuous BTSP leave A and B unconnected in every pair. L5's release from strengthening feeds C1
+    where L3 learns, which the rollback rule cannot hold in 6 pairs.
+- **Rule:** no candidate; L3 stays the rule at 4 lambda.
+- **Cost:** six pods 12:00 to about 12:16 to 12:31 UTC, about $1.60 (estimated); all terminated (delete 204).
+
+## Entry 9 (Substep 3, stage 2, 2026-10-31): L3 under G1 at 10 lambda
+
+- **Hypothesis:** the kept rule also associates assemblies 10 lambda apart (11 x 11 x 11, d 10), where the
+  substrate does not sum and the route middle barely fires (`engine-fix-rerun-log.md`, "Step 7, S3b screening").
+- **Runs:** `params/sparse7a` to `sparse7l`, 11 x 11 x 11 (N 77 600, D 20), lambda 1.0, d 10, `pair_margin` 0 (as
+  the screening at 11^3), S3b with inter-group I -> E gain 0.5, strays limit 10 % (133 groups), seed 0, pairs 0 to
+  23: L3 under G1 (entry 7's settings), L0 with the rollback rule, and L3 with the gate open everywhere. No other
+  controls (screening). From the clone at a3ec320.
+- **Rule (fixed before the run):** L3 under G1 goes to a full decision at 10 lambda if it associates more pairs
+  than L0 and than with the gate open everywhere, without higher median final strays. Otherwise the rule is
+  reported as kept at 4 lambda only, which by the sparse task's Rules is not an association between distant
+  assemblies.
+- **Also (no new run):** `R_off` (pass criterion 3) for entry 7's 11 associations, from the runs' per-region
+  permanent weight changes (`sel_w_perm_change`: mean change per plastic E -> E synapse in Sh over the same in M),
+  computed on a pod.
+- **Runs:** six pods (RTX PRO 4500, $0.72/h) from 12:01 UTC, from the clone at a3ec320. Two 11^3 sessions do not fit
+  in 32 GB: in eight of the twelve the build stopped in preflight, CUDA out of memory (one session alone uses about
+  21 GB); they were rerun on the same pods one after the other. All 12 sessions then without error, the last at
+  13:00 UTC.
+- **Result** (`output/sparse7-stage2-summary.txt`; 24 pairs, seed 0):
+
+  | 11^3, lambda 1.0, d 10 (10 lambda) | transfers | associations | joint rounds; rollback exhausted |
+  |---|---|---|---|
+  | L3 under G1, 1-cell C1 | 0 | 0 | 8 to 14 in 8 pairs, else 30; 8 |
+  | L0 with the rollback rule | 0 | 0 | 9 to 23 in 18 pairs; 18 |
+  | L3 with the gate open everywhere | 0 | 0 | 7 to 14 in 19 pairs; 19 |
+
+  - No setting transfers A to B in any pair at 10 lambda. Where the runs stop early, training ignites the reservoir
+    until the rollback rule's lowest rate (1/16) still ignites.
+- **Rule:** L3 under G1 associates no more than L0 or the gate-open control (0 against 0), so it is **kept at 4
+  lambda only**, which by the sparse task's Rules is not an association between distant assemblies.
+- **R_off (entry 7's 11 associations at 4 lambda;** `output/sparse5-route-selectivity.txt`): 0.14, 0.17, 0.18, 0.19,
+  0.20, 0.22, 0.26, 0.30, 0.30, 0.31, 0.36; median **0.22** (target <= 0.25), none above 0.5. The readout counts E -> E
+  synapses onto excitatory neurons of either kind (assemblies included), not only onto ordinary neurons as pass
+  criterion 3 states.
+- **Cost:** six pods 12:01 to about 12:24 to 13:00 UTC, about $3.00 (estimated); all terminated (delete 204,
+  `list-pods` empty). Substep 3 so far about $17.70 of the sparse task's $65 (entry 8 about $1.60).
+- **Decision:** the user's.
+
+## Entry 10 (Substep 3, 2026-10-31): the distance at which L3 under G1 stops associating
+
+- **Hypothesis:** L3 under G1 associates as far as the substrate sums (entry 7: 11 of 48 at 4 lambda; the
+  substrate's summation is not significant at 6.7 lambda and absent at 10 lambda), so its associations fall off
+  between 4 and 8 lambda; if they reach 6 or 8 lambda, learning extends the route beyond the substrate's range.
+- **Runs:** from the clone at a3ec320, lambda 1.0, S3b with inter-group I -> E gain 0.5, seed 0, pairs 0 to 23,
+  everything else as entries 7 and 9: `params/sparse8a` to `sparse8l`: 9^3, d 6 (6 lambda), L3 under G1, L0 with
+  the rollback rule, and L3 with the gate open everywhere; `params/sparse9a` to `sparse9d`: 11^3, d 8 (8 lambda), L3
+  under G1 only (L0 and the gate-open control associated 0 to 1 of 24 at 4 and 10 lambda; they follow if L3
+  associates at 8 lambda). `pair_margin` 0 at both sizes.
+- **Rule (fixed before the run):** at 6 lambda, L3 under G1 counts as associating if it has more associations than
+  L0 and than the gate-open control (24 pairs; a screening, a full decision follows if it does); at 8 lambda, any
+  association of L3 under G1 calls for the two controls. The distance limit is reported as the largest d at which
+  the rule associates more than its controls.
+- **Runs:** ten pods (RTX PRO 4500, $0.72/h) from 13:52 UTC: six with two 9^3 sessions each, four with one 11^3
+  session each; params uploaded to the volume (checksums match). All 16 sessions without error, the last at about
+  14:26 UTC.
+- **Result** (`output/sparse8-entry10-summary.txt`; 24 pairs, seed 0):
+
+  | lambda 1.0, S3b with I -> E 0.5 | transfers | associations | joint rounds; rollback exhausted |
+  |---|---|---|---|
+  | 9^3, d 6: L3 under G1, 1-cell C1 | 1 | 1 (pair 9, 71 strays) | 7 to 24 in 14 pairs, else 30; 13 |
+  | 9^3, d 6: L0 with the rollback rule | 0 | 0 | 10 to 24 in 20 pairs; 20 |
+  | 9^3, d 6: L3 with the gate open everywhere | 0 | 0 | 7 to 16 in 20 pairs; 20 |
+  | 11^3, d 8: L3 under G1, 1-cell C1 | 0 | 0 | |
+
+  - Paired against L0 and against the gate-open control, 1 to 0 each (McNemar's exact one-sided p 0.5). Control 0
+    holds in the associated pair; its `R_off` is 0.36 (entry 7's median at 4 lambda: 0.22).
+- **Rule:** at 6 lambda, 1 association against 0 and 0 is more than both controls, so by the rule fixed above the
+  full decision follows (entry 11). At 8 lambda L3 under G1 associates no pair, so no controls are run there. The
+  limit therefore lies between 4 and 8 lambda: at 6 lambda if entry 11 keeps the rule, otherwise at 4 lambda.
+- **Cost:** ten pods 13:52 to about 14:15 to 14:30 UTC, about $3.35 (estimated); all terminated (delete 204; the
+  pods `list-pods` still shows are another session's). Substep 3 so far about $21.05 of the sparse task's $65.
+
+## Entry 11 (Substep 3, 2026-10-31): full decision for L3 under G1 at 6 lambda
+
+- **Hypothesis:** entry 10's single association at 6 lambda is a real gain over L0 and needs C1's spatial pattern
+  and the joint activation of A and B, as at 4 lambda (entry 7).
+- **Runs:** `params/sparse10a` to `sparse10p`, all as entry 10's 9^3 runs (d 6, `pair_margin` 0), from the clone at
+  a3ec320:
+  - main: L3 under G1, seeds 0 and 1, pairs 0 to 23 each, with control 0 and the separate-rounds control in every
+    job (as entry 7; seed 0 repeats entry 10's main run with the controls added);
+  - the gate open everywhere and L0 with the rollback rule, seed 1 (seed 0 is entry 10's).
+- **Rule (fixed before the run):** entry 7's four conditions over the 48 pairs, paired by pair (McNemar's exact
+  one-sided test, p < 0.05): L3 under G1 is kept at 6 lambda if (1) it associates more pairs than L0, (2) more than
+  with the gate open everywhere, (3) the separate-rounds control associates fewer pairs than the main run, and (4)
+  its median final strays are not above L0's or the gate-open run's (where those associate). Control 0 must hold in
+  every associated pair. If kept, the distance limit is 6 lambda (8 lambda: none, entry 10); otherwise 4 lambda, and
+  the report says which condition failed.
+- **Runs:** eight pods (RTX PRO 4500, $0.72/h) from 14:40 UTC, two sessions each; params uploaded to the volume
+  (checksums match). All 16 sessions without error, the last at about 15:19 UTC.
+- **Result** (`sparse_decision.py` and the sweep and controls summaries on the last pod:
+  `output/sparse10-entry11-decision.txt`; 48 pairs, seeds 0 and 1, paired by pair):
+
+  | 9^3, d 6 (6 lambda) | associations | median final strays |
+  |---|---|---|
+  | L3 under G1, 1-cell C1 (main) | 1 of 48 (seed 0, pair 9) | 71 |
+  | separate-rounds control (in the main jobs) | 0 of 48 | |
+  | gate open everywhere | 0 of 48 | |
+  | L0 with the rollback rule | 0 of 48 | |
+
+  - Paired, McNemar's exact one-sided test: main against L0, against the gate-open control and against the
+    separate-rounds control 1 to 0 each, p 0.5. Control 0 holds in the associated pair. Seed 0 repeats entry 10's
+    main run exactly (pair 9, 71 strays); seed 1 adds no association.
+  - Seed 1, rollback rule exhausted: main 17 of 24, gate open 20, L0 20 (joint rounds 6 to 30).
+- **Rule:** conditions (1) to (3) fail (p 0.5 each, not below 0.05); (4) holds (no control associates). L3 under G1 is
+  **not kept at 6 lambda**. With entries 7, 9 and 10, its distance limit is **4 lambda**: it associates 11 of 48
+  pairs at 4 lambda, 1 of 48 at 6 lambda (not significant), 0 of 24 at 8 and at 10 lambda. At 4 lambda that is
+  not yet an association between distant assemblies by the sparse task's Rules.
+- **Cost:** eight pods 14:40 to about 14:55 to 15:21 UTC, about $2.70 (estimated); all terminated (delete 204).
+  Substep 3 so far about $23.75 of the sparse task's $65.
+- **Decision:** the user's.
