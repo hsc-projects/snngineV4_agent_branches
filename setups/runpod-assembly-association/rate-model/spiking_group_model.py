@@ -46,8 +46,10 @@ import numpy as np
 from rate_model import (DERIVED, Spec, ChemicalFieldLattice, gate, path_groups, pick_pairs, group_distances,
                         lattice_coords, delay_count)
 
-KIND_EE, KIND_EE_INTRA, KIND_EI, KIND_IE, KIND_EI_INTER, KIND_II = 0, 1, 2, 3, 4, 5
-PLASTIC_LUT = np.array([True, False, True, False, True, False])   # KIND_II: only in exported engine networks (round 6)
+# KIND_EE: E -> E outside assemblies (between groups, or within a non-assembly group: assoc_engine.inter_ee_mask);
+# KIND_EE_INTRA: within an assembly; KIND_IE: I -> E within a group, KIND_IE_INTER between groups (gain_ie_inter)
+KIND_EE, KIND_EE_INTRA, KIND_EI, KIND_IE, KIND_EI_INTER, KIND_II, KIND_IE_INTER = 0, 1, 2, 3, 4, 5, 6
+PLASTIC_LUT = np.array([True, False, True, False, True, False, False])   # KIND_II: only in exported engine networks (round 6)
 W_LO, W_HI = 0.05, 1.0
 
 
@@ -69,6 +71,10 @@ class SpikeSpec(Spec):
     # frac_I_to_I of their synapses, as measured in networks built by the engine before its fix of 2026-10-30
     # (transposed synapse table, round6-report.md). 0 is the configured composition (rounds 4 and 5, the fixed engine).
     frac_I_to_I: float = 0.0
+    # sparse task S6 (assoc_engine.set_gains): E -> I and I -> E synapses between groups additionally times these;
+    # exported networks only (round 6 step 4)
+    gain_ei_inter: float = 1.0
+    gain_ie_inter: float = 1.0
 
     @property
     def S_red(self) -> int:
@@ -203,11 +209,18 @@ class SpikingNetwork:
         self.rng_inj = np.random.default_rng(self.seed + 7919)
         self._inj_cache: Dict[int, np.ndarray] = {}
         self.capture_raw = False                 # round 6: keep the unclamped summed input of the last step
+        self.spike_acc = None                    # optional (N,) spike counter, incremented by run() (AssocRun.spike_acc)
+        self.input_acc = None                    # optional (N,) summed unclamped synaptic input per step (AssocRun.input_acc)
+        self.lo2 = self.hi2 = None               # per-synapse plasticity bounds (N, S), only for heavy-tailed weights
         if s.export_dir:
             self._load_export(s.export_dir)
             N = self.N
         else:
+            if s.gain_ei_inter != 1.0 or s.gain_ie_inter != 1.0:
+                raise ValueError("gain_ei_inter / gain_ie_inter are supported on exported networks only")
             N = self._build_own(rng)
+        self.lo_f = None if self.lo2 is None else self.lo2.reshape(-1)
+        self.hi_f = None if self.hi2 is None else self.hi2.reshape(-1)
         # --- fields (cell lattice, as in round 3)
         self.c1 = ChemicalFieldLattice(s.grid_dim, s.c1["k"], s.c1["decay"], vox_per_cell=s.vox_per_cell)
         self.c2 = ChemicalFieldLattice(s.grid_dim, s.c2["k"], s.c2["decay"], vox_per_cell=s.vox_per_cell)
@@ -290,12 +303,18 @@ class SpikingNetwork:
         for r in range(1, self.D + 1):
             delay += (cols >= bnd[:, r:r + 1]).astype(np.int8)
         self.delay = delay
+        # sparse assemblies (round 6 step 4): which groups are assemblies, in the model's numbering (all without a layout)
+        self.is_asm = np.ones(G, dtype=bool)
+        if meta.get("is_asm") is not None:
+            self.is_asm[self.engine_to_model] = np.asarray(meta["is_asm"], dtype=bool)
         same = grp[self.post] == grp[:, None]
         postE = self.isE[self.post]
         preE = self.isE[:, None]
-        kind = np.full(post.shape, KIND_IE, dtype=np.int8)
-        kind[preE & postE & same] = KIND_EE_INTRA
-        kind[preE & postE & ~same] = KIND_EE
+        intra_asm = same & self.is_asm[grp][:, None]
+        kind = np.full(post.shape, KIND_IE_INTER, dtype=np.int8)
+        kind[~preE & postE & same] = KIND_IE
+        kind[preE & postE & intra_asm] = KIND_EE_INTRA
+        kind[preE & postE & ~intra_asm] = KIND_EE
         kind[preE & ~postE & same] = KIND_EI
         kind[preE & ~postE & ~same] = KIND_EI_INTER
         kind[~preE & ~postE] = KIND_II          # the engine builds inhibitory -> inhibitory synapses too
@@ -304,13 +323,20 @@ class SpikingNetwork:
         self.wp = self.wp0.copy()
         self.F = np.zeros((N, S), dtype=F32)
         self.touched = np.zeros((N, S), dtype=bool)
+        # heavy-tailed initial weights (S2, S3: weights.inter_ee): the bounds apply to plastic changes only, so each
+        # such synapse's bounds widen to include its initial weight (assoc_protocol.AssocRun.new_plasticity)
+        if (meta.get("params", {}).get("weights") or {}).get("inter_ee") is not None:
+            m = kind == KIND_EE
+            self.lo2 = np.where(m, np.minimum(F32(W_LO), self.wp0), F32(W_LO)).astype(F32)
+            self.hi2 = np.where(m, np.maximum(F32(W_HI), self.wp0), F32(W_HI)).astype(F32)
         self.gm = np.array([
             s.gain * s.gain_ee_inter * s.w_inter_scale,
             s.gain,
             s.gain * s.gain_ei,
             s.gain * s.gain_ie * s.w_inh_scale,
-            s.gain * s.gain_ei * s.ei_inter_scale,
-            s.gain], dtype=F32)                  # I -> I: set_gains applies neither gain_ei nor gain_ie
+            s.gain * s.gain_ei * s.gain_ei_inter * s.ei_inter_scale,
+            s.gain,                              # I -> I: set_gains applies neither gain_ei nor gain_ie
+            s.gain * s.gain_ie * s.gain_ie_inter * s.w_inh_scale], dtype=F32)
         # the engine weights must equal normalized weight x kind gain at the derived gains (all factors 1)
         if s.w_inter_scale == 1.0 and s.w_inh_scale == 1.0 and s.ei_inter_scale == 1.0:
             dev = float(np.abs(ld("w_engine") - self.wp0 * self.gm[kind]).max())
@@ -391,7 +417,9 @@ class SpikingNetwork:
             s.gain * s.gain_ei * (s.S * s.frac_E_to_I / max(S_ei, 1)),
             s.gain * s.gain_ie * (s.S * s.frac_I_to_E * (1.0 - s.frac_I_to_I) / max(S_ie, 1)) * s.w_inh_scale,
             s.gain * s.gain_ei * (s.S * s.frac_E_to_I / max(S_ei, 1)) * s.ei_inter_scale,
-            s.gain * (s.S * s.frac_I_to_I / max(S_ii, 1))], dtype=F32)
+            s.gain * (s.S * s.frac_I_to_I / max(S_ii, 1)),
+            s.gain * s.gain_ie * (s.S * s.frac_I_to_E * (1.0 - s.frac_I_to_I) / max(S_ie, 1)) * s.w_inh_scale],
+            dtype=F32)                           # the own construction labels every I -> E synapse KIND_IE
         self.kind_f, self.post_f = self.kind.reshape(-1), self.post.reshape(-1)
         self.delay_f = self.delay.reshape(-1)
         self.wp_f, self.F_f = self.wp.reshape(-1), self.F.reshape(-1)
@@ -459,14 +487,24 @@ class SpikingNetwork:
         w = self.wp_f[ids]
         if fmult != 0.0:
             w = w + self.F_f[ids] * F32(fmult * self.m)
-        w = np.where(PLASTIC_LUT[kd], np.clip(w, W_LO, W_HI), w)
+        w = np.where(PLASTIC_LUT[kd], self._clip(w, ids), w)
         return w * self.gm[kd]
+
+    def _clip(self, w: np.ndarray, ids: np.ndarray) -> np.ndarray:
+        """Clip normalized weights of synapses `ids` to their plasticity bounds."""
+        if self.hi_f is None:
+            return np.clip(w, W_LO, W_HI)
+        return np.clip(w, self.lo_f[ids], self.hi_f[ids])
+
+    def _bound(self, ids: np.ndarray):
+        """Upper bound of the soft-bounded changes (GatedPlasticity.bound) of synapses `ids`."""
+        return F32(W_HI) if self.hi_f is None else self.hi_f[ids]
 
     def effective_normalized(self, ids: np.ndarray, fmult: float = 1.0) -> np.ndarray:
         w = self.wp_f[ids]
         if fmult != 0.0:
             w = w + self.F_f[ids] * F32(fmult * self.m)
-        return np.clip(w, W_LO, W_HI)
+        return self._clip(w, ids)
 
     # -- one step ---------------------------------------------------------------------------------------------
     def _deliver(self, fired: np.ndarray, fmult: float):
@@ -526,6 +564,12 @@ class SpikingNetwork:
         # time index of this step's spikes
         self.k += 1
         nxt, ids, lags = self._deliver(fired, fmult)
+        if nxt is None and self.capture_raw:
+            self.last_input_raw = np.zeros(self.N, dtype=F32)
+        if self.spike_acc is not None and len(fired):
+            self.spike_acc[fired] += 1.0
+        if self.input_acc is not None and nxt is not None:
+            self.input_acc += self.last_input_raw             # synaptic input only: before clamp and injection
         A = self._activity_update(fired, window)
         n_fired = len(fired)
         if chem and (release1 or release2 or self.c1.c.any() or self.c2.c.any()):
@@ -581,7 +625,7 @@ class SpikingNetwork:
                         sel = sel[ok]
                         if len(sel):
                             w = self.effective_normalized(sel)
-                            dw = a_plus * w * (W_HI - w)
+                            dw = a_plus * w * (self._bound(sel) - w)
                             if not g1_trivial:
                                 dw = dw * g1grp[self.grp[self.post_f[sel]]]
                             u_ids.append(sel)
@@ -597,7 +641,7 @@ class SpikingNetwork:
                         sel = sel[ok2]
                         if len(sel):
                             w = self.effective_normalized(sel)
-                            dw = -a_minus * w * (W_HI - w)
+                            dw = -a_minus * w * (self._bound(sel) - w)
                             if not g1_trivial:
                                 dw = dw * g1grp[self.grp[self.post_f[sel]]]
                             u_ids.append(sel)
@@ -613,8 +657,12 @@ class SpikingNetwork:
                 if len(fe):
                     kd = self.kind[fe]
                     pl = PLASTIC_LUT[kd]
-                    w = np.clip(self.wp[fe] + self.F[fe] * F32(m), W_LO, W_HI)
-                    g = a_pre * w * (W_HI - w)
+                    if self.hi2 is None:
+                        w = np.clip(self.wp[fe] + self.F[fe] * F32(m), W_LO, W_HI)
+                        g = a_pre * w * (W_HI - w)
+                    else:
+                        w = np.clip(self.wp[fe] + self.F[fe] * F32(m), self.lo2[fe], self.hi2[fe])
+                        g = a_pre * w * (self.hi2[fe] - w)
                     if not g1_trivial:
                         g = g * g1grp[self.grp[fe]][:, None] * g1grp[self.grp[self.post[fe]]]
                     self.F[fe] += np.where(pl, g / m, 0.0).astype(F32)
@@ -631,7 +679,7 @@ class SpikingNetwork:
                         tid, gp = tid[on], gp[on]
                         fast = self.F_f[tid] * F32(self.m)
                         moved = (s.kappa * gp).astype(F32) * fast
-                        self.wp_f[tid] = np.clip(self.wp_f[tid] + moved, W_LO, W_HI)
+                        self.wp_f[tid] = self._clip(self.wp_f[tid] + moved, tid)
                         self.F_f[tid] = (fast - moved) / F32(self.m)
             self.m *= self.fast_decay
 

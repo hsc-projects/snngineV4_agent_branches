@@ -37,8 +37,8 @@ import numpy as np
 
 from rate_model import Spec, group_distances, lattice_coords
 from spiking_group_model import (SpikeSpec, SpikingNetwork, Izhikevich, neuron_parameters, F32, KIND_EE,
-                                 KIND_EE_INTRA, KIND_EI, KIND_IE, KIND_EI_INTER, PLASTIC_LUT, run_pair_protocol,
-                                 run_test)
+                                 KIND_EE_INTRA, KIND_EI, KIND_IE, KIND_EI_INTER, KIND_IE_INTER, PLASTIC_LUT,
+                                 run_pair_protocol, run_test)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PARENT = os.path.dirname(HERE)
@@ -261,6 +261,66 @@ class TestWeightsAgainstEngineRules(unittest.TestCase):
             out.append(res)
         for a, b in zip(*out):
             self.assertLess(abs(a - b) / abs(b), 0.08, out)
+
+
+class TestSparseExport(unittest.TestCase):
+    """Round 6 step 4: an exported network with sparse assemblies (lattice, spacing 2), heavy-tailed E -> E weights
+    outside assemblies and the S6 gains; engine weights against a numpy transliteration of assoc_engine.set_gains."""
+
+    def test_kinds_gains_bounds_and_counters(self):
+        import tempfile
+        from round6_compare import own_arrays
+        gain, gain_ei, gain_ie, gee, gie_inter = 4.0, 1.0, 2.0, 0.6, 0.5
+        own = SpikingNetwork(small_spec(neuron_scale=1.0, syn_scale=1.0, S=200), seed=3)
+        x = own_arrays(own)
+        post, isE, grp, cells = x["post"], own.isE, own.grp, own.coords
+        is_asm = ((cells % 2) == 0).all(axis=1)
+        same = grp[post] == grp[:, None]
+        preE, postE = isE[:, None], isE[post]
+        intra_asm = same & is_asm[grp][:, None]
+        inter_ee = preE & postE & ~intra_asm
+        w_norm = x["w_norm"].astype(np.float32).copy()
+        heavy = inter_ee & (np.random.default_rng(1).random(post.shape) < 0.05)
+        w_norm[heavy] = 3.0
+        m = np.full(post.shape, gain)                       # set_gains, transliterated
+        m[preE & ~postE] *= gain_ei
+        m[~preE & postE] *= gain_ie
+        m[~preE & postE & ~same] *= gie_inter
+        m[inter_ee] *= gee
+        with tempfile.TemporaryDirectory() as d:
+            arrays = {"post": post, "w_engine": (w_norm * m).astype(np.float32), "w_norm": w_norm, "bnd": x["bnd"],
+                      "abcd": x["abcd"], "init_vu": x["init_vu"], "types": np.where(isE, 2, 1).astype(np.int8),
+                      "groups": grp.astype(np.int32), "model_flag": x["model_flag"], "group_cell": cells}
+            for k, v in arrays.items():
+                np.save(os.path.join(d, f"{k}.npy"), v)
+            meta = {"G": own.G, "D": own.D, "N": own.N, "S": own.S, "seed": 3, "type_exc": 2,
+                    "is_asm": is_asm.tolist(),
+                    "params": {"gain_ie_inter": gie_inter, "weights": {"inter_ee": {"kind": "lognormal"}}}}
+            with open(os.path.join(d, "meta.json"), "w") as f:
+                json.dump(meta, f)
+            # the loader raises if the engine weights differ from normalized weight x kind gain
+            net = SpikingNetwork(small_spec(neuron_scale=1.0, syn_scale=1.0, S=200, export_dir=d,
+                                            gain_ie_inter=gie_inter), seed=3)
+        np.testing.assert_array_equal(net.kind == KIND_EE, inter_ee)
+        np.testing.assert_array_equal(net.kind == KIND_EE_INTRA, preE & postE & intra_asm)
+        np.testing.assert_array_equal(net.kind == KIND_IE_INTER, ~preE & postE & ~same)
+        hid = np.flatnonzero(heavy.ravel())
+        np.testing.assert_allclose(net.engine_weights(hid, 1.0), (3.0 * m.ravel()[hid]), rtol=1e-6)   # not clipped to 1
+        np.testing.assert_allclose(net._clip(np.full(len(hid), 5.0, np.float32), hid), 3.0)
+        nid = np.flatnonzero((inter_ee & ~heavy).ravel())[:50]
+        self.assertTrue((net._clip(np.full(len(nid), 5.0, np.float32), nid) == 1.0).all())
+        # counters: spikes per neuron sum to the run's spike count; no input without spikes
+        net.set_injection(0, np.flatnonzero(net.isE & (net.grp == 0))[:12])
+        net.reset_dynamics()
+        net.spike_acc = np.zeros(net.N)
+        net.capture_raw, net.input_acc = True, np.zeros(net.N)
+        res = net.run(40, inject=[net.inject_idx(0)], inject_steps=20, chem=False)
+        self.assertEqual(int(net.spike_acc.sum()), int(res["spikes"]))
+        self.assertGreater(float(np.abs(net.input_acc).sum()), 0.0)
+        net.reset_dynamics()
+        net.spike_acc[:], net.input_acc[:] = 0.0, 0.0
+        net.run(20, inject=[], chem=False)
+        self.assertEqual(float(np.abs(net.input_acc).sum()), 0.0)
 
 
 class PlainEngine:

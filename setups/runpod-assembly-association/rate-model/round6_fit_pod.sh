@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Round 6 step 3, fit (round6-report.md, "Step 3"): model B with the C2 stage on exports of the engine-fix rerun's
-# networks (7^3: step 5, lambda 0.4; 9^3: step 6, d 4) at the steps' settings plus extra settings per job (the
+# networks (7^3: step 5, lambda 0.4; 9^3 and 11^3: step 6, d 4) at the steps' settings plus extra settings per job (the
 # fitted parameter, e.g. kappa; c2_uniform for the uniform-C2 check), final strays recorded per pair.
 # Run on a GPU pod after setups/runpod-engine-tests/run_on_pod.py (e.g. --configs small) has unpacked a
 # pack_tree.sh copy and built its backend in /root/engine-tests/tree:
@@ -36,7 +36,8 @@ MEMG=$(free -g | awk '/^Mem:/{print $2}'); ML=$(cat /sys/fs/cgroup/memory.max 2>
 log "PACK_INFO: $(tr '\n' ';' < "$W/PACK_INFO"); $NCPU CPUs, $MEMG GB; jobs: $*"
 
 declare -A PARAMS=([7:0]=rerun5e-proto-lam0.4-s0:proto [7:1]=rerun5g-proto-lam0.4-s1:proto
-                   [9:0]=rerun6c-grid-g9-d4-s0:E0 [9:1]=rerun6d-grid-g9-d4-s1:E0)
+                   [9:0]=rerun6c-grid-g9-d4-s0:E0 [9:1]=rerun6d-grid-g9-d4-s1:E0
+                   [11:0]=rerun6g-grid-g11-d4-s0:E0 [11:1]=rerun6h-grid-g11-d4-s1:E0)
 log "exports (one at a time: two 9^3 builds exceed the GPU memory)"
 for k in $(for j in "$@"; do IFS=: read -r size seeds _ <<< "$j"; for s in ${seeds//,/ }; do echo "$size:$s"; done; done | sort -u); do
   tag="g${k%%:*}-lam0.4-s${k##*:}"; IFS=: read -r params suffix <<< "${PARAMS[$k]}"
@@ -45,13 +46,13 @@ for k in $(for j in "$@"; do IFS=: read -r size seeds _ <<< "$j"; for s in ${see
     || { log "export $tag failed"; tail -5 "$OUT/export_$tag.log" >> "$OUT/session.log"; finish 3; }
 done
 
-# workers: memory per full-size model B process, upper bounds 9^3 4.5 GB, 7^3 2.5 GB (in tenths); 90 % of the
+# workers: memory per full-size model B process, upper bounds 11^3 8.5 GB, 9^3 4.5 GB, 7^3 2.5 GB (in tenths); 90 % of the
 # container's memory shared in proportion to each job's need, at most one worker per simulation, at most NCPU in all
 need=0; for j in "$@"; do IFS=: read -r size seeds _ <<< "$j"; n=$(( 12 * $(echo "${seeds//,/ }" | wc -w) ))
-  need=$(( need + n * ( size == 9 ? 45 : 25 ) )); done
+  need=$(( need + n * ( size == 11 ? 85 : size == 9 ? 45 : 25 ) )); done
 pids=(); labels=()
 for j in "$@"; do
-  IFS=: read -r size seeds sets <<< "$j"; n=$(( 12 * $(echo "${seeds//,/ }" | wc -w) )); m=$(( size == 9 ? 45 : 25 ))
+  IFS=: read -r size seeds sets <<< "$j"; n=$(( 12 * $(echo "${seeds//,/ }" | wc -w) )); m=$(( size == 11 ? 85 : size == 9 ? 45 : 25 ))
   wk=$(( MEMG * 9 * n * m / need / m )); cpu=$(( NCPU * n * m / need )); [ "$cpu" -lt "$wk" ] && wk=$cpu
   [ "$wk" -gt "$n" ] && wk=$n; [ "$wk" -lt 1 ] && wk=1
   ex=(); for s in ${seeds//,/ }; do ex+=("$X/g$size-lam0.4-s$s"); done

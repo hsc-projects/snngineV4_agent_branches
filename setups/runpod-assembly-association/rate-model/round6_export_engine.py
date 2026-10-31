@@ -7,11 +7,16 @@ engine's A-alone tests before learning (control 0 of assoc_protocol.substep4_pro
 step, and write the structure audit (round6_compare.structure_audit) of the exported network.
 
   python round6_export_engine.py --params P1.json [P2.json ...] --suffix E0 --out DIR [--tag g9-s0]
-         [--input-steps 12] [--no-arrays]
+         [--input-steps 12] [--no-arrays] [--survey]
 
 All params files must share one engine configuration (one engine per process: building a second engine in
 one process fails, see assoc_queue.py). Every job whose name ends with --suffix is replayed as far as its
-control-0 tests. Output in DIR/<tag>/:
+control-0 tests. With --survey (round 6 step 4, the sparse substrate), the selected jobs are prop_survey and
+input_survey jobs (name ending with --suffix + "-prop_survey" or "-input_survey") instead: no test is run; per
+job, the survey's pairs as it draws them, their path groups, bridges, off-route assemblies and injected neurons
+go into meta.json, and survey_<job>.npz holds per pair the neuron masks of the regions M and Sh and the bin of
+the input survey's profile (-1 outside), all from the engine's own geometry (assoc_protocol.AssocRun).
+Output in DIR/<tag>/:
   meta.json            sizes, engine configuration, the first job's parameters, structure report, audit, per job:
                        pair, injected neurons of A and B, control-0 test results
   post.npy             (N, S) int32 postsynaptic neuron of synapse s of neuron n (N_rep transposed; -1 deleted)
@@ -55,6 +60,64 @@ def engine_key(spec: dict, job: dict) -> str:
     return json.dumps(merge(spec["engine"], job.get("engine", {})), sort_keys=True)
 
 
+PROFILE_EDGES = [-0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5]      # assoc_protocol.input_survey
+
+
+def survey_entry(run, eng, fname: str, name: str, jtype: str, kwargs: dict, out: str, replay: bool = False) -> dict:
+    """
+    One survey job's pairs, drawn and prepared as assoc_protocol.prop_survey / input_survey do (all pairs first,
+    then the injected neurons of A and B pair by pair, which is the order both surveys first ask for them), with
+    the path groups, bridges and off-route assemblies of prop_survey and the neuron regions of both. With `replay`
+    (a prop_survey job whose weights are the exported ones), the engine also runs the survey's joint, A and B
+    conditions on this network and records per pair its spike count, M and Sh (step 2's check for the survey).
+    """
+    import torch
+    p = run.p
+    pairs = [run.pick_pair(p["protocol"]["pair_distance"]) for _ in range(int(kwargs.get("n_pairs", 8)))]
+    cells = eng.pos / eng.cell_size
+    r = float(p["sel_radius"])
+    rows, m_mask, s_mask, prof = [], [], [], []
+    for a, b, c in pairs:
+        path = run.path_groups(a, b)
+        bridges = [g for g in path if bool(run.is_asm[g])] if run.sparse else []
+        off_asm = run.is_asm.clone()
+        off_asm[[a, b] + bridges] = False
+        inj = {str(g): run.inject_idx_cached(g).cpu().numpy().astype(np.int64).tolist() for g in (a, b)}
+        nm, ns = run.regions(a, b)["neuron"]
+        t, rho, _, _ = run.seg_coords(cells, a, b)
+        code = torch.full((eng.N,), -1, dtype=torch.int8, device=eng.device)
+        for i, (lo, hi) in enumerate(zip(PROFILE_EDGES[:-1], PROFILE_EDGES[1:])):
+            code[(rho < r) & (t >= lo) & (t < hi)] = i
+        rows.append({"A": a, "B": b, "C": c, "dist": run.group_dist(a, b), "path": path, "bridges": bridges,
+                     "off_asm": torch.nonzero(off_asm).view(-1).tolist(), "inject": inj})
+        m_mask.append(nm.cpu().numpy())
+        s_mask.append(ns.cpu().numpy())
+        prof.append(code.cpu().numpy())
+    if replay:
+        rnd = p["inject_steps"] + p["gap_steps"]
+        exc = eng.exc.cpu().numpy()
+        run.set_noise_phase(True)
+        run.spike_acc = torch.zeros(eng.N, device=eng.device)
+        for row, nm, ns in zip(rows, m_mask, s_mask):
+            a, b, rep = row["A"], row["B"], {}
+            for cond, inj in (("joint", (a, b)), ("A", (a,)), ("B", (b,))):
+                run.reset_dynamics()
+                run.spike_acc.zero_()
+                _, _, n = run.run(rnd, inject=[run.inject_idx_cached(g) for g in inj], track=[a, b] + row["path"],
+                                  chem=False, release1=False, header=f"replay {cond}")
+                sa = run.spike_acc.cpu().numpy()
+                rep[cond] = {"spikes": int(n), "M": float(sa[nm & exc].sum()) / max(1, int((nm & exc).sum())),
+                             "Sh": float(sa[ns & exc].sum()) / max(1, int((ns & exc).sum())),
+                             "runaway": run.stopped is not None}
+            row["engine_replay"] = rep
+        run.spike_acc = None
+        run.set_noise_phase(False)
+    np.savez_compressed(os.path.join(out, f"survey_{name}.npz"), M=np.stack(m_mask), Sh=np.stack(s_mask),
+                        profile=np.stack(prof))
+    return {"params_file": fname, "job": name, "type": jtype, "survey": True, "pairs": rows,
+            "sel_radius": r, "profile_edges": PROFILE_EDGES}
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--params", nargs="+", required=True)
@@ -63,7 +126,11 @@ def main(argv=None):
     ap.add_argument("--tag", default=None, help="output subdirectory (default: g<dim>-s<seed>)")
     ap.add_argument("--input-steps", type=int, default=12)
     ap.add_argument("--no-arrays", action="store_true", help="audit and tests only, no network arrays")
+    ap.add_argument("--survey", action="store_true", help="export prop_survey / input_survey jobs (sparse substrate)")
+    ap.add_argument("--replay", action="store_true",
+                    help="with --survey: the engine runs the first prop_survey job's conditions on the exported weights")
     args = ap.parse_args(argv)
+    survey_types = ("prop_survey", "input_survey")
 
     import torch
     from assoc_engine import AssocEngine, ROW_I, ROW_U, ROW_V, FLAG_TYPE, FLAG_GROUP, TYPE_EXC
@@ -75,14 +142,18 @@ def main(argv=None):
         spec = json.loads(open(path).read())
         defaults = merge(DEFAULTS, spec.get("defaults", {}))
         for job in spec["jobs"]:
-            if not job["name"].endswith(args.suffix) or job["type"] != "substep4":
+            if args.survey:
+                if job["type"] not in survey_types or job["name"] != f"{args.suffix}-{job['type']}":
+                    continue
+            elif not job["name"].endswith(args.suffix) or job["type"] != "substep4":
                 continue
             k = engine_key(spec, job)
             if key is None:
                 key = k
             elif k != key:
                 raise SystemExit(f"{path}: job {job['name']} has another engine configuration")
-            jobs.append((os.path.basename(path), job["name"], merge(defaults, job.get("params", {}))))
+            jobs.append((os.path.basename(path), job["name"], merge(defaults, job.get("params", {})),
+                         job["type"], dict(job.get("kwargs", {}))))
     if not jobs:
         raise SystemExit("no job selected")
     cfg = json.loads(key)
@@ -118,9 +189,28 @@ def main(argv=None):
             "build_seconds": build_s, "structure_report": eng.structure_report(), "jobs": [],
             "params_files": sorted({j[0] for j in jobs}), "input_steps": args.input_steps}
     w_written = None
-    for fname, name, params in jobs:
+    for fname, name, params, jtype, kwargs in jobs:
         params["deadline"] = None
-        run = AssocRun(eng, params, rng_seed=eng.seed + 4)       # as substep4_protocol
+        run = AssocRun(eng, params, rng_seed=eng.seed + 4)       # as substep4_protocol and the surveys
+        if jtype in survey_types:
+            w_now = (eng.weights.detach().clone(), run.base_w.detach().clone())
+            if w_written is None:
+                w_written = w_now
+                meta["params"] = {k: v for k, v in run.p.items() if k != "deadline"}
+                meta["is_asm"] = run.is_asm.cpu().numpy().astype(bool).tolist()
+            else:
+                # heavy-tailed initial weights are normalized per presynaptic neuron on the GPU (index_add_), so two
+                # builds of them may differ in the last float32 bits; the first job's weights are exported
+                dev = max(float((w_written[k] - w_now[k]).abs().max()) for k in (0, 1))
+                meta.setdefault("weight_rebuild_max_abs_diff", {})[name] = dev
+                if not (torch.allclose(w_written[0], w_now[0], rtol=1e-5, atol=1e-6)
+                        and torch.allclose(w_written[1], w_now[1], rtol=1e-5, atol=1e-6)):
+                    raise SystemExit(f"job {name}: weights differ from the first job's by up to {dev}")
+            first = not meta["jobs"]
+            meta["jobs"].append(survey_entry(run, eng, fname, name, jtype, kwargs, out,
+                                             replay=args.replay and first and jtype == "prop_survey"))
+            print(f"[+] {name}: {len(meta['jobs'][-1]['pairs'])} pairs", flush=True)
+            continue
         orig_run = run.run
 
         def run_rec(*a, **k):

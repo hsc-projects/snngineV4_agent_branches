@@ -22,6 +22,11 @@ requirement, but not the grid size: at 9^3 it finds 1 association of 24 where th
 16 against 15). Its first transfers agree at both sizes; its final strays exceed the spiking ones by about 12 at
 9^3 (4 at 7^3), so most of its misses are near-misses ("Final strays").
 
+**Step 4 (2026-10-31, last section):** on the sparse substrate S3b, model B equals the engine on identical weights
+(141 of 144 survey conditions identical spike counts) and reproduces step 7's substrate decision; with kappa 0.045
+it also matches the engine's own wiring at 7^3 and 11^3 (0 associations each). The sparse task's learning rules
+are not in model B yet.
+
 **Summary (before the engine fixes).**
 (1) The engine's built network differs from what model B assumed from the configuration code: excitatory neurons
 have about 328 E -> I synapses of 2000 (model B: 400), inhibitory neurons have about 328 **I -> I synapses**
@@ -442,6 +447,10 @@ Best final strays on the held-out pairs: median difference -1 at 7^3 (-4 to 4) a
   both sizes (7^3: 17, interval 10 to 19 around 15; 9^3: 8, interval 7 to 16 around 11), and the decrease from 7^3
   to 9^3 is reproduced (15 -> 11 spiking, 17 -> 8 model B).
 - Uniform C2: 0 associations, as in the spiking runs (at most 3 required).
+  This control is weak: at C2 1.2 the consolidation gate (theta2 0.6, softness 0.6) is fully open everywhere,
+  more than the activity-dependent runs consolidate off the route, so it tests C2's strength, not its spatial
+  pattern. A spiking control at matched C2 levels has not run yet; when it has, model B is checked at the same
+  levels (Step 4, "Open").
 
 Limits: two realizations (the rerun's own networks) instead of the default 5, and the held-out pairs lie on seed 1's
 network, not on fresh realizations; 9^3 at 8 is near the interval's lower end, and model B's counts vary by 1 to 2
@@ -454,3 +463,78 @@ a test pod (`rm6-fit-test`, `2ud5rcuy1lfb2l`), RTX PRO 4500 Blackwell, $0.72/h e
 test 02:21 to about 03:05 UTC (its exports took 12 minutes); about $1.70 (estimated; billing not yet posted), all
 terminated (delete 204, `list-pods` empty). Round 6 after the engine fixes: about $5.90; with the two pods before
 the fixes about $6.17.
+
+## Step 4: the sparse substrate, and further coverage (2026-10-31)
+
+Round 6 step 4: before model B narrows any range of the sparse task, it must match the spiking runs on the
+sparse task's substrate. That substrate is S3b at lambda 1.0 with the inter-group I -> E gain at 0.5 (lognormal
+E -> E weights outside assemblies, sigma 1, mean 0.366, values above 8.125 redrawn; assemblies on a lattice of
+spacing 2, with bridges; no background input), decided by the engine-fix rerun's step 7 from propagation surveys
+without learning (48 pairs, sessions rerun7j seed 0 and rerun7m seed 1). Optional coverage: the engine's own wiring
+at 7^3 and 11^3 at lambda 0.4.
+
+**Code.**
+- Model B (`spiking_group_model.py`): which groups are assemblies, from the export; E -> E synapses within a
+  non-assembly group count as outside assemblies (gain, plasticity), as in `assoc_engine.set_gains`; the S6 gains
+  `gain_ei_inter`, `gain_ie_inter` (new kind for I -> E between groups); per-synapse plasticity bounds widened to
+  heavy-tailed initial weights, as `AssocRun.new_plasticity` does; spike and input counters.
+- `round6_compare.py spec_for`: takes the S6 gains from the export, checks more of the job's protocol values,
+  and uses the stray limit 34 at every size above 7^3.
+- `round6_export_engine.py --survey`: exports a survey job's pairs, path groups, bridges, off-route assemblies,
+  injected neurons, and the regions M and Sh from the engine's own geometry; `--replay`: the engine also runs the
+  propagation survey's conditions on the exported weights.
+- `round6_survey.py`: model B's propagation and input surveys, written in the spiking result layout (so
+  `../rerun_s3b_decision.py` reads them), and the comparisons with the spiking runs and with the engine replay.
+- Module checks: a synthetic export with sparse assemblies, heavy-tailed weights and the S6 gains against a numpy
+  transliteration of `set_gains` (`test_spiking_group_model.py`, all pass on the pod).
+
+**S3b, model B against the engine on identical weights** (replay): of 144 conditions (48 pairs x joint, A, B),
+141 have identical spike counts and 3 differ by 1 to 3 spikes of 2,100 to 6,300 (at most 0.14 %); M is identical
+in all 144. Model B reproduces the engine on S3b, as round 6 step 2 showed for the predecessor setup.
+
+**S3b, model B against the step 7 runs** (48 pairs; the spiking networks were built in their own processes):
+
+| | spiking | model B |
+|---|---|---|
+| summation (D = M joint - M A - M B): pairs D > 0 / D < 0, Wilson 95 % | 42 / 5, [0.774, 0.954], holds | 37 / 9, [0.668, 0.893], holds |
+| selectivity (D = M joint - Sh joint) | 45 / 3, [0.832, 0.979], holds | 44 / 4, [0.804, 0.967], holds |
+| medians: M joint / M A+B / Sh joint | 0.069 / 0.053 / 0.041 | 0.074 / 0.052 / 0.042 |
+| input survey, M, medians: I joint / E joint / Inh joint (seed 0) | -37.1 / 2.50 / -41.3 | -38.0 / 2.94 / -43.9 |
+
+No pair's spike counts are equal (relative difference per pair and condition: median +4 % and +1 %, interquartile
+range about -9 % to +16 %): S3b's heavy-tailed weights are normalized per presynaptic neuron on the GPU, and two
+builds in one process differ by up to 1.7e-5 (float32 rounding); S3b amplifies that. Since model B equals the
+engine on identical weights, these differences are the spiking substrate's own build-to-build variation, not
+model B's. Pass (rule set before the run: the same decisions, medians within 5 %): the decisions agree; M joint is
+7 % above. That excess is the engine's own rebuild variation, which model B cannot be held to; on S3b only
+distributions over pairs are reproducible, in the spiking runs as well.
+
+**Engine's own wiring, 7^3, kappa 0.045** (step 5's networks): first transfer 12 ignition / 12 none against the
+spiking 14 / 10 (within the intervals); associations 0 against 0. Per pair: agreement 0.50 (Cohen's kappa 0),
+where the export of the earlier code copy gave 0.67 (0.36); since kappa does not act before the first transfer, the
+two exports of this wiring differ (not investigated).
+
+**11^3, lambda 0.4, d 4, kappa 0.045** (step 6's networks): 24 of 24 ignition and 0 associations, as in the spiking
+runs; first-transfer strays almost identical pair by pair (seed 0: 72, 145, 217, 784, ... against 78, 145, 217,
+784, ...); final strays below the spiking ones (median -6 and -26), all far above the limit.
+
+**Repeatability.** Step 5's lambda 0.4 seed 0 network exported twice: every array identical. Model B twice on one
+export and once on the other: identical results (model B is deterministic). At 9^3 the builds differ: the 9^3 exports
+of the first Step 3 run and of "Final strays" (same params files, same pairs and injected neurons) differ in their
+rewired targets (delay counts per type about 0.05 %) and in the engine's control-0 spike counts (927 against 872,
+...). The step 6 spiking runs and model B's 9^3 exports are therefore not the same network, and the 1 against 2
+associations of model B at 9^3 at kappa 0.05 came from the build. The cause lies in the engine's 9^3 build
+(rewiring with 16 delays); not investigated (engine).
+
+**Open.**
+- Model B on the matched-level uniform-C2 control, once the spiking control has run (Step 3, "Fit").
+- The learning families of the sparse task (L1 to L6): model B has none of their rules yet; each is added and
+  compared with its family's first 24-pair baseline run before the model narrows any range for it.
+- The engine's 9^3 build is not reproducible from process to process (above): per-pair comparisons at 9^3 compare
+  different realizations; for the spiking runs, results per pair at 9^3 are reproducible only as distributions.
+
+Cost: pods `7qw7mzf4a6vvcy` (`rm6-step4`, 04:04 to about 04:36 UTC, its first launch stopped on the weight check of
+the survey export), `6ma0wafd3m3b2o` and `oz0ohddjsogs5c` (`rm6-g11-s0`, 04:04 to about 05:41; `rm6-g11-s1`, 04:04
+to about 04:52, 12 minutes idle before termination), `ldbwlo4kh0mhd1` (`rm6-replay`, 04:38 to about 04:48); RTX PRO
+4500 Blackwell, $0.72/h each; about $2.25 (estimated); all terminated (delete 204; `list-pods` shows none of them).
+Round 6 after the engine fixes: about $8.15; with the two pods before the fixes about $8.42 (user's limit about $9).

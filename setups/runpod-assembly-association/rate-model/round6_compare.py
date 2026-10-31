@@ -146,15 +146,17 @@ def spec_for(meta: dict, export_dir: str | None = None, **over):
     rewire = meta.get("engine", {}).get("rewire")
     if rewire:
         kw["lam"] = float(rewire["lam"])                 # the export's wiring (the session file has lambda 0.4)
-    if dim == 9:
-        kw["max_active_frac"] = 34 / 729.0
+    if dim > 7:
+        kw["max_active_frac"] = 34 / float(dim ** 3)     # the stray limit 34 at every size (engine-fix rerun, step 6)
+    p = meta.get("params", {})
+    for k in ("gain_ei_inter", "gain_ie_inter"):         # sparse task S6: facts of the exported network
+        if p.get(k) is not None:
+            kw[k] = float(p[k])
     kw.update(over)
     spec = SpikeSpec.from_session(SESSION, **kw)
-    p = meta.get("params", {})
-    checks = {"gain": p.get("gain"), "gain_ei": p.get("gain_ei"), "gain_ie": p.get("gain_ie"),
-              "gain_ee_inter": p.get("gain_ee_inter"), "i_min": p.get("i_min"), "i_max": p.get("i_max"),
-              "k_inject": p.get("k_inject"), "inject_current": p.get("inject_current"),
-              "inject_steps": p.get("inject_steps"), "test_window": p.get("test_window"), "window": p.get("window")}
+    checks = {k: p.get(k) for k in ("gain", "gain_ei", "gain_ie", "gain_ee_inter", "gain_ei_inter", "gain_ie_inter",
+                                    "i_min", "i_max", "k_inject", "inject_current", "inject_steps", "gap_steps",
+                                    "test_window", "window", "active", "inactive", "runaway_frac")}
     diff = {k: (v, getattr(spec, k)) for k, v in checks.items() if v is not None and float(v) != float(getattr(spec, k))}
     if diff:
         raise ValueError(f"model B spec differs from the exported job's parameters: {diff}")

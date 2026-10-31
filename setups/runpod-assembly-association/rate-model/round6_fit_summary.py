@@ -28,6 +28,11 @@ def _key(name: str) -> str:
     return f"s{m.group(1)}p{m.group(2)}"
 
 
+def _size(name: str) -> int:
+    m = re.search(r"-g(\d+)-", name)
+    return int(m.group(1)) if m else 7
+
+
 def _best(final: dict, field: str):
     v = [final[d][field] for d in ("A_to_B", "B_to_A") if final[d]["success"]]
     return min(v) if v else None
@@ -44,7 +49,7 @@ def spiking(dirs: list) -> dict:
             b = j if "final" in j else next((v for v in j.values() if isinstance(v, dict) and "final" in v), None)
             if b is None:
                 continue
-            size = 9 if "-g9-" in os.path.basename(f) else 7
+            size = _size(os.path.basename(f))
             fin = b["final"]
             assoc = any(fin[x]["success"] and fin[x]["n_active_outside"] <= STRAY_LIMIT for x in ("A_to_B", "B_to_A"))
             out.setdefault(size, {})[_key(os.path.basename(f))] = {"best": _best(fin, "n_active_outside"),
@@ -54,7 +59,7 @@ def spiking(dirs: list) -> dict:
 
 def summarize(label: str, path: str, sp: dict) -> dict:
     rows = json.load(open(path))["rows"]
-    size = 9 if any("-g9-" in r["job"] for r in rows) else 7
+    size = _size(rows[0]["job"])
     ref = sp[size]
     pairs, diffs = {}, []
     for r in rows:

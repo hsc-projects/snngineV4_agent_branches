@@ -1,13 +1,16 @@
 # Task: Rate Model for Screening the Assembly-Association Parameters
 
 > [!IMPORTANT]
-> **Status (2026-10-31): round 6 step 3 done, model B admitted** with one fitted parameter, the C2
-> consolidation rate `kappa` 0.045 (the protocol's 0.05 x 0.9): on the rerun's own networks it reproduces the
-> associations at 7 x 7 x 7 and 9 x 9 x 9 within the spiking intervals (17 and 8 against 15 and 11 of 24; held-out
-> pairs: Cohen's kappa 0.83 and 0.82) and the uniform-C2 control (0 against 0) (`round6-report.md`, "Step 3",
-> "Fit"). Without the fit it is not admitted (9 x 9 x 9: 1 to 2 associations against 11). Covered: d 4, rewiring at
-> lambda 0.4; not covered: 11 x 11 x 11, the engine's own wiring. Next: round 6 step 4 (check on the sparse
-> substrate) before the model narrows any range. Round 6 has spent about $6.17 (user's limit about $8).
+> **Status (2026-10-31): round 6 steps 3 and 4 (substrate) done.** Model B is admitted with one fitted
+> parameter, the C2 consolidation rate `kappa` 0.045 (the protocol's 0.05 x 0.9): on the rerun's own networks it
+> reproduces the associations at 7 x 7 x 7 and 9 x 9 x 9 within the spiking intervals (17 and 8 against 15 and 11
+> of 24) and, at 11 x 11 x 11 and on the engine's own wiring at 7 x 7 x 7, none, as the spiking runs. The
+> uniform-C2 control it passes (C2 held at 1.2) opens the consolidation gate everywhere and so tests C2's strength,
+> not its pattern; a matched-level control is to follow. On the sparse substrate S3b (step 4) model B equals the
+> engine on identical weights and reproduces the substrate decision (`round6-report.md`, "Step 3", "Fit", "Step 4").
+> Open: the sparse task's learning rules (L1 to L6) in model B, each checked against its family's first baseline
+> run before the model narrows any range. The engine's 9 x 9 x 9 build is not reproducible between processes
+> (report, "Step 4"). Round 6 has spent about $8.42 (user's limit about $9).
 
 > [!NOTE]
 > **Status (2026-10-30): on hold until the engine-fix rerun.** Round 6 found that the engine's synapse table was
@@ -244,8 +247,9 @@ other round 4 and 5 scripts listed in step 3 still hold the faulty engine's refe
    the grid-size and uniform-C2 thresholds of its docstring and code (from 0 / 24 ignitions, 5 / 24
    transfers, 6 and 7 of 24 associations), and the same names in `admission_spiking_group.py`,
    `admission_popdensity.py`, `round5_*.py`, `round6_compare.py` (`spec_for`) and the module checks.
-4. **Check on the sparse substrate.** Admission covers the predecessor setup (every group an
-   assembly, the wiring chosen in the rerun's step 2). Before the model narrows any range for a family of the sparse task (S, L, K,
+4. **Check on the sparse substrate.** Done for the substrate (2026-10-31, report "Step 4"): S3b surveys without
+   learning, model B on exported networks against the engine and the rerun's step 7. Admission covers the
+   predecessor setup (every group an assembly, the wiring chosen in the rerun's step 2). Before the model narrows any range for a family of the sparse task (S, L, K,
    E), compare it with that family's first GPU screening run of its baseline (24 pairs): the classes
    must lie within the binomial intervals of the spiking fractions.
 
@@ -292,7 +296,8 @@ the exports there); **[default]** at most $3 for the round. Report in `round6-re
   loads an exported network, and the gitignored `output-round6/`; after the engine fixes `round6_fixed_pod.sh`
   (the repeat of steps 1 and 2 on a pod) and the gitignored `output-round6-fixed/`; for step 3
   `round6_regime_precheck.py`, `round6_admission_compare.py`, `round6_precheck_pod.sh`, `round6_grid_pod.sh`,
-  `round6_strays_pod.sh`, `round6_fit_pod.sh`, `round6_fit_summary.py` and the gitignored
-  `output-round6-precheck/`, `output-round6-grid/`, `output-round6-strays/` and `output-round6-fit/`. A round 4 agent
+  `round6_strays_pod.sh`, `round6_fit_pod.sh`, `round6_fit_summary.py`; for step 4 `round6_survey.py`,
+  `round6_step4_pod.sh`, `round6_replay_pod.sh`; and the gitignored `output-round6-precheck/`,
+  `output-round6-grid/`, `output-round6-strays/`, `output-round6-fit/` and `output-round6-step4/`. A round 4 agent
   changes only its own model's files; shared files (`rate_model.py`, `../archive-pre-engine-fix/rate-model/s71_ground_truth.json`) are read,
   not changed.
