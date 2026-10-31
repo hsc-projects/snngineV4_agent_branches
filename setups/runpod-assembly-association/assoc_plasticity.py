@@ -24,7 +24,20 @@ The engine sees w_perm + w_fast (clipped), written into N_weights by the harness
 
 `rule` selects what drives the C1-gated changes: "stdp" (above), "pre_c1" (a neuron firing
 inside a high-C1 region potentiates its outgoing synapses, no postsynaptic spike required;
-user decision after tuning iteration 13), or "both".
+user decision after tuning iteration 13), or "both". Sparse task, Substep 3:
+- "pre_c1_signed" (L3): as "pre_c1", with a sign set by the presynaptic rate (an exponential trace
+  over `rate_tau` steps): negative below `rate_thr` spikes per step, positive above, up to 1 at twice it;
+- "btsp" (L1, L2): a gate event in a neuron (`btsp["gate"]` "plateau": random, `plateau_rate` per step;
+  "c1": its C1 rising through theta1) opens a window of `window` steps, `before` of them before the event;
+  only synapses onto that neuron whose presynaptic neuron fired in the window change, no postsynaptic
+  spike needed. `form` "binary" (Wu & Maass 2025): each flips with probability 0.5, a weak one (below the
+  middle of its bounds) to the upper bound, a strong one to the lower, at most one event per neuron while
+  `once`; "continuous" (Milstein et al. 2021): it moves by `rate` toward bound * Ip / (Ip + Id), the
+  overlaps of a potentiation and a depression trace of the presynaptic spikes (time constants before / 3
+  and twice that) with a gate trace decaying from the event (time constant (window - before) / 3).
+  The changes go into w_fast like the other rules'.
+`track_increase` (L5): keep each step's positive learned change of w_fast, summed per postsynaptic neuron,
+in `increase_post` (the harness releases C1 from it).
 """
 
 from __future__ import annotations
@@ -64,7 +77,9 @@ class GatedPlasticity:
                  fixed: torch.Tensor | None = None,
                  rule: str = "stdp", a_pre: float = 0.05, pre_post_gate: bool = True,
                  consolidate_ee_only: bool = False, weight_dep: str = "mult",
-                 norm_factor: float | None = None):
+                 norm_factor: float | None = None,
+                 rate_thr: float | None = None, rate_tau: float = 100.0,
+                 btsp: dict | None = None, track_increase: bool = False):
         self.S, self.N = n_rep.shape
         self.D = int(D)
         self.dev = n_rep.device
@@ -89,9 +104,40 @@ class GatedPlasticity:
         self.kappa = float(kappa)
         self.theta1, self.theta2 = float(theta1), float(theta2)
         self.soft1, self.soft2 = float(soft1), float(soft2)
-        if rule not in ("stdp", "pre_c1", "both"):
+        if rule not in ("stdp", "pre_c1", "both", "pre_c1_signed", "btsp"):
             raise ValueError(f"unknown rule {rule}")
         self.rule = rule
+        if rule == "pre_c1_signed" and not rate_thr:
+            raise ValueError("rule pre_c1_signed needs rate_thr")
+        self.rate_thr = None if rate_thr is None else float(rate_thr)
+        self.rate_decay = math.exp(-1.0 / float(rate_tau))
+        self.rate = torch.zeros(self.N, device=self.dev)        # presynaptic rate trace (L3)
+        self.btsp = None
+        if rule == "btsp":
+            b = {"gate": "plateau", "form": "binary", "window": 200, "before": 133, "plateau_rate": 1e-4,
+                 "once": True, "rate": 0.5, "seed": 0}
+            b.update(btsp or {})
+            if b["gate"] not in ("plateau", "c1") or b["form"] not in ("binary", "continuous"):
+                raise ValueError(f"unknown btsp gate or form {b}")
+            self.btsp = b
+            self.ev_eval = torch.full((self.N,), -1, dtype=torch.long, device=self.dev)   # evaluation step
+            self.ev_time = torch.full((self.N,), -1, dtype=torch.long, device=self.dev)   # event step
+            self.ev_done = torch.zeros(self.N, dtype=torch.bool, device=self.dev)
+            self.c1_prev = torch.zeros(self.N, device=self.dev)
+            self.gen = torch.Generator(device=self.dev).manual_seed(int(b["seed"]))
+            after = int(b["window"]) - int(b["before"])
+            self.dec_p = math.exp(-3.0 / float(b["before"]))
+            self.dec_d = math.exp(-1.5 / float(b["before"]))
+            self.dec_g = math.exp(-3.0 / float(max(after, 1)))
+            self.xp = torch.zeros(self.N, device=self.dev)
+            self.xd = torch.zeros(self.N, device=self.dev)
+            self.gtr = torch.zeros(self.N, device=self.dev)
+            self.t_last = -1
+            if b["form"] == "continuous":
+                self.Ip = torch.zeros(self.S, self.N, device=self.dev)
+                self.Id = torch.zeros(self.S, self.N, device=self.dev)
+        self.track_increase = bool(track_increase)
+        self.increase_post = torch.zeros(self.N, device=self.dev)
         self.a_pre = float(a_pre)
         self.pre_post_gate = bool(pre_post_gate)
         # consolidate only synapses onto excitatory neurons (excitatory-to-inhibitory changes stay
@@ -124,8 +170,21 @@ class GatedPlasticity:
     # --- state ---------------------------------------------------------------------------
 
     def reset_spike_state(self):
+        if self.btsp is not None:
+            # a window does not span a reset (a round is shorter than the window): pending events are
+            # evaluated now, on the part of their window that ran (before the spike times are cleared);
+            # `ev_done` and `c1_prev` persist
+            self._btsp_apply(self.ev_eval >= 0, None, self.t_last)
         self.hist.zero_()
         self.last.fill_(-10 ** 6)
+        self.rate.zero_()
+        if self.btsp is not None:
+            self.ev_eval.fill_(-1)
+            for x in (self.xp, self.xd, self.gtr):
+                x.zero_()
+            if self.btsp["form"] == "continuous":
+                self.Ip.zero_()
+                self.Id.zero_()
 
     def effective(self) -> torch.Tensor:
         w = torch.clamp(self.w_perm + self.w_fast, self.lo, self.hi)
@@ -178,6 +237,75 @@ class GatedPlasticity:
         dw = torch.where(self.lo < 0, -dw, dw)
         return torch.where(self.plastic, dw, torch.zeros_like(dw))
 
+    def pre_c1_signed_dw(self, spikes: torch.Tensor, g1n: torch.Tensor) -> torch.Tensor:
+        """
+        L3: as pre_c1_dw, times f(presynaptic rate) = clamp(rate / rate_thr - 1, -1, 1): depression
+        (times |w|) below the rate threshold, potentiation (times bound - |w|) above it; with
+        weight_dep "mult" both also times the other factor, as in the STDP rule.
+        """
+        f = torch.clamp(self.rate / self.rate_thr - 1.0, -1.0, 1.0)
+        g_pre = (spikes.float() * g1n * f).view(1, self.N)
+        g = g_pre * g1n[self.post] if self.pre_post_gate else g_pre.expand(self.S, self.N)
+        w = self.effective().abs()
+        if self.weight_dep == "upper":
+            dw = self.a_pre * (torch.clamp(g, min=0.0) * (self.bound - w) + torch.clamp(g, max=0.0) * w)
+        else:
+            dw = self.a_pre * g * w * (self.bound - w)
+        dw = torch.where(self.lo < 0, -dw, dw)
+        return torch.where(self.plastic, dw, torch.zeros_like(dw))
+
+    def btsp_step(self, spikes: torch.Tensor, t: int, c1_post: torch.Tensor):
+        """L1 / L2: traces, gate events and, at the end of each event's window, the weight change."""
+        b, t = self.btsp, int(t)
+        sf = spikes.float()
+        self.xp.mul_(self.dec_p).add_(sf)
+        self.xd.mul_(self.dec_d).add_(sf)
+        free = (self.ev_eval < 0) & ~(self.ev_done if b["once"] else torch.zeros_like(self.ev_done))
+        if b["gate"] == "plateau":
+            new = free & (torch.rand(self.N, generator=self.gen, device=self.dev) < float(b["plateau_rate"]))
+        else:
+            new = free & (self.c1_prev < self.theta1) & (c1_post >= self.theta1)
+        self.c1_prev = c1_post.clone()
+        after = int(b["window"]) - int(b["before"])
+        self.ev_eval = torch.where(new, torch.full_like(self.ev_eval, t + after), self.ev_eval)
+        self.ev_time = torch.where(new, torch.full_like(self.ev_time, t), self.ev_time)
+        self.ev_done |= new
+        self.gtr = torch.where(new, torch.ones_like(self.gtr), self.gtr)
+        if b["form"] == "continuous":
+            g = self.gtr[self.post]
+            self.Ip.add_(g * self.xp.view(1, self.N))
+            self.Id.add_(g * self.xd.view(1, self.N))
+        self.gtr.mul_(self.dec_g)
+        self.t_last = t
+        self._btsp_apply(self.ev_eval == t, spikes, t)
+
+    def _btsp_apply(self, due: torch.Tensor, spikes: torch.Tensor | None, t: int):
+        """Weight change of the events in `due` (N,), whose windows end at step t (or are cut there)."""
+        b = self.btsp
+        if not bool(due.any()):
+            return
+        syn = due[self.post] & self.plastic
+        w = torch.clamp(self.w_perm + self.w_fast, self.lo, self.hi)
+        if b["form"] == "binary":
+            last = self.last.clone()
+            if spikes is not None:
+                last[spikes] = t
+            start = self.ev_time[self.post] - int(b["before"])          # (S, N): the window's first step
+            active = syn & (last.view(1, self.N) >= start)
+            flip = active & (torch.rand(w.shape, generator=self.gen, device=self.dev) < 0.5 * self.rate_scale)
+            strong = w.abs() >= 0.5 * (self.lo.abs() + self.hi.abs())
+            target = torch.where(strong, self.lo, self.hi)
+            new_w = torch.where(flip, target, w)
+        else:
+            tot = self.Ip + self.Id
+            ok = syn & (tot > 1e-9)
+            target = self.bound * self.Ip / torch.clamp(tot, min=1e-9)
+            new_w = torch.where(ok, w + float(b["rate"]) * self.rate_scale * (target - w), w)
+            self.Ip = torch.where(syn, torch.zeros_like(self.Ip), self.Ip)
+            self.Id = torch.where(syn, torch.zeros_like(self.Id), self.Id)
+        self.w_fast = self.w_fast + torch.where(syn, torch.clamp(new_w, self.lo, self.hi) - w, torch.zeros_like(w))
+        self.ev_eval = torch.where(due, torch.full_like(self.ev_eval, -1), self.ev_eval)
+
     def _input_sums(self, w: torch.Tensor) -> torch.Tensor:
         """(N,) summed |w| of the plastic synapses onto each neuron."""
         v = torch.where(self.plastic, w.abs(), torch.zeros_like(w))
@@ -212,13 +340,25 @@ class GatedPlasticity:
         w_fast decays every step unless both flags are False (frozen test phase).
         """
         if learn:
+            before = self.w_fast.clone() if self.track_increase else None
+            self.rate.mul_(self.rate_decay).add_(spikes.float(), alpha=1.0 - self.rate_decay)
             g1n = gate(c1_post, self.theta1, self.soft1)                 # (N,) per neuron
             if self.rule in ("stdp", "both"):
                 self.w_fast.add_(g1n[self.post] * self.timing_dw(spikes, t), alpha=self.rate_scale)
             if self.rule in ("pre_c1", "both"):
                 self.w_fast.add_(self.pre_c1_dw(spikes, g1n), alpha=self.rate_scale)
+            if self.rule == "pre_c1_signed":
+                self.w_fast.add_(self.pre_c1_signed_dw(spikes, g1n), alpha=self.rate_scale)
+            if self.rule == "btsp":
+                self.btsp_step(spikes, t, c1_post)
             if self.norm_factor:
                 self.normalize()
+            if before is not None:
+                inc = torch.clamp(self.w_fast - before, min=0.0)
+                self.increase_post = torch.zeros(self.N, device=self.dev).index_add_(
+                    0, self.post.reshape(-1), torch.where(self.plastic, inc, torch.zeros_like(inc)).reshape(-1))
+        elif self.track_increase:
+            self.increase_post.zero_()
         if learn or consolidate:
             if consolidate:
                 g12 = (gate(c1_post, self.theta1, self.soft1)

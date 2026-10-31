@@ -1305,6 +1305,94 @@ def activity_by_distance_and_intra_density_per_group(dev):
     assert torch.allclose(intra_ee_per_group(eng), torch.full((4,), 1.7, device=dev)), intra_ee_per_group(eng)
 
 
+@check
+def l3_sign_follows_the_presynaptic_rate(dev):
+    p = make_plasticity(dev, rule="pre_c1_signed", rate_thr=0.3, rate_tau=5.0, a_pre=0.1, weight_dep="upper")
+    p.fast_decay = 1.0
+    hi = torch.full((3,), 5.0, device=dev)
+    sched = {t: [0] for t in range(30)}
+    sched[10] = [0, 1]
+    run_spikes(p, sched, 30, hi, hi)
+    assert bool((p.w_fast[:, 0] > 0).all()), p.w_fast         # neuron 0 fires every step: above the threshold
+    assert bool((p.w_fast[:, 1] < 0).all()), p.w_fast         # neuron 1 fires once: below it
+    assert bool((p.w_fast[:, 2] == 0).all())                  # neuron 2 never fires
+    try:
+        make_plasticity(dev, rule="pre_c1_signed")
+        raise AssertionError("pre_c1_signed without rate_thr accepted")
+    except ValueError:
+        pass
+
+
+def _btsp_run(p, fire, c1_of_t, steps):
+    for t in range(steps):
+        spikes = torch.zeros(3, dtype=torch.bool, device=p.dev)
+        spikes[fire.get(t, [])] = True
+        p.step(spikes, t, c1_of_t(t), c1_of_t(t), learn=True, consolidate=False)
+
+
+@check
+def btsp_binary_flips_only_active_synapses_onto_the_gated_neuron(dev):
+    # synapses onto neuron 1: (0, 0) from neuron 0 and (1, 2) from neuron 2. C1 rises through theta1 at
+    # neuron 1 in step 15: window [5, 25]; neuron 0 fires in step 8 (inside), neuron 2 in step 0 (outside)
+    p = make_plasticity(dev, rule="btsp", btsp={"gate": "c1", "form": "binary", "window": 20, "before": 10})
+    p.fast_decay, p.rate_scale = 1.0, 2.0                     # flip probability 0.5 * 2 = 1
+    c1 = lambda t: torch.tensor([0.0, 5.0 if 15 <= t < 18 or t >= 27 else 0.0, 0.0], device=dev)
+    _btsp_run(p, {0: [2], 8: [0], 26: [0]}, c1, 40)
+    w = p.effective()
+    assert close(w[0, 0], 1.0, 1e-6), w                       # weak (0.5 < 0.525) and active: to the upper bound
+    changed = (w - 0.5).abs() > 1e-6
+    assert int(changed.sum()) == 1, w                          # nothing else; no second event (once)
+    p2 = make_plasticity(dev, rule="btsp", btsp={"gate": "c1", "form": "binary", "window": 20, "before": 10})
+    p2.fast_decay, p2.rate_scale = 1.0, 2.0
+    _btsp_run(p2, {8: [0]}, lambda t: torch.tensor([0.0, 5.0 if t >= 15 else 0.0, 0.0], device=dev), 20)
+    p2.reset_spike_state()                                     # the window is cut by a reset at step 19
+    assert close(p2.effective()[0, 0], 1.0, 1e-6), p2.effective()
+
+
+@check
+def btsp_continuous_favours_inputs_near_the_event(dev):
+    # event at neuron 1 in step 40 (window 60, 40 before); neuron 0 fires 2 steps before it, neuron 2 35 before
+    p = make_plasticity(dev, rule="btsp", btsp={"gate": "c1", "form": "continuous", "window": 60, "before": 40,
+                                                "rate": 1.0})
+    p.fast_decay = 1.0
+    _btsp_run(p, {38: [0], 5: [2]}, lambda t: torch.tensor([0.0, 5.0 if t >= 40 else 0.0, 0.0], device=dev), 70)
+    w = p.effective()
+    near, far = float(w[0, 0]), float(w[1, 2])
+    assert near > far + 0.1 and far < 0.5, (near, far)         # the distant input is depressed
+    assert close(w[1, 0], 0.5, 1e-6) and close(w[0, 2], 0.5, 1e-6)   # synapses onto neuron 0 / 2: no event
+
+
+@check
+def l5_release_from_learned_increase_capped_per_group(dev):
+    eng, run = stub_run(dev, {}, l5={"gain": 1.0, "c1_min": 0.5})
+    assert run.P.track_increase
+    run.P.increase_post = torch.zeros(eng.N, device=dev)
+    run.P.increase_post[0] = 0.95                               # group 0: one spike's worth
+    run.P.increase_post[20] = 1000.0                            # group 2: capped at its 10 neurons
+    run.C1.c.fill_(1.0)
+    assert close(run.l5_counts().sum(), 11.0, 1e-4), run.l5_counts().sum()
+    run.C1.c.fill_(0.4)                                         # below c1_min: no release
+    assert float(run.l5_counts().sum()) == 0.0
+    p = make_plasticity(dev, rule="pre_c1", a_pre=0.1, theta1=-1.0, soft1=0.0, track_increase=True)
+    run_spikes(p, {0: [0]}, 1, torch.zeros(3, device=dev), torch.zeros(3, device=dev))
+    assert float(p.increase_post[1]) > 0 and float(p.increase_post[2]) > 0 and float(p.increase_post[0]) == 0
+
+
+@check
+def l4_threshold_falls_until_the_first_transfer(dev):
+    from assoc_protocol import protocol_body
+    pl = {"rule": "pre_c1", "a_pre": 0.1, "theta1": 2.0, "soft1": 0.0}
+    _, run = stub_run(dev, {}, plasticity=pl, protocol={"max_c1_rounds": 3, "theta1_fall": 0.1,
+                                                          "c2_after_max_rounds": False})
+    out = protocol_body(run, 0, 1, 3)
+    got = [x["theta1_next"] for x in out["c1_log"]]
+    assert all(abs(g - w) < 1e-9 for g, w in zip(got, (1.8, 1.62, 1.458))) and len(got) == 3, got
+    _, run = stub_run(dev, {t: list(range(10, 20)) for t in range(11, 21)}, plasticity=pl,
+                      protocol={"max_c1_rounds": 3, "theta1_fall": 0.1, "accept_uncontained": True})
+    out = protocol_body(run, 0, 1, 3)
+    assert out["c1_test_passed"] and "theta1_next" not in out["c1_log"][0]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--device", default="cpu")

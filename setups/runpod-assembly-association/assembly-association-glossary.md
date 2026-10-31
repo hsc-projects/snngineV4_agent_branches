@@ -51,8 +51,8 @@ whose fit is partial as **partial**.
   change exceeds a threshold that falls with the neuromodulator level.
 - **`pre_c1`** (own name) → *non-local learning* gated by a *diffusing messenger* (partial; Krekelberg
   & Taylor 1997): weight change set by presynaptic activity and the local messenger concentration,
-  with no postsynaptic term. Their rule also depresses at low presynaptic rates (variant L3); `pre_c1`
-  only potentiates.
+  with no postsynaptic term. Their rule also depresses at low presynaptic rates (variant L3, rule
+  `pre_c1_signed`); `pre_c1` only potentiates.
 - **BTSP-like rule, gate event** → *behavioral time scale synaptic plasticity (BTSP)*; *plateau
   potential*; *eligibility trace*; *instructive signal* (Bittner et al. 2017; Milstein et al. 2021;
   Cone & Shouval 2021). Presynaptic activity leaves an eligibility trace lasting seconds; a dendritic

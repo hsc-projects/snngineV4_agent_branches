@@ -85,6 +85,11 @@ DEFAULTS = {
     # sigmoid((v_post - v_half) / v_width) (about 0 at rest, 1 halfway to threshold); with unsilence_w set,
     # a silent synapse whose effective weight exceeds it loses the gate for good. None: off
     "silent": None,
+    # l5 (sparse task L5), e.g. {"gain": 1.0, "c1_min": 0.5}: while C1 is released in a learning phase, each
+    # neuron also releases C1 for the positive learned change of w_fast onto it in the previous step, `gain`
+    # spikes' worth per 0.95 (a full strengthening from 0.05 to 1), only where its C1 is at least `c1_min`;
+    # each group releases at most as much as all its excitatory neurons firing at once. None: off
+    "l5": None,
     "i_min": None,  # lower clamp on the summed input current (numerical safeguard), e.g. -60
     "i_max": None,  # upper clamp on the summed input current (numerical safeguard), e.g. 100
     # stop a phase in the step in which more than this fraction of all neurons fires: the engine
@@ -111,7 +116,10 @@ DEFAULTS = {
                  "rollback": None,
                  # pair_margin (iteration 61): A and B (and so the straight route) at least this many
                  # cells from every face of the grid; 0 draws them anywhere (identical draws as before)
-                 "pair_margin": 0},
+                 "pair_margin": 0,
+                 # theta1_fall (sparse task L4), e.g. 0.1: after each joint round without a transfer the
+                 # C1 threshold (plasticity theta1) falls by this fraction, then stays. None: off
+                 "theta1_fall": None},
     "video": {"enabled": False, "frame_stride": 2, "fps": 30},
     "deadline": None,
     # diagnostic (iteration 43), e.g. {"radius": 1.0}: C1 and C2 held fixed, gates fully open within
@@ -260,6 +268,8 @@ class AssocRun:
     def new_plasticity(self, **over) -> GatedPlasticity:
         pp = dict(self.p["plasticity"])
         pp.update(over)
+        if self.p.get("l5"):
+            pp["track_increase"] = True
         wi = self.p["weights"].get("w_intra_ee")
         normed = self.p["weights"].get("w_intra_ee_total") is not None
         fixed = self.eng.intra_ee_mask() if (normed or (wi is not None and wi > 1.0)) else None
@@ -360,6 +370,21 @@ class AssocRun:
             self.video = video
 
     # ------------------------------------------------------------ stepping
+
+    def l5_counts(self) -> torch.Tensor:
+        """
+        L5: per-voxel C1 release, in spikes, from the positive learned change of w_fast onto each neuron
+        in the last plasticity step (P.increase_post); only where the neuron's C1 is at least c1_min, and
+        per group at most the number of its excitatory neurons (an assembly firing at once).
+        """
+        l5, eng = self.p["l5"], self.eng
+        r = self.P.increase_post * (float(l5.get("gain", 1.0)) / 0.95)
+        r = torch.where(self.vmap.sample(self.C1.c) >= float(l5.get("c1_min", 0.0)), r, torch.zeros_like(r))
+        g = eng.groups.long()
+        tot = torch.zeros(eng.G, device=eng.device).index_add_(0, g, r)
+        cap = torch.zeros(eng.G, device=eng.device).index_add_(0, g, eng.exc.float())
+        r = r * torch.clamp(cap / torch.clamp(tot, min=1e-12), max=1.0)[g]
+        return self.vmap.counts(r)
 
     def transmission_factor(self, a: torch.Tensor) -> torch.Tensor | None:
         """
@@ -472,6 +497,8 @@ class AssocRun:
             if chem:
                 if release1:
                     self.C1.release(counts, p["c1"]["gain"], p["c1"].get("saturation"))
+                    if p.get("l5") and learn:
+                        self.C1.release(self.l5_counts(), p["c1"]["gain"], p["c1"].get("saturation"))
                 if release2:
                     c2_counts = (self.vmap.counts(spikes & ~inj_mask) if (inj_mask is not None and i < inj_n)
                                  else counts)
@@ -1343,6 +1370,9 @@ def protocol_body(run: AssocRun, a: int, b: int, c: int, video=False, out_prefix
         if t_ab["success"]:
             c1_ok = True
             break
+        if pr.get("theta1_fall"):     # L4: no transfer yet, the C1 threshold falls
+            run.P.theta1 *= 1.0 - float(pr["theta1_fall"])
+            log[-1]["theta1_next"] = run.P.theta1
     final_scale, run.P.rate_scale = run.P.rate_scale, 1.0
     out = {"c1_rounds": rounds, "c1_test_passed": c1_ok, "c1_log": log, "path_groups": path,
            "runaway_round": runaway_round,
