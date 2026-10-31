@@ -1,6 +1,14 @@
 # Task: Rate Model for Screening the Assembly-Association Parameters
 
 > [!IMPORTANT]
+> **Status (2026-10-31): round 6 step 3 done, model B not admitted.** On the rerun's own networks, with the
+> rerun's settings and no fitted parameter, model B meets the 7 x 7 x 7 class fractions and the uniform-C2
+> requirement but not the grid size: at 9 x 9 x 9 it finds 1 association of 24 where the spiking runs find 11
+> (7 x 7 x 7: 16 against 15). Next step for the user to decide (`round6-report.md`, "Step 3"): record the final
+> strays and rerun 9 x 9 x 9, or fit up to three learning parameters. Round 6 has spent about $3.86, above its
+> **[default]** $3.
+
+> [!NOTE]
 > **Status (2026-10-30): on hold until the engine-fix rerun.** Round 6 found that the engine's synapse table was
 > transposed (`round6-report.md`), so the spiking ground truth of rounds 1 to 5 (s71, s73) came from scrambled
 > networks; their reports and ground-truth files are archived in `../archive-pre-engine-fix/rate-model/`. On the
@@ -196,7 +204,11 @@ Outcome (`round6-report.md`): the cause was in the engine, a transposed synapse 
 network the wrong composition; fixed on 2026-10-30, with the other engine fixes of that day
 (`../engine-fix-rerun-task.md`). Steps 1 and 2 were then repeated on the fixed engine ("After the engine
 fixes" in the report). The fitted factors and the `frac_I_to_I` option of rounds 5 and 6 described the
-faulty networks; model B uses the configured composition (its defaults).
+faulty networks; model B uses the configured composition (its defaults). Step 3 (report, "Step 3"): not
+admitted at the rerun's settings without fitted parameters; the grid-size requirement fails (9 x 9 x 9
+associations 1 against 11). The admission ran with new scripts on the rerun's summaries
+(`round6_regime_precheck.py`, `round6_admission_compare.py`); the constants of `admission_test.py` and the
+other round 4 and 5 scripts listed in step 3 still hold the faulty engine's references.
 
 1. **Export and structure audit.** On a GPU pod, build the engine's network as the spiking runs did
    (7 x 7 x 7: N 20,000, S 2000, `rewire` lam 0.4, seeds 0 and 1, s71 parameters; 9 x 9 x 9:
@@ -277,6 +289,8 @@ the exports there); **[default]** at most $3 for the round. Report in `round6-re
   as needed); for round 6 `round6-report.md`, `round6_export_engine.py` (export and structure
   audit), `round6_compare.py` (the step-2 comparison), the option of `spiking_group_model.py` that
   loads an exported network, and the gitignored `output-round6/`; after the engine fixes `round6_fixed_pod.sh`
-  (the repeat of steps 1 and 2 on a pod) and the gitignored `output-round6-fixed/`. A round 4 agent
+  (the repeat of steps 1 and 2 on a pod) and the gitignored `output-round6-fixed/`; for step 3
+  `round6_regime_precheck.py`, `round6_admission_compare.py`, `round6_precheck_pod.sh`, `round6_grid_pod.sh`
+  and the gitignored `output-round6-precheck/` and `output-round6-grid/`. A round 4 agent
   changes only its own model's files; shared files (`rate_model.py`, `../archive-pre-engine-fix/rate-model/s71_ground_truth.json`) are read,
   not changed.

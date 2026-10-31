@@ -13,7 +13,12 @@ checks pass, 3 skipped as before).
 **After the engine fixes (2026-10-30, last section):** on the fixed engine, model B with the configured
 composition and no fitted factor reproduces the engine's single-group response at 7^3 and 9^3 (medians within
 3.8 % and 1.6 %), and still reproduces every spike total exactly on the exported networks. Points (1), (3) and
-(4) below describe the faulty engine; step 3 waits for the rerun's ground truth.
+(4) below describe the faulty engine.
+
+**Step 3, admission (2026-10-30, section "Step 3" at the end): not admitted.** At the rerun's settings, with no
+fitted parameter, model B on the rerun's own networks meets the class fractions at 7^3 and the uniform-C2
+requirement, but not the grid size: at 9^3 it finds 1 association of 24 where the spiking runs find 11 (7^3:
+16 against 15). Its first transfers agree at both sizes.
 
 **Summary (before the engine fixes).**
 (1) The engine's built network differs from what model B assumed from the configuration code: excitatory neurons
@@ -279,3 +284,74 @@ read). The first attempt ran four exports at once and a 9^3 build ran out of GPU
 rerun built 9^3 one at a time. The check of the updated module checks: pod `6xcip3ngfxowrd` (`r6-test-check`), same
 type and price, created 10:33:15 UTC, about 4 minutes, about $0.04 (estimated); terminated (delete 204,
 `list-pods` empty).
+
+## Step 3: learning, then admission, on the rerun's networks (2026-10-30)
+
+Spiking reference: `../engine-fix-rerun-task.md`, steps 3, 5 and 6 (summaries `../output/rerun5-summary.txt`,
+section `sweep proto-lam0.4`, and `../output/rerun67-summary.txt`, section `rerun6[cd]-grid-g9-d4-*`, config `E0`;
+gitignored). Settings of the steps: gain 4, `gain_ie` 2, intra-group input 40, d 4, rewiring at lambda 0.4 with
+`gain_ee_inter` 2.4 (the engine's own wiring: 1.2), the C2 stage; uniform-C2 control `c2_uniform` 1.2. Model B
+with its defaults (configured composition), these settings and **no fitted parameter**. Each pair is classified
+as in Substep 3 (first transfer: contained at most 34 strays, ignition, none); an association is a pair whose
+strays at the end are at most 34. Code: `round6_regime_precheck.py` (`own`: model B's own networks; `export`:
+the engine's exported networks with the engine's injected neurons, `set_injection`; `--c2`, `--set`),
+`round6_admission_compare.py` (pair by pair against a sweep summary; agreement and Cohen's kappa),
+`round6_precheck_pod.sh` and `round6_grid_pod.sh` (pod sessions); `round6_compare.py spec_for` now takes lambda
+from the export. Results in `output-round6-precheck/` and `output-round6-grid/` (gitignored; the comparisons in
+`output-round6-grid/compare_g7.*` and `compare_g9.*`).
+
+**Archived regime first.** Model B at the settings of rounds 4 and 5 (`admission_spiking_group.py`, archived
+reference 7 / 10 / 7) gives 47 of 48 none at 7^3 on the fixed engine: those settings were tuned on the
+scrambled networks and are not used.
+
+**Class fractions, 7^3, lambda 0.4** (spiking: 24 of 24 ignition; 95 % Clopper-Pearson intervals: ignition
+[0.858, 1], contained and none [0, 0.142]):
+
+| model B | contained | ignition | none | within the intervals |
+|---|---|---|---|---|
+| own networks, realizations 0 and 1 (48) | 1 | 46 | 1 | yes |
+| the rerun's exported networks (24) | 1 | 23 | 0 | yes |
+
+Below the step's `gain_ee_inter` 2.4, model B's own networks (one realization, 24 pairs) give 2 contained at 2.0,
+1 at 1.6 and 6 at 1.2 (the rest ignition): contained first transfers appear only well below the step's setting.
+
+**Engine's own wiring, 7^3** (step 5, `gain_ee_inter` 1.2, exported networks, first transfer only): spiking
+14 ignition / 10 none, model B 11 / 1 contained / 12 none; fractions within the intervals; per pair agreement
+0.67, kappa 0.36. 12 of the 24 model runs were stopped as runaways (`runaway_round`).
+
+**Learning, pair by pair on the exported networks** (same network, pair and injected neurons in both):
+
+| comparison (24 pairs) | spiking | model B | agreement | kappa |
+|---|---|---|---|---|
+| 7^3 first transfer | 24 ignition | 23 ignition, 1 contained | 0.96 | 0 (spiking one class) |
+| 7^3 associations, activity-dependent C2 | 15 | 16 | 0.79 | 0.55 |
+| 7^3 associations, uniform C2 | 0 | 1 | 0.96 | 0 (spiking one class) |
+| 9^3 (d 4) first transfer | 24 ignition | 24 ignition | 1.00 | (one class) |
+| 9^3 (d 4) associations, activity-dependent C2 | 11 | 1 | 0.58 | 0.10 |
+
+Strays at the first transfer agree closely: the absolute difference has median 2 at both sizes (within 5 strays:
+16 of 24 pairs at 7^3, 19 of 24 at 9^3; equal: 2 and 7). At 9^3 model B associates only `s0p0`, which the spiking run
+also associates; it never associates a pair the spiking run does not (confusion: 1 / 10 / 0 / 13).
+
+**Admission (Substep 3), no fitted parameter:**
+
+- Class fractions (7^3): pass, on 2 realizations instead of the default 5 (both are the rerun's networks).
+- Grid size: **fail.** The spiking first-transfer class is the same at 7^3 and 9^3 (all ignition) and model B
+  reproduces that; the spiking associations fall from 15 to 11 of 24, model B's from 16 to 1.
+- Uniform C2: pass (spiking 15 -> 0 associations, model B 16 -> 1).
+
+Model B is therefore not admitted at these settings; per Substep 3 it is not used for screening. Possible reason,
+not tested: at 9^3 the spiking associations end with 24 to 33 strays against the limit of 34 (7^3: 8 to 32,
+median 16), so the 9^3 count depends on small differences in the last rounds. Model B's rows record only the
+first transfer's strays, so how far its 10 missed pairs lie above 34 is not known. Next steps (user decision):
+record the final strays per pair and rerun 9^3 (about 1.2 h on one GPU pod); or fit up to three parameters
+of the learning stage (Substep 3) on seed 0's pairs.
+
+Cost: pod `xt2eohm6688yx9` (`rm6-precheck`), RTX PRO 4500 Blackwell, $0.72/h: pre-check at the archived regime,
+the lambda 1.0 exports and checks (lambda 1.0 later dropped by the rerun's step 3; its 9^3 single-group response
+ran out of memory and was not repeated), the 7^3 runs above; $2.18 (billing), including about 15 idle minutes
+after a host-session restart. Pod `qcf0q3v2m60w7i` (`rm6-grid`), RTX 4090, $0.89/h (the Blackwell types had no
+capacity): the 9^3 exports and model B (a first run with 32 workers ran out of memory; rerun with 12, 72
+minutes), 16:06 to about 17:31 UTC, about $1.26 (estimated; billing at termination showed $0.33 and lags).
+Both terminated after the download (delete 204, `list-pods` empty). Round 6 after the engine fixes: about
+$3.59; with the two pods before the fixes about $3.86, **above the round's [default] limit of $3**.

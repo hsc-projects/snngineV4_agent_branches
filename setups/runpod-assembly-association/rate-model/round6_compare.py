@@ -143,6 +143,9 @@ def spec_for(meta: dict, export_dir: str | None = None, **over):
     dim = int(meta["seg"][0])
     kw = dict(grid_dim=dim, neurons_per_group=meta["N"] / float(meta["G"]), n_delays=int(meta["D"]), syn_scale=1.0,
               neuron_scale=1.0, export_dir=export_dir)
+    rewire = meta.get("engine", {}).get("rewire")
+    if rewire:
+        kw["lam"] = float(rewire["lam"])                 # the export's wiring (the session file has lambda 0.4)
     if dim == 9:
         kw["max_active_frac"] = 34 / 729.0
     kw.update(over)
