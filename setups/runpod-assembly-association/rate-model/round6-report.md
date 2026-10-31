@@ -18,7 +18,8 @@ composition and no fitted factor reproduces the engine's single-group response a
 **Step 3, admission (2026-10-30, section "Step 3" at the end): not admitted.** At the rerun's settings, with no
 fitted parameter, model B on the rerun's own networks meets the class fractions at 7^3 and the uniform-C2
 requirement, but not the grid size: at 9^3 it finds 1 association of 24 where the spiking runs find 11 (7^3:
-16 against 15). Its first transfers agree at both sizes.
+16 against 15). Its first transfers agree at both sizes; its final strays exceed the spiking ones by about 12 at
+9^3 (4 at 7^3), so most of its misses are near-misses ("Final strays").
 
 **Summary (before the engine fixes).**
 (1) The engine's built network differs from what model B assumed from the configuration code: excitatory neurons
@@ -355,3 +356,41 @@ capacity): the 9^3 exports and model B (a first run with 32 workers ran out of m
 minutes), 16:06 to about 17:31 UTC, about $1.26 (estimated; billing at termination showed $0.33 and lags).
 Both terminated after the download (delete 204, `list-pods` empty). Round 6 after the engine fixes: about
 $3.59; with the two pods before the fixes about $3.86, **above the round's [default] limit of $3**.
+
+### Final strays (2026-10-31)
+
+Model B as above, rerun on new exports of the same networks with the final tests' strays recorded per pair and
+direction (`round6_regime_precheck.py` rows, `final`; session `round6_strays_pod.sh`; results in
+`output-round6-strays/`, gitignored). Spiking side: the per-job results of steps 5 and 6 (`final`, `c2_rounds`,
+`c2_runaway_round`). Per pair, "best final strays" is the smaller stray count of the successful final tests (an
+association needs one at most 34).
+
+| | 7^3 | 9^3 |
+|---|---|---|
+| associations, spiking / model B | 15 / 16 | 11 / 2 |
+| first transfer strays, model B minus spiking, median | 2 | 2 |
+| best final strays, model B minus spiking, median (range; pairs with a successful final test in both) | 4 (-23 to 17; 23 pairs) | 12 (-107 to 80; 20 pairs) |
+| C2 stage: same number of rounds in both | 24 of 24 | 20 of 24 |
+
+- **The C2 stage is the same in both.** In both implementations the first C2 round ends in a runaway stop for most
+  pairs (7^3: 20 of 24 in both; 9^3: 23 spiking, 21 model B; the final tests then run on the state after that
+  round), and at 7^3 the pairs that run all 5 rounds without a runaway are the same.
+- **At 9^3 model B's final strays are about 12 higher than the spiking ones; at 7^3 about 4.** Of the 9 spiking
+  associations it misses, 7 end just above the limit (37 to 45 strays, spiking 24 to 33) and 2 far above it
+  (`s0p9` 113, `s1p2` 64). The first transfer agrees at both sizes (median difference 2), so the excess builds up
+  after it, in the C2 round with its consolidation or in the final tests (no joint round follows the first
+  transfer), and it grows with the lattice.
+- Model B is not reproducible run to run on identical inputs: on the same networks the first run gave 1
+  association at 9^3 (`s0p0`), this one 2 (`s0p6`, `s1p4`; `s0p0` now 37 strays); at 7^3 16 both times.
+  Parallel float summation is the likely cause (not checked).
+
+So the 9^3 failure is mostly a near-miss: a systematic excess of about 10 final strays, growing with the size.
+A fit (Substep 3) needs a parameter that acts after the first transfer: of model B's three free parameters,
+`learn_scale` acts on the learning before it as well and `w_inh_scale` and `w_inter_scale` on the first transfer,
+which now agrees. Not yet decided (user).
+
+Cost: pod `qf0ofpysmtt5b3` (`rm6-strays`), RTX PRO 4500 Blackwell, 28 vCPU (cgroup limit 23.8), 62 GB, $0.72/h,
+00:50:34 to about 01:38 UTC, about $0.58 (estimated; billing not yet posted); a first launch stopped on a params
+file missing from the bundle (about 5 minutes). Three pods created and deleted within a minute before it, while
+choosing a type (`free` and `nproc` inside the container report the host's resources, not the pod's): about
+$0.03. Round 6 after the engine fixes: about $4.20; with the two pods before the fixes about $4.47.

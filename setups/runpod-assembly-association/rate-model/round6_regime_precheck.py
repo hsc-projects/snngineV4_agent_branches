@@ -12,7 +12,8 @@ that regime can discriminate (mixed classes). Two sources of networks:
 
   python round6_regime_precheck.py own --realizations 0,1 --set gain_ee_inter=2.4 --out R.json [--workers N]
   python round6_regime_precheck.py export --exports DIR [DIR ...] --set gain_ee_inter=1.2 --out R.json [--workers N]
-  --c2 adds the short-circuit stage (association after C2; with --set c2_uniform=1.2, C2 held uniform where released).
+  --c2 adds the short-circuit stage (association after C2; with --set c2_uniform=1.2, C2 held uniform where released);
+  its rows then also hold the final tests' strays per direction (final).
 
 numpy only.
 """
@@ -32,6 +33,14 @@ if HERE not in sys.path:
 CLASSES = ("contained", "ignition", "none")
 
 
+def _c2_fields(r: dict) -> dict:
+    """The short-circuit stage's outcome: rounds, runaway, and per direction of the final tests success, bounded, strays."""
+    f = r.get("final")
+    return {"c2_rounds": r.get("c2_rounds"), "c2_runaway_round": r.get("c2_runaway_round"),
+            "final": None if f is None else {d: {"success": bool(f[d]["success"]), "bounded": bool(f[d]["bounded"]),
+                                                 "strays": int(f[d]["n_active_outside"])} for d in ("A_to_B", "B_to_A")}}
+
+
 def _own_job(args):
     over, seed, i, pr, c2 = args
     from admission_spiking_group import make_spec
@@ -42,7 +51,7 @@ def _own_job(args):
     return {"source": f"own-{seed}", "pair_index": i, "A": int(pr[0]), "B": int(pr[1]), "class": r["class"],
             "association": r.get("association"),
             "strays": r.get("strays"), "c1_rounds": r.get("c1_rounds"), "runaway_round": r.get("runaway_round"),
-            "seconds": time.perf_counter() - t0}
+            **_c2_fields(r), "seconds": time.perf_counter() - t0}
 
 
 def _export_job(args):
@@ -61,7 +70,7 @@ def _export_job(args):
     r = run_pair_protocol(net, A, B, c2_stage=c2, control0=False)
     return {"source": os.path.basename(d.rstrip("/")), "pair_index": i, "job": meta["jobs"][i]["job"],
             "pair_engine": pair, "A": A, "B": B, "class": r["class"], "association": r.get("association"), "strays": r.get("strays"), "c1_rounds": r.get("c1_rounds"),
-            "runaway_round": r.get("runaway_round"), "seconds": time.perf_counter() - t0}
+            "runaway_round": r.get("runaway_round"), **_c2_fields(r), "seconds": time.perf_counter() - t0}
 
 
 def main(argv=None):

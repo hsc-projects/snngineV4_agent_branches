@@ -4,9 +4,11 @@
 > **Status (2026-10-31): round 6 step 3 done, model B not admitted.** On the rerun's own networks, with the
 > rerun's settings and no fitted parameter, model B meets the 7 x 7 x 7 class fractions and the uniform-C2
 > requirement but not the grid size: at 9 x 9 x 9 it finds 1 association of 24 where the spiking runs find 11
-> (7 x 7 x 7: 16 against 15). Next step for the user to decide (`round6-report.md`, "Step 3"): record the final
-> strays and rerun 9 x 9 x 9, or fit up to three learning parameters. Round 6 has spent about $3.86, above its
-> **[default]** $3.
+> (7 x 7 x 7: 16 against 15). The final strays (`round6-report.md`, "Step 3", "Final strays") show a near-miss:
+> model B's final strays exceed the spiking ones by about 12 at 9 x 9 x 9 and 4 at 7 x 7 x 7, while the first
+> transfer agrees; the excess arises between the first transfer and the final tests. Next step for the user to
+> decide: a fit (Substep 3) with a parameter that acts there. Round 6 has spent about $4.47, above its
+> **[default]** $3 (raised by the user to about $8 on 2026-10-31).
 
 > [!NOTE]
 > **Status (2026-10-30): on hold until the engine-fix rerun.** Round 6 found that the engine's synapse table was
@@ -290,7 +292,8 @@ the exports there); **[default]** at most $3 for the round. Report in `round6-re
   audit), `round6_compare.py` (the step-2 comparison), the option of `spiking_group_model.py` that
   loads an exported network, and the gitignored `output-round6/`; after the engine fixes `round6_fixed_pod.sh`
   (the repeat of steps 1 and 2 on a pod) and the gitignored `output-round6-fixed/`; for step 3
-  `round6_regime_precheck.py`, `round6_admission_compare.py`, `round6_precheck_pod.sh`, `round6_grid_pod.sh`
-  and the gitignored `output-round6-precheck/` and `output-round6-grid/`. A round 4 agent
+  `round6_regime_precheck.py`, `round6_admission_compare.py`, `round6_precheck_pod.sh`, `round6_grid_pod.sh`,
+  `round6_strays_pod.sh` and the gitignored `output-round6-precheck/`, `output-round6-grid/` and
+  `output-round6-strays/`. A round 4 agent
   changes only its own model's files; shared files (`rate_model.py`, `../archive-pre-engine-fix/rate-model/s71_ground_truth.json`) are read,
   not changed.
