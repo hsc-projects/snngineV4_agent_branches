@@ -851,6 +851,24 @@ def selectivity_regions_middle_and_shell(dev):
     run.spike_acc[ns] = 1.0
     sel = run.selectivity(0, 5)
     assert close(sel["M"]["spikes_per_exc"], 2.0) and close(sel["ratio"]["spikes_per_exc"], 2.0), sel
+    assert "C1_open" not in sel                                      # off by default
+
+
+@check
+def c1_open_fractions_of_middle_and_shell(dev):
+    eng, run = region_stub(dev)
+    run.p["c1_open"] = [1.0, 1.5, 3.0]
+    vm, vs = run.regions(0, 5)["voxel"]
+    run.C1.c.zero_()
+    run.C1.c[vs] = 1.0                                               # shell: C1 1 everywhere
+    run.C1.c[vm] = 1.0
+    idx = torch.nonzero(vm.reshape(-1)).view(-1)
+    run.C1.c.view(-1)[idx[: len(idx) // 2]] = 2.0                    # half of the middle at 2
+    rows = run.selectivity(0, 5)["C1_open"]
+    assert [r["f"] for r in rows] == [1.0, 1.5, 3.0]
+    assert close(rows[0]["M"], 1.0) and close(rows[0]["Sh"], 1.0)  # threshold 1: everything open
+    assert close(rows[1]["M"], (len(idx) // 2) / len(idx)) and rows[1]["Sh"] == 0.0 and rows[1]["ratio"] is None
+    assert rows[2]["M"] == 0.0 and rows[2]["Sh"] == 0.0
 
 
 @check

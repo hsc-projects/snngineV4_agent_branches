@@ -90,6 +90,9 @@ DEFAULTS = {
     # spikes' worth per 0.95 (a full strengthening from 0.05 to 1), only where its C1 is at least `c1_min`;
     # each group releases at most as much as all its excitatory neurons firing at once. None: off
     "l5": None,
+    # c1_open (sparse task, Substep 3), e.g. [1.0, 1.2, 1.5]: the selectivity telemetry also records, per
+    # factor f, the fraction of M and Sh voxels whose C1 is at least f times Sh's mean C1. None: off
+    "c1_open": None,
     "i_min": None,  # lower clamp on the summed input current (numerical safeguard), e.g. -60
     "i_max": None,  # upper clamp on the summed input current (numerical safeguard), e.g. 100
     # stop a phase in the step in which more than this fraction of all neurons fires: the engine
@@ -817,6 +820,16 @@ class AssocRun:
                 "w_fast_ee": _mean(P.w_fast[s_m & post_exc]), "w_fast_ei": _mean(P.w_fast[s_m & ~post_exc])}
         out["ratio"] = {q: _ratio(out["M"][q], out["Sh"][q])
                         for q in ("spikes_per_exc", "C1", "C2", "E", "g1", "w_fast_ee", "w_fast_ei")}
+        fs = self.p.get("c1_open")
+        if fs and out["Sh"]["C1"]:
+            # thresholded C1 readout (sparse task, Substep 3): fraction of M and Sh voxels with C1 >= f times
+            # Sh's mean C1, per factor f, and their ratio (the archived field check's gated readout)
+            vm, vs = R["voxel"][0], R["voxel"][1]
+            out["C1_open"] = []
+            for f in fs:
+                th = float(f) * out["Sh"]["C1"]
+                om, osh = _mean((self.C1.c[vm] >= th).float()), _mean((self.C1.c[vs] >= th).float())
+                out["C1_open"].append({"f": float(f), "M": om, "Sh": osh, "ratio": _ratio(om, osh)})
         return out
 
     def weight_selectivity(self, a: int, b: int, dw: torch.Tensor) -> dict:

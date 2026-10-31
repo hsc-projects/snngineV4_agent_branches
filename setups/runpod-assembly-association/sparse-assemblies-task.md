@@ -84,7 +84,8 @@ strengthening of ordinary neurons confined to the route, and the chemical fields
 - **Layout:** lattice with spacing 2 (64 of 343 cells are assemblies); later spacing 3 (27) and
   random (about 30, at least one free cell between assemblies).
 - **Grid:** 7 x 7 x 7, N 20,000 (58 neurons per group), S 2000; later 9 x 9 x 9 (N 20,000 or 42,500).
-- **Connection range:** lambda 0.4 cells (`rewire: {"lam": 0.4}`).
+- **Connection range:** lambda 0.4 cells (`rewire: {"lam": 0.4}`); Substep 3 runs at lambda 1.0, where the
+  substrate sums ("Rules", user decisions of 2026-10-31).
 - **Protocol:** the predecessor's passing protocol (iteration 56, `archive-pre-engine-fix/params/session69a-stage2.json`),
   with the boost on assembly cells only: joint rounds with rule `both` and C1 skipped, short circuit
   stage with C2, final test A alone on `w_perm`.
@@ -92,7 +93,7 @@ strengthening of ordinary neurons confined to the route, and the chemical fields
 ## Pass criteria
 
 1. **Association:** A -> B (or the reverse) >= 0.5 in the final test, no runaway, strays within the
-   limit (bridge assemblies on the route may be active).
+   limit, 10 % of all groups (the user's default, 2026-10-31; bridge assemblies on the route may be active).
 2. **Controls:** control 0 and the joint-activation control hold.
 3. **Route selectivity:** `R_off` = mean permanent change per E -> E synapse onto ordinary neurons in
    an off-route shell, divided by the same in the route middle (the M / Sh regions of the
@@ -132,7 +133,7 @@ strengthening of ordinary neurons confined to the route, and the chemical fields
 | S3 | lognormal inter-group E -> E weights, sigma 1 and sigma 0.51 | Teramae et al. 2012; Teramae & Fukai 2014; Hiratani et al. 2013; Chambers & MacLean 2016; Omura et al. 2015 |
 | S4 | transient transmission gain where C1 is high, with a brake where local firing is high | Egelman, King, Montague 1998 (NO raises transmitter release nearby; depletion of external calcium as the brake) |
 | S5 | voltage-gated ("silent") inter-group E -> E synapses that transmit only while the postsynaptic neuron is depolarized, so input from A and B together can cross threshold where either alone does not | Wang et al. 2018 (silent synapses respond at -35 mV, not at -70 mV; conditioning, not pseudo-conditioning, makes them transmit) |
-| S6 | weaker inhibition between location groups: inter-group E -> I and / or I -> E gains lowered (`gain_ei_inter`, `gain_ie_inter`), intra-group inhibition unchanged | agent's proposal after Substep 2 (user decision, 2026-10-30): the route middle receives 60 to 100 times more inhibition than excitation under joint injection |
+| S6 | weaker inhibition between location groups: inter-group E -> I and / or I -> E gains lowered (`gain_ei_inter`, `gain_ie_inter`), intra-group inhibition unchanged | agent's proposal after Substep 2 (user decision, 2026-10-30): the route middle received 60 to 100 times more inhibition than excitation under joint injection on the faulty engine, 200 to 350 times on the corrected one |
 | L0 | rule `both`, C1 skipped | predecessor |
 | L1 | BTSP-like rule gated by random plateau events | Bittner et al. 2017; Wu & Maass 2025; Milstein et al. 2021; Cone & Shouval 2021 |
 | L2 | BTSP-like rule gated by C1 | as L1; Gally et al. 1990 |
@@ -204,7 +205,8 @@ editing and short checks; user decision, 2026-10-29).
   neuron's strongest synapse stays far below half the single-synapse threshold (6.8 predicted for an
   ordinary excitatory neuron at the passing protocol's gains; at sigma 1 about 13 %, at most about 37 %
   at any sigma), so S3 runs in two forms (user decision, 2026-10-30): **S3a** with S0's mean input;
-  **S3b** with Teramae's ratio of mean weight to threshold (about 4.5 %, mean about 0.31), inhibition
+  **S3b** with Teramae's ratio of mean weight to threshold (about 4.5 %: mean about 0.31 at the predicted
+  threshold 6.8, 0.366 at the measured 8.125, which the parameter files use), inhibition
   unchanged.
 - **L1, L2 (BTSP-like rule):** a gate event in a neuron (L1: a random plateau at a low rate; L2: C1
   above a threshold) opens a window; only synapses onto that neuron with presynaptic activity in the

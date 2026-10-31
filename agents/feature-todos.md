@@ -22,7 +22,8 @@ Each entry gets a priority: **high**, **mid**, or **low**.
     (done, steps 0 to 8; conclusions A1 to A8 in `engine-fix-rerun-report.md`):
     the protocol associates 15 of 24 pairs at 7^3 and 11 of 24 at 9^3 (the faulty engine's results are
     archived in `setups/runpod-assembly-association/archive-pre-engine-fix/`). Next: the sparse task's
-    Substep 3 on S3b with a milder S6, at 4 then 10 lambda (`sparse-assemblies-task.md`).
+    Substep 3 on S3b with a milder S6, at 4 then 10 lambda, in progress (`sparse-assemblies-task.md`,
+    `sparse-tuning-log.md`).
 
 - [mid] Engram avenue for the main feature (allocation by excitability, co-allocation window,
   silent engrams, engram complex): literature and concept mapping only, no pods.
