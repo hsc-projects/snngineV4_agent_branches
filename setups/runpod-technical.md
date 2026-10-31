@@ -127,8 +127,10 @@ their task-specific commands.
    GPU); the host has no torch. **Never upload code while sessions run:** they import from the volume.
 6. **Run detached:** start sessions with a runner that detaches and writes a `.finished` marker, never
    through a long-lived SSH connection (a dropped connection once left a pod idle for 31 minutes). A pod
-   can run two sessions side by side when one does not saturate the GPU, or chain a second session
-   behind the first's marker. Every engine build reads vispy's sample data (`volume/stent.npz`,
+   can run several sessions side by side when one does not saturate the GPU (a 24 GB card held three 7^3
+   sessions; a fourth stopped in preflight, CUDA out of memory while rewiring, engine-fix rerun step 7), or
+   chain a second session behind the first's marker. A script piped from Windows PowerShell to `ssh` starts
+   with a byte-order mark that breaks its first line; strip it on the pod (`sed '1s/^\xEF\xBB\xBF//'`). Every engine build reads vispy's sample data (`volume/stent.npz`,
    `chem_volume.py`); it lies on the volume (see the layout above), so no pod downloads it. Without it, two
    first downloads at once on a fresh pod collide in `/root/.vispy` and stop a session in preflight
    (engine-fix rerun, steps 1 and 4).

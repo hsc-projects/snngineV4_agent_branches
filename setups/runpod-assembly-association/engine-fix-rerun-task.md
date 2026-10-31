@@ -7,8 +7,9 @@ network; state for each earlier conclusion whether it holds, changes or falls.
 > [!NOTE]
 > **Status (2026-10-31): in progress; steps 0 to 7 done** (`engine-fix-rerun-report.md`): the volume's checkout
 > is a git clone at the corrected engine, its builds pass the audit at 7^3, 9^3 and 11^3, and steps 3 to 7 ran the
-> wirings of revision 8 of `runpod-assembly-association-task.md`; step 7 keeps S3b at lambda 1.0 for the sparse
-> task (user decision, 2026-10-31). Open: step 8 (rate model) and the closing updates of "Done when".
+> wirings of revision 8 of `runpod-assembly-association-task.md`; step 7 gives the sparse task its substrate,
+> S3b with inter-group I -> E gain 0.5, which sums at 4 lambda only (user decisions, 2026-10-31). Open: step 8
+> (rate model; A8), with the status note of `rate-model/rate-model-task.md`; the other closing updates are done.
 > Pod sessions run under a standing approval within the cost cap ("How to run"). The requirements, rules and
 > "Revisions agreed with the user" of `runpod-assembly-association-task.md` apply (revision 1, the rewiring,
 > rests on a finding of the bug and is decided again in step 2); `sparse-assemblies-task.md` applies to step 7.

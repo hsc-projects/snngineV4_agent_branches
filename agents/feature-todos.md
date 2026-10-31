@@ -18,12 +18,11 @@ Each entry gets a priority: **high**, **mid**, or **low**.
   implemented and tuned on Runpod:
   - Task write-up: `setups/runpod-assembly-association/runpod-assembly-association-task.md`.
   - Context: `agents/main_feature/main-feature-readme-reconstruction.md`.
-  - Status: on hold until the rerun. Iterations 1 to 65 and the successor task's SP0 to SP3 ran on an
-    engine whose synapse table was transposed (fixed 2026-10-30); their results are archived in
-    `setups/runpod-assembly-association/archive-pre-engine-fix/` and are not evidence until
-    re-established. Next: `setups/runpod-assembly-association/engine-fix-rerun-task.md` (in progress:
-    steps 0 to 7 done, S3b at lambda 1.0 kept for the sparse task's Substep 3, step 8 (rate model)
-    open, `engine-fix-rerun-report.md`).
+  - Status: re-established on the corrected engine by `setups/runpod-assembly-association/engine-fix-rerun-task.md`
+    (steps 0 to 7 done; conclusions A1 to A8 in `engine-fix-rerun-report.md`, A8 open with the rate model):
+    the protocol associates 15 of 24 pairs at 7^3 and 11 of 24 at 9^3 (the faulty engine's results are
+    archived in `setups/runpod-assembly-association/archive-pre-engine-fix/`). Next: the sparse task's
+    Substep 3 on S3b with a milder S6, at 4 then 10 lambda (`sparse-assemblies-task.md`).
 
 - [mid] Engram avenue for the main feature (allocation by excitability, co-allocation window,
   silent engrams, engram complex): literature and concept mapping only, no pods.

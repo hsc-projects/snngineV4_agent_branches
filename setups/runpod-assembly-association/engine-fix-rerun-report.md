@@ -1,7 +1,9 @@
 # Report: assembly association on the corrected engine
 
 Report of `engine-fix-rerun-task.md`: one section per step; the sessions are in `engine-fix-rerun-log.md`. At the
-end, conclusions A1 to A8 of the task, each as holds, changes or falls.
+end, conclusions A1 to A8 of the task, each as holds, changes or falls. The wiring decisions that steps 2 to 5
+left to the user are recorded in revision 8 of `runpod-assembly-association-task.md`; the sparse task's decisions
+after step 7 in `sparse-assemblies-task.md`, "Rules".
 
 ## Step 0: corrected engine on the network volume (2026-10-30)
 
@@ -37,7 +39,7 @@ than the next distance (not explained).
 
 Cost: about $0.09 (one pod, about 9 minutes at $0.57/h, estimated).
 
-## Step 2: wiring (2026-10-30; decision pending)
+## Step 2: wiring (2026-10-30)
 
 Measured at 7^3 and 9^3, network seeds 0 and 1, on the engine's own wiring and rewired at lambda 0.4 and 1.0
 (sessions `rerun2a` to `rerun2d`; numbers in `engine-fix-rerun-log.md`, step 2).
@@ -78,7 +80,7 @@ statement "no gain at which activity stays within a cell or two" holds only for 
 
 Cost: about $0.29 (one check pod, about $0.05; four session pods, about $0.24; estimated).
 
-## Step 3: operating regime (2026-10-30; wiring of steps 4 to 7 pending)
+## Step 3: operating regime (2026-10-30)
 
 Run on the three wirings the user chose (revision 8): 7^3, network seeds 0 and 1, 42 configurations each of gain,
 `gain_ee_inter`, `gain_ie` and the intra-group total; per configuration Substep 1 on 100 groups and the
@@ -111,7 +113,7 @@ drop lambda 1.0, which lies between the two without a property of its own in the
 Cost: about $1.41 (six session pods, about 15 to 24 minutes each, and a summary pod; estimated). Rerun so far:
 about $1.89 of the $20 cap.
 
-## Step 4: propagation survey (2026-10-30; wiring of steps 5 to 7 pending)
+## Step 4: propagation survey (2026-10-30)
 
 Run on all three wirings (the user's choice): 7^3, network seeds 0 and 1, `prop_survey` on 12 pairs at d 4 per
 configuration, gain 4, intra total 40, `gain_ee_inter` 0.6 to 3.6 x `gain_ie` 2, 4, 8, no learning, no
@@ -141,7 +143,7 @@ stands: step 5 on the engine's own wiring (`gain_ee_inter` 1.2) and on rewiring 
 
 Cost: about $0.40 (three pods, about 12 minutes; estimated). Rerun so far: about $2.29 of the $20 cap.
 
-## Step 5: protocol and uniform-C2 control (2026-10-30; wiring of steps 6 and 7 pending)
+## Step 5: protocol and uniform-C2 control (2026-10-30)
 
 Run on the engine's own wiring and rewiring at lambda 0.4 (the user's choice), in their step 3 regimes, 7^3, 24
 pairs at d 4 (network seeds 0 and 1); the protocol with controls as s69a and the uniform-C2 control as s76.
@@ -221,8 +223,8 @@ The archived generators, unchanged (the sparse layout, lattice spacing 2, on the
 **A7** (60 to 100 times more inhibition than excitation, no substrate showing summation, hence the stop rule):
 **changes.** The inhibition dominates even more (200 to 350 times); S0 to S6 still show no summation, except a
 weak one in S3b, which the faulty engine had hidden behind a reservoir-wide activation. On 48 pairs (below)
-it holds at lambda 1.0, not at 0.4; the user keeps S3b at lambda 1.0, so the sparse task's stop rule does not
-apply and its Substep 3 runs on that substrate (`sparse-assemblies-task.md`, "Rules").
+it holds at lambda 1.0, not at 0.4; the sparse task's stop rule does not apply, and its Substep 3 runs on S3b
+with a milder S6 (below; `sparse-assemblies-task.md`, "Rules").
 
 Cost: about $0.63 (the session pod, about 48 minutes, and a summary pod; estimated). Rerun so far: about $5.47
 of the $20 cap.
@@ -234,5 +236,31 @@ route (0.78 to 0.96). The effect is small: medians 0.041 against 0.037 (A + B) a
 excitatory neuron and round. At lambda 0.4 it does not sum (8 against 18, 22 ties); step 7's sign there came
 from 12 pairs. The keep rule of Substep 2 also asks for a hysteresis loop narrower than S0's: at lambda 1.0
 neither S3b nor S0 shows a loop, so S3b's is no wider but not narrower. The loop measure is also not
-reproducible on one network (S3b at lambda 0.4, seed 0: 0.195 in step 7, 0.010 now). The user keeps S3b at lambda
-1.0 (2026-10-31). Cost about $0.20; rerun so far about $5.67.
+reproducible on one network (S3b at lambda 0.4, seed 0: 0.195 in step 7, 0.010 now). The user kept S3b at lambda
+1.0 (2026-10-31; superseded by the screening below). Cost about $0.20; rerun so far about $5.67.
+
+**S3b screening (2026-10-31; the Substep 2 variants not yet run on S3b, log "Step 7, S3b screening").** S4 on S3b
+activates the reservoir and S5 on S3b silences the route. Milder S6 on S3b (inter-group I -> E or E -> I gain 0.5
+or 0.7) sums in every form; the two at 0.5 passed the 48-pair decision: with I -> E 0.5, 42 of 47 untied pairs
+(Wilson 95 % 0.77 to 0.95, median difference 0.014 spikes per excitatory neuron and round, twice S3b's), route
+selectivity 45 of 48; with E -> I 0.5, 39 of 45 (0.74 to 0.94). No form sums beyond 4 lambda: S3b and S3b with
+I -> E 0.5 show no significant summation at lambda 0.6 (6.7 lambda), and at 11^3, d 10 (10 lambda, the distance
+the sparse task compares at) the route middle barely fires (0.001). So the substrate's summation is local; an
+association at 10 lambda would have to be carried by learning, not by the substrate. The hysteresis job of S3b at
+lambda 0.6 stopped with the engine's illegal memory access (`snn_simulation.cu:969`), the error of the archive's
+SP3 crash in another configuration. The user chose S3b with I -> E 0.5 for Substep 3, run first at 4 lambda as
+a gate and then at 10 lambda, rules that do not need the route middle to fire first (`sparse-assemblies-task.md`,
+"Rules"). Cost about $0.33; rerun so far about $6.00.
+
+## Conclusions A1 to A8
+
+| | conclusion on the faulty engine | outcome | decided in |
+|---|---|---|---|
+| A1 | the engine's connectivity is practically flat in space | falls: E -> E synapses fall with distance, effective lambda about 4 cells | step 2 |
+| A2 | intra-group density varies about threefold | changes: it varies about 2.5-fold on the corrected engine, so not an artifact of bug 1 | step 2 |
+| A3 | the regime: gain 4, `gain_ie` 2, `gain_ee_inter` 0.6, intra total 40 | changes: single groups are still recruited without spill, but a saturated path transmits only with `gain_ee_inter` about doubled (1.2 to 2.4) | step 3 |
+| A4 | all-or-none propagation with pair-dependent thresholds | changes: untrained, no pair propagates in the regime region in any wiring; the all-or-none jump remains only in the engine's own wiring, at `gain_ee_inter` 3.6 | step 4 |
+| A5 | the ignitions are a finite-size effect | falls: every transfer at d 4 ignites at 7^3, 9^3 and 11^3 (about 180, 420 and 850 strays) | step 6 |
+| A6 | archived items 2, 3, 6 and 13 | changes: 15 of 24 pairs associate at 7^3 (lambda 0.4), C2's narrowing carries spatial information (uniform C2: 0 of 24); item 3 holds, items 6 and 13 fall | step 5 |
+| A7 | 60 to 100 times more inhibition than excitation, no substrate sums, the sparse task stops | changes: 200 to 350 times; S3b sums at 4 lambda, twice as strongly with inter-group I -> E gain 0.5, not beyond; the stop rule does not apply | step 7 |
+| A8 | the rate model over-propagates, neither model admitted | open: model B with the configured composition is not admitted without fitted parameters (9^3: 1 association of 24 against 11, `rate-model/round6-report.md`, "Step 3"); the fit of up to three learning parameters is still running | step 8 |

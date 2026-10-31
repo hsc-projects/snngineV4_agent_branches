@@ -14,8 +14,9 @@ ideally biologically or physically plausible.
 > user. **SP0 to SP3 ran (2026-10-29 and 30) on the engine with the transposed synapse table; their report and
 > log are archived in `archive-pre-engine-fix/` (SP0, the field-geometry check without the engine, stays
 > valid). The task continues after `engine-fix-rerun-task.md`, whose step 7 reran the SP1 to SP3
-> substrate on the fixed engine: S3b at lambda 1.0 sums and is kept (user decision, 2026-10-31; "Rules"), so
-> Substep 3 runs on it.** **[default]** marks a starting value the agent may
+> substrate on the fixed engine: S3b at lambda 1.0 with the inter-group I -> E gain at 0.5 sums and is the
+> substrate of Substep 3, which runs in two stages, 4 lambda then 10 lambda (user decisions, 2026-10-31;
+> "Rules"; `engine-fix-rerun-report.md`, step 7).** **[default]** marks a starting value the agent may
 > change (log the reason). Formulas, functional forms and numbers in the variants are starting points, not
 > definitions: a variant is defined by its intent, and the agent may use other forms, or propose variants not
 > listed here, when they serve the goal better (log the reason and tell the user).
@@ -245,8 +246,8 @@ editing and short checks; user decision, 2026-10-29).
   like `w_fast` and become permanent under C2 like the excitatory ones. Controls: uniform C1, and the
   same depression without the coincidence factor. Substep 2 found the route middle's excitation far
   below threshold even with inhibition cut to 5 % (S6), so L6 can only help together with excitatory
-  growth; it belongs to Substep 3, which runs on S3b at lambda 1.0 (the rerun of Substep 2 on the fixed
-  engine; "Rules").
+  growth; it belongs to Substep 3, which runs on S3b with the inter-group I -> E gain at 0.5 (the rerun of
+  Substep 2 on the fixed engine; "Rules").
 - **K1 to K7:** K2 tags a synapse when its `w_fast` change exceeds a threshold and consolidates a
   neuron's tags only if its summed change exceeds a threshold proportional to 1 / (C2 + epsilon).
   K3: C2 decays within a few steps and gates consolidation through a steep sigmoid, one threshold
@@ -280,7 +281,10 @@ report: the substrate then needs a change outside these variants, such as conduc
 synapses with slower excitation than inhibition (Chambers & MacLean 2016: tau_e 10 ms, tau_i 5 ms,
 inhibitory reversal -90 mV; needs new kernels).
 
-**3. Learning rule, L0 to L6.** On each kept substrate, d 4, all controls in the full decision;
+**3. Learning rule, L0 to L6.** In two stages and in the order of "Rules" (user decisions, 2026-10-31):
+first at lambda 1.0, d 4 (4 lambda, 7 x 7 x 7), where the substrate sums, then every rule kept there at 11 x 11
+x 11, d 10 (10 lambda); a rule kept only at 4 lambda is reported as such, not as an association between
+distant assemblies. Per stage on each kept substrate, all controls in the full decision;
 record whether each pair's first transfer is contained or an ignition. **Keep** a rule that raises
 transfers over L0 without more strays; L2 to L6 must also do worse under the uniform-C1 control.
 If L5 ignites (strays rise) at every gain tried, report it and try a lower limit or a higher threshold
@@ -326,6 +330,19 @@ terminate pods after download, no commits without the user's go), plus:
   untied pairs, Wilson 95 % 0.58 to 0.84) and is route-selective (43 of 48), a small effect; its hysteresis
   loop is no wider than S0's (neither shows one) rather than narrower, which the user accepts. S3b at
   lambda 0.4 (no summation) and the other substrates are not kept.
+- **User decisions (2026-10-31, after the S3b screening of the rerun's step 7):**
+  - Substrate of Substep 3: S3b at lambda 1.0 with the inter-group I -> E gain at 0.5 (S6 on S3b), in place
+    of S3b alone: on 48 pairs it sums in 42 of 47 untied pairs (Wilson 95 % 0.77 to 0.95, a median difference
+    twice S3b's) and is route-selective in 45 of 48, without off-route assemblies igniting. It combines two
+    substrate variants before Substep 6; S6 is a change on top of a substrate by definition, and Substep 2 ran
+    it on S3b.
+  - Distance: no substrate sums beyond 4 lambda (not at lambda 0.6, d 4, 6.7 lambda; at 11 x 11 x 11, d 10,
+    10 lambda, the route middle barely fires), so Substep 3 runs in two stages: at lambda 1.0, d 4, a gate;
+    then each rule kept there at 11 x 11 x 11, d 10, the test of the goal.
+  - Order of the rules: those that do not need the route middle to fire first, L3 (presynaptic rate times C1),
+    L1 and L2 (BTSP-like, gated by random plateaus or by C1), and L5 (a C1 bridge extended by learning), then L4, L0 and L6; L1, L2, L3 and L5
+    also on S0 at the same lambda and distances, since at 10 lambda the route middle is silent on every
+    substrate.
 - **Cost:** own cap **$25** (preliminary; the user raises it when needed), standing approval within
   it. Spend only on runs that decide something; report the cost at the end of each substep and
   before the cap would be exceeded.

@@ -9,7 +9,9 @@
 
 > [!NOTE]
 > **Status: approved by the user; work stopped after iteration 65 at 6 of 24 pairs on the faulty engine (see `archive-pre-engine-fix/`);
-> continued in `sparse-assemblies-task.md`. Later decisions of
+> on the corrected engine the protocol associates 15 of 24 pairs at 7^3 and 11 of 24 at 9^3, through C2's
+> narrowing of ignitions (`engine-fix-rerun-report.md`, steps 5 and 6, conclusions A1 to A8); continued in
+> `sparse-assemblies-task.md`. Later decisions of
 > the user, listed under "Revisions agreed with the user" at the end, take precedence over the text
 > below where they differ.** **[default]**
 > marks a starting value the user adopted; the agent may change it (see

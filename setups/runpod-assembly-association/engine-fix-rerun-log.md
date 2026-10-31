@@ -383,3 +383,79 @@ One entry per session of `engine-fix-rerun-task.md`: hypothesis, change, result,
   lambda 1.0 S3b sums and is route-selective by the fixed rule, a small effect (a
   median difference of 0.007 spikes per neuron and round, against a median A + B of 0.037); its loop is as wide as S0's (none), not
   narrower, as the keep rule asks. At lambda 0.4 it does not sum.
+
+## Step 7, S3b screening (2026-10-31): Substep 2 variants on S3b not yet run
+
+- **Hypothesis:** the kept substrate, S3b at lambda 1.0, rests on an incomplete Substep 2 and sums only weakly
+  at 4 lambda. Four gaps (user's go, 2026-10-31): (1) S4 and S5 were run on S0 only (the archived generator),
+  while Substep 2 asks for them also on the best of S1 to S3, now S3b; (2) at lambda 1.0, d 4 is 4 lambda, not
+  the 10 lambda of d 4 at lambda 0.4 (the Method compares at equal d / lambda); (3) S3b was not run at lambda
+  0.6 (d 4 is 6.7 lambda); (4) S6 on S3b was run only with inter-group gains of 0.2 and 0.05, which activate the
+  reservoir.
+- **Change:** `params/rerun7h` to `rerun7l`, copied from rerun7b's S3b jobs at lambda 1.0 (seed 0, 24 pairs per
+  survey, propagation and input survey, hysteresis): 7h S4 and S5 on S3b (rerun7b's S4 and S5 settings); 7i
+  inter-group E -> I gain 0.5 and 0.7; 7j inter-group I -> E gain 0.5 and 0.7; 7k S3b at lambda 0.6; 7l S3b at
+  11^3 (N 77 600, D 20), d 10 (10 lambda), with S0's hysteresis on that network. `pair_margin` stays 0 as in
+  step 7 (at 11^3 with margin 2 no lattice pair lies at d 10 except four diagonals). S4's uniform-C1 control
+  needs the C1 level S4 reaches; it runs only if S4 adds summation (the keep rule needs it only then).
+  `rerun_s3b_decision.py` now groups by setting (job name without type and seed), so the decision pools seeds
+  as before and each screened variant is its own setting.
+- **Screening rule (fixed before the run),** per setting over its 24 pairs, the tests of the S3b decision:
+  a setting is a candidate if summation holds (Wilson 95 % lower bound above 0.5), no pair runs away, and
+  off-route assemblies do not ignite under joint injection (off-route assembly maximum below 0.5 in at least
+  20 of 24 pairs). Candidates are ranked by median summation D against S3b at lambda 1.0, seed 0 (15 against
+  6, median D 0.011); the best one or two get the 48-pair decision. For 7k and 7l (lambda 0.6, 10 lambda) a
+  candidate means S3b's summation reaches a longer relative distance.
+- **Second round (fixed before it ran, after the first round's result below):** by the screening rule the
+  candidates are S6 on S3b with inter-group I -> E gain 0.5 (ie0.5, 23 against 1, median D 0.013, above
+  S3b's 0.011) and E -> I gain 0.5 (ei0.5, 19 against 4, median D 0.010); both get the 48-pair decision, seed 1
+  added (`params/rerun7m`, `rerun7n`), with the S3b decision's rule over seeds 0 and 1. Since S3b's
+  summation does not reach 10 lambda (rerun7l) or 6.7 lambda (rerun7k), ie0.5 is also screened at lambda 0.6
+  (`rerun7o`) and at 11^3, d 10 (`rerun7p`), with the screening rule. All on pod `exbvdnrz6sg6vp`, three 7^3
+  sessions at once (four did not fit in its 24 GB: rerun7i's first try stopped in preflight, CUDA out of
+  memory while rewiring, and was rerun behind rerun7k), rerun7p after rerun7m.
+- **Result, first round** (`rerun_s3b_decision.py` and `rerun_sparse_summary.py` on the pods:
+  `output/rerun7l-screen.txt`, `output/rerun7-s3b-screen.txt`); 24 pairs each (23 distinct), seed 0; S3b at
+  lambda 1.0 for reference: summation 15 against 6, median D 0.011:
+
+  | setting | summation D > 0 / < 0 / ties | Wilson 95 % | median D | selectivity | M joint / A + B / Sh | Inh / E | off-route assemblies | candidate |
+  |---|---|---|---|---|---|---|---|---|
+  | S4 on S3b | 4 / 20 / 0 | 0.07 to 0.36 | -0.75 | 23 / 1 | 2.19 / 2.94 / 1.93 | 5 | ignite in 24 of 24 | no (reservoir) |
+  | S5 on S3b | 4 / 6 / 14 | 0.17 to 0.69 | 0 | 10 / 13 | 0.003 / 0.005 / 0.004 | 36 | 0 | no (route silent) |
+  | S6 on S3b, E -> I 0.5 | 19 / 4 / 1 | 0.63 to 0.93 | 0.010 | 21 / 3 | 0.053 / 0.042 / 0.044 | 20 | 0 | yes |
+  | S6 on S3b, E -> I 0.7 | 17 / 6 / 1 | 0.54 to 0.88 | 0.005 | 22 / 2 | 0.044 / 0.032 / 0.030 | 25 | 0 | yes, weaker |
+  | S6 on S3b, I -> E 0.5 | 23 / 1 / 0 | 0.80 to 0.99 | 0.013 | 23 / 1 | 0.054 / 0.038 / 0.033 | 17 | 0 | yes, best |
+  | S6 on S3b, I -> E 0.7 | 17 / 6 / 1 | 0.54 to 0.88 | 0.007 | 22 / 2 | 0.042 / 0.038 / 0.028 | 22 | 0 | yes, weaker |
+  | S3b, lambda 0.6 | 11 / 8 / 5 | 0.36 to 0.77 | 0 | 16 / 8 | 0.024 / 0.019 / 0.009 | 34 | 0 | no |
+  | S3b, 11^3, d 10 | 1 / 5 / 18 | 0.03 to 0.56 | 0 | 11 / 13 | 0.001 / 0.001 / 0.001 | 65 | 0 | no (route silent) |
+
+  - Hysteresis loops: 0 in every lambda 1.0 setting and in S0 at 11^3. The hysteresis job of S3b at lambda 0.6
+    (rerun7k) stopped with an illegal memory access in the engine (`snn_simulation.cu:969`, code 700, at
+    `cudaDeviceSynchronize`), the error of the archive's SP3 crash, in another configuration (S3b, lambda 0.6,
+    hysteresis); the session's other jobs had finished.
+  - S3b's summation is a short-range effect: at 6.7 lambda (lambda 0.6, d 4) it is not significant, at 10
+    lambda (11^3, d 10) the route middle barely fires (0.001; excitation reaching it 0.25 per step against 2.3
+    to 2.5 at d 4).
+- **Result, second round** (`output/rerun7-s3b-screen2.txt`; all four sessions without error, except rerun7p's
+  input survey, CUDA out of memory at 11^3 beside three other sessions, not used by the rule):
+
+  | setting | pairs | summation D > 0 / < 0 / ties | Wilson 95 % | median D | selectivity D > 0 / < 0 | M joint / A + B / Sh | holds |
+  |---|---|---|---|---|---|---|---|
+  | S3b (decision above) | 48 | 30 / 11 / 7 | 0.58 to 0.84 | 0.007 | 43 / 5 | 0.041 / 0.037 / 0.025 | yes |
+  | S6 on S3b, I -> E 0.5 | 48 | 42 / 5 / 1 | 0.77 to 0.95 | 0.014 | 45 / 3 | 0.069 / 0.053 / 0.041 | yes (seed 0: 23 / 1, seed 1: 19 / 4) |
+  | S6 on S3b, E -> I 0.5 | 48 | 39 / 6 / 3 | 0.74 to 0.94 | 0.013 | 43 / 5 | 0.084 / 0.069 / 0.049 | yes (seed 0: 19 / 4, seed 1: 20 / 2) |
+  | I -> E 0.5, lambda 0.6 | 24 | 6 / 9 / 9 | 0.20 to 0.64 | 0 | 19 / 5 | 0.027 / 0.030 / 0.014 | summation no |
+  | I -> E 0.5, 11^3, d 10 | 24 | 4 / 2 / 18 | 0.30 to 0.90 | 0 | 12 / 12 | 0.001 / 0.001 / 0.001 | no (route silent) |
+
+  - No runaway, no off-route assembly ignites in any of them; hysteresis loops 0 at lambda 1.0, 0.004 at
+    lambda 0.6 (one level flagged as a runaway) and 0.022 at 11^3.
+- **Cost:** pod B (`guj616qc2n9vy1`, RTX PRO 4500, $0.72/h) 01:56 to about 02:03 UTC, pod A (`exbvdnrz6sg6vp`,
+  RTX PRO 4000, $0.57/h) 01:56 to about 02:22, about $0.33 (estimated); both terminated (delete 204). Rerun so
+  far: about $6.00 of the $20 cap.
+- **Decision (user, 2026-10-31):** Substep 3 of the sparse task runs on S3b with the inter-group I -> E gain at
+  0.5, in two stages (lambda 1.0, d 4, a gate; then 11^3, d 10), rules that do not need the route middle to fire
+  first, and L1, L2, L3 and L5 also on S0 (`sparse-assemblies-task.md`, "Rules"). S6 on S3b with inter-group I -> E gain 0.5 sums about twice as strongly as S3b
+  (median D 0.014 against 0.007, 42 of 47 untied pairs against 30 of 41) and stays route-selective without
+  activating the reservoir; E -> I 0.5 is close. All forms sum only at 4 lambda (lambda 1.0, d 4): not at 6.7
+  lambda (lambda 0.6) and not at 10 lambda (11^3, d 10), where the route middle stays silent. S4 on S3b
+  activates the reservoir, S5 on S3b silences the route.
