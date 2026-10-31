@@ -22,8 +22,8 @@ Each entry gets a priority: **high**, **mid**, or **low**.
     engine whose synapse table was transposed (fixed 2026-10-30); their results are archived in
     `setups/runpod-assembly-association/archive-pre-engine-fix/` and are not evidence until
     re-established. Next: `setups/runpod-assembly-association/engine-fix-rerun-task.md` (in progress:
-    steps 0 to 7 done, step 8 (rate model) and the sparse stop-rule decision open,
-    `engine-fix-rerun-report.md`).
+    steps 0 to 7 done, S3b at lambda 1.0 kept for the sparse task's Substep 3, step 8 (rate model)
+    open, `engine-fix-rerun-report.md`).
 
 - [mid] Engram avenue for the main feature (allocation by excitability, co-allocation window,
   silent engrams, engram complex): literature and concept mapping only, no pods.

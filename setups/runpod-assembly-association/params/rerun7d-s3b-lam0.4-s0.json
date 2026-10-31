@@ -1,0 +1,163 @@
+{
+ "session": "rerun7d-s3b-lam0.4-s0",
+ "engine": {
+  "n_neurons": 20000,
+  "n_synapses": 2000,
+  "seed": 0,
+  "rewire": {
+   "lam": 0.4,
+   "seed": 0
+  }
+ },
+ "defaults": {
+  "video": {
+   "enabled": false
+  }
+ },
+ "jobs": [
+  {
+   "name": "sp2-lam0.4-S3b-sig1-s0-prop_survey",
+   "type": "prop_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    }
+   },
+   "kwargs": {
+    "n_pairs": 24
+   }
+  },
+  {
+   "name": "sp2-lam0.4-S3b-sig1-s0-input_survey",
+   "type": "input_survey",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    }
+   },
+   "kwargs": {
+    "n_pairs": 24
+   }
+  },
+  {
+   "name": "sp2-lam0.4-S3b-sig1-s0-hysteresis",
+   "type": "hysteresis",
+   "engine": {
+    "n_neurons": 20000,
+    "n_synapses": 2000,
+    "seed": 0,
+    "rewire": {
+     "lam": 0.4,
+     "seed": 0
+    }
+   },
+   "params": {
+    "k_inject": 12,
+    "inject_current": 20,
+    "gain": 4.0,
+    "gain_ie": 2.0,
+    "gain_ei": 1.0,
+    "i_min": -100.0,
+    "weights": {
+     "w_ee": 0.05,
+     "w_intra_ee_total": 40.0,
+     "inter_ee": {
+      "kind": "lognormal",
+      "sigma": 1.0,
+      "mean": 0.365625,
+      "cap": 8.125
+     }
+    },
+    "i_max": 100.0,
+    "runaway_frac": 0.5,
+    "gain_ee_inter": 0.6,
+    "energy": {
+     "enabled": false
+    },
+    "assemblies": {
+     "layout": "lattice",
+     "spacing": 2
+    },
+    "bridges": true,
+    "protocol": {
+     "pair_distance": 4.0
+    },
+    "hyst_sigma": 2.0
+   },
+   "kwargs": {}
+  }
+ ],
+ "note": "step 7, S3b decision (sparse task, Substep 2: 48 pairs over two seeds): S3b of rerun7b at lambda 0.4, engine and rewire seed 0, 24 pairs per survey"
+}

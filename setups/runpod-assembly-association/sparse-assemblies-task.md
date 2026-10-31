@@ -13,8 +13,9 @@ ideally biologically or physically plausible.
 > requirements, rules and "Revisions agreed with the user" apply unless stated here. Approved by the
 > user. **SP0 to SP3 ran (2026-10-29 and 30) on the engine with the transposed synapse table; their report and
 > log are archived in `archive-pre-engine-fix/` (SP0, the field-geometry check without the engine, stays
-> valid). The task continues after `engine-fix-rerun-task.md`, whose step 7 reruns the SP1 to SP3
-> substrate.** **[default]** marks a starting value the agent may
+> valid). The task continues after `engine-fix-rerun-task.md`, whose step 7 reran the SP1 to SP3
+> substrate on the fixed engine: S3b at lambda 1.0 sums and is kept (user decision, 2026-10-31; "Rules"), so
+> Substep 3 runs on it.** **[default]** marks a starting value the agent may
 > change (log the reason). Formulas, functional forms and numbers in the variants are starting points, not
 > definitions: a variant is defined by its intent, and the agent may use other forms, or propose variants not
 > listed here, when they serve the goal better (log the reason and tell the user).
@@ -244,8 +245,8 @@ editing and short checks; user decision, 2026-10-29).
   like `w_fast` and become permanent under C2 like the excitatory ones. Controls: uniform C1, and the
   same depression without the coincidence factor. Substep 2 found the route middle's excitation far
   below threshold even with inhibition cut to 5 % (S6), so L6 can only help together with excitatory
-  growth; it belongs to Substep 3, which under the present stop rule of Substep 2 does not run
-  (whether Substep 2 is rerun after the core-code fixes is pending).
+  growth; it belongs to Substep 3, which runs on S3b at lambda 1.0 (the rerun of Substep 2 on the fixed
+  engine; "Rules").
 - **K1 to K7:** K2 tags a synapse when its `w_fast` change exceeds a threshold and consolidates a
   neuron's tags only if its summed change exceeds a threshold proportional to 1 / (C2 + epsilon).
   K3: C2 decays within a few steps and gates consolidation through a steep sigmoid, one threshold
@@ -320,6 +321,11 @@ As in the predecessor (work only in this folder, no changes to `snngine_v4/`, po
 terminate pods after download, no commits without the user's go), plus:
 - **User decisions (2026-10-28):** K5, the BTSP-like rule and initial weights above the plasticity
   bound may all be tried.
+- **User decision (2026-10-31):** Substep 2 on the fixed engine (`engine-fix-rerun-report.md`, step 7) keeps
+  S3b at lambda 1.0, the substrate of Substep 3: on 48 pairs over two seeds its route middle sums (30 of 41
+  untied pairs, Wilson 95 % 0.58 to 0.84) and is route-selective (43 of 48), a small effect; its hysteresis
+  loop is no wider than S0's (neither shows one) rather than narrower, which the user accepts. S3b at
+  lambda 0.4 (no summation) and the other substrates are not kept.
 - **Cost:** own cap **$25** (preliminary; the user raises it when needed), standing approval within
   it. Spend only on runs that decide something; report the cost at the end of each substep and
   before the cap would be exceeded.

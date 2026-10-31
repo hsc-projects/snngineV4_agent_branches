@@ -331,3 +331,55 @@ One entry per session of `engine-fix-rerun-task.md`: hypothesis, change, result,
   waited on the step 6 sessions and slow host checks), about $0.58; the summary pod `czd5d3abd98ans` (RTX PRO 4000,
   $0.57/h, 15:47 to about 15:52), about $0.05; both terminated (delete 204).
 - **Decision:** the user's (report, step 7; the sparse task's stop rule).
+
+## Step 7, S3b decision (2026-10-31): 48 pairs over two seeds
+
+- **Hypothesis:** S3b (lognormal inter-group E -> E weights, sigma 1, Teramae's mean of about 4.5 % of the
+  single-synapse threshold) makes the route middle sum: in step 7 it fired more under joint injection than under
+  A and B alone and than off the route, on 12 pairs of one network without an uncertainty. The user chose to
+  measure it as the sparse task's Method requires (48 pairs, two seeds, binomial uncertainty, decision rule fixed
+  before the run) before deciding the stop rule.
+- **Change:** `params/rerun7{d,e,f,g}-s3b-lam{0.4,1.0}-s{0,1}.json`, copied from rerun7b's S3b jobs (and rerun7a's
+  S0 hysteresis job) with engine and rewire seed 0 or 1 and 24 pairs per survey (propagation and input survey,
+  hysteresis); the seed-1 sessions also run S0's hysteresis on the same network. The surveys draw pairs at random
+  with replacement (`pick_pair`; 96 pairs at d 4 per network), so a pair can repeat; repeats count as drawn and
+  the number of distinct pairs is reported.
+- **Decision rule (fixed before the run),** per lambda (0.4 and 1.0) over the 48 pairs of both seeds, from the
+  propagation survey's M (spikes per excitatory neuron per round in the route middle) and Sh (off-route shell):
+  - Summation: per pair D = M joint - (M A + M B); count the pairs with D > 0 against those with D < 0, ties
+    left out; summation holds if the lower bound of the 95 % Wilson interval of the fraction with D > 0 lies
+    above 0.5.
+  - Route selectivity: the same with M joint - Sh joint.
+  - Reported, not deciding: each seed apart; the difference corrected for background (M joint + M none - M A -
+    M B, the injection-free round counted once per injection); medians.
+  - The keep rule of Substep 2 also needs a hysteresis loop narrower than S0's. Step 7 (seed 0) had S0 0.008
+    against S3b 0.195 at lambda 0.4, and 0 against 0 at lambda 1.0, where no loop can be narrower than S0's;
+    whether "no wider" counts there is the user's call.
+- **Pods:** 2 x RTX PRO 4000 ($0.57/h), `10d3jc9mlnbgub` (rerun7d, 7e) and `4mwfssdj876yf8` (rerun7f, 7g), from
+  01:21 UTC; the four sessions ran 01:24 to 01:27, all jobs without error, no runaway.
+- **Result** (`rerun_s3b_decision.py`, new, run on the pod: `output/rerun7-s3b-decision.txt`; `rerun_sparse_summary.py`:
+  `output/rerun7-s3b-summary.txt`). 48 pairs per lambda, 23 and 21 distinct of 24 per seed; M none was 0 for
+  every pair, so the corrected difference equals the summation difference:
+
+  | lambda | test | D > 0 | D < 0 | ties | Wilson 95 % | median D | holds |
+  |---|---|---|---|---|---|---|---|
+  | 0.4 | summation | 8 | 18 | 22 | 0.165 to 0.500 | 0 | no |
+  | 0.4 | selectivity | 31 | 17 | 0 | 0.504 to 0.766 | 0.002 | yes, barely |
+  | 1.0 | summation | 30 | 11 | 7 | 0.581 to 0.843 | 0.007 | yes (seed 0: 15 / 6, seed 1: 15 / 5) |
+  | 1.0 | selectivity | 43 | 5 | 0 | 0.778 to 0.955 | 0.014 | yes |
+
+  - Medians at lambda 1.0: M joint 0.041, M A + B 0.037, Sh joint 0.025 spikes per excitatory neuron and round;
+    inhibition to excitation in the route middle 29 to 31. At lambda 0.4: 0.013, 0.014, 0.009. Step 7's sign at
+    lambda 0.4 (12 pairs of seed 0) does not hold over 24 pairs of the same network (M A + B 0.026).
+  - Hysteresis loop max: lambda 1.0, S3b 0 on both seeds, S0 0 on both (seed 0 from rerun7a); lambda 0.4, S3b
+    0.010 (seed 0) and 0.196 (seed 1), S0 0.008 and 0.007. S3b's loop on the seed-0 network was 0.195 in step 7
+    and 0.010 now, with the same parameters: the loop measure does not repeat on that network.
+  - `rerun_s3b_decision.py` first missed S0's seed-0 hysteresis jobs (rerun7a names them without the
+    substrate); with the pattern widened it was run again on pod `tro9a4egauogdf` (RTX PRO 4000): the same
+    counts, plus S0 seed 0 at 0.008 (lambda 0.4) and 0 (lambda 1.0), as in step 7.
+- **Cost:** pod A about 7 minutes, pod B about 10 (the decision summary ran there), the check pod about 3, about
+  $0.20 (estimated); all terminated (delete 204). Rerun so far: about $5.67 of the $20 cap.
+- **Decision (user, 2026-10-31):** keep S3b at lambda 1.0 as the sparse task's substrate for Substep 3. At
+  lambda 1.0 S3b sums and is route-selective by the fixed rule, a small effect (a
+  median difference of 0.007 spikes per neuron and round, against a median A + B of 0.037); its loop is as wide as S0's (none), not
+  narrower, as the keep rule asks. At lambda 0.4 it does not sum.

@@ -200,7 +200,7 @@ many ignitions into bounded associations, up to 9^3.
 
 Cost: about $1.16 (two pods, about 54 minutes each; estimated).
 
-## Step 7: sparse substrate SP1 to SP3 (2026-10-30; the sparse task's stop rule pending)
+## Step 7: sparse substrate SP1 to SP3 (2026-10-30 and 31)
 
 The archived generators, unchanged (the sparse layout, lattice spacing 2, on the settings of
 `session69a-stage2.json`), lambda 0.4 to 1.5. Numbers in `engine-fix-rerun-log.md`, step 7.
@@ -220,8 +220,19 @@ The archived generators, unchanged (the sparse layout, lattice spacing 2, on the
 
 **A7** (60 to 100 times more inhibition than excitation, no substrate showing summation, hence the stop rule):
 **changes.** The inhibition dominates even more (200 to 350 times); S0 to S6 still show no summation, except a
-weak one in S3b, which the faulty engine had hidden behind a reservoir-wide activation. Whether that is
-enough to lift the sparse task's stop rule of Substep 2 is the user's decision (`sparse-assemblies-task.md`).
+weak one in S3b, which the faulty engine had hidden behind a reservoir-wide activation. On 48 pairs (below)
+it holds at lambda 1.0, not at 0.4; the user keeps S3b at lambda 1.0, so the sparse task's stop rule does not
+apply and its Substep 3 runs on that substrate (`sparse-assemblies-task.md`, "Rules").
 
 Cost: about $0.63 (the session pod, about 48 minutes, and a summary pod; estimated). Rerun so far: about $5.47
 of the $20 cap.
+
+**S3b decision (2026-10-31; 48 pairs over two seeds, the decision rule fixed before the run, log "Step 7, S3b
+decision").** At lambda 1.0, S3b sums: in 30 of 41 untied pairs the route middle fires more under joint injection
+than under A and B alone together (Wilson 95 % 0.58 to 0.84; both seeds alike), and in 43 of 48 more than off the
+route (0.78 to 0.96). The effect is small: medians 0.041 against 0.037 (A + B) and 0.025 (shell) spikes per
+excitatory neuron and round. At lambda 0.4 it does not sum (8 against 18, 22 ties); step 7's sign there came
+from 12 pairs. The keep rule of Substep 2 also asks for a hysteresis loop narrower than S0's: at lambda 1.0
+neither S3b nor S0 shows a loop, so S3b's is no wider but not narrower. The loop measure is also not
+reproducible on one network (S3b at lambda 0.4, seed 0: 0.195 in step 7, 0.010 now). The user keeps S3b at lambda
+1.0 (2026-10-31). Cost about $0.20; rerun so far about $5.67.
