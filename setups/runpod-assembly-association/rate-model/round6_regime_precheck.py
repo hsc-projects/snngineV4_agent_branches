@@ -8,7 +8,8 @@ that regime can discriminate (mixed classes). Two sources of networks:
   own     model B's own networks (realizations), at the 24 pair positions of the s71 ground truth (as
           admission_spiking_group.py eval), full size, settings of session69a-stage2.json with --set overrides
   export  exported engine networks (round6_export_engine.py; for wirings model B does not sample, e.g. the engine's
-          own), at the pairs of the exported jobs; --set must reproduce the exported jobs' gains (spec_for checks)
+          own), at the pairs of the exported jobs, each with its job's plasticity, fields and protocol (spec_for, stray
+          limit 10 % of all groups); --set must reproduce the exported jobs' gains (spec_for checks)
 
   python round6_regime_precheck.py own --realizations 0,1 --set gain_ee_inter=2.4 --out R.json [--workers N]
   python round6_regime_precheck.py export --exports DIR [DIR ...] --set gain_ee_inter=1.2 --out R.json [--workers N]
@@ -34,10 +35,14 @@ CLASSES = ("contained", "ignition", "none")
 
 
 def _c2_fields(r: dict) -> dict:
-    """The short-circuit stage's outcome: rounds, runaway, and per direction of the final tests success, bounded, strays."""
+    """The short-circuit stage's outcome: rounds, runaway and the step of each C2 round's stop, the consolidated shares
+    of w_fast on and off the route (with neuron positions), the rollback record, and per direction of the final tests
+    success, bounded, runaway, strays."""
     f = r.get("final")
-    return {"c2_rounds": r.get("c2_rounds"), "c2_runaway_round": r.get("c2_runaway_round"),
+    return {"c2_rounds": r.get("c2_rounds"), "c2_runaway_round": r.get("c2_runaway_round"), "c2_stops": r.get("c2_stops"),
+            "consolidated": r.get("consolidated"), "rollback": r.get("rollback"),
             "final": None if f is None else {d: {"success": bool(f[d]["success"]), "bounded": bool(f[d]["bounded"]),
+                                                 "runaway": f[d]["runaway"] is not None,
                                                  "strays": int(f[d]["n_active_outside"])} for d in ("A_to_B", "B_to_A")}}
 
 
@@ -61,7 +66,7 @@ def _export_job(args):
     from spiking_group_model import SpikingNetwork, run_pair_protocol
     t0 = time.perf_counter()
     meta = json.loads(open(os.path.join(d, "meta.json")).read())
-    net = SpikingNetwork(spec_for(meta, export_dir=d, **over), seed=int(meta["seed"]))
+    net = SpikingNetwork(spec_for(meta, export_dir=d, job=i, **over), seed=int(meta["seed"]))
     e2m = net.engine_to_model
     A, B = int(e2m[pair["A"]]), int(e2m[pair["B"]])
     inj = meta["jobs"][i]["inject"]                      # the engine's injected neurons (exported networks keep its order)

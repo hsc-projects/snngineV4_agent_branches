@@ -10,15 +10,16 @@ step, and write the structure audit (round6_compare.structure_audit) of the expo
          [--input-steps 12] [--no-arrays] [--survey]
 
 All params files must share one engine configuration (one engine per process: building a second engine in
-one process fails, see assoc_queue.py). Every job whose name ends with --suffix is replayed as far as its
-control-0 tests. With --survey (round 6 step 4, the sparse substrate), the selected jobs are prop_survey and
+one process fails, see assoc_queue.py). Every job whose name ends with --suffix (or one of a comma-separated
+list) is replayed as far as its control-0 tests. With --survey (round 6 step 4, the sparse substrate), the selected jobs are prop_survey and
 input_survey jobs (name ending with --suffix + "-prop_survey" or "-input_survey") instead: no test is run; per
 job, the survey's pairs as it draws them, their path groups, bridges, off-route assemblies and injected neurons
 go into meta.json, and survey_<job>.npz holds per pair the neuron masks of the regions M and Sh and the bin of
 the input survey's profile (-1 outside), all from the engine's own geometry (assoc_protocol.AssocRun).
 Output in DIR/<tag>/:
-  meta.json            sizes, engine configuration, the first job's parameters, structure report, audit, per job:
-                       pair, injected neurons of A and B, control-0 test results
+  meta.json            sizes, engine configuration, the first job's parameters, which groups are assemblies (is_asm),
+                       structure report, audit, per job: pair, its parameters, injected neurons of A and B, control-0
+                       test results
   post.npy             (N, S) int32 postsynaptic neuron of synapse s of neuron n (N_rep transposed; -1 deleted)
   w_engine.npy         (N, S) float32 weight as written into the engine (gains included), before learning
   w_norm.npy           (N, S) float32 normalized weight (AssocRun.base_w)
@@ -27,6 +28,7 @@ Output in DIR/<tag>/:
   init_vu.npy          (N, 2) float32 post-warm-up v, u (the state every reset returns to)
   types.npy, groups.npy, model_flag.npy   (N,) neuron type (1 inhibitory, 2 excitatory), location group, N_flags row 3
   group_cell.npy       (G, 3) grid cell of each location group
+  pos_cells.npy        (N, 3) float32 neuron position in cell units (eng.pos / eng.cell_size, as weight_change_stats)
   test_<job>.npz       per direction (AB, BA): fired neuron ids per step (concatenated, with offsets), the
                        synaptic input current right after each of the first --input-steps steps (before clamp and
                        injection, as AssocRun.run reads it) and v at the same moments
@@ -121,7 +123,7 @@ def survey_entry(run, eng, fname: str, name: str, jtype: str, kwargs: dict, out:
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--params", nargs="+", required=True)
-    ap.add_argument("--suffix", default="E0", help="replay the jobs whose names end with this")
+    ap.add_argument("--suffix", default="E0", help="replay the jobs whose names end with this (comma-separated: any of these)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--tag", default=None, help="output subdirectory (default: g<dim>-s<seed>)")
     ap.add_argument("--input-steps", type=int, default=12)
@@ -131,6 +133,7 @@ def main(argv=None):
                     help="with --survey: the engine runs the first prop_survey job's conditions on the exported weights")
     args = ap.parse_args(argv)
     survey_types = ("prop_survey", "input_survey")
+    suffixes = tuple(args.suffix.split(","))
 
     import torch
     from assoc_engine import AssocEngine, ROW_I, ROW_U, ROW_V, FLAG_TYPE, FLAG_GROUP, TYPE_EXC
@@ -143,9 +146,9 @@ def main(argv=None):
         defaults = merge(DEFAULTS, spec.get("defaults", {}))
         for job in spec["jobs"]:
             if args.survey:
-                if job["type"] not in survey_types or job["name"] != f"{args.suffix}-{job['type']}":
+                if job["type"] not in survey_types or job["name"] not in {f"{x}-{job['type']}" for x in suffixes}:
                     continue
-            elif not job["name"].endswith(args.suffix) or job["type"] != "substep4":
+            elif not job["name"].endswith(suffixes) or job["type"] != "substep4":
                 continue
             k = engine_key(spec, job)
             if key is None:
@@ -228,13 +231,19 @@ def main(argv=None):
         if w_written is None:
             w_written = (eng.weights.detach().clone(), run.base_w.detach().clone())
             meta["params"] = {k: v for k, v in run.p.items() if k != "deadline"}
+            meta["is_asm"] = run.is_asm.cpu().numpy().astype(bool).tolist()
         else:
-            same = bool(torch.equal(w_written[0], eng.weights)) and bool(torch.equal(w_written[1], run.base_w))
-            if not same:
-                raise SystemExit(f"job {name}: weights differ from the first job's (different gains or weights)")
+            # as for the surveys: heavy-tailed weights may differ in their last float32 bits from build to build
+            dev = max(float((w_written[0] - eng.weights).abs().max()), float((w_written[1] - run.base_w).abs().max()))
+            if dev:
+                meta.setdefault("weight_rebuild_max_abs_diff", {})[name] = dev
+            if not (torch.allclose(w_written[0], eng.weights, rtol=1e-5, atol=1e-6)
+                    and torch.allclose(w_written[1], run.base_w, rtol=1e-5, atol=1e-6)):
+                raise SystemExit(f"job {name}: weights differ from the first job's by up to {dev} (different gains or weights)")
         run.reset_all()
         entry = {"params_file": fname, "job": name, "pair": {"A": a, "B": b, "C": c},
-                 "dist_AB_cells": run.group_dist(a, b), "tests": {}}
+                 "dist_AB_cells": run.group_dist(a, b), "tests": {},
+                 "params": {k: v for k, v in run.p.items() if k != "deadline"}}
         arrays = {}
         for key_d, (src, dst) in (("AB", (a, b)), ("BA", (b, a))):
             rec["fired"], rec["inp"], rec["v"] = [], [], []
@@ -268,8 +277,9 @@ def main(argv=None):
     groups = eng.flags[FLAG_GROUP].cpu().numpy().astype(np.int32)
     model_flag = eng.flags[3].cpu().numpy().astype(np.int32)
     group_cell = eng.group_cell.cpu().numpy().astype(np.int64)
+    pos_cells = (eng.pos / eng.cell_size).cpu().numpy().astype(np.float32)
     small = {"abcd": abcd, "init_vu": init_vu, "types": types, "groups": groups, "model_flag": model_flag,
-             "group_cell": group_cell}
+             "group_cell": group_cell, "pos_cells": pos_cells}
     for k, v in small.items():
         np.save(os.path.join(out, f"{k}.npy"), v)
     if not args.no_arrays:

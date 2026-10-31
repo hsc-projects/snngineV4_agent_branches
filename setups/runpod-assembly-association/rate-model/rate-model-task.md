@@ -1,22 +1,23 @@
 # Task: Rate Model for Screening the Assembly-Association Parameters
 
 > [!IMPORTANT]
-> **Status (2026-10-31): round 6 steps 3 and 4 (substrate) done.** Model B is admitted with one fitted
-> parameter, the C2 consolidation rate `kappa` 0.045 (the protocol's 0.05 x 0.9): on the rerun's own networks it
-> reproduces the associations at 7 x 7 x 7 and 9 x 9 x 9 within the spiking intervals (17 and 8 against 15 and 11
-> of 24) and, at 11 x 11 x 11 and on the engine's own wiring at 7 x 7 x 7, none, as the spiking runs. The
-> uniform-C2 control it passes (C2 held at 1.2) opens the consolidation gate everywhere and so tests C2's strength,
-> not its pattern; a matched-level control is to follow. On the sparse substrate S3b (step 4) model B equals the
-> engine on identical weights and reproduces the substrate decision (`round6-report.md`, "Step 3", "Fit", "Step 4").
-> Open: the sparse task's learning rules (L1 to L6) in model B, each checked against its family's first baseline
-> run before the model narrows any range. The first baselines exist: L0 and L1 associate at most 1 of 24 pairs at
-> 7 x 7 x 7 and 9 x 9 x 9 (L0 on S3b with I -> E 0.5 runs away, even with the rollback rule;
-> `../sparse-tuning-log.md`, entries 2 and 3). Model B gates C1 with a fixed theta1, as the harness does; at
-> 9 x 9 x 9 that selects the route for only about one joint round, since C1 accumulates (entry 4), so the sparse
-> task tries four gate forms (`../sparse-assemblies-task.md`, "C1 gate of L2 to L5"). Model B needs them too,
-> checked first against the spiking readouts of each form (the sparse task's stage A); then it can pre-screen
-> gate form, f and rule before the spiking stage B. The engine's 9 x 9 x 9 build is not reproducible between processes
-> (report, "Step 4"). Round 6 has spent about $8.42 (user's limit about $19, raised by $10 on 2026-10-31).
+> **Status (2026-10-31): round 6 steps 3 and 4 done, and the checks after the review of 2026-10-31.** Model B is
+> admitted **without a fitted parameter**: it had ended a runaway-stopped phase one step late (one more release and
+> consolidation in the step in which half the reservoir fires); corrected, at the protocol's `kappa` 0.05 and the
+> stray limit of 10 % of all groups, it reproduces the associations at 7 x 7 x 7, 9 x 9 x 9 and 11 x 11 x 11 within
+> the spiking intervals (16, 19, 7 against 15, 17, 6 of 24), stops the C2 stage in the same step as the engine, and
+> equals the spiking runs with C2 held uniform; the earlier fit (`kappa` 0.045) is withdrawn. On the sparse
+> substrate S3b model B equals the engine on identical weights and reproduces the substrate decision, and it
+> reproduces the sparse task's first baselines: L0 (with the rollback rule at 9 x 9 x 9: 99 against 100 rollbacks)
+> and the BTSP rule L1, 0 to 2 transfers of 24 on both sides (`round6-report.md`, "Checks after the review").
+> For the matched uniform-C2 control (`../params/rerun5i`, `rerun5j`, not yet run) it predicts 0, 2 and 1
+> associations of 24 at the three levels, against 16 with activity-dependent C2. Open: the comparison with that
+> control; the rules L2 to L6 and the C1 gate forms G1 to G4 of the sparse task in model B (`../sparse-assemblies-task.md`,
+> "C1 gate of L2 to L5"), each checked first against its spiking readout or baseline (the sparse task's stage A),
+> before the model pre-screens gate form, f and rule. Since L0 and L1 sit at 0 to 2 of 24 pairs on both sides,
+> model B cannot yet show that a rule improves on them. The engine's 9 x 9 x 9 build is not reproducible between
+> processes (report, "Step 4"). Round 6 has spent about $14.05 (within the task's cost cap of $90,
+> `../runpod-assembly-association-task.md`).
 
 > [!NOTE]
 > **Status (2026-10-30): on hold until the engine-fix rerun.** Round 6 found that the engine's synapse table was
@@ -304,7 +305,8 @@ the exports there); **[default]** at most $3 for the round; raised by the user t
   (the repeat of steps 1 and 2 on a pod) and the gitignored `output-round6-fixed/`; for step 3
   `round6_regime_precheck.py`, `round6_admission_compare.py`, `round6_precheck_pod.sh`, `round6_grid_pod.sh`,
   `round6_strays_pod.sh`, `round6_fit_pod.sh`, `round6_fit_summary.py`; for step 4 `round6_survey.py`,
-  `round6_step4_pod.sh`, `round6_replay_pod.sh`; and the gitignored `output-round6-precheck/`,
-  `output-round6-grid/`, `output-round6-strays/`, `output-round6-fit/` and `output-round6-step4/`. A round 4 agent
+  `round6_step4_pod.sh`, `round6_replay_pod.sh`; for the checks after the review `round6_review_pod.sh`; and the
+  gitignored `output-round6-precheck/`, `output-round6-grid/`, `output-round6-strays/`, `output-round6-fit/`,
+  `output-round6-step4/` and `output-round6-review/`. A round 4 agent
   changes only its own model's files; shared files (`rate_model.py`, `../archive-pre-engine-fix/rate-model/s71_ground_truth.json`) are read,
   not changed.

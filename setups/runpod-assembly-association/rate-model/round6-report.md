@@ -15,8 +15,15 @@ composition and no fitted factor reproduces the engine's single-group response a
 3.8 % and 1.6 %), and still reproduces every spike total exactly on the exported networks. Points (1), (3) and
 (4) below describe the faulty engine.
 
-**Step 3, admission (2026-10-30 and 31, section "Step 3" at the end): admitted with one fitted parameter,
-the consolidation rate `kappa` 0.045 ("Fit"); without it, not admitted:** At the rerun's settings, with no
+**Checks after the review (2026-10-31, last section): admitted without a fitted parameter.** Model B ended a
+runaway-stopped phase one step late, consolidating once more in the step in which half the reservoir fires; corrected,
+it meets the admission test at the protocol's `kappa` 0.05 with the stray limit at 10 % of all groups (associations
+16, 19, 7 against the spiking 15, 17, 6 at 7^3, 9^3, 11^3), stops the C2 stage in the same step as the engine, and
+reproduces the sparse task's first baselines (L0 with and without the rollback rule, the BTSP rule L1). The fit of
+`kappa` below (0.045) is withdrawn. For the matched uniform-C2 control it predicts at most 2 associations of 24.
+
+**Step 3, admission (2026-10-30 and 31, section "Step 3"; superseded by the last section): admitted with one fitted
+parameter, the consolidation rate `kappa` 0.045 ("Fit"); without it, not admitted:** At the rerun's settings, with no
 fitted parameter, model B on the rerun's own networks meets the class fractions at 7^3 and the uniform-C2
 requirement, but not the grid size: at 9^3 it finds 1 association of 24 where the spiking runs find 11 (7^3:
 16 against 15). Its first transfers agree at both sizes; its final strays exceed the spiking ones by about 12 at
@@ -24,8 +31,8 @@ requirement, but not the grid size: at 9^3 it finds 1 association of 24 where th
 
 **Step 4 (2026-10-31, last section):** on the sparse substrate S3b, model B equals the engine on identical weights
 (141 of 144 survey conditions identical spike counts) and reproduces step 7's substrate decision; with kappa 0.045
-it also matches the engine's own wiring at 7^3 and 11^3 (0 associations each). The sparse task's learning rules
-are not in model B yet.
+it also matches the engine's own wiring at 7^3 and 11^3 (0 associations each). L0 and L1 of the sparse task follow in
+the last section; L2 to L6 are not in model B yet.
 
 **Summary (before the engine fixes).**
 (1) The engine's built network differs from what model B assumed from the configuration code: excitatory neurons
@@ -403,6 +410,9 @@ $0.03. Round 6 after the engine fixes: about $4.20; with the two pods before the
 
 ### Fit: the consolidation rate kappa (2026-10-31)
 
+*Withdrawn ("Checks after the review"): the fit compensated for a step-order error of model B at the runaway stop;
+corrected, model B is admitted at the protocol's kappa 0.05.*
+
 One free parameter (Substep 3 allows three): `kappa`, the rate at which C2 consolidation moves the fast weight change
 into the permanent weight (spiking protocol 0.05). It acts only in the C2 stage, so the first transfer, which
 already agrees, is unchanged; model B takes it as a setting (`--set kappa=...`). Before the fit, model B's protocol
@@ -479,7 +489,7 @@ at 7^3 and 11^3 at lambda 0.4.
   `gain_ei_inter`, `gain_ie_inter` (new kind for I -> E between groups); per-synapse plasticity bounds widened to
   heavy-tailed initial weights, as `AssocRun.new_plasticity` does; spike and input counters.
 - `round6_compare.py spec_for`: takes the S6 gains from the export, checks more of the job's protocol values,
-  and uses the stray limit 34 at every size above 7^3.
+  and uses the stray limit 34 at every size above 7^3 (since replaced by 10 % of all groups, last section).
 - `round6_export_engine.py --survey`: exports a survey job's pairs, path groups, bridges, off-route assemblies,
   injected neurons, and the regions M and Sh from the engine's own geometry; `--replay`: the engine also runs the
   propagation survey's conditions on the exported weights.
@@ -538,3 +548,126 @@ the survey export), `6ma0wafd3m3b2o` and `oz0ohddjsogs5c` (`rm6-g11-s0`, 04:04 t
 to about 04:52, 12 minutes idle before termination), `ldbwlo4kh0mhd1` (`rm6-replay`, 04:38 to about 04:48); RTX PRO
 4500 Blackwell, $0.72/h each; about $2.25 (estimated); all terminated (delete 204; `list-pods` shows none of them).
 Round 6 after the engine fixes: about $8.15; with the two pods before the fixes about $8.42 (user's limit about $9).
+
+## Checks after the review (2026-10-31)
+
+A review of the engine-fix rerun found that the C2 stage of its steps 5 and 6 is ended by the runaway stop: the first
+C2 round stops after 13 to 18 of its 100 steps for most pairs, so consolidation runs for about 15 steps, and the
+narrowing to the route comes from those steps. The user's decisions: the stray limit is 10 % of all groups (34, 72
+and 133 at 7^3, 9^3, 11^3; steps 5 and 6 used 34 at every size), and a uniform-C2 control held at the levels whose
+gate consolidates 0.08, 0.16 and 0.26 of `w_fast` in about 15 steps (C2 at 0.67, 0.74, 0.84; params `rerun5i`,
+`rerun5j`) replaces the unmatched one at 1.2 and 0.9. This section applies these to model B and adds the first two
+learning rules of the sparse task.
+
+**Correction: the step of a runaway stop.** `AssocRun.run` ends a phase in the step whose spike count exceeds
+`runaway_frac` N, before that step's C2 release, diffusion and plasticity. Model B ended it after them, so in the
+stopping step, in which about half of all neurons fire, it released C2 across the reservoir and consolidated once
+more with the gate open almost everywhere. With consolidation lasting about 15 steps, that extra step was a sizeable
+part of it, off the route above all; the fitted `kappa` 0.045 ("Fit") compensated for it. Fixed, with a module check of
+the source order and of the model's step.
+
+**Code.**
+- Model B (`spiking_group_model.py`): the step order above; the protocol's rollback rule (a joint round that runs away
+  or whose test is not bounded is undone and repeated at half the learning rates, down to `min_scale`); the BTSP rule
+  L1 (plateau gate; binary form, Wu & Maass 2025, and continuous form, Milstein et al. 2021) with random streams of its
+  own, so it matches the harness in distribution, not event by event; per pair, the step at which each C2 round
+  stopped and the consolidated share of `w_fast` on and off the route (synapses onto excitatory neurons, midpoint
+  within one cell of segment A-B, as `AssocRun.weight_change_stats`).
+- `round6_compare.py spec_for`: the stray limit is 10 % of all groups; with an exported job it takes that job's
+  plasticity, fields and protocol, and refuses options model B does not have (L3 to L5, capture, background, ...). For
+  the rerun's jobs these equal the archived session's values used before.
+- `round6_export_engine.py`: per-job parameters, the assembly flags for ordinary jobs, neuron positions
+  (`pos_cells.npy`), several job suffixes per export.
+- `round6_fit_summary.py`: counts with the 10 % limit (a successful final test without a runaway), one summary per job
+  family, first transfers and rollbacks, stop steps and consolidated shares on both sides.
+- Module checks (`test_spiking_group_model.py`, 27, all pass on the pod): BTSP against `GatedPlasticity` (both forms,
+  windows ending in a run and cut by a reset), the route split against `AssocRun.weight_change_stats`, the rollback rule,
+  the runaway step, `spec_for` on the rerun's and the sparse task's params files.
+- Session `round6_review_pod.sh` (exports and model B runs from a list of specs, then the summary); results in
+  `output-round6-review/` (gitignored).
+
+**Admission, rerun with the correction: kappa 0.05 (the protocol's value), no fitted parameter, limit 10 %.**
+
+| | spiking | model B | agreement per pair | 95 % Clopper-Pearson interval of the spiking count |
+|---|---|---|---|---|
+| 7^3 associations (24 pairs) | 15 | 16 | 0.79 | 10 to 19 |
+| 9^3 associations | 17 | 19 | 0.83 | 12 to 21 |
+| 11^3 associations | 6 | 7 | 0.96 | 3 to 11 |
+| 7^3, uniform C2 at 0.9 / at 1.2 | 0 / 0 | 0 / 0 | 1.00 / 1.00 | at most 3 |
+
+- Class fractions: 7^3 all ignition, 9^3 23 ignition and 1 contained, 11^3 22 and 2 (spiking all ignition); within
+  the intervals. The correction does not act before the first transfer (a test has no plasticity, and a joint round
+  that runs away ends the joint rounds either way); the contained pairs at 9^3 and 11^3, where "Step 3" and "Step 4"
+  had none, presumably come from the new builds (the 9^3 build is not reproducible, "Step 4"; 11^3 not checked).
+- Grid size: every count lies within the interval, and the course over the sizes is reproduced (spiking 15, 17, 6;
+  model B 16, 19, 7).
+- Uniform C2: 0 associations, as in the spiking runs.
+
+**Model B is admitted without a fitted parameter.** The 9^3 failure of "Step 3" came from the extra consolidation
+step, not from the stray limit: at the old limit of 34 groups the corrected model gives 13 associations at 9^3 against
+the spiking 11 (agreement 0.75; before the correction 1 to 2), and at 11^3 0 against 0. With `kappa` 0.045 the
+corrected model is further off (7^3: 13 against 15, agreement 0.67; uniform C2 0.9: final strays 68 below the spiking
+ones), so the fit is withdrawn.
+
+**The C2 stage, both implementations** (medians over the pairs; kappa 0.05):
+
+| | first C2 round stopped at step (pairs stopped) | consolidated share of `w_fast`, route / off route | best final strays, model B minus spiking |
+|---|---|---|---|
+| 7^3, spiking / model B | 15 (20) / 15 (20) | 0.262 / 0.084 against 0.241 / 0.071 | -4 |
+| 9^3 | 15 (23) / 15 (21) | 0.263 / 0.077 against 0.240 / 0.059 | -7 |
+| 11^3, seed 0 / seed 1 | 18 (8, 9) / 18 (8, 9) | 0.37, 0.40 / 0.17, 0.18 against 0.35, 0.38 / 0.15, 0.16 | -36, -53 |
+| 7^3, uniform C2 0.9 / 1.2 | 15 (20) / 15 (20) | 0.31495 / 0.53509, both sides | 0 / 0 |
+
+The stop falls in the same step in both. With C2 held uniform the consolidated shares agree to five digits, so with
+the same first-transfer state and stop step the consolidation itself is the same. With activity-dependent C2 model
+B consolidates 5 to 9 % less on the route and 12 to 23 % less off it; since the consolidation agrees when C2 is
+given, the difference presumably lies in the C2 field itself (model B's lattice field against the engine's voxels;
+not checked); at 11^3 its final strays stay below the spiking ones, as in "Step 4".
+
+**Matched uniform C2, model B's prediction** (24 pairs at 7^3, kappa 0.05; the spiking control `rerun5i`, `rerun5j` has
+not run, its job names match, so `round6_fit_summary.py` compares them once it has):
+
+| C2 held at | 0.67 | 0.74 | 0.84 | activity-dependent C2 |
+|---|---|---|---|---|
+| consolidated share of `w_fast`, everywhere | 0.084 | 0.161 | 0.261 | route 0.241, off route 0.071 |
+| associations | 0 | 2 | 1 | 16 |
+
+The levels consolidate the intended amounts (0.08, 0.16, 0.26). In model B, uniform consolidation at the route's
+amount or the off-route amount gives at most 2 associations of 24, against 16 when C2 follows the activity: the
+spatial pattern of C2, not only its amount, makes the associations. The review's rule ("bounded associations at
+some level mean the narrowing is an amount") counts 1 or 2 of 24 as "some"; that reading is the user's call once the
+spiking control has run. With kappa 0.045: 0, 1 and 6.
+
+**Sparse task, the first baselines** (L0 and L1; S3b and S0 at lambda 1.0, d 4; spiking:
+`../sparse-tuning-log.md`, entries 2 and 3; the 7^3 jobs on one network per substrate, as the spiking runs):
+
+| 24 pairs | transfers spiking / model B | associations | joint round runs away (spiking / model B) |
+|---|---|---|---|
+| 7^3 S3b, L0 | 1 / 2 (agreement 0.88) | 0 / 0 | 23 / 22, median in round 5 in both |
+| 7^3 S3b, L1a (BTSP binary) and L1b (continuous) | 0 / 0 each | 0 / 0 | 0 / 0 |
+| 7^3 S0, L0, L1a, L1b | 0 / 0 each | 0 / 0 | 0 / 0 |
+| 9^3 S3b, L0 with the rollback rule | 2 / 0 (agreement 0.92) | 1 / 0 | 0 / 0; rollbacks 100 / 99 in 21 / 21 pairs, exhausted in 17 / 18; median 16 / 15 joint rounds |
+| 9^3 S0, L0 with the rollback rule | 0 / 0 | 0 / 0 | 0 / 0; no rollbacks in either |
+
+Model B reproduces the first baselines of the sparse task: on S3b, L0's joint round runs away at 7^3 in nearly every
+pair, and at 9^3 the rollback rule undoes rounds in the same pairs, as often and with the same exhaustion as in the
+spiking runs; transfers and associations are rare in both (the spiking runs' one 9^3 association consolidated about
+97 % of `w_fast` everywhere). L1 transfers in neither. So model B may now pre-screen variants of L0 and L1 on this
+substrate; it cannot yet judge whether a rule improves on 0 to 2 of 24 pairs, since both sides sit at that floor.
+
+**Open.**
+- The spiking matched-level control (`rerun5i`, `rerun5j`) and its comparison with the prediction above.
+- The learning rules L2 to L6 and the C1 gate forms G1 to G4 of the sparse task in model B; each checked first against
+  its spiking readout or baseline.
+- The engine's 9^3 build is not reproducible from process to process ("Step 4").
+
+Cost: pods `vum2xlobgwozbt` (`rm6r-g7`), `djjpq6tgxiu4ou` (`rm6r-g9`), `adgemcd8bus1m9` and `xiq0g4hxtusw7s`
+(`rm6r-g11s0`, `-g11s1`), `30rdptb2cc9q7l` (`rm6r-sp7`), from 07:21 UTC to 08:22, 08:04, 08:20 and 07:41; RTX PRO
+4500 Blackwell, $0.72/h each. The first launches stopped on a module check (a test's own error, 3 minutes). Pods
+`7rfmiuk0tehuoo` and `m3eloyzapw3dhg` (`rm6r-sp9a`, `-sp9b`, 07:21 to 08:48) were terminated by Runpod at 08:48:27
+with every other pod of the account (audit log, actor `runpod`; the balance was then topped up) before their runs
+had finished, and were rerun as `eocgc0ng4a72pj` and `v2xzxj21xsxxby` (09:37 to 10:09 and 09:56; the S0 session took 12 minutes, the S3b one
+27, against more than 80 unfinished minutes on the first pods, not investigated). About $5.60 in all (estimated); all
+terminated (delete 204). Round 6 after the
+engine fixes: about $13.75; with the two pods before the fixes about $14.05 (the round's limit of about
+$19 is replaced by the whole task's cost cap of $90, `../runpod-assembly-association-task.md`).

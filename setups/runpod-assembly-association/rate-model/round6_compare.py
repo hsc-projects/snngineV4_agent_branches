@@ -135,20 +135,57 @@ def structure_audit(post, isE, grp, bnd, w_eng, w_norm, group_cell, abcd=None, i
 # model B side
 # ---------------------------------------------------------------------------------------------------------------
 
-def spec_for(meta: dict, export_dir: str | None = None, **over):
-    """Model B spec matching an export: grid, size, delays and the exported job's parameters (s71 / s73 sessions
-    share them; SpikeSpec.from_session reads the passing protocol's values)."""
+# stray limit: 10 % of all groups (revision 2, the user's default since the review of 2026-10-31; 34, 72, 133 groups
+# at 7^3, 9^3, 11^3), whatever the exported job used (steps 5 and 6 of the rerun: 34 at every size)
+STRAY_FRAC = 0.1
+# options of the harness that model B does not have: each must be unset (None, False, empty) in a job model B runs
+UNSUPPORTED = (("protocol", "theta1_fall"), ("protocol", "capture"), ("protocol", "c2_after_max_rounds"),
+               ("plasticity", "norm_factor"), ("plasticity", "consolidate_ee_only"), ("plasticity", "track_increase"),
+               ("c1", "uniform"), ("c2", "no_injected"), ("energy", "enabled"), (None, "l5"), (None, "c1_open"),
+               (None, "c1_open_mean"), (None, "c1_open_rise"), (None, "learn_in_c2"), (None, "oracle"), (None, "bg"))
+
+
+def job_settings(p: dict) -> dict:
+    """SpikeSpec fields from an exported job's parameters (run.p): plasticity, fields C1 and C2, protocol."""
+    for sec, k in UNSUPPORTED:
+        v = (p.get(sec) or {}).get(k) if sec else p.get(k)
+        if v:
+            raise ValueError(f"job option {sec + '.' if sec else ''}{k} = {v!r} is not in model B")
+    pl, pr = p["plasticity"], p["protocol"]
+    if pl["rule"] not in ("stdp", "pre_c1", "both", "btsp"):
+        raise ValueError(f"plasticity rule {pl['rule']!r} is not in model B")
+    if pl.get("weight_dep", "mult") != "mult" or not pl.get("pre_post_gate", True):
+        raise ValueError("model B has weight_dep 'mult' and pre_post_gate only")
+    if pr.get("inject_mode", "joint") != "joint" or not pr.get("accept_uncontained", False):
+        raise ValueError("model B runs joint rounds and goes on to the C2 stage after an uncontained transfer only")
+    kw = dict(plasticity_rule=pl["rule"], a_pre=pl["a_pre"], a_plus=pl["a_plus"], a_minus=pl["a_minus"],
+              tau_fast=pl["tau_fast"], kappa=pl["kappa"], theta1=pl["theta1"], soft1=pl["soft1"], theta2=pl["theta2"],
+              soft2=pl["soft2"], btsp=dict(pl["btsp"]) if pl.get("btsp") else None,
+              c1=dict(p["c1"]), c2=dict(p["c2"]), c2_uniform=p["c2"].get("uniform"),
+              max_c1_rounds=pr["max_c1_rounds"], c2_rounds=pr["c2_rounds"], max_extra_c2_rounds=pr["max_extra_c2_rounds"],
+              pair_distance=pr["pair_distance"], accept_uncontained=pr["accept_uncontained"],
+              rollback=dict(pr["rollback"]) if pr.get("rollback") else None)
+    if kw["rollback"] and abs(float(pr["max_active_frac"]) - STRAY_FRAC) > 1e-9:
+        raise ValueError(f"the rollback rule depends on the stray limit: job {pr['max_active_frac']}, model B {STRAY_FRAC}")
+    return kw
+
+
+def spec_for(meta: dict, export_dir: str | None = None, job: int | None = None, **over):
+    """Model B spec matching an export: grid, size, delays, the stray limit STRAY_FRAC and, with `job` (the index in
+    meta["jobs"]), that job's plasticity, fields and protocol (job_settings; its own parameters if the export
+    recorded them per job, else the first job's); without `job`, those of the passing protocol (SpikeSpec.from_session)."""
     from admission_test import SESSION
     from spiking_group_model import SpikeSpec
     dim = int(meta["seg"][0])
     kw = dict(grid_dim=dim, neurons_per_group=meta["N"] / float(meta["G"]), n_delays=int(meta["D"]), syn_scale=1.0,
-              neuron_scale=1.0, export_dir=export_dir)
+              neuron_scale=1.0, export_dir=export_dir, max_active_frac=STRAY_FRAC)
     rewire = meta.get("engine", {}).get("rewire")
     if rewire:
         kw["lam"] = float(rewire["lam"])                 # the export's wiring (the session file has lambda 0.4)
-    if dim > 7:
-        kw["max_active_frac"] = 34 / float(dim ** 3)     # the stray limit 34 at every size (engine-fix rerun, step 6)
     p = meta.get("params", {})
+    if job is not None:
+        p = meta["jobs"][job].get("params") or p
+        kw.update(job_settings(p))
     for k in ("gain_ei_inter", "gain_ie_inter"):         # sparse task S6: facts of the exported network
         if p.get(k) is not None:
             kw[k] = float(p[k])

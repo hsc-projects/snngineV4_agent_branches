@@ -20,7 +20,11 @@ model with the engine's code, not with the model's own formulas:
  8. the activity measure equals GroupActivity.update; protocol determinism and class logic;
  9. (only when torch is importable, i.e. on the pod) the same plasticity, activity and weight comparisons against
     the real classes assoc_plasticity.GatedPlasticity, assoc_fields.GroupActivity and
-    assoc_engine.AssocEngine.typed_weights / set_gains / write_weights.
+    assoc_engine.AssocEngine.typed_weights / set_gains / write_weights;
+10. (round 6, after the review of 2026-10-31) a step that exceeds the runaway limit ends before release, diffusion and
+    plasticity, as in AssocRun.run (source order and model); the rollback rule of the joint rounds; and, with torch,
+    the BTSP rule (L1, plateau gate, both forms, a reset cutting a window) against GatedPlasticity, the route split
+    of weight changes against AssocRun.weight_change_stats, and spec_for's settings from an exported job's parameters.
 
 Run with the venv of this folder: .venv/Scripts/python.exe -m unittest test_spiking_group_model
 """
@@ -519,6 +523,71 @@ class TestActivityAndProtocol(unittest.TestCase):
         self.assertEqual(len(net.inject_idx(100)), 6)
 
 
+class TestRunawayAndRollback(unittest.TestCase):
+    def test_runaway_step_ends_before_release_and_plasticity(self):
+        src = read(os.path.join(PARENT, "assoc_protocol.py"))
+        body = src[src.index("    def run(self"):]
+        body = body[:body.index("\n    def ", 10)]
+        stop, rel, plas = body.index("self.stopped = {"), body.index("self.C2.release("), body.index("self.P.step(")
+        self.assertLess(stop, rel)
+        self.assertLess(stop, plas)
+        self.assertIn("break", body[stop:rel])
+        net = SpikingNetwork(small_spec(), seed=6)
+        net.reset_all()
+        inj = np.concatenate([net.inject_idx(4), net.inject_idx(22)])
+        for _ in range(3):                               # some learning and C2 first
+            net.step(20, True, True, 1.0, True, True, True, inj)
+        F, m, c1, c2, last = net.F.copy(), net.m, net.c1.c.copy(), net.c2.c.copy(), net.last.copy()
+        A, nf = net.step(20, True, True, 1.0, True, True, True, inj, limit=-1.0)    # every step exceeds -1
+        np.testing.assert_array_equal(net.F, F)
+        self.assertEqual(net.m, m)
+        np.testing.assert_array_equal(net.c1.c, c1)
+        np.testing.assert_array_equal(net.c2.c, c2)
+        np.testing.assert_array_equal(net.last, last)
+        self.assertEqual(len(A), net.G)
+
+    def _protocol_with(self, rounds, tests, rollback):
+        """run_pair_protocol with run_round / run_test replaced by scripted results; each round adds 1 to F[0, 0]."""
+        import spiking_group_model as sgm
+        net = SpikingNetwork(small_spec(rollback=rollback), seed=6)
+        net.steps_run = 0                                # set by run(), which the scripted rounds replace
+        seen = []
+
+        def fake_round(n, groups, learn, consolidate, release1, release2, c2_uniform=None):
+            seen.append(n.rate_scale)
+            n.F[0, 0] += F32(1.0) / F32(n.m)
+            return {"gmax": np.zeros(n.G), "spikes": 0, "stopped": rounds.pop(0)}
+
+        def fake_test(n, src, dst, mode, exclude):
+            ok, bounded = tests.pop(0)
+            return {"src_max": 1.0, "dst_max": 1.0 if ok else 0.0, "success": ok, "n_active_outside": 0 if bounded else 99,
+                    "n_above_inactive_outside": 0, "bounded": bounded, "spikes": 0, "runaway": None}
+
+        old = sgm.run_round, sgm.run_test
+        sgm.run_round, sgm.run_test = fake_round, fake_test
+        try:
+            out = run_pair_protocol(net, 3, 21, c2_stage=False, control0=False)
+        finally:
+            sgm.run_round, sgm.run_test = old
+        return net, out, seen
+
+    def test_rollback_undoes_rounds_and_lowers_rates(self):
+        stop = {"step": 3, "spikes": 9, "fraction": 0.6}
+        net, out, seen = self._protocol_with([stop, None, None], [(True, False), (True, True)],
+                                             {"factor": 0.5, "min_scale": 0.0625})
+        self.assertEqual(out["c1_rounds"], 3)
+        self.assertEqual(out["rollback"], {"n": 2, "exhausted": False, "final_scale": 0.25})
+        self.assertEqual(seen, [1.0, 0.5, 0.25])
+        self.assertAlmostEqual(float(net.F[0, 0] * net.m), 1.0, places=5)     # the first two rounds were undone
+        self.assertEqual(net.rate_scale, 1.0)
+        self.assertEqual(out["class"], "contained")
+        net, out, seen = self._protocol_with([None] * 3, [(False, False)] * 3, {"factor": 0.5, "min_scale": 0.25})
+        self.assertEqual(out["rollback"], {"n": 3, "exhausted": True, "final_scale": 0.25})
+        self.assertEqual((out["class"], out["c1_rounds"]), ("none", 3))
+        net, out, seen = self._protocol_with([None, None], [(False, False), (True, False)], None)
+        self.assertEqual((out["class"], out["rollback"]), ("ignition", None))     # without the rule: no undo
+
+
 try:
     import torch
 except Exception:                                    # host: torch is not installed
@@ -556,6 +625,100 @@ class TestAgainstRealEngineClasses(unittest.TestCase):
             P.step(sp, t, c1, c2, learn=(t < T_learn), consolidate=(t >= T_learn))
         np.testing.assert_allclose(P.w_fast.numpy().T, net.F.astype(np.float64) * net.m, atol=3e-6)
         np.testing.assert_allclose(P.w_perm.numpy().T, net.wp, atol=3e-6)
+
+    def _btsp_pair(self, form: str, once: bool):
+        """Model B and GatedPlasticity with rule "btsp" on the same spike raster; plateau_rate 1 (every free neuron has
+        an event) and, for the binary form, rate_scale 2 (every active synapse flips) make both deterministic."""
+        sys.path.insert(0, PARENT)
+        from assoc_plasticity import GatedPlasticity
+        b = {"gate": "plateau", "form": form, "window": 30, "before": 20, "plateau_rate": 1.0, "once": once, "rate": 0.5}
+        spec = small_spec(syn_scale=0.06, neuron_scale=0.3, plasticity_rule="btsp", btsp=b)
+        net = SpikingNetwork(spec, seed=5)
+        net.reset_all()
+        n_rep = torch.as_tensor(net.post.T.astype(np.int64))
+        delay = torch.as_tensor(net.delay.T.astype(np.int64))
+        P = GatedPlasticity(n_rep, delay, torch.as_tensor(net.isE), torch.as_tensor(net.wp0.T.copy()), net.D,
+                            tau_fast=spec.tau_fast, theta1=spec.theta1, theta2=spec.theta2,
+                            fixed=torch.as_tensor((net.kind == KIND_EE_INTRA).T.copy()), rule="btsp", btsp=b)
+        scale = 2.0 if form == "binary" else 1.0
+        net.rate_scale = P.rate_scale = scale
+        return net, P
+
+    def _drive(self, net, P, steps, inj_all):
+        c = torch.zeros(net.N)
+        for t in range(1, steps + 1):
+            net.step(20, learn=True, consolidate=False, fmult=1.0, release1=False, release2=False, chem=False,
+                     inj=inj_all if t <= 25 else None)
+            sp = torch.zeros(net.N, dtype=torch.bool)
+            sp[torch.as_tensor(net.recent[0])] = True
+            P.step(sp, t, c, c, learn=True, consolidate=False)
+
+    def test_btsp_equals_real_class(self):
+        for form, once in (("binary", True), ("continuous", True), ("binary", False), ("continuous", False)):
+            net, P = self._btsp_pair(form, once)
+            inj_all = np.concatenate([net.inject_idx(4), net.inject_idx(22)])
+            net.reset_dynamics()
+            self._drive(net, P, 24, inj_all)           # the windows of step 1 end at step 11, the next (once False) at 22
+            np.testing.assert_allclose(P.w_fast.numpy().T, net.F.astype(np.float64) * net.m, atol=3e-6,
+                                       err_msg=f"{form}, once {once}: windows ending in the run")
+            self.assertGreater(float(P.w_fast.abs().max()), 1e-3)
+            net.reset_dynamics()                       # cuts the windows opened at step 23 (once False)
+            P.reset_spike_state()
+            np.testing.assert_allclose(P.w_fast.numpy().T, net.F.astype(np.float64) * net.m, atol=3e-6,
+                                       err_msg=f"{form}, once {once}: windows cut by a reset")
+            np.testing.assert_array_equal(P.ev_done.numpy(), net.ev_done)
+
+    def test_route_split_equals_weight_change_stats(self):
+        sys.path.insert(0, PARENT)
+        from types import SimpleNamespace
+        from assoc_protocol import AssocRun
+        from spiking_group_model import route_mask, split_sums
+        net = SpikingNetwork(small_spec(syn_scale=0.06, neuron_scale=0.3), seed=2)
+        rng = np.random.default_rng(0)
+        net.pos_cells = (net.coords[net.grp] + rng.random((net.N, 3))).astype(np.float32)
+        dw = np.where(rng.random(net.post.shape) < 0.3, rng.normal(0.0, 0.01, net.post.shape), 0.0).astype(np.float32)
+        a, b = 1, 25
+        eng = SimpleNamespace(pos=torch.as_tensor(net.pos_cells * 2.0), cell_size=2.0, device=torch.device("cpu"),
+                              group_cell=torch.as_tensor(net.coords), exc=torch.as_tensor(net.isE))
+        fake = SimpleNamespace(eng=eng, P=SimpleNamespace(valid=torch.ones(net.S, net.N, dtype=torch.bool),
+                                                          post=torch.as_tensor(net.post.T.astype(np.int64))))
+        ref = AssocRun.weight_change_stats(fake, torch.zeros(net.S, net.N), torch.as_tensor(dw.T.copy()), a, b)["split"]
+        got = split_sums(net, route_mask(net, a, b, rows=7), lambda r0, r1: dw[r0:r1], rows=7)
+        for band in ("on_line", "off_line"):
+            self.assertAlmostEqual(got[band], ref[band]["post_exc"], places=3)
+        self.assertNotEqual(ref["on_line"]["post_exc"], 0.0)
+
+    def test_spec_for_takes_the_exported_jobs_settings(self):
+        sys.path.insert(0, PARENT)
+        from assoc_protocol import DEFAULTS
+        from round6_compare import spec_for, STRAY_FRAC
+        from round6_export_engine import merge
+
+        def meta_of(params_file, i=0):
+            spec = json.loads(read(os.path.join(PARENT, "params", params_file)))
+            p = merge(merge(DEFAULTS, spec.get("defaults", {})), spec["jobs"][i]["params"])
+            eng = merge(spec["engine"], spec["jobs"][i].get("engine", {}))
+            dim = 9 if eng["n_neurons"] == 42500 else 7
+            return {"seg": [dim] * 3, "N": eng["n_neurons"], "G": dim ** 3, "D": 16 if dim == 9 else 13,
+                    "engine": eng, "params": p, "jobs": [{"params": p}]}
+
+        m = meta_of("rerun5e-proto-lam0.4-s0.json")
+        new, old = spec_for(m, job=0, gain_ee_inter=2.4), spec_for(m, gain_ee_inter=2.4)
+        for k in ("plasticity_rule", "a_pre", "a_plus", "a_minus", "tau_fast", "kappa", "theta1", "soft1", "theta2",
+                  "soft2", "max_c1_rounds", "c2_rounds", "max_extra_c2_rounds", "pair_distance", "max_active_frac"):
+            self.assertEqual(getattr(new, k), getattr(old, k), k)       # the earlier runs' settings are the job's
+        for k in ("gain", "k", "decay", "saturation"):
+            self.assertEqual(new.c1.get(k), old.c1.get(k))
+            self.assertEqual(new.c2.get(k), old.c2.get(k))
+        self.assertEqual((new.max_active_frac, new.stray_limit), (STRAY_FRAC, 34))
+        s = spec_for(meta_of("sparse3m-L0rb-s3b-g9-p0-5.json"), job=0)
+        self.assertEqual((s.rollback, s.stray_limit, s.gain_ie_inter), ({"factor": 0.5, "min_scale": 0.0625}, 72, 0.5))
+        s = spec_for(meta_of("sparse3e-L1b-s3b-p0-11.json"), job=0)
+        self.assertEqual((s.plasticity_rule, s.btsp["form"], s.c1["decay"]), ("btsp", "continuous", 0.0011))
+        bad = meta_of("rerun5e-proto-lam0.4-s0.json")
+        bad["jobs"][0]["params"]["protocol"]["theta1_fall"] = 0.1
+        with self.assertRaises(ValueError):
+            spec_for(bad, job=0, gain_ee_inter=2.4)
 
     def test_group_activity_equals_real_class(self):
         sys.path.insert(0, PARENT)

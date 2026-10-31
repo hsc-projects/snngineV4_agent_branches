@@ -29,6 +29,12 @@ Free parameters (at most three, named; the defaults are 1, i.e. the derived valu
 (common factor on the engine weight of the plastic synapses E->E between groups), `learn_scale` (common
 factor on a_pre, a_plus and a_minus), `w_inh_scale` (factor on I->E). See the report for which were used.
 
+Round 6 (after the review of 2026-10-31): a step in which more than runaway_frac * N neurons fire ends a phase
+before its release, diffusion and plasticity, as AssocRun.run breaks there (before, model B still released C2 and
+consolidated in that step); the protocol's rollback rule; the BTSP rule L1 (plateau gate, binary and continuous
+forms; random streams of its own, so it matches the harness in distribution, not event by event); per pair, the
+consolidated share of w_fast on and off the route (with the exported neuron positions) and each C2 round's stop step.
+
 Requires numpy (see the .venv in this folder). The spiking code (torch, CUDA) is not imported.
 """
 
@@ -51,6 +57,9 @@ from rate_model import (DERIVED, Spec, ChemicalFieldLattice, gate, path_groups, 
 KIND_EE, KIND_EE_INTRA, KIND_EI, KIND_IE, KIND_EI_INTER, KIND_II, KIND_IE_INTER = 0, 1, 2, 3, 4, 5, 6
 PLASTIC_LUT = np.array([True, False, True, False, True, False, False])   # KIND_II: only in exported engine networks (round 6)
 W_LO, W_HI = 0.05, 1.0
+# assoc_plasticity.GatedPlasticity's defaults of the BTSP rule (L1, L2)
+BTSP_DEFAULTS = {"gate": "plateau", "form": "binary", "window": 200, "before": 133, "plateau_rate": 1e-4,
+                 "once": True, "rate": 0.5, "seed": 0}
 
 
 @dataclass
@@ -75,6 +84,10 @@ class SpikeSpec(Spec):
     # exported networks only (round 6 step 4)
     gain_ei_inter: float = 1.0
     gain_ie_inter: float = 1.0
+    # sparse task, Substep 3 (round 6, after the review of 2026-10-31): the protocol's rollback rule (protocol.rollback,
+    # e.g. {"factor": 0.5, "min_scale": 0.0625}) and the options of plasticity_rule "btsp" (L1; plasticity.btsp)
+    rollback: Optional[dict] = None
+    btsp: Optional[dict] = None
 
     @property
     def S_red(self) -> int:
@@ -212,6 +225,9 @@ class SpikingNetwork:
         self.spike_acc = None                    # optional (N,) spike counter, incremented by run() (AssocRun.spike_acc)
         self.input_acc = None                    # optional (N,) summed unclamped synaptic input per step (AssocRun.input_acc)
         self.lo2 = self.hi2 = None               # per-synapse plasticity bounds (N, S), only for heavy-tailed weights
+        self.pos_cells = None                    # (N, 3) neuron positions in cell units (exports with pos_cells.npy)
+        self.rate_scale = 1.0                    # learning-rate scale; the rollback rule lowers it (GatedPlasticity.rate_scale)
+        self.btsp = None
         if s.export_dir:
             self._load_export(s.export_dir)
             N = self.N
@@ -227,6 +243,8 @@ class SpikingNetwork:
         self.release_scale = 1.0 / (N / float(s.N))
         self.fast_decay = math.exp(-1.0 / s.tau_fast) if s.tau_fast > 0 else 0.0
         self._rev = None
+        if s.plasticity_rule == "btsp":
+            self._btsp_init()
         self.reset_plasticity()
         self.reset_dynamics()
 
@@ -346,6 +364,8 @@ class SpikingNetwork:
         self.delay_f = self.delay.reshape(-1)
         self.wp_f, self.F_f = self.wp.reshape(-1), self.F.reshape(-1)
         self.touched_f = self.touched.reshape(-1)
+        if os.path.exists(os.path.join(path, "pos_cells.npy")):
+            self.pos_cells = ld("pos_cells").astype(F32)
         self.export_meta = meta
 
     def set_injection(self, g: int, idx: np.ndarray):
@@ -455,8 +475,19 @@ class SpikingNetwork:
         self._tid_cache, self._tid_key = None, -1
         self.c1.reset()
         self.c2.reset()
+        self.rate_scale = 1.0
+        if self.btsp is not None:
+            self.ev_done.fill(False)
+            self.ev_eval.fill(-1)
 
     def reset_dynamics(self):
+        if self.btsp is not None:
+            # GatedPlasticity.reset_spike_state: pending events are evaluated on the part of their window that ran,
+            # before the spike times are cleared; ev_done persists
+            pend = np.flatnonzero(self.ev_eval >= 0)
+            if len(pend):
+                self._btsp_apply(pend, None)
+            self._btsp_clear()
         self.neurons.set_state(*self.init_state)
         self.I = np.zeros(self.N, dtype=F32)
         self.recent = [np.empty(0, dtype=np.int64) for _ in range(self.D + self.spec.delay_offset)]
@@ -558,7 +589,9 @@ class SpikingNetwork:
         return self.Acount / np.maximum(self.nE, 1)
 
     def step(self, window: int, learn: bool, consolidate: bool, fmult: float, release1: bool, release2: bool,
-             chem: bool, inj: Optional[np.ndarray], c2_uniform: Optional[float] = None):
+             chem: bool, inj: Optional[np.ndarray], c2_uniform: Optional[float] = None, limit: Optional[float] = None):
+        """One step. With `limit`, a step with more spikes ends after the activity update, as AssocRun.run stops a
+        phase: no release, diffusion or plasticity in it (the spikes and A_g of the step still count)."""
         sp = self.spec
         fired = self.neurons.step(self.I)
         # time index of this step's spikes
@@ -572,6 +605,8 @@ class SpikingNetwork:
             self.input_acc += self.last_input_raw             # synaptic input only: before clamp and injection
         A = self._activity_update(fired, window)
         n_fired = len(fired)
+        if limit is not None and n_fired > limit:
+            return A, n_fired
         if chem and (release1 or release2 or self.c1.c.any() or self.c2.c.any()):
             spk = np.bincount(self.grp[fired], minlength=self.G).astype(np.float64) * self.release_scale if n_fired else np.zeros(self.G)
             if release1:
@@ -599,7 +634,7 @@ class SpikingNetwork:
 
     def _plasticity(self, fired, ids, lags, learn: bool, consolidate: bool):
         s = self.spec
-        ls = s.learn_scale
+        ls = s.learn_scale * self.rate_scale
         a_plus, a_minus, a_pre = s.a_plus * ls, s.a_minus * ls, s.a_pre * ls
         k, D, S = self.k, self.D, self.S
         g1grp = self._gate_groups()
@@ -668,6 +703,8 @@ class SpikingNetwork:
                     self.F[fe] += np.where(pl, g / m, 0.0).astype(F32)
                     self.touched[fe] |= pl
                     self._touch_ver += 1
+            if s.plasticity_rule == "btsp":
+                self._btsp_step(fired)
         if learn or consolidate:
             if consolidate:
                 g12 = g1grp * gate(self.c2.flat(), s.theta2, s.soft2)
@@ -690,6 +727,119 @@ class SpikingNetwork:
             self._tid_cache, self._tid_key = ids[PLASTIC_LUT[self.kind_f[ids]]], self._touch_ver
         return self._tid_cache
 
+    # -- BTSP, L1 (assoc_plasticity.GatedPlasticity.btsp_step, _btsp_apply), plateau gate --------------------------
+    def _btsp_init(self):
+        b = dict(BTSP_DEFAULTS)
+        b.update(self.spec.btsp or {})
+        if b["gate"] != "plateau" or b["form"] not in ("binary", "continuous"):
+            raise ValueError(f"btsp gate {b['gate']!r}, form {b['form']!r}: model B has the plateau gate and both forms only")
+        self.btsp = b
+        self.rng_btsp = np.random.default_rng(self.seed + 104729 + int(b["seed"]))   # events and flips: own stream
+        self.btsp_after = int(b["window"]) - int(b["before"])
+        self.dec_p = F32(math.exp(-3.0 / float(b["before"])))
+        self.dec_d = F32(math.exp(-1.5 / float(b["before"])))
+        self.dec_g = F32(math.exp(-3.0 / float(max(self.btsp_after, 1))))
+        N = self.N
+        self.ev_eval = np.full(N, -1, dtype=np.int64)       # evaluation step of a pending event, -1: none
+        self.ev_time = np.full(N, -1, dtype=np.int64)       # event step
+        self.ev_done = np.zeros(N, dtype=bool)
+        self._btsp_clear()
+
+    def _btsp_clear(self):
+        """Traces and pending windows end (a reset of the spike state)."""
+        N = self.N
+        self.ev_eval.fill(-1)
+        self.xp = np.zeros(N, dtype=F32)                    # presynaptic traces (potentiation, depression)
+        self.xd = np.zeros(N, dtype=F32)
+        self.gtr = np.zeros(N, dtype=F32)                   # gate trace from the event
+        # continuous form: the overlaps Ip, Id of the plastic synapses onto neurons with a pending event
+        # (GatedPlasticity keeps them for every synapse; only these are ever applied)
+        self.pend_ids = np.zeros(0, dtype=np.int64)
+        self.pend_pre = np.zeros(0, dtype=np.int64)
+        self.pend_post = np.zeros(0, dtype=np.int64)
+        self.Ip = np.zeros(0, dtype=F32)
+        self.Id = np.zeros(0, dtype=F32)
+
+    def _incoming_plastic(self, posts: np.ndarray) -> np.ndarray:
+        """Flat ids of the plastic synapses onto neurons `posts`."""
+        order, ptr = self.reverse_index()
+        lo, hi = ptr[posts], ptr[posts + 1]
+        cnt = hi - lo
+        tot = int(cnt.sum())
+        if tot == 0:
+            return np.zeros(0, dtype=np.int64)
+        csum = np.cumsum(cnt)
+        ids = order[np.repeat(lo - (csum - cnt), cnt) + np.arange(tot)]
+        return ids[PLASTIC_LUT[self.kind_f[ids]]]
+
+    def _btsp_step(self, fired: np.ndarray):
+        b, k = self.btsp, self.k
+        self.xp *= self.dec_p
+        self.xd *= self.dec_d
+        if len(fired):
+            self.xp[fired] += F32(1.0)
+            self.xd[fired] += F32(1.0)
+        free = self.ev_eval < 0
+        if b["once"]:
+            free &= ~self.ev_done
+        new = np.flatnonzero(free & (self.rng_btsp.random(self.N) < float(b["plateau_rate"])))
+        if len(new):
+            self.ev_eval[new] = k + self.btsp_after
+            self.ev_time[new] = k
+            self.ev_done[new] = True
+            self.gtr[new] = F32(1.0)
+            if b["form"] == "continuous":
+                ids = self._incoming_plastic(new)
+                self.pend_ids = np.concatenate([self.pend_ids, ids])
+                self.pend_pre = np.concatenate([self.pend_pre, ids // self.S])
+                self.pend_post = np.concatenate([self.pend_post, self.post_f[ids].astype(np.int64)])
+                self.Ip = np.concatenate([self.Ip, np.zeros(len(ids), dtype=F32)])
+                self.Id = np.concatenate([self.Id, np.zeros(len(ids), dtype=F32)])
+        if b["form"] == "continuous" and len(self.pend_ids):
+            g = self.gtr[self.pend_post]
+            self.Ip += g * self.xp[self.pend_pre]
+            self.Id += g * self.xd[self.pend_pre]
+        self.gtr *= self.dec_g
+        due = np.flatnonzero(self.ev_eval == k)
+        if len(due):
+            self._btsp_apply(due, fired)
+
+    def _btsp_apply(self, due: np.ndarray, fired: Optional[np.ndarray]):
+        """The weight change of the events of neurons `due`, whose windows end now (fired: this step's spikes) or are cut
+        by a reset (fired None)."""
+        b = self.btsp
+        if b["form"] == "binary":
+            ids = self._incoming_plastic(due)
+            pre = ids // self.S
+            lp = self.last[pre]
+            if fired is not None and len(fired):
+                now = np.zeros(self.N, dtype=bool)
+                now[fired] = True
+                lp = np.where(now[pre], self.k, lp)
+            ids = ids[lp >= self.ev_time[self.post_f[ids]] - int(b["before"])]
+            ids = ids[self.rng_btsp.random(len(ids)) < 0.5 * self.rate_scale]
+            w = self.effective_normalized(ids)
+            lo = F32(W_LO) if self.lo_f is None else self.lo_f[ids]
+            hi = F32(W_HI) if self.hi_f is None else self.hi_f[ids]
+            new_w = np.where(w >= F32(0.5) * (lo + hi), lo, hi)
+        else:
+            sel = np.isin(self.pend_post, due)
+            ids, Ip, Id = self.pend_ids[sel], self.Ip[sel], self.Id[sel]
+            keep = ~sel
+            self.pend_ids, self.pend_pre, self.pend_post = self.pend_ids[keep], self.pend_pre[keep], self.pend_post[keep]
+            self.Ip, self.Id = self.Ip[keep], self.Id[keep]
+            tot = Ip + Id
+            ok = tot > F32(1e-9)
+            ids, Ip, tot = ids[ok], Ip[ok], tot[ok]
+            w = self.effective_normalized(ids)
+            target = self._bound(ids) * Ip / tot
+            new_w = self._clip(w + F32(float(b["rate"]) * self.rate_scale) * (target - w), ids)
+        if len(ids):
+            self.F_f[ids] += ((new_w - w) / F32(self.m)).astype(F32)
+            self.touched_f[ids] = True
+            self._touch_ver += 1
+        self.ev_eval[due] = -1
+
     # -- a phase of the protocol (AssocRun.run) ----------------------------------------------------------------------
     def run(self, steps: int, inject: List[np.ndarray] = (), inject_steps: Optional[int] = None, learn=False,
             consolidate=False, release1=False, release2=False, chem=True, fmult: float = 1.0,
@@ -707,7 +857,7 @@ class SpikingNetwork:
         steps_done = 0
         for i in range(steps):
             A, nf = self.step(s.window, learn, consolidate, fmult, release1, release2, chem,
-                              inj_all if (inj_all is not None and i < inj_n) else None, c2_uniform)
+                              inj_all if (inj_all is not None and i < inj_n) else None, c2_uniform, limit)
             steps_done += 1
             np.maximum(gmax, A, out=gmax)
             n_spikes += nf
@@ -721,6 +871,37 @@ class SpikingNetwork:
 # ------------------------------------------------------------------------------------------------------
 # Protocol (assoc_protocol.py: AssocRun.test, protocol_body), as in rate_model.run_pair_protocol
 # ------------------------------------------------------------------------------------------------------
+
+def route_mask(net: SpikingNetwork, a: int, b: int, rows: int = 2048) -> Optional[np.ndarray]:
+    """(N, S) True where a synapse's midpoint (between its neurons' positions) lies within one cell of segment A-B
+    (AssocRun.weight_change_stats, "on_line"); None without neuron positions (pos_cells.npy)."""
+    if net.pos_cells is None:
+        return None
+    pos = net.pos_cells
+    pa, pb = net.coords[a] + 0.5, net.coords[b] + 0.5
+    ab = (pb - pa).astype(F32)
+    L = max(float(ab @ ab), 1e-9)
+    out = np.empty(net.post.shape, dtype=bool)
+    for r0 in range(0, net.N, rows):
+        r1 = min(net.N, r0 + rows)
+        mid = F32(0.5) * (pos[r0:r1, None, :] + pos[net.post[r0:r1]]) - pa.astype(F32)
+        t = np.clip((mid @ ab) / F32(L), 0.0, 1.0)
+        out[r0:r1] = np.linalg.norm(mid - t[..., None] * ab, axis=2) < 1.0
+    return out
+
+
+def split_sums(net: SpikingNetwork, on: np.ndarray, values, rows: int = 2048, eps: float = 1e-6) -> dict:
+    """Summed change of the synapses onto excitatory neurons, on and off the route (route_mask), counting changes
+    above eps (weight_change_stats: split, post_exc). values(r0, r1): the (r1 - r0, S) changes of those rows."""
+    s_on = s_off = 0.0
+    for r0 in range(0, net.N, rows):
+        r1 = min(net.N, r0 + rows)
+        v = values(r0, r1)
+        m = (np.abs(v) > eps) & net.isE[net.post[r0:r1]]
+        s_on += float(v[m & on[r0:r1]].sum(dtype=np.float64))
+        s_off += float(v[m & ~on[r0:r1]].sum(dtype=np.float64))
+    return {"on_line": s_on, "off_line": s_off}
+
 
 def run_test(net: SpikingNetwork, src: int, dst: int, mode: str, exclude: List[int]) -> dict:
     """Inject into src alone, everything frozen; B must reach A_g >= active within the window (AssocRun.test)."""
@@ -754,7 +935,8 @@ def run_pair_protocol(net: SpikingNetwork, a: int, b: int, c2_stage: bool = True
     test of A alone on w_perm + w_fast after each round, until the first transfer (B active) or
     max_c1_rounds; then, if c2_stage, the short-circuit stage (consolidation of w_fast under C2, no new learning)
     and the final strict tests. Class by the first transfer: 'contained' (at most the stray limit of groups
-    active outside A, B and the route), 'ignition' (more, or a runaway), or 'none'.
+    active outside A, B and the route), 'ignition' (more, or a runaway), or 'none'. With spec.rollback, a joint
+    round that runs away or whose test is not bounded is undone and repeated at lower learning rates (assoc_protocol).
     """
     s = net.spec
     net.reset_all()
@@ -764,9 +946,35 @@ def run_pair_protocol(net: SpikingNetwork, a: int, b: int, c2_stage: bool = True
     if control0:
         out["control0"] = {"A_to_B": run_test(net, a, b, "perm", path), "B_to_A": run_test(net, b, a, "perm", path)}
     rounds, first, runaway_round = 0, None, None
+    rb = s.rollback
+    n_rb, rb_exhausted = 0, False
+
+    def roll_back(saved) -> bool:
+        """The rollback rule: undo the last joint round (w_fast restored) and lower the learning rates; False once
+        below min_scale (assoc_protocol, roll_back)."""
+        nonlocal n_rb, rb_exhausted
+        np.copyto(net.F, saved[0])
+        net.m = saved[1]
+        net._touch_ver += 1
+        n_rb += 1
+        scale = net.rate_scale * float(rb.get("factor", 0.5))
+        if scale < float(rb.get("min_scale", 1.0 / 16)) - 1e-12:
+            rb_exhausted = True
+            return False
+        net.rate_scale = scale
+        return True
+
     while rounds < s.max_c1_rounds:
+        saved = (net.F.copy(), net.m) if rb else None
         res = run_round(net, [a, b], learn=True, consolidate=False, release1=True, release2=False)
         rounds += 1
+        if res["stopped"] is not None and rb:     # the training round ran away: undo it
+            if trace is not None:
+                trace.append({"round": rounds, "runaway_in_training": True, "rolled_back": True,
+                              "scale": net.rate_scale, "spikes": res["spikes"]})
+            if roll_back(saved):
+                continue
+            break
         if res["stopped"] is not None:      # the training round itself ran away: stop before consolidation
             runaway_round = rounds
             if trace is not None:
@@ -782,11 +990,20 @@ def run_pair_protocol(net: SpikingNetwork, a: int, b: int, c2_stage: bool = True
                           "test_src_max": t["src_max"], "test_dst_max": t["dst_max"], "test_out": t["n_active_outside"],
                           "test_above_inactive": t["n_above_inactive_outside"], "test_spikes": t["spikes"],
                           "w_fast_abs_mean": float(np.abs(net.F).mean() * abs(net.m))})
+        if rb:
+            if trace is not None:
+                trace[-1].update(scale=net.rate_scale, rolled_back=not t["bounded"])
+            if not t["bounded"]:            # A alone ignites beyond the stray limit: undo the round
+                if roll_back(saved):
+                    continue
+                break
         if t["success"]:
             first = t
             break
     out["c1_rounds"] = rounds
     out["runaway_round"] = runaway_round
+    out["rollback"] = {"n": n_rb, "exhausted": rb_exhausted, "final_scale": net.rate_scale} if rb else None
+    net.rate_scale = 1.0
     if first is None:
         out["class"] = "none"
         out["strays"] = None
@@ -797,12 +1014,17 @@ def run_pair_protocol(net: SpikingNetwork, a: int, b: int, c2_stage: bool = True
     out["strays"] = first["n_active_outside"]
     out["first_transfer"] = first
     if c2_stage:
+        on = route_mask(net, a, b)
+        if on is not None:
+            fast = split_sums(net, on, lambda r0, r1: net.F[r0:r1] * F32(net.m))
         n_c2, final = 0, None
         limit = s.c2_rounds + s.max_extra_c2_rounds
+        out["c2_stops"] = []                # per C2 round, the step at which the runaway stop ended it (None: ran out)
         while n_c2 < limit:
             res = run_round(net, [a, b], learn=False, consolidate=True, release1=True, release2=True,
                             c2_uniform=s.c2_uniform)
             n_c2 += 1
+            out["c2_stops"].append(None if res["stopped"] is None else int(res["stopped"]["step"]))
             if res["stopped"] is not None:
                 out["c2_runaway_round"] = n_c2
                 break
@@ -813,6 +1035,12 @@ def run_pair_protocol(net: SpikingNetwork, a: int, b: int, c2_stage: bool = True
         if final is None:
             final = {"A_to_B": run_test(net, a, b, "perm", path), "B_to_A": run_test(net, b, a, "perm", path)}
         out["c2_rounds"] = n_c2
+        if on is not None:
+            perm = split_sums(net, on, lambda r0, r1: net.wp[r0:r1] - net.wp0[r0:r1])
+            out["consolidated"] = {
+                "w_fast_after_c1": fast, "w_perm_change": perm,
+                "share_route": perm["on_line"] / fast["on_line"] if fast["on_line"] else None,
+                "share_off_route": perm["off_line"] / fast["off_line"] if fast["off_line"] else None}
         out["final"] = final
         out["association"] = bool(any(final[d]["success"] and final[d]["bounded"] for d in ("A_to_B", "B_to_A")))
     out["seconds"] = time.perf_counter() - t0
