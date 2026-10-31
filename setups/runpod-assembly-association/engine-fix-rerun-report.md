@@ -1,7 +1,7 @@
 # Report: assembly association on the corrected engine
 
 Report of `engine-fix-rerun-task.md`: one section per step; the sessions are in `engine-fix-rerun-log.md`. At the
-end, conclusions A1 to A8 of the task, each as holds, changes or falls. The wiring decisions that steps 2 to 5
+end, conclusions A1 to A8 of the task, each as holds, changes or falls; all eight are decided. The wiring decisions that steps 2 to 5
 left to the user are recorded in revision 8 of `runpod-assembly-association-task.md`; the sparse task's decisions
 after step 7 in `sparse-assemblies-task.md`, "Rules".
 
@@ -252,6 +252,16 @@ SP3 crash in another configuration. The user chose S3b with I -> E 0.5 for Subst
 a gate and then at 10 lambda, rules that do not need the route middle to fire first (`sparse-assemblies-task.md`,
 "Rules"). Cost about $0.33; rerun so far about $6.00.
 
+## Step 8: rate model (2026-10-30 and 31; `rate-model/round6-report.md`, "Step 3")
+
+Run by the rate-model session on the rerun's own networks and settings (steps 5 and 6: 7^3 and 9^3, d 4,
+rewiring at lambda 0.4) instead of ground-truth files. Without fitted parameters model B is not admitted (9^3:
+1 to 2 associations against 11). With one fitted parameter, the consolidation rate `kappa` 0.045 (the protocol's
+0.05 x 0.9, fitted on seed 0's pairs), it is: 17 and 8 associations of 24 against the spiking 15 and 11, both
+within the spiking 95 % intervals, the decrease from 7^3 to 9^3 reproduced, held-out pairs (seed 1) with Cohen's
+kappa 0.83 and 0.82, and the uniform-C2 control at 0 against 0. Not covered: 11^3 and the engine's own wiring;
+round 6 step 4 (a check on the sparse substrate) is open there.
+
 ## Conclusions A1 to A8
 
 | | conclusion on the faulty engine | outcome | decided in |
@@ -263,4 +273,4 @@ a gate and then at 10 lambda, rules that do not need the route middle to fire fi
 | A5 | the ignitions are a finite-size effect | falls: every transfer at d 4 ignites at 7^3, 9^3 and 11^3 (about 180, 420 and 850 strays) | step 6 |
 | A6 | archived items 2, 3, 6 and 13 | changes: 15 of 24 pairs associate at 7^3 (lambda 0.4), C2's narrowing carries spatial information (uniform C2: 0 of 24); item 3 holds, items 6 and 13 fall | step 5 |
 | A7 | 60 to 100 times more inhibition than excitation, no substrate sums, the sparse task stops | changes: 200 to 350 times; S3b sums at 4 lambda, twice as strongly with inter-group I -> E gain 0.5, not beyond; the stop rule does not apply | step 7 |
-| A8 | the rate model over-propagates, neither model admitted | open: model B with the configured composition is not admitted without fitted parameters (9^3: 1 association of 24 against 11, `rate-model/round6-report.md`, "Step 3"); the fit of up to three learning parameters is still running | step 8 |
+| A8 | the rate model over-propagates, neither model admitted | changes: model B with the configured composition no longer over-propagates; without fitted parameters it under-associates at 9^3 (1 to 2 of 24 against 11), with `kappa` 0.045 it is admitted at 7^3 and 9^3, d 4, lambda 0.4 | step 8 |

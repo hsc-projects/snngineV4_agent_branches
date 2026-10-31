@@ -109,9 +109,9 @@ strengthening of ordinary neurons confined to the route, and the chemical fields
 - **Screening:** each variant first runs on 24 pairs (one seed) without controls; only the best one or
   two per family (S, L, K, E) get a full decision (48 pairs, all controls). The baselines S0, L0, K0
   and E0 are one shared run. (Iteration 65: 48 jobs cost about $0.8, so a full decision with two
-  controls, about 144 jobs, costs about $2.4.) The rate model of `rate-model/` has not passed its
-  admission test (rounds 1 to 5; round 6 step 3 on the fixed engine); it may narrow parameter ranges before screening only if a later
-  round passes.
+  controls, about 144 jobs, costs about $2.4.) The rate model of `rate-model/` passed its admission
+  test in round 6 step 3 (model B with `kappa` 0.045, on the dense layout at d 4, lambda 0.4); it may narrow
+  parameter ranges before screening only after its check on the sparse substrate (round 6 step 4) passes.
 - **Distance relative to the connection range** (predecessor decision): distances are stated in
   units of lambda (d 4 at lambda 0.4 is 10 lambda), and each pair's number of direct A -> B synapses
   is recorded. Associations at different lambda are compared at equal d / lambda; 11 x 11 x 11
